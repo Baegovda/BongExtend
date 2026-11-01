@@ -1,6 +1,6 @@
-# Fresh-machine check for BongDC. Prints missing tools, MCP configs, and tokens.
-# Exits non-zero only when bun install, build, or zip fails.
-# Never prints secret values. Does not commit .output/.
+# Fresh-machine check for BongExtend. Prints missing tools, MCP configs, and tokens.
+# Exits non-zero only when bun install, test, build, or zip fails.
+# Never prints secret values. Does not commit .output/. Chrome zip only.
 $ErrorActionPreference = "Stop"
 $Root = Split-Path -Parent $PSScriptRoot
 Set-Location $Root
@@ -48,7 +48,7 @@ $notes += "== tokens and MCP =="
 if ($env:GITHUB_PERSONAL_ACCESS_TOKEN) {
   $notes += "ok    GITHUB_PERSONAL_ACCESS_TOKEN is set (value hidden)"
 } else {
-  $notes += "MISS  GITHUB_PERSONAL_ACCESS_TOKEN (scopes: repo, workflow). Ask india 님 for the token only."
+  $notes += "MISS  GITHUB_PERSONAL_ACCESS_TOKEN (scopes: repo, workflow). Ask the repo owner for the token only."
 }
 if ($env:CONTEXT7_API_KEY) {
   $notes += "ok    CONTEXT7_API_KEY is set (optional, value hidden)"
@@ -80,8 +80,8 @@ Write-Output "== bun install =="
 & bun install
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-Write-Output "== bun test =="
-& bun test
+Write-Output "== bun run test =="
+& bun run test
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 Write-Output "== bun run build =="
@@ -98,13 +98,12 @@ Write-Output "== verify release zips =="
 & bun scripts/verify-release-zip.ts $version
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-$chrome = Get-ChildItem -Path .output -Filter "bongdc-*-chrome.zip" -ErrorAction SilentlyContinue | Select-Object -First 1
-$firefox = Get-ChildItem -Path .output -Filter "bongdc-*-firefox.zip" -ErrorAction SilentlyContinue | Select-Object -First 1
-if (-not $chrome -or -not $firefox) {
-  Write-Output "bootstrap: zip did not produce bongdc-*-chrome.zip and bongdc-*-firefox.zip"
+$chrome = Get-ChildItem -Path .output -Filter "bongextend-*-chrome.zip" -ErrorAction SilentlyContinue | Select-Object -First 1
+if (-not $chrome) {
+  Write-Output "bootstrap: zip did not produce bongextend-*-chrome.zip"
   exit 1
 }
 
-Write-Output "bootstrap: zip ok ($($chrome.Name), $($firefox.Name)). Do not commit .output/."
-Write-Output "bootstrap: if a token line says MISS, ask india 님 only for that token. Install any missing MCP from docs/HANDOFF.md without asking."
+Write-Output "bootstrap: zip ok ($($chrome.Name)). Do not commit .output/."
+Write-Output "bootstrap: if a token line says MISS, ask the repo owner only for that token. Project docs: AGENTS.md and MERGE_NOTES.md."
 exit 0
