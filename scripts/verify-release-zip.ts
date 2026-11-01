@@ -69,7 +69,13 @@ const checkZip = async (name: string) => {
     for (const required of [...MODULE_PAGES, ...MODULE_FILES]) {
         if (!paths.has(required)) fail(`${name}: missing module file: ${required}`);
     }
-    if ("commands" in manifest) fail(`${name}: manifest still has commands (단축키는 모두 빼기로 함)`);
+    const commands = manifest.commands as Record<string, { description?: string }> | undefined;
+    const commandNames = commands ? Object.keys(commands) : [];
+    if (commandNames.length !== 1 || commandNames[0] !== "toggle-translation") {
+        fail(`${name}: manifest commands must contain only toggle-translation`);
+    } else if (!commands?.["toggle-translation"]?.description) {
+        fail(`${name}: toggle-translation command has no description`);
+    }
     if ("key" in manifest) fail(`${name}: manifest has a fixed key (새 확장 ID로 시작하기로 함)`);
 
     for (const missing of missingReachable(files, htmlPages(paths, manifest))) {

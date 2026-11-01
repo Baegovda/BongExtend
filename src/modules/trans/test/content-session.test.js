@@ -29,6 +29,7 @@ function element(tag, props = {}, children = []) {
     attrs: props.attrs || {},
     rect: props.rect || { top: 20, bottom: 40, left: 0, right: 120, width: 120, height: 20 },
     getAttribute(name) { return this.attrs[name] ?? null; },
+    setAttribute(name, value) { this.attrs[name] = String(value); },
     getBoundingClientRect() { return this.rect; },
     classList: {
       add(name) { node.classList._set.add(name); },
@@ -272,8 +273,8 @@ test('in-flight text glows, then a prism sweep reveals the translation', async (
   assert.match(source, /pt-prism-glow/);
   assert.match(source, /@property --pt-p/);
   assert.match(source, /clip-path: inset\(0 calc\(\(1 - var\(--pt-p\)\) \* 100%\) 0 0\)/);
-  assert.match(source, /translate3d/);
   assert.match(source, /pt-sweep-rtl/);
+  assert.doesNotMatch(source, /pt-wiper-line/);
   assert.match(source, /MAX_LIVE_PENDING = 8/);
   assert.match(source, /pt-page-translator-pending-live/);
   assert.match(source, /pt-page-translator-hold/);
@@ -393,7 +394,7 @@ test('wiper order follows the line and finishes every box on one clock', () => {
   assert.equal(end.y, down.to);
 });
 
-test('the page wiper keeps original text until the pass ends, then commits together', async () => {
+test('each text box wipes horizontally without a page-wide scan line', async () => {
   const created = [];
   const timers = [];
   const frames = [];
@@ -462,16 +463,14 @@ test('the page wiper keeps original text until the pass ends, then commits toget
   assert.equal(nodes[0].classList.contains('pt-page-translator-hold'), true);
   assert.equal(nodes[0].classList.contains('pt-page-translator-pending'), false);
   for (const node of nodes) assert.match(node.childNodes[0].nodeValue, /^글/);
-  const line = created.find((node) => String(node.className).includes('pt-wiper-line'));
-  assert.equal(line.style.willChange, 'transform');
-  assert.match(line.style.transform, /translate3d/);
+  assert.equal(created.some((node) => String(node.className).includes('pt-wiper-line')), false);
 
   clock = api.WIPER_MS / 2;
   frames.shift()(clock);
   const topP = Number(sweeps[0].style['--pt-p']);
   const bottomP = Number(sweeps[9].style['--pt-p']);
-  assert.equal(topP > bottomP, true);
-  assert.equal(bottomP, 0);
+  assert.equal(topP, bottomP);
+  assert.equal(topP > 0 && topP < 1, true);
   for (const node of nodes) assert.match(node.childNodes[0].nodeValue, /^글/);
 
   const sweepNode = sweeps[0];
@@ -483,7 +482,6 @@ test('the page wiper keeps original text until the pass ends, then commits toget
   frames.shift()(clock);
   for (const node of nodes) assert.match(node.childNodes[0].nodeValue, /^더긴번역글/);
   assert.equal(nodes[0].classList.contains('pt-page-translator-hold'), false);
-  assert.equal(line.style.willChange, '');
 
   session.toggleOriginal();
   assert.match(nodes[0].childNodes[0].nodeValue, /^더긴번역/);
@@ -673,4 +671,31 @@ test('without cursor priority, pointer updates keep document order', async () =>
   await session.whenIdle();
   assert.equal(session.getStatus().enabled, true);
   assert.deepEqual([...sent[0]], ['먼글', '가까운글']);
+});
+
+test('hover title tooltips are translated once and restored with the page', async () => {
+  const root = element('div');
+  const api = loadContent();
+  const calls = [];
+  const session = api.createSession({
+    root,
+    walkRoot: root,
+    enableBanner: false,
+    IntersectionObserver: class { observe() {} disconnect() {} },
+    MutationObserver: class { observe() {} disconnect() {} },
+    sendBatch: async (texts) => {
+      calls.push(texts);
+      return { ok: true, translations: texts.map((text) => `번역:${text}`) };
+    },
+  });
+  session.start();
+  const button = element('button', { attrs: { title: '购买商品' } });
+  assert.equal(await session.translateTitle(button), true);
+  assert.equal(button.getAttribute('title'), '번역:购买商品');
+  assert.equal(await session.translateTitle(button), true);
+  assert.equal(calls.length, 1);
+  session.setEnabled(false);
+  assert.equal(button.getAttribute('title'), '购买商品');
+  session.setEnabled(true);
+  assert.equal(button.getAttribute('title'), '번역:购买商品');
 });

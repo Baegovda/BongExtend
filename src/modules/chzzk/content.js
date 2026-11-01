@@ -11,6 +11,19 @@
 
   const states = new WeakMap();
   const tracked = new Set();
+  const Player = globalThis.BongPlayer;
+
+  function restoreRecoveredAudio(state, original) {
+    if (!state || !Player) return;
+    const restore = () => {
+      if (globalThis.__bongAdActive) return;
+      const current = original && original.isConnected ? original
+        : [...document.querySelectorAll('video.webplayer-internal-video')].find(x => !x.closest('[data-role="adVideoContainerEl"]'));
+      if (current) Player.restoreAudioState(current, state);
+    };
+    // 재마운트 직후에는 video가 아직 없거나 플레이어 초기화가 muted를 다시 덮을 수 있다.
+    for (const delay of [0, 250, 800, 2000]) setTimeout(restore, delay);
+  }
 
   function toast(msg) {
     if (!cfg.toast || !document.body) return;
@@ -137,6 +150,7 @@
   }
 
   async function recover(v, s) {
+    const audio = Player && Player.captureAudioState(v);
     s.lastRecover = Date.now();
     if (cfg.retryTimer && RT) { rtV = v; rtBusyUntil = s.lastRecover + 1500; rtWatch(v); }
     const lvl = s.level;
@@ -177,6 +191,7 @@
         if (!clickPlayerButton()) softRemount();
       }
     } catch (e) { log('복구 오류', e); }
+    restoreRecoveredAudio(audio, v);
     scheduleQuality(4000); // 복구/재마운트 후 화질이 자동으로 바뀌는 경우 대비
   }
 
@@ -217,6 +232,7 @@
     wd.attempt++; wd.lastAttempt = now; wd.busyUntil = now + 1500;
     bumpCounter();
     log('시작 안 됨 감시: 시도', d.action);
+    const audio = Player && Player.captureAudioState(main);
     if (d.action === 'play') {
       toast('방송이 시작되지 않아서 다시 재생해 볼게요');
       if (!clickPlayerButton() && main) main.play().catch(() => {});
@@ -228,6 +244,7 @@
       try { sessionStorage.setItem(RELOAD_KEY, JSON.stringify([...readReloads(now), now])); } catch (e) {}
       setTimeout(() => location.reload(), 800);
     }
+    if (d.action !== 'reload') restoreRecoveredAudio(audio, main);
   }
 
   setInterval(() => {

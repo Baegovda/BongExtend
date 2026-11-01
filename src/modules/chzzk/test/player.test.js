@@ -61,3 +61,15 @@ test('isPurchaseGuideDialogText', () => {
   assert.equal(P.isPurchaseGuideDialogText('치트키 사용법'), false);
   assert.equal(P.isPurchaseGuideDialogText(null), false);
 });
+
+test('복구 전 음소거와 볼륨 상태를 새 영상에 복원한다', () => {
+  const audible = P.captureAudioState({ muted: false, volume: 0.42 });
+  const replacement = { muted: true, volume: 1 };
+  assert.deepEqual({ ...audible }, { muted: false, volume: 0.42 });
+  assert.equal(P.restoreAudioState(replacement, audible), true);
+  assert.deepEqual(replacement, { muted: false, volume: 0.42 });
+
+  const muted = P.captureAudioState({ muted: true, volume: 0.7 });
+  P.restoreAudioState(replacement, muted);
+  assert.deepEqual(replacement, { muted: true, volume: 0.7 });
+});

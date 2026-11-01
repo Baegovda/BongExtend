@@ -9,7 +9,6 @@
   const REVEAL_CLASS = 'pt-page-translator-reveal';
   const HOLD_CLASS = 'pt-page-translator-hold';
   const SWEEP_CLASS = 'pt-page-translator-sweep';
-  const WIPER_CLASS = 'pt-page-translator-wiper';
   const MAX_LIVE_PENDING = 8;
   const WIPER_MS = 680;
   const SOFT_MS = 220;
@@ -23,12 +22,6 @@
     '}',
     `.${FADE_CLASS}, .${REVEAL_CLASS} { animation: none; }`,
     `.${HOLD_CLASS} { -webkit-text-fill-color: transparent; }`,
-    `.${WIPER_CLASS} { position: fixed; left: 0; top: 0; width: 100vw; height: 0; pointer-events: none; z-index: 2147483645; }`,
-    `.${WIPER_CLASS} .pt-wiper-line {`,
-    'position: absolute; left: 0; width: 100vw; height: 2px; margin: 0; pointer-events: none;',
-    'transform: translate3d(0, 0, 0);',
-    'background: linear-gradient(90deg, transparent, rgba(56, 189, 248, 0.55), rgba(167, 139, 250, 0.7), rgba(244, 114, 182, 0.55), rgba(250, 204, 21, 0.45), transparent);',
-    '}',
     `.${SWEEP_CLASS} {`,
     'position: fixed; margin: 0; padding: 0; overflow: hidden; pointer-events: none; z-index: 2147483644; background: transparent;',
     '}',
@@ -65,7 +58,7 @@
   function isSkipElement(element) {
     if (!element || element.nodeType !== 1) return false;
     if (element.id === HOST_ID || element.id === STYLE_ID) return true;
-    if (classHas(element, SWEEP_CLASS) || classHas(element, WIPER_CLASS) || classHas(element, 'pt-page-translator-probe')) return true;
+    if (classHas(element, SWEEP_CLASS) || classHas(element, 'pt-page-translator-probe')) return true;
     const tag = String(element.tagName || '').toUpperCase();
     if (SKIP_TAGS.has(tag)) return true;
     const editable = element.contentEditable;
@@ -251,6 +244,8 @@
     const effectToken = new WeakMap();
     const livePending = new Set();
     const activeJobs = new Set();
+    const titleRecords = new Map();
+    const titleInflight = new WeakSet();
     const revealWait = [];
     let wiper = null;
     let soft = null;
@@ -485,7 +480,7 @@
     function isOwnNode(node) {
       if (!node || node.nodeType !== 1) return false;
       if (node.id === HOST_ID || node.id === STYLE_ID) return true;
-      return classHas(node, SWEEP_CLASS) || classHas(node, WIPER_CLASS);
+      return classHas(node, SWEEP_CLASS);
     }
 
     function canAnimate() {
@@ -695,34 +690,7 @@
       if (pass.doneTimer != null) clearTimer(pass.doneTimer);
       lockMutations(() => {
         for (const job of pass.jobs || []) releaseJob(job, commit);
-        if (pass.line && pass.line.style) pass.line.style.willChange = '';
-        removeNode(pass.host);
       });
-    }
-
-    function makeWiperHost() {
-      ensureMotionStyle();
-      const host = document.createElement('div');
-      host.className = WIPER_CLASS;
-      host.setAttribute('translate', 'no');
-      const line = document.createElement('div');
-      line.className = 'pt-wiper-line';
-      if (line.style) line.style.willChange = 'transform';
-      host.appendChild(line);
-      mountNode(host);
-      bindSweepScroll();
-      return { host, line };
-    }
-
-    function placeLine(pass, eased) {
-      if (!pass.line || !pass.line.style || !pass.plan) return;
-      const y = pass.plan.from + (pass.plan.to - pass.plan.from) * eased;
-      pass.line.style.transform = `translate3d(0, ${y}px, 0)`;
-    }
-
-    function shownProgress(pass, job, line) {
-      const crossed = crossProgress(line, job.at, job.band);
-      return pass.reverse ? 1 - crossed : crossed;
     }
 
     function startClock(pass, duration, step) {
@@ -732,41 +700,28 @@
     }
 
     function beginWiper(rows) {
-      const direction = showOriginal ? 'up' : 'down';
-      const plan = planWiperOrder(rows.map((row, index) => ({
-        id: index,
-        top: row.rect.top,
-        height: row.rect.height,
-      })), direction);
-      const byId = new Map(plan.order.map((item) => [item.id, item]));
-      const chrome = makeWiperHost();
       const jobs = [];
-      for (let index = 0; index < rows.length; index += 1) {
-        const painted = paintBox(rows[index], byId.get(index));
+      for (const row of rows) {
+        const painted = paintBox(row, { at: 0, band: 1 });
         if (painted) jobs.push(painted);
       }
-      if (!jobs.length) {
-        removeNode(chrome.host);
-        return;
-      }
+      if (!jobs.length) return;
       const pass = {
         epoch: sweepEpoch,
-        host: chrome.host,
-        line: chrome.line,
         jobs,
-        plan,
-        reverse: direction === 'up',
+        reverse: showOriginal,
+        shown: 0,
         settled: false,
       };
       wiper = pass;
       for (const job of jobs) setProgress(job, pass.reverse ? 1 : 0);
-      placeLine(pass, 0);
+      bindSweepScroll();
       const step = (time) => {
         if (pass.settled || pass.epoch !== sweepEpoch || wiper !== pass) return;
-        const sample = lineSample(pass.plan, time - pass.startedAt, WIPER_MS);
-        placeLine(pass, sample.eased);
+        const sample = lineSample({ lineStart: 0, lineEnd: 1, from: 0, to: 1 }, time - pass.startedAt, WIPER_MS);
+        pass.shown = sample.eased;
         for (const job of pass.jobs) {
-          if (!job.settled) setProgress(job, shownProgress(pass, job, sample.line));
+          if (!job.settled) setProgress(job, pass.reverse ? 1 - sample.eased : sample.eased);
         }
         if (sample.t < 1) pass.raf = requestFrame(step);
         else {
@@ -818,20 +773,14 @@
     }
 
     function adoptIntoWiper(rows) {
-      const sample = lineSample(wiper.plan, nowMs() - wiper.startedAt, WIPER_MS);
-      const late = [];
+      const sample = lineSample({ lineStart: 0, lineEnd: 1, from: 0, to: 1 }, nowMs() - wiper.startedAt, WIPER_MS);
+      wiper.shown = sample.eased;
       for (const row of rows) {
-        const spot = wiperSpot(wiper.plan, row.rect.top, row.rect.height);
-        if (crossProgress(sample.line, spot.at, spot.band) >= 1) {
-          late.push(row);
-          continue;
-        }
-        const painted = paintBox(row, spot);
+        const painted = paintBox(row, { at: 0, band: 1 });
         if (!painted) continue;
-        setProgress(painted, shownProgress(wiper, painted, sample.line));
+        setProgress(painted, wiper.reverse ? 1 - sample.eased : sample.eased);
         wiper.jobs.push(painted);
       }
-      if (late.length) beginSoft(late);
     }
 
     function paintMeasured(measured) {
@@ -998,6 +947,36 @@
       }
       for (const job of jobs) {
         if (!queueReveal(job)) writeNode(job.node, job.target);
+      }
+    }
+
+    function applyTitleRecords() {
+      for (const [element, record] of titleRecords) {
+        if (!element || element.isConnected === false || typeof element.setAttribute !== 'function') continue;
+        element.setAttribute('title', enabled && !showOriginal ? record.translated : record.original);
+      }
+    }
+
+    async function translateTitle(element) {
+      if (!started || !enabled || !element || titleInflight.has(element) || typeof element.getAttribute !== 'function') return false;
+      const current = element.getAttribute('title');
+      const known = titleRecords.get(element);
+      if (known && (current === known.original || current === known.translated)) {
+        element.setAttribute('title', showOriginal ? known.original : known.translated);
+        return true;
+      }
+      const parts = splitWhitespace(current || '');
+      if (!isTranslatable(parts.core)) return false;
+      titleInflight.add(element);
+      try {
+        const response = await sendBatch([parts.core]);
+        if (!response?.ok || !Array.isArray(response.translations) || response.translations.length !== 1) return false;
+        const translated = `${parts.lead}${response.translations[0]}${parts.trail}`;
+        titleRecords.set(element, { original: current, translated });
+        if (enabled && !showOriginal && element.getAttribute('title') === current) element.setAttribute('title', translated);
+        return true;
+      } finally {
+        titleInflight.delete(element);
       }
     }
 
@@ -1244,6 +1223,7 @@
       }
       if (walkRoot) walk(walkRoot);
       applyRecords();
+      applyTitleRecords();
       scheduleFlush();
       notify();
     }
@@ -1262,6 +1242,7 @@
         dismissedError = '';
         if (wasOff) clearAllDecorations();
         applyRecords();
+        applyTitleRecords();
         if (walkRoot) walk(walkRoot);
         if (prioritizeCursor) sortQueue();
         scheduleFlush();
@@ -1272,6 +1253,7 @@
       showOriginal = true;
       clearAllDecorations();
       applyRecords();
+      applyTitleRecords();
       notify();
       return getStatus();
     }
@@ -1307,6 +1289,7 @@
       showOriginal = next;
       clearAllDecorations();
       applyRecords();
+      applyTitleRecords();
       notify();
       return getStatus();
     }
@@ -1333,6 +1316,7 @@
       notePointer,
       setShowOriginal,
       toggleOriginal,
+      translateTitle,
       getStatus,
       recheck,
       whenIdle,
@@ -1386,6 +1370,10 @@
         latestPointer = null;
         if (point) session.notePointer(point.x, point.y);
       }, 150);
+    }, { passive: true });
+    document.addEventListener('mouseover', (event) => {
+      const target = event.target && event.target.closest ? event.target.closest('[title]') : null;
+      if (target) session.translateTitle(target).catch(() => {});
     }, { passive: true });
     let topFrame = true;
     try {

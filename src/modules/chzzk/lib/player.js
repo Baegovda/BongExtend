@@ -37,5 +37,17 @@
   const hasAdContainer = doc => { const el = doc && doc.querySelector && doc.querySelector(AD_CONTAINER_SEL); return !!(el && el.isConnected !== false); };
   // 끝으로 이동할 시각 (유한한 길이일 때만)
   const seekEndTime = d => (Number.isFinite(d) && d > 0 ? Math.max(0, d - 0.05) : null);
-  root.BongPlayer = { isSkipButtonLabel, isSkipCandidate, hasAdContainer, seekEndTime, AD_CONTAINER_SEL, isAdActive, isGuideText, isPurchaseGuideDialogText, isSkipText, adTextKind, isSafeSkipLabel, isAdDuration };
+  // 복구 과정에서 플레이어가 새 video를 만들더라도 사용자의 음소거·볼륨 상태를 유지한다.
+  function captureAudioState(video) {
+    if (!video) return null;
+    const volume = Number(video.volume);
+    return { muted: !!video.muted, volume: Number.isFinite(volume) ? Math.max(0, Math.min(1, volume)) : 1 };
+  }
+  function restoreAudioState(video, state) {
+    if (!video || !state) return false;
+    try { video.volume = Math.max(0, Math.min(1, Number(state.volume))); } catch (e) {}
+    try { video.muted = !!state.muted; } catch (e) {}
+    return video.muted === !!state.muted;
+  }
+  root.BongPlayer = { isSkipButtonLabel, isSkipCandidate, hasAdContainer, seekEndTime, AD_CONTAINER_SEL, isAdActive, isGuideText, isPurchaseGuideDialogText, isSkipText, adTextKind, isSafeSkipLabel, isAdDuration, captureAudioState, restoreAudioState };
 })(typeof globalThis !== 'undefined' ? globalThis : this);

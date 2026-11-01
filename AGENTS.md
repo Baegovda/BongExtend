@@ -5,7 +5,7 @@ BongExtend = BongChzzk(치지직) + BongTrans(Gemini 번역) + BongDC(디시, gr
 
 ## 꼭 지킬 것
 - `wxt.config.ts`의 `imports.parser: "oxc"`는 빼지 말 것 (기본 스캐너가 순환 import를 만들어 배경 스크립트가 죽음. docs/legacy/BongDC-AGENTS.md 참고).
-- 단축키(`commands`)는 넣지 말 것. 오너가 따로 요청하면 그때 추가.
+- 단축키(`commands`)는 오너 요청으로 번역 켜기/끄기(`toggle-translation`) 하나만 허용. 다른 단축키는 따로 요청받기 전까지 추가하지 말 것.
 - manifest `key` 넣지 말 것 (새 확장 ID로 시작하기로 함).
 - 권한에 `webNavigation`, `<all_urls>` 호스트 권한 추가 금지 (WAR `assets/*.webp`의 `<all_urls>`는 BongDC 그대로).
 - Gemini API 키는 서비스 워커와 확장 페이지에서만. 콘텐츠 스크립트에 보내지 말 것 (`GET_PREFS`는 prioritizeCursor/revealAnimation만).

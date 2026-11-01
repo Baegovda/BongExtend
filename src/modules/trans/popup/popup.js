@@ -7,6 +7,8 @@ const switchState = document.querySelector('#switchState');
 const statusEl = document.querySelector('#status');
 const metaEl = document.querySelector('#meta');
 const optionsButton = document.querySelector('#options');
+const shortcutsButton = document.querySelector('#shortcuts');
+const alwaysSiteBox = document.querySelector('#alwaysSite');
 
 function setStatus(text, isError) {
   statusEl.textContent = text || '';
@@ -72,6 +74,8 @@ async function refresh() {
     return;
   }
   const response = await chrome.runtime.sendMessage({ type: 'GET_STATUS', tabId: tab.id });
+  const siteMode = await chrome.runtime.sendMessage({ type: 'GET_SITE_MODE', tabId: tab.id }).catch(() => null);
+  if (siteMode?.ok && document.activeElement !== alwaysSiteBox) alwaysSiteBox.checked = Boolean(siteMode.always);
   if (toggleState.pending && (toggleState.tabId == null || toggleState.tabId === tab.id)) {
     showSwitch(toggleState.on);
     return;
@@ -104,6 +108,21 @@ async function init() {
   hasKey = Boolean(settings.apiKey);
   if (!hasKey) setStatus(MESSAGES.NO_API_KEY, true);
   optionsButton.addEventListener('click', () => chrome.tabs.create({ url: chrome.runtime.getURL('trans/options/options.html') }));
+  shortcutsButton.addEventListener('click', () => chrome.runtime.sendMessage({ type: 'OPEN_SHORTCUTS' }));
+  alwaysSiteBox.addEventListener('change', async () => {
+    const tab = await activeTab();
+    if (!tab?.id) return;
+    const response = await chrome.runtime.sendMessage({ type: 'SET_SITE_ALWAYS', tabId: tab.id, enabled: alwaysSiteBox.checked });
+    if (!response?.ok) {
+      alwaysSiteBox.checked = !alwaysSiteBox.checked;
+      setStatus(response?.message || '사이트 자동 번역 설정을 저장하지 못했어요.', true);
+      return;
+    }
+    if (alwaysSiteBox.checked && !toggleState.on) {
+      enabledBox.checked = true;
+      enabledBox.dispatchEvent(new Event('change'));
+    }
+  });
   enabledBox.addEventListener('change', () => {
     const turnOn = enabledBox.checked;
     const generation = ++toggleGeneration;
@@ -138,6 +157,10 @@ async function applyToggle(turnOn, generation) {
     return;
   }
   toggleState = { ...toggleState, tabId: tab.id };
+  if (!turnOn && alwaysSiteBox.checked) {
+    alwaysSiteBox.checked = false;
+    await chrome.runtime.sendMessage({ type: 'SET_SITE_ALWAYS', tabId: tab.id, enabled: false }).catch(() => {});
+  }
   setStatus(turnOn ? '이 페이지 번역을 켜는 중…' : '원문으로 되돌리는 중…');
   let response;
   try {

@@ -28,7 +28,7 @@
 - **BongChzzk**: 옛 확장에 내보내기 버튼이 없어서 치지직 탭에서 다시 설정해 주세요 (관심 스트리머 목록 포함).
 
 ## 단축키
-지금은 없어요. 필요하면 요청해 주세요.
+페이지 번역 켜기/끄기 기본 단축키는 `Ctrl+Shift+Y`예요. 번역 탭의 **단축키 설정**에서 원하는 키로 바꿀 수 있어요.
 
 ## 개발
 `bun install` → `bun run test` → `bun run build` (결과: `.output/chrome-mv3/`). 자세한 건 `AGENTS.md`, `MERGE_NOTES.md`.

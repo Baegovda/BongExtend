@@ -49,6 +49,12 @@ export default defineConfig({
         action: {
             default_title: "BongExtend"
         },
+        commands: {
+            "toggle-translation": {
+                suggested_key: {default: "Ctrl+Shift+Y"},
+                description: "현재 페이지 번역 켜기/끄기"
+            }
+        },
         permissions: [
             "activeTab",
             "alarms",

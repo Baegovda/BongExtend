@@ -31,6 +31,37 @@ const persistentCache = createIdbCache({
     return { maxAgeDays: settings.cacheMaxAgeDays, maxBytes: settings.cacheMaxBytes };
   },
 });
+const ALWAYS_ORIGINS_KEY = 'trans.alwaysOrigins';
+
+function originOf(url) {
+  try {
+    const parsed = new URL(url);
+    return /^https?:$/.test(parsed.protocol) ? parsed.origin : '';
+  } catch {
+    return '';
+  }
+}
+
+async function alwaysOrigins() {
+  const stored = await chrome.storage.local.get(ALWAYS_ORIGINS_KEY);
+  return Array.isArray(stored[ALWAYS_ORIGINS_KEY]) ? stored[ALWAYS_ORIGINS_KEY].filter((x) => typeof x === 'string') : [];
+}
+
+async function siteAlways(tabId) {
+  const tab = await requireTab(tabId);
+  const origin = originOf(tab.url);
+  return { origin, always: Boolean(origin) && (await alwaysOrigins()).includes(origin) };
+}
+
+async function setSiteAlways(tabId, enabled) {
+  const tab = await requireTab(tabId);
+  const origin = originOf(tab.url);
+  if (!origin) throw new Error(MESSAGES.PAGE_BLOCKED);
+  const next = new Set(await alwaysOrigins());
+  if (enabled) next.add(origin); else next.delete(origin);
+  await chrome.storage.local.set({ [ALWAYS_ORIGINS_KEY]: [...next].sort() });
+  return { ok: true, origin, always: Boolean(enabled) };
+}
 
 const translator = createTranslator({
   persistentCache,
@@ -163,8 +194,14 @@ function clearBadge(tabId) {
   setBadge(tabId, null);
 }
 
-chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   if (typeof changeInfo.url === 'string') clearBadge(tabId);
+  if (changeInfo.status === 'complete' && canTranslateUrl(tab?.url)) {
+    const origin = originOf(tab.url);
+    alwaysOrigins().then((origins) => {
+      if (origins.includes(origin)) setEnabled(tabId, true).catch(() => {});
+    }).catch(() => {});
+  }
 });
 
 async function setEnabled(tabId, enabled) {
@@ -314,6 +351,22 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     getStatus(message.tabId).then(sendResponse, (error) => sendResponse(publicError(error)));
     return true;
   }
+  if (message.type === 'GET_SITE_MODE') {
+    siteAlways(message.tabId).then((result) => sendResponse({ ok: true, ...result }), (error) => sendResponse(publicError(error)));
+    return true;
+  }
+  if (message.type === 'SET_SITE_ALWAYS') {
+    setSiteAlways(message.tabId, Boolean(message.enabled)).then(sendResponse, (error) => sendResponse(publicError(error)));
+    return true;
+  }
+  if (message.type === 'OPEN_SHORTCUTS') {
+    if (!fromExtensionPage(sender)) return;
+    chrome.tabs.create({ url: 'chrome://extensions/shortcuts' }).then(
+      () => sendResponse({ ok: true }),
+      () => sendResponse({ ok: false, message: '단축키 설정 화면을 열지 못했어요.' }),
+    );
+    return true;
+  }
   if (message.type === 'CHECK_KEY') {
     if (!fromExtensionPage(sender)) {
       sendResponse({ ok: false, code: 'FORBIDDEN', message: '설정 페이지에서만 키를 확인해요.' });
@@ -344,7 +397,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   return undefined;
 });
 
-// BongExtend: 단축키(chrome.commands)는 사용자 요청으로 모두 뺐다.
+chrome.commands.onCommand.addListener((command) => {
+  if (command === 'toggle-translation') {
+    toggleTranslation().catch((error) => console.warn('[page-translator]', error?.code || error?.message));
+  }
+});
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {
   if (info.menuItemId === 'toggle-translation') {
