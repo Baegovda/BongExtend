@@ -236,7 +236,7 @@ export default defineBackground(() => {
     // 단축키는 번역 켜기/끄기(toggle-translation)만 둔다. 다른 단축키는 따로 요청받기 전에는 넣지 않는다.
 
     // dcrefresher.green1052.com/data 는 404다. 차단 목록을 받던 요청은 서비스 워커 오류만 남기므로 하지 않는다.
-    // 이미 저장한 차단 목록은 storage에 그대로 둔다. 통신사 표만 GitHub develop에서 따로 확인한다.
+    // 이미 저장한 차단 목록은 storage에 그대로 둔다. 통신사 표만 Baegovda/BongExtend의 main에서 따로 확인한다.
     const IP_UPDATE_INTERVAL = 604800000;
 
     const refreshIpDatabase = async (): Promise<void> => {

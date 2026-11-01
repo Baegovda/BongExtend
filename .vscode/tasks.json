@@ -2,7 +2,7 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "DCRefresher 실행",
+            "label": "BongExtend 실행",
             "type": "shell",
             "command": "powershell -NoProfile -ExecutionPolicy Bypass -File ${workspaceFolder}/scripts/dev-restart.ps1",
             "options": {

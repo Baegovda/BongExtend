@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Fresh-machine check for BongDC. Prints missing tools, MCP configs, and tokens.
-# Exits non-zero only when bun install, build, or zip fails.
-# Never prints secret values. Does not commit .output/.
+# Fresh-machine check for BongExtend. Prints missing tools, MCP configs, and tokens.
+# Exits non-zero only when bun install, test, build, or zip fails.
+# Never prints secret values. Does not commit .output/. Chrome zip only.
 set -u
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -45,7 +45,7 @@ notes+=("== tokens and MCP ==")
 if [[ -n "${GITHUB_PERSONAL_ACCESS_TOKEN:-}" ]]; then
   notes+=("ok    GITHUB_PERSONAL_ACCESS_TOKEN is set (value hidden)")
 else
-  notes+=("MISS  GITHUB_PERSONAL_ACCESS_TOKEN (scopes: repo, workflow). Ask india 님 for the token only.")
+  notes+=("MISS  GITHUB_PERSONAL_ACCESS_TOKEN (scopes: repo, workflow). Ask the repo owner for the token only.")
 fi
 if [[ -n "${CONTEXT7_API_KEY:-}" ]]; then
   notes+=("ok    CONTEXT7_API_KEY is set (optional, value hidden)")
@@ -82,8 +82,8 @@ set -e
 echo "== bun install =="
 bun install
 
-echo "== bun test =="
-bun test
+echo "== bun run test =="
+bun run test
 
 echo "== bun run build =="
 bun run build
@@ -95,13 +95,12 @@ version="$(bun -e "process.stdout.write(JSON.parse(require('fs').readFileSync('p
 echo "== verify release zips =="
 bun scripts/verify-release-zip.ts "$version"
 
-chrome="$(find .output -maxdepth 1 -name 'bongdc-*-chrome.zip' -printf '%f\n' 2>/dev/null | head -n 1 || true)"
-firefox="$(find .output -maxdepth 1 -name 'bongdc-*-firefox.zip' -printf '%f\n' 2>/dev/null | head -n 1 || true)"
-if [[ -z "$chrome" || -z "$firefox" ]]; then
-  echo "bootstrap: zip did not produce bongdc-*-chrome.zip and bongdc-*-firefox.zip"
+chrome="$(find .output -maxdepth 1 -name 'bongextend-*-chrome.zip' -printf '%f\n' 2>/dev/null | head -n 1 || true)"
+if [[ -z "$chrome" ]]; then
+  echo "bootstrap: zip did not produce bongextend-*-chrome.zip"
   exit 1
 fi
 
-echo "bootstrap: zip ok ($chrome, $firefox). Do not commit .output/."
-echo "bootstrap: if a token line says MISS, ask india 님 only for that token. Install any missing MCP from docs/HANDOFF.md without asking."
+echo "bootstrap: zip ok ($chrome). Do not commit .output/."
+echo "bootstrap: if a token line says MISS, ask the repo owner only for that token. Project docs: AGENTS.md and MERGE_NOTES.md."
 exit 0

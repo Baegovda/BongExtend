@@ -28,13 +28,12 @@ BongExtend = BongChzzk(치지직) + BongTrans(Gemini 번역) + BongDC(디시, gr
 - `bun install`
 - `bun run dev` — 크롬 개발 서버. `bun run dev:firefox`는 로컬 파이어폭스용이에요.
 - `bun run test` = `test:dc` + `test:js` + `test:types`
-  - `test:dc`: `bun test src/core src/modules/settings-io.test.ts src/storage/update-keys.test.ts src/utils/sanitizeHtml.test.ts`
+  - `test:dc`: `bun test src/core src/modules/settings-io.test.ts src/storage/update-keys.test.ts src/utils/sanitizeHtml.test.ts src/entrypoints/dc/composables/popupTabs.test.ts`
   - `test:js`: `node --test src/modules/chzzk/test/*.test.js src/modules/trans/test/*.test.js`
   - `test:types`: `tsc --noEmit -p tsconfig.json`
 - `bun run build` → `.output/chrome-mv3/`. `bun run build:firefox`는 로컬용이에요.
-- `bun run zip` → `.output/bongextend-X.Y.Z-chrome.zip`. 확인은 `bun scripts/verify-release-zip.ts X.Y.Z` (크롬 zip만).
+- `bun run zip` → `.output/bongextend-X.Y.Z-chrome.zip`. 확인은 `bun run verify`예요. 버전을 안 적으면 `package.json`을 쓰고, 크롬 zip만 봐요. `bun scripts/verify-release-zip.ts X.Y.Z`와 같아요.
 - `bun run zip:firefox`는 로컬용이에요. 릴리스 워크플로는 쓰지 않아요.
-- `bun run verify`는 없는 `scripts/verify-build.ts`를 불러요. 실패해요. 쓰지 마세요.
 
 ## 릴리스
 - 버전은 `package.json` 하나. `CHANGELOG.md`에 `## [X.Y.Z]` 섹션.

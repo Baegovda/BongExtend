@@ -27,15 +27,13 @@ BongExtend는 크롬 확장(MV3) 하나예요. 예전에 따로 쓰던 확장 �
 
 - `bun install`
 - `bun run test` — 세 단계를 이어서 해요.
-  - `test:dc`: `bun test src/core src/modules/settings-io.test.ts src/storage/update-keys.test.ts src/utils/sanitizeHtml.test.ts`
+  - `test:dc`: `bun test src/core src/modules/settings-io.test.ts src/storage/update-keys.test.ts src/utils/sanitizeHtml.test.ts src/entrypoints/dc/composables/popupTabs.test.ts`
   - `test:js`: `node --test`로 치지직·번역 테스트
   - `test:types`: `tsc --noEmit -p tsconfig.json`
 - `bun run build` → `.output/chrome-mv3/`
-- `bun run zip` → `.output/bongextend-X.Y.Z-chrome.zip`. 그다음 `bun scripts/verify-release-zip.ts X.Y.Z`. 이 검사는 크롬 zip만 봐요.
+- `bun run zip` → `.output/bongextend-X.Y.Z-chrome.zip`. 확인은 `bun run verify`예요. 버전을 안 적으면 `package.json`을 쓰고, 크롬 zip만 봐요. `bun scripts/verify-release-zip.ts X.Y.Z`와 같아요.
 
 `package.json`의 `dev:firefox`, `build:firefox`, `zip:firefox`는 로컬에서 파이어폭스 산출물을 만들 때 쓰는 스크립트예요. 릴리스 워크플로는 크롬 zip만 만들어요. 업데이트 페이지도 크롬 zip(`*-chrome.zip`)만 받아요.
-
-`bun run verify`는 없는 파일 `scripts/verify-build.ts`를 실행해서 실패해요. zip 확인은 `verify-release-zip.ts`를 써요.
 
 버전 숫자는 `package.json` 하나예요. 사용자용 변경은 `CHANGELOG.md`의 `## [X.Y.Z]`에 적어요. 태그 `vX.Y.Z`를 푸시하면 `.github/workflows/release.yml`이 테스트, 태그=버전 확인, zip, zip 검사, 릴리스 노트를 해요. 같은 파일을 수동으로 실행하면 테스트와 zip 검사만 하고 릴리스는 만들지 않아요. PR이나 일반 push에는 테스트 워크플로가 없어요. 푸시·태그·릴리스는 오너가 확인한 뒤에만 해요.
 
@@ -69,6 +67,6 @@ BongExtend는 크롬 확장(MV3) 하나예요. 예전에 따로 쓰던 확장 �
 
 - 코드와 릴리스는 오너가 확인한 뒤에 반영해요.
 
-## 헷갈리기 쉬운 옛 파일
+## 새 기기 점검
 
-`scripts/bootstrap.sh`와 `scripts/bootstrap.ps1`는 옛 BongDC용이에요. `bun test`만 돌려서 치지직·번역 테스트와 타입 검사를 빠뜨리고, `bongdc-*-chrome.zip`과 `bongdc-*-firefox.zip`을 찾다가 실패해요. 없는 `docs/HANDOFF.md`도 가리켜요. BongExtend에서는 쓰지 마세요. 명령은 위의 빌드·테스트 절을 따르면 돼요.
+`scripts/bootstrap.sh`와 `scripts/bootstrap.ps1`는 새 기기 점검용이에요. `bun run test`(치지직·번역 테스트와 타입 검사 포함), 빌드, zip 뒤에 `bongextend-*-chrome.zip`만 확인해요. 파이어폭스 zip은 보지 않아요. 안내 문서는 `AGENTS.md`와 이 파일이에요.
