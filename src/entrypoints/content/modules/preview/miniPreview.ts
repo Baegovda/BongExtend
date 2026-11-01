@@ -1,4 +1,5 @@
 import * as block from "@/core/block";
+import {sanitizeHtml} from "@/utils/sanitizeHtml";
 import {PostCache} from "./cache";
 import type {PreviewRequest} from "./request";
 
@@ -70,9 +71,18 @@ export function miniPreviewCreate(
             state.element.style.overflow = "auto";
         }
 
-        state.element.innerHTML = `<h3>${preData.title}</h3><br><div class="refresher-mini-preview-contents${
-            hide ? " media-hide" : ""
-        }"></div>${interaction ? "" : "<p class=read-more>더 읽으려면 클릭해 주세요.</p>"}`;
+        state.element.replaceChildren();
+        const heading = document.createElement("h3");
+        heading.textContent = preData.title ?? "";
+        const contents = document.createElement("div");
+        contents.className = `refresher-mini-preview-contents${hide ? " media-hide" : ""}`;
+        state.element.append(heading, document.createElement("br"), contents);
+        if (!interaction) {
+            const more = document.createElement("p");
+            more.className = "read-more";
+            more.textContent = "더 읽으려면 클릭해 주세요.";
+            state.element.append(more);
+        }
         document.body.appendChild(state.element);
         state.init = true;
     }
@@ -114,16 +124,17 @@ export function miniPreviewCreate(
 
             const content = dom.body.innerHTML;
 
-            selector.innerHTML = block.check("TEXT", content) ? "게시글 내용이 차단됐어요." : content;
+            if (block.check("TEXT", content)) selector.textContent = "게시글 내용이 차단됐어요.";
+            else selector.innerHTML = sanitizeHtml(content);
             selector.querySelector(".write_div")?.setAttribute("style", "");
         })
         .catch((error) => {
-            selector.innerHTML = String(error).includes("aborted")
+            selector.textContent = String(error).includes("aborted")
                 ? ""
                 : `게시글을 새로 가져올 수 없어요: ${error}`;
         });
 
-    state.element.querySelector("h3")!.innerHTML = preData.title ?? "";
+    state.element.querySelector("h3")!.textContent = preData.title ?? "";
 }
 
 export function miniPreviewMove(state: MiniPreviewState, ev: MouseEvent, use: boolean, interaction: boolean): void {

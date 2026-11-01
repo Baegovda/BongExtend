@@ -71,16 +71,18 @@ export const moduleSchemaStorage = storage.defineItem<ModuleSchemaMap>("local:re
     defaultValue: {}
 });
 
+// core.* 라서 디시 데이터 초기화가 이 값을 지우지 않는다. 옛 refresher:update:* 는 시작 때 옮긴다.
 export const updateStorage = {
-    lastCheck: storage.defineItem<number>("local:refresher:update:lastCheck", {defaultValue: 0}),
-    latestVersion: storage.defineItem<string>("local:refresher:update:latestVersion", {defaultValue: ""}),
-    updateAvailable: storage.defineItem<boolean>("local:refresher:update:available", {defaultValue: false}),
-    chromeDownloadUrl: storage.defineItem<string>("local:refresher:update:chromeUrl", {defaultValue: ""}),
-    firefoxDownloadUrl: storage.defineItem<string>("local:refresher:update:firefoxUrl", {defaultValue: ""}),
-    releaseNotes: storage.defineItem<string>("local:refresher:update:notes", {defaultValue: ""}),
-    releaseUrl: storage.defineItem<string>("local:refresher:update:releaseUrl", {defaultValue: ""}),
-    checkError: storage.defineItem<string>("local:refresher:update:error", {defaultValue: ""}),
-    autoCheck: storage.defineItem<boolean>("local:refresher:update:autoCheck", {defaultValue: true})
+    lastCheck: storage.defineItem<number>("local:core.update:lastCheck", {defaultValue: 0}),
+    latestVersion: storage.defineItem<string>("local:core.update:latestVersion", {defaultValue: ""}),
+    updateAvailable: storage.defineItem<boolean>("local:core.update:available", {defaultValue: false}),
+    chromeDownloadUrl: storage.defineItem<string>("local:core.update:chromeUrl", {defaultValue: ""}),
+    firefoxDownloadUrl: storage.defineItem<string>("local:core.update:firefoxUrl", {defaultValue: ""}),
+    releaseNotes: storage.defineItem<string>("local:core.update:notes", {defaultValue: ""}),
+    releaseUrl: storage.defineItem<string>("local:core.update:releaseUrl", {defaultValue: ""}),
+    checkError: storage.defineItem<string>("local:core.update:error", {defaultValue: ""}),
+    autoCheck: storage.defineItem<boolean>("local:core.update:autoCheck", {defaultValue: true}),
+    lastSeenVersion: storage.defineItem<string>("local:core.update:lastSeenVersion", {defaultValue: ""})
 };
 
 // ===== 데이터베이스 (IP/Ban) =====

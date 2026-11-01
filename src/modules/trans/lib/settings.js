@@ -131,6 +131,7 @@ export function contentPrefs(settings) {
   return {
     prioritizeCursor: normalized.prioritizeCursor,
     revealAnimation: normalized.revealAnimation,
+    targetLanguage: normalized.targetLanguage,
   };
 }
 

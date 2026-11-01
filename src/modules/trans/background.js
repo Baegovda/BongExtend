@@ -3,6 +3,7 @@ import { createIdbCache } from './lib/cache.js';
 import { checkApiKey, translateWithGemini } from './lib/gemini.js';
 import { MESSAGES } from './lib/messages.js';
 import { canTranslateUrl, contentPrefs, normalizeSettings, resolveModel } from './lib/settings.js';
+import { originPermissionPattern } from './lib/origin-permission.js';
 import { loadSettings } from './lib/settings-store.js';
 import { STORAGE_KEY } from './lib/settings.js';
 import { isModuleEnabled } from '../core-modules.js';
@@ -60,6 +61,12 @@ async function setSiteAlways(tabId, enabled) {
   const next = new Set(await alwaysOrigins());
   if (enabled) next.add(origin); else next.delete(origin);
   await chrome.storage.local.set({ [ALWAYS_ORIGINS_KEY]: [...next].sort() });
+  if (!enabled) {
+    const pattern = originPermissionPattern(origin);
+    if (pattern) {
+      try { await chrome.permissions.remove({ origins: [pattern] }); } catch { /* 설치할 때 받은 권한은 지워지지 않아요 */ }
+    }
+  }
   return { ok: true, origin, always: Boolean(enabled) };
 }
 

@@ -10,6 +10,12 @@ import {normalizeStorageData} from "@/storage/migration";
 import {isOtherModuleKey, onlyDcKeys} from "@/storage/namespace";
 
 export const BONGEXTEND_FILE_TYPE = "bongextend-settings";
+const ALWAYS_ORIGINS_KEY = "trans.alwaysOrigins";
+
+const originList = (value: unknown): string[] => {
+    if (!Array.isArray(value)) return [];
+    return [...new Set(value.filter((item): item is string => typeof item === "string" && item.length > 0 && item.length < 300))].sort();
+};
 
 export const CHZZK_KEYS = [
     "enabled", "threshold", "cooldown", "toast", "retryTimer", "lockQuality", "targetQuality", "followRefresh", "followInterval",
@@ -53,9 +59,15 @@ export const planImport = (text: string): ImportPlan => {
             Object.assign(plan.local, prefixed("chzzk.", chzzk.local as Rec));
             plan.labels.push("치지직");
         }
-        if (isObj(parsed.trans) && isObj(parsed.trans.settings)) {
-            plan.local[TRANS_KEY] = normalizeSettings(parsed.trans.settings);
-            plan.labels.push("번역");
+        if (isObj(parsed.trans)) {
+            if (isObj(parsed.trans.settings)) {
+                plan.local[TRANS_KEY] = normalizeSettings(parsed.trans.settings);
+                plan.labels.push("번역");
+            }
+            if (Array.isArray(parsed.trans.alwaysOrigins)) {
+                plan.local[ALWAYS_ORIGINS_KEY] = originList(parsed.trans.alwaysOrigins);
+                if (!plan.labels.includes("번역")) plan.labels.push("번역");
+            }
         }
         if (isObj(parsed.dc)) {
             plan.dcReplace = normalizeStorageData(onlyDcKeys(parsed.dc));
@@ -126,7 +138,7 @@ export const buildExport = (local: Rec, sync: Rec): Rec => {
         exportedAt: new Date().toISOString(),
         app: "BongExtend",
         chzzk: {sync: pick(sync, "chzzk."), local: pick(local, "chzzk.")},
-        trans: {settings: local[TRANS_KEY] ?? null},
+        trans: {settings: local[TRANS_KEY] ?? null, alwaysOrigins: originList(local[ALWAYS_ORIGINS_KEY])},
         dc,
         core: pick(local, "core.")
     };

@@ -55,6 +55,33 @@
     return /\p{L}/u.test(core);
   }
 
+  function scriptCounts(text) {
+    const count = (re) => (String(text || '').match(re) || []).length;
+    return {
+      hangul: count(/\p{Script=Hangul}/gu),
+      han: count(/\p{Script=Han}/gu),
+      kana: count(/\p{Script=Hiragana}/gu) + count(/\p{Script=Katakana}/gu),
+      cyrillic: count(/\p{Script=Cyrillic}/gu),
+      thai: count(/\p{Script=Thai}/gu),
+    };
+  }
+
+  // 글자 체계가 목표 언어와 같으면 번역하지 않는다.
+  // 영어·프랑스어처럼 로마자를 쓰는 언어는 서로 구분하지 않으므로 여기서 건너뛰지 않는다.
+  function isAlreadyTargetLanguage(text, language) {
+    const counts = scriptCounts(text);
+    const letters = counts.hangul + counts.han + counts.kana + counts.cyrillic + counts.thai;
+    if (!letters) return false;
+    const code = String(language || 'ko').toLowerCase();
+    const mostly = (n) => n / letters >= 0.8;
+    if (code === 'ko') return mostly(counts.hangul) && counts.han + counts.kana === 0;
+    if (code === 'ja') return counts.kana > 0 && mostly(counts.kana + counts.han) && counts.hangul === 0;
+    if (code === 'zh' || code === 'zh-cn' || code === 'zh-tw') return mostly(counts.han) && counts.hangul + counts.kana === 0;
+    if (code === 'ru') return mostly(counts.cyrillic);
+    if (code === 'th') return mostly(counts.thai);
+    return false;
+  }
+
   function isSkipElement(element) {
     if (!element || element.nodeType !== 1) return false;
     if (element.id === HOST_ID || element.id === STYLE_ID) return true;
@@ -212,6 +239,7 @@
     const enableBanner = options.enableBanner !== false && typeof document !== 'undefined';
     let prioritizeCursor = Boolean(options.prioritizeCursor);
     let revealAnimation = options.revealAnimation !== false;
+    let targetLanguage = typeof options.targetLanguage === 'string' && options.targetLanguage ? options.targetLanguage : 'ko';
 
     const queue = [];
     const records = new Map();
@@ -246,6 +274,9 @@
     const activeJobs = new Set();
     const titleRecords = new Map();
     const titleInflight = new WeakSet();
+    const titleQueued = new WeakSet();
+    const titleWait = [];
+    let titleTimer = null;
     const revealWait = [];
     let wiper = null;
     let soft = null;
@@ -957,27 +988,87 @@
       }
     }
 
-    async function translateTitle(element) {
-      if (!started || !enabled || !element || titleInflight.has(element) || typeof element.getAttribute !== 'function') return false;
+    function finishTitle(item, ok) {
+      if (typeof item.resolve === 'function') item.resolve(ok);
+    }
+
+    function flushTitles() {
+      titleTimer = null;
+      const batch = titleWait.splice(0);
+      const pending = [];
+      for (const item of batch) {
+        titleQueued.delete(item.element);
+        if (!started || !enabled || item.element.isConnected === false) {
+          finishTitle(item, false);
+          continue;
+        }
+        if (item.element.getAttribute('title') !== item.current) {
+          finishTitle(item, false);
+          continue;
+        }
+        titleInflight.add(item.element);
+        pending.push(item);
+      }
+      if (!pending.length) return;
+      sendBatch(pending.map((item) => item.core)).then((response) => {
+        const translations = response?.ok && Array.isArray(response.translations) && response.translations.length === pending.length
+          ? response.translations
+          : null;
+        pending.forEach((item, index) => {
+          try {
+            if (!translations) {
+              finishTitle(item, false);
+              return;
+            }
+            const translated = `${item.lead}${translations[index]}${item.trail}`;
+            titleRecords.set(item.element, { original: item.current, translated });
+            if (enabled && !showOriginal && item.element.getAttribute('title') === item.current) {
+              item.element.setAttribute('title', translated);
+            }
+            finishTitle(item, true);
+          } finally {
+            titleInflight.delete(item.element);
+          }
+        });
+      }, () => {
+        for (const item of pending) {
+          titleInflight.delete(item.element);
+          finishTitle(item, false);
+        }
+      });
+    }
+
+    function scheduleTitleFlush() {
+      if (titleTimer != null) return;
+      const delay = Number.isFinite(options.titleFlushMs) ? options.titleFlushMs : 50;
+      titleTimer = setTimer(flushTitles, Math.max(0, delay));
+    }
+
+    function translateTitle(element) {
+      if (!started || !enabled || !element || titleInflight.has(element) || titleQueued.has(element) || typeof element.getAttribute !== 'function') {
+        return Promise.resolve(false);
+      }
       const current = element.getAttribute('title');
       const known = titleRecords.get(element);
       if (known && (current === known.original || current === known.translated)) {
         element.setAttribute('title', showOriginal ? known.original : known.translated);
-        return true;
+        return Promise.resolve(true);
       }
       const parts = splitWhitespace(current || '');
-      if (!isTranslatable(parts.core)) return false;
-      titleInflight.add(element);
-      try {
-        const response = await sendBatch([parts.core]);
-        if (!response?.ok || !Array.isArray(response.translations) || response.translations.length !== 1) return false;
-        const translated = `${parts.lead}${response.translations[0]}${parts.trail}`;
-        titleRecords.set(element, { original: current, translated });
-        if (enabled && !showOriginal && element.getAttribute('title') === current) element.setAttribute('title', translated);
-        return true;
-      } finally {
-        titleInflight.delete(element);
-      }
+      if (!isTranslatable(parts.core)) return Promise.resolve(false);
+      if (isAlreadyTargetLanguage(parts.core, targetLanguage)) return Promise.resolve(true);
+      return new Promise((resolve) => {
+        titleQueued.add(element);
+        titleWait.push({
+          element,
+          current,
+          core: parts.core,
+          lead: parts.lead,
+          trail: parts.trail,
+          resolve,
+        });
+        scheduleTitleFlush();
+      });
     }
 
     function enqueue(node) {
@@ -1261,6 +1352,7 @@
     function setPrefs(prefs) {
       const next = prefs || {};
       prioritizeCursor = Boolean(next.prioritizeCursor);
+      if (typeof next.targetLanguage === 'string' && next.targetLanguage) targetLanguage = next.targetLanguage;
       if (Object.prototype.hasOwnProperty.call(next, 'revealAnimation')) {
         const enabledMotion = next.revealAnimation !== false;
         if (revealAnimation && !enabledMotion) {
@@ -1328,6 +1420,7 @@
   ns.createSession = createSession;
   ns.splitWhitespace = splitWhitespace;
   ns.isTranslatable = isTranslatable;
+  ns.isAlreadyTargetLanguage = isAlreadyTargetLanguage;
   ns.shouldSkipText = shouldSkipText;
   ns.planWiperOrder = planWiperOrder;
   ns.crossProgress = crossProgress;

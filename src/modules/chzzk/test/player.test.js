@@ -62,6 +62,16 @@ test('isPurchaseGuideDialogText', () => {
   assert.equal(P.isPurchaseGuideDialogText(null), false);
 });
 
+test('audio restore waits out an ad and stops after the user touches sound', () => {
+  assert.equal(P.isAudioControlLabel('음소거'), true);
+  assert.equal(P.isAudioControlLabel('volume slider'), true);
+  assert.equal(P.isAudioControlLabel('재생'), false);
+  assert.equal(P.audioRestoreAction({ userTouched: false, adActive: false }), 'restore');
+  assert.equal(P.audioRestoreAction({ userTouched: false, adActive: true }), 'wait');
+  assert.equal(P.audioRestoreAction({ userTouched: true, adActive: false }), 'stop');
+  assert.equal(P.audioRestoreAction(null), 'stop');
+});
+
 test('복구 전 음소거와 볼륨 상태를 새 영상에 복원한다', () => {
   const audible = P.captureAudioState({ muted: false, volume: 0.42 });
   const replacement = { muted: true, volume: 1 };

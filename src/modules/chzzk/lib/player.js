@@ -49,5 +49,15 @@
     try { video.muted = !!state.muted; } catch (e) {}
     return video.muted === !!state.muted;
   }
-  root.BongPlayer = { isSkipButtonLabel, isSkipCandidate, hasAdContainer, seekEndTime, AD_CONTAINER_SEL, isAdActive, isGuideText, isPurchaseGuideDialogText, isSkipText, adTextKind, isSafeSkipLabel, isAdDuration, captureAudioState, restoreAudioState };
+  // 음소거·볼륨 버튼인지. 복구 중 사용자가 직접 누른 소리는 되돌리지 않기 위해 쓴다.
+  function isAudioControlLabel(text) {
+    return /음소거|볼륨|mute|volume/i.test(String(text || ''));
+  }
+  // 'stop' 사용자가 소리를 바꿈 | 'wait' 광고가 끝날 때까지 대기 | 'restore' 지금 복원
+  function audioRestoreAction(state) {
+    if (!state || state.userTouched) return 'stop';
+    if (state.adActive) return 'wait';
+    return 'restore';
+  }
+  root.BongPlayer = { isSkipButtonLabel, isSkipCandidate, hasAdContainer, seekEndTime, AD_CONTAINER_SEL, isAdActive, isGuideText, isPurchaseGuideDialogText, isSkipText, adTextKind, isSafeSkipLabel, isAdDuration, captureAudioState, restoreAudioState, isAudioControlLabel, audioRestoreAction };
 })(typeof globalThis !== 'undefined' ? globalThis : this);

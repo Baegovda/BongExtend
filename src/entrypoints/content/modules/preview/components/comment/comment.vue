@@ -47,13 +47,13 @@
     </div>
     <div v-if="comment.vr_player && getVoiceData">
       <iframe
-          v-if="getVoiceData.iframe"
+          v-if="getVoiceData.iframe && getVoiceData.src"
           :src="getVoiceData.src"
           height="54px"
           width="280px"
       />
       <audio
-          v-else
+          v-else-if="getVoiceData.src"
           :src="getVoiceData.src"
           controls
       />
@@ -65,23 +65,30 @@
         v-else-if="/<(img|video) class=/.test(comment.memo)"
         class="refresher-comment-content dccon"
         @contextmenu="contextMenu"
-        v-html="comment.memo.replace(/(?<!(dc|<))img/gi, '/><img')"
+        v-html="commentHtml(comment.memo)"
     />
     <p
         v-else
         class="refresher-comment-content"
-        v-html="comment.memo.replaceAll('\n', '<br>')"
+        v-html="commentHtml(comment.memo)"
     />
   </div>
 </template>
 
 <script lang="ts" setup>
 import {computed, ref} from "vue";
-
+import {safeHttpUrlOrEmpty, sanitizeHtml} from "@/utils/sanitizeHtml";
 import eventBus from "@/core/eventbus";
 import {useMeDetection} from "@/entrypoints/content/composables/useMeDetection";
 import TimeStamp from "@/components/timestamp.vue";
 import User from "@/components/user.vue";
+
+const commentHtml = (memo: string): string => {
+    const source = /<(img|video) class=/.test(memo)
+        ? memo.replace(/(?<!(dc|<))img/gi, "/><img")
+        : memo.replaceAll("\n", "<br>");
+    return sanitizeHtml(source);
+};
 
 interface VoiceDataComputed {
   iframe: boolean;
@@ -128,10 +135,11 @@ const getVoiceData = computed((): VoiceDataComputed | null => {
 
   return {
     iframe: memo[0].indexOf("iframe") > -1,
-    src:
+    src: safeHttpUrlOrEmpty(
         memo[0].indexOf("iframe") > -1
-            ? memo[0].split("src=\"")[1].split("\"")[0]
-            : "https://vr.dcinside.com/" + memo[0],
+            ? memo[0].split("src=\"")[1]?.split("\"")[0] ?? ""
+            : "https://vr.dcinside.com/" + memo[0]
+    ),
     memo: memo[1]
   };
 });

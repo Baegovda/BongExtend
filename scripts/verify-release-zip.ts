@@ -77,6 +77,17 @@ const checkZip = async (name: string) => {
         fail(`${name}: toggle-translation command has no description`);
     }
     if ("key" in manifest) fail(`${name}: manifest has a fixed key (새 확장 ID로 시작하기로 함)`);
+    const permissions = Array.isArray(manifest.permissions) ? manifest.permissions.map(String) : [];
+    if (permissions.includes("webNavigation")) fail(`${name}: webNavigation permission is not allowed`);
+    const hosts = Array.isArray(manifest.host_permissions) ? manifest.host_permissions.map(String) : [];
+    if (hosts.some((item) => item === "<all_urls>" || item === "*://*/*")) {
+        fail(`${name}: host_permissions must not include <all_urls>`);
+    }
+    const optionalHosts = Array.isArray(manifest.optional_host_permissions) ? manifest.optional_host_permissions.map(String) : [];
+    if (!optionalHosts.includes("https://*/*") || !optionalHosts.includes("http://*/*")) {
+        fail(`${name}: optional_host_permissions must allow per-origin http and https requests`);
+    }
+    if (optionalHosts.includes("<all_urls>")) fail(`${name}: optional_host_permissions must not use <all_urls>`);
 
     for (const missing of missingReachable(files, htmlPages(paths, manifest))) {
         fail(`${name}: missing referenced file: ${missing}`);

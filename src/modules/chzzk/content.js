@@ -1,5 +1,6 @@
 (() => {
   'use strict';
+  if (window.top !== window) return;
   const DEF = { enabled: true, threshold: 5, cooldown: 10, toast: true, retryTimer: true, lockQuality: true, targetQuality: 1080 };
   let cfg = { ...DEF };
   const TAG = '[BongChzzk]';
@@ -13,16 +14,39 @@
   const tracked = new Set();
   const Player = globalThis.BongPlayer;
 
+  let audioRestore = null;
+  const audioControlLabel = (el) => `${el.getAttribute?.('aria-label') || ''} ${el.getAttribute?.('title') || ''} ${el.className || ''} ${(el.textContent || '').slice(0, 80)}`;
+  const markUserAudio = (event) => {
+    if (!audioRestore || !event?.isTrusted) return;
+    const target = event.target;
+    if (event.type === 'keydown') {
+      const typing = target && target.closest && target.closest('input, textarea, [contenteditable="true"]');
+      if (!typing && (event.key === 'm' || event.key === 'M')) audioRestore.userTouched = true;
+      return;
+    }
+    const el = target && target.closest ? target.closest('button, [role="button"], input, a') : null;
+    if (el && Player && Player.isAudioControlLabel(audioControlLabel(el))) audioRestore.userTouched = true;
+  };
+  document.addEventListener('pointerdown', markUserAudio, true);
+  document.addEventListener('keydown', markUserAudio, true);
+
   function restoreRecoveredAudio(state, original) {
     if (!state || !Player) return;
-    const restore = () => {
-      if (globalThis.__bongAdActive) return;
+    const job = { state, original, userTouched: false };
+    audioRestore = job;
+    const attempt = () => {
+      if (audioRestore !== job) return;
+      const action = Player.audioRestoreAction({ userTouched: job.userTouched, adActive: !!globalThis.__bongAdActive });
+      if (action === 'stop') { if (audioRestore === job) audioRestore = null; return; }
+      if (action !== 'restore') return;
       const current = original && original.isConnected ? original
         : [...document.querySelectorAll('video.webplayer-internal-video')].find(x => !x.closest('[data-role="adVideoContainerEl"]'));
-      if (current) Player.restoreAudioState(current, state);
+      if (current) Player.restoreAudioState(current, job.state);
     };
-    // 재마운트 직후에는 video가 아직 없거나 플레이어 초기화가 muted를 다시 덮을 수 있다.
-    for (const delay of [0, 250, 800, 2000]) setTimeout(restore, delay);
+    const schedule = () => { for (const delay of [0, 250, 800, 2000]) setTimeout(attempt, delay); };
+    // 광고 중에는 복원을 건너뛰고, 광고가 끝나면 content-extras 가 이 함수를 다시 부른다.
+    globalThis.__bongRetryAudioRestore = () => { if (audioRestore === job) schedule(); };
+    schedule();
   }
 
   function toast(msg) {
@@ -261,7 +285,7 @@
       if (!stuck) {
         s.stallSince = 0;
         if (!s.goodSince) s.goodSince = now;
-        if (v.playbackRate > 2 && !v.closest('[data-role="adVideoContainerEl"]')) { try { v.playbackRate = 1; log('광고 배속이 남아 있어 1배속으로 되돌림'); } catch (e) {} }
+        if (v.playbackRate > 2 && !v._bongAdBoost && !v.closest('[data-role="adVideoContainerEl"]')) { try { v.playbackRate = 1; log('광고 배속이 남아 있어 1배속으로 되돌림'); } catch (e) {} }
         if (s.level && now - s.goodSince > 15000) { s.level = 0; log('정상 재생 확인, 단계 초기화'); }
         continue;
       }
