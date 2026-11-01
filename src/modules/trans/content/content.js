@@ -9,9 +9,14 @@
   const REVEAL_CLASS = 'pt-page-translator-reveal';
   const HOLD_CLASS = 'pt-page-translator-hold';
   const SWEEP_CLASS = 'pt-page-translator-sweep';
+  const EDGE_CLASS = 'pt-sweep-edge';
+  const PRISM_CLASS = 'pt-page-translator-prism';
   const MAX_LIVE_PENDING = 8;
   const WIPER_MS = 680;
   const SOFT_MS = 220;
+  const PRISM_MS = 860;
+  // v1.0.13 화면 전체 선의 색만 가져왔다. 선은 문장 칸 안에서만 움직인다.
+  const PRISM_INK = 'linear-gradient(105deg, #0891b2, #2563eb, #7c3aed, #db2777, #ca8a04, #0891b2)';
   const MOTION_CSS = [
     '@property --pt-p { syntax: "<number>"; inherits: true; initial-value: 0; }',
     `.${PENDING_CLASS} { text-shadow: 0 0 0.28em rgba(56, 189, 248, 0.16); }`,
@@ -32,8 +37,42 @@
     `.${SWEEP_CLASS} .pt-prev { clip-path: inset(0 0 0 calc(var(--pt-p) * 100%)); }`,
     `.${SWEEP_CLASS}.pt-sweep-rtl .pt-next { clip-path: inset(0 0 0 calc((1 - var(--pt-p)) * 100%)); }`,
     `.${SWEEP_CLASS}.pt-sweep-rtl .pt-prev { clip-path: inset(0 calc(var(--pt-p) * 100%) 0 0); }`,
+    `.${SWEEP_CLASS} .pt-next {`,
+    `background-image: ${PRISM_INK}; background-size: 220% 100%;`,
+    '-webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;',
+    'animation: pt-prism-shift 0.9s linear infinite;',
+    '}',
+    '@keyframes pt-prism-shift { from { background-position: 0% 50%; } to { background-position: 100% 50%; } }',
+    `.${SWEEP_CLASS} .${EDGE_CLASS} {`,
+    'position: absolute; top: 0; bottom: 0; width: 16px; z-index: 2; pointer-events: none;',
+    'left: calc(var(--pt-p) * 100%); transform: translateX(-50%);',
+    'background-image: linear-gradient(90deg, transparent 0%, rgba(56, 189, 248, 0.95) 14%, rgba(99, 102, 241, 1) 32%, rgba(167, 139, 250, 1) 48%, rgba(244, 114, 182, 1) 64%, rgba(250, 204, 21, 0.95) 82%, transparent 100%);',
+    'background-size: 180% 100%;',
+    'box-shadow: 0 0 8px rgba(167, 139, 250, 0.55), 0 0 2px rgba(56, 189, 248, 0.85);',
+    'opacity: clamp(0, min(var(--pt-p), 1 - var(--pt-p)) * 16, 1);',
+    'animation: pt-edge-shimmer 0.85s linear infinite;',
+    '-webkit-mask-image: linear-gradient(180deg, transparent, #000 16%, #000 84%, transparent);',
+    'mask-image: linear-gradient(180deg, transparent, #000 16%, #000 84%, transparent);',
+    '}',
+    `.${SWEEP_CLASS}.pt-sweep-rtl .${EDGE_CLASS} { left: auto; right: calc(var(--pt-p) * 100%); transform: translateX(50%); }`,
+    '@keyframes pt-edge-shimmer { 0%, 100% { filter: hue-rotate(0deg); } 50% { filter: hue-rotate(24deg); } }',
+    `.${PRISM_CLASS} {`,
+    `background-image: ${PRISM_INK}; background-size: 220% 100%;`,
+    '-webkit-background-clip: text; background-clip: text;',
+    '-webkit-box-decoration-break: clone; box-decoration-break: clone;',
+    'text-decoration-color: var(--pt-ink, currentColor); caret-color: var(--pt-ink, auto);',
+    `animation: pt-prism-settle ${PRISM_MS}ms ease forwards;`,
+    '}',
+    '@keyframes pt-prism-settle {',
+    '0% { background-position: 0% 50%; -webkit-text-fill-color: transparent; }',
+    '58% { background-position: 72% 50%; -webkit-text-fill-color: transparent; }',
+    '100% { background-position: 100% 50%; -webkit-text-fill-color: var(--pt-ink, currentColor); }',
+    '}',
+    `.${PRISM_CLASS}::selection { -webkit-text-fill-color: HighlightText; color: HighlightText; background-color: Highlight; }`,
     '@media (prefers-reduced-motion: reduce) {',
     `.${PENDING_CLASS}, .${PENDING_LIVE_CLASS} { animation: none; text-shadow: 0 0 0.22em rgba(56, 189, 248, 0.18); }`,
+    `.${SWEEP_CLASS} .pt-next, .${PRISM_CLASS} { animation: none; -webkit-text-fill-color: unset; background-image: none; }`,
+    `.${SWEEP_CLASS} .${EDGE_CLASS} { animation: none; opacity: 0; }`,
     '}',
   ].join('');
   const MAX_ITEMS = 24;
@@ -415,6 +454,8 @@
       effectToken.set(element, {});
       element.classList.remove(FADE_CLASS);
       element.classList.remove(REVEAL_CLASS);
+      element.classList.remove(PRISM_CLASS);
+      clearCssVar(element, '--pt-ink');
       element.classList.add(PENDING_CLASS);
       if (livePending.size < MAX_LIVE_PENDING) {
         element.classList.add(PENDING_LIVE_CLASS);
@@ -580,6 +621,26 @@
       else node.style[name] = value;
     }
 
+    function clearCssVar(node, name) {
+      if (!node || !node.style) return;
+      if (typeof node.style.removeProperty === 'function') node.style.removeProperty(name);
+      else delete node.style[name];
+    }
+
+    // 배경색이 있는 칸에 글자 클립을 씌우면 배경이 사라진다.
+    function backgroundIsClear(computed) {
+      if (!computed) return true;
+      const image = computed.backgroundImage;
+      if (image && image !== 'none') return false;
+      const color = String(computed.backgroundColor || '').replace(/\s+/g, '').toLowerCase();
+      if (!color || color === 'transparent' || color === 'rgba(0,0,0,0)') return true;
+      if (color.startsWith('rgba(')) {
+        const parts = color.slice(5, -1).split(',');
+        if (parts.length === 4) return Number(parts[3]) === 0;
+      }
+      return false;
+    }
+
     function placeBox(node, rect) {
       if (!node || !node.style || !rect) return;
       node.style.position = 'fixed';
@@ -665,8 +726,11 @@
         copyTextStyle(next, row.style, row.rtl);
         appendText(prev, job.original);
         appendText(next, job.translated);
+        const edge = document.createElement('div');
+        edge.className = EDGE_CLASS;
         box.appendChild(prev);
         box.appendChild(next);
+        box.appendChild(edge);
         mountNode(box);
         if (row.hold) job.element.classList.add(HOLD_CLASS);
         clearPending(job.element, 'reveal');
@@ -693,16 +757,42 @@
       }
     }
 
+    // 자식 태그가 있으면 색이 안으로 번지고, 배경이 있으면 배경이 잘린다.
+    // 그래서 글자만 있는 투명한 요소에만 잠깐 프리즘을 입힌 뒤 클래스와 변수를 지운다.
+    function armPrism(element) {
+      if (!revealAnimation || motionReduced() || !element || !element.classList || !canHold(element)) return;
+      const computed = computedStyle(element);
+      if (!backgroundIsClear(computed)) return;
+      const ink = computed && computed.color;
+      if (ink) setCssVar(element, '--pt-ink', ink);
+      element.classList.remove(PRISM_CLASS);
+      if (typeof element.offsetWidth === 'number') void element.offsetWidth;
+      element.classList.add(PRISM_CLASS);
+      decorated.add(element);
+      const token = {};
+      effectToken.set(element, token);
+      setTimer(() => {
+        if (effectToken.get(element) !== token) return;
+        if (element.classList) element.classList.remove(PRISM_CLASS);
+        clearCssVar(element, '--pt-ink');
+        if (!pendingCounts.has(element)) decorated.delete(element);
+      }, PRISM_MS);
+    }
+
     function releaseJob(job, commit) {
       if (!job || job.settled) return;
       job.settled = true;
       activeJobs.delete(job);
+      let wroteTranslation = false;
       if (commit && job.epoch === sweepEpoch && connected(job.node)) {
         const current = job.node.nodeValue;
         const known = current === job.original
           || current === job.translated
           || expectedWrite.get(job.node) === current;
-        if (known) writeNode(job.node, job.target);
+        if (known) {
+          writeNode(job.node, job.target);
+          wroteTranslation = job.target === job.translated;
+        }
       }
       if (job.element && job.element.classList) {
         job.element.classList.remove(HOLD_CLASS);
@@ -710,6 +800,7 @@
         if (!pendingCounts.has(job.element)) decorated.delete(job.element);
       }
       removeNode(job.box);
+      if (wroteTranslation) armPrism(job.element);
     }
 
     // nodeValue changes only after the clip finishes, in one write batch.
@@ -903,7 +994,9 @@
           element.classList.remove(FADE_CLASS);
           element.classList.remove(REVEAL_CLASS);
           element.classList.remove(HOLD_CLASS);
+          element.classList.remove(PRISM_CLASS);
         }
+        clearCssVar(element, '--pt-ink');
       }
       decorated.clear();
     }
@@ -1429,6 +1522,7 @@
   ns.lineSample = lineSample;
   ns.WIPER_MS = WIPER_MS;
   ns.SOFT_MS = SOFT_MS;
+  ns.PRISM_MS = PRISM_MS;
 
   function install() {
     const session = createSession({

@@ -275,6 +275,21 @@ test('in-flight text glows, then a prism sweep reveals the translation', async (
   assert.match(source, /clip-path: inset\(0 calc\(\(1 - var\(--pt-p\)\) \* 100%\) 0 0\)/);
   assert.match(source, /pt-sweep-rtl/);
   assert.doesNotMatch(source, /pt-wiper-line/);
+  assert.doesNotMatch(source, /pt-page-translator-wiper/);
+  assert.doesNotMatch(source, /width: 100vw/);
+  assert.match(source, /pt-sweep-edge/);
+  assert.match(source, /width: 16px/);
+  assert.match(source, /left: calc\(var\(--pt-p\) \* 100%\)/);
+  assert.match(source, /right: calc\(var\(--pt-p\) \* 100%\)/);
+  assert.match(source, /rgba\(56, 189, 248, 0\.95\)/);
+  assert.match(source, /rgba\(167, 139, 250, 1\)/);
+  assert.match(source, /rgba\(244, 114, 182, 1\)/);
+  assert.match(source, /rgba\(250, 204, 21, 0\.95\)/);
+  assert.match(source, /background-clip: text/);
+  assert.match(source, /pt-page-translator-prism/);
+  assert.match(source, /pt-prism-settle/);
+  assert.match(source, /PRISM_MS = 860/);
+  assert.match(source, /::selection/);
   assert.match(source, /MAX_LIVE_PENDING = 8/);
   assert.match(source, /pt-page-translator-pending-live/);
   assert.match(source, /pt-page-translator-hold/);
@@ -307,6 +322,7 @@ test('in-flight text glows, then a prism sweep reveals the translation', async (
   await reducedSession.session.whenIdle();
   assert.equal(reduced.classList.contains('pt-page-translator-fade'), true);
   assert.equal(reduced.classList.contains('pt-page-translator-reveal'), false);
+  assert.equal(reduced.classList.contains('pt-page-translator-prism'), false);
   assert.equal(reduced.childNodes[0].nodeValue, 'T:包邮');
 
   const plainRoot = element('div');
@@ -320,6 +336,7 @@ test('in-flight text glows, then a prism sweep reveals the translation', async (
   await plainSession.session.whenIdle();
   assert.equal(plain.classList.contains('pt-page-translator-reveal'), false);
   assert.equal(plain.classList.contains('pt-page-translator-fade'), false);
+  assert.equal(plain.classList.contains('pt-page-translator-prism'), false);
   assert.equal(plain.childNodes[0].nodeValue, 'T:包邮');
 
   const failedRoot = element('div');
@@ -455,7 +472,8 @@ test('each text box wipes horizontally without a page-wide scan line', async () 
   const sweeps = created.filter((node) => String(node.className).includes('pt-page-translator-sweep'));
   assert.equal(sweeps.length, 10);
   assert.match(sweeps[0].className, /pt-sweep-rtl/);
-  assert.equal(sweeps[0].children.length, 2);
+  assert.equal(sweeps[0].children.length, 3);
+  assert.equal(sweeps[0].children[2].className, 'pt-sweep-edge');
   assert.equal(sweeps[0].children[0].children[0].nodeValue, '글0');
   assert.match(sweeps[0].children[1].children[0].nodeValue, /더긴번역/);
   assert.equal(sweeps[0].style.top, '0px');
@@ -499,6 +517,223 @@ test('each text box wipes horizontally without a page-wide scan line', async () 
   clock += api.WIPER_MS;
   timers.filter((timer) => timer.ms === api.WIPER_MS).at(-1).fn();
   assert.match(nodes[0].childNodes[0].nodeValue, /^더긴번역글/);
+});
+
+function styleBag(node) {
+  const bag = {};
+  node.style = {
+    setProperty(name, value) { bag[name] = String(value); },
+    removeProperty(name) { delete bag[name]; },
+  };
+  node.ink = bag;
+  return node;
+}
+
+test('the sweep edge stays inside the sentence and the new text settles to its own color', async () => {
+  const created = [];
+  const timers = [];
+  const frames = [];
+  let clock = 0;
+  const api = loadContent({
+    document: revealDocument(created),
+    getComputedStyle(node) {
+      return {
+        direction: node && node.dir === 'rtl' ? 'rtl' : 'ltr',
+        font: '16px sans-serif',
+        lineHeight: '22px',
+        letterSpacing: 'normal',
+        color: (node && node.inkColor) || 'rgb(17, 24, 39)',
+        backgroundColor: (node && node.bg) || 'rgba(0, 0, 0, 0)',
+        backgroundImage: (node && node.bgImage) || 'none',
+      };
+    },
+  });
+  const root = element('div');
+  const link = styleBag(element('a', {}, ['Free shipping']));
+  link.inkColor = 'rgb(29, 78, 216)';
+  const plain = styleBag(element('span', {}, ['Welcome']));
+  const painted = styleBag(element('span', {}, ['Buy now']));
+  painted.bg = 'rgb(30, 30, 30)';
+  const photo = styleBag(element('span', {}, ['Photo']));
+  photo.bgImage = 'url(star.png)';
+  const paragraph = element('p');
+  paragraph.append('Hello');
+  const bold = styleBag(element('b', {}, ['world']));
+  paragraph.append(bold);
+  const rtl = styleBag(element('span', {}, ['שלום']));
+  rtl.dir = 'rtl';
+  root.append(link);
+  root.append(plain);
+  root.append(painted);
+  root.append(photo);
+  root.append(paragraph);
+  root.append(rtl);
+
+  const session = api.createSession({
+    root,
+    walkRoot: root,
+    enableBanner: false,
+    prefersReducedMotion: false,
+    now: () => clock,
+    requestAnimationFrame(fn) {
+      frames.push(fn);
+      return frames.length;
+    },
+    measureRect(node) { return node.parentElement.getBoundingClientRect(); },
+    setTimer(fn, ms) { timers.push({ fn, ms }); return timers.length; },
+    clearTimer() {},
+    IntersectionObserver: class { observe() {} disconnect() {} },
+    MutationObserver: class { observe() {} disconnect() {} },
+    sendBatch: async (texts) => ({
+      ok: true,
+      translations: texts.map((text) => `번역:${text}`),
+    }),
+  });
+  session.start();
+  await until(() => frames.length === 1);
+  frames.shift()(clock);
+  const sweeps = created.filter((node) => String(node.className).includes('pt-page-translator-sweep'));
+  assert.equal(sweeps.length, 7);
+  const rtlSweep = sweeps.find((node) => String(node.className).includes('pt-sweep-rtl'));
+  assert.ok(rtlSweep);
+  assert.equal(rtlSweep.children.at(-1).className, 'pt-sweep-edge');
+  assert.equal(created.some((node) => String(node.className).includes('pt-wiper-line')), false);
+  assert.equal(link.classList.contains('pt-page-translator-prism'), false);
+  assert.equal(link.childNodes[0].nodeValue, 'Free shipping');
+
+  clock = api.WIPER_MS;
+  frames.shift()(clock);
+  assert.equal(link.childNodes[0].nodeValue, '번역:Free shipping');
+  assert.equal(link.classList.contains('pt-page-translator-prism'), true);
+  assert.equal(link.classList.contains('pt-page-translator-hold'), false);
+  assert.equal(link.ink['--pt-ink'], 'rgb(29, 78, 216)');
+  assert.equal(plain.classList.contains('pt-page-translator-prism'), true);
+  assert.equal(plain.ink['--pt-ink'], 'rgb(17, 24, 39)');
+  assert.equal(painted.classList.contains('pt-page-translator-prism'), false);
+  assert.equal(painted.ink['--pt-ink'], undefined);
+  assert.equal(photo.classList.contains('pt-page-translator-prism'), false);
+  assert.equal(paragraph.classList.contains('pt-page-translator-prism'), false);
+  assert.equal(bold.classList.contains('pt-page-translator-prism'), true);
+  assert.equal(rtl.classList.contains('pt-page-translator-prism'), true);
+  assert.equal(Object.hasOwn(link.ink, 'color'), false);
+
+  session.setEnabled(false);
+  assert.equal(link.classList.contains('pt-page-translator-prism'), false);
+  assert.equal(plain.classList.contains('pt-page-translator-prism'), false);
+  assert.equal(bold.classList.contains('pt-page-translator-prism'), false);
+  assert.equal(link.ink['--pt-ink'], undefined);
+  assert.equal(plain.ink['--pt-ink'], undefined);
+  assert.equal(bold.ink['--pt-ink'], undefined);
+
+  const quiet = [];
+  const quietTimers = [];
+  const reducedApi = loadContent({
+    document: revealDocument(quiet),
+    getComputedStyle() {
+      return {
+        direction: 'ltr',
+        font: '16px sans-serif',
+        color: 'black',
+        backgroundColor: 'rgba(0, 0, 0, 0)',
+        backgroundImage: 'none',
+      };
+    },
+  });
+  const reducedRoot = element('div');
+  const reduced = styleBag(element('span', {}, ['Welcome']));
+  reducedRoot.append(reduced);
+  const reducedSession = reducedApi.createSession({
+    root: reducedRoot,
+    walkRoot: reducedRoot,
+    enableBanner: false,
+    prefersReducedMotion: true,
+    setTimer(fn, ms) { quietTimers.push({ fn, ms }); return quietTimers.length; },
+    clearTimer() {},
+    IntersectionObserver: class { observe() {} disconnect() {} },
+    MutationObserver: class { observe() {} disconnect() {} },
+    sendBatch: async (texts) => ({ ok: true, translations: texts.map((text) => `번역:${text}`) }),
+  });
+  reducedSession.start();
+  await reducedSession.whenIdle();
+  assert.equal(reduced.childNodes[0].nodeValue, '번역:Welcome');
+  assert.equal(reduced.classList.contains('pt-page-translator-prism'), false);
+  assert.equal(reduced.classList.contains('pt-page-translator-fade'), true);
+  assert.equal(quiet.some((node) => String(node.className).includes('pt-sweep-edge')), false);
+  assert.equal(reduced.ink['--pt-ink'], undefined);
+
+  const offCreated = [];
+  const offApi = loadContent({ document: revealDocument(offCreated) });
+  const offRoot = element('div');
+  const off = styleBag(element('span', {}, ['Welcome']));
+  offRoot.append(off);
+  const offSession = offApi.createSession({
+    root: offRoot,
+    walkRoot: offRoot,
+    enableBanner: false,
+    revealAnimation: false,
+    prefersReducedMotion: false,
+    setTimer() { return 0; },
+    clearTimer() {},
+    IntersectionObserver: class { observe() {} disconnect() {} },
+    MutationObserver: class { observe() {} disconnect() {} },
+    sendBatch: async (texts) => ({ ok: true, translations: texts.map((text) => `번역:${text}`) }),
+  });
+  offSession.start();
+  await offSession.whenIdle();
+  assert.equal(off.childNodes[0].nodeValue, '번역:Welcome');
+  assert.equal(off.classList.contains('pt-page-translator-prism'), false);
+  assert.equal(off.classList.contains('pt-page-translator-pending'), false);
+  assert.equal(off.ink['--pt-ink'], undefined);
+  assert.equal(offCreated.some((node) => String(node.className).includes('pt-sweep-edge')), false);
+
+  const settleCreated = [];
+  const settleTimers = [];
+  const settleFrames = [];
+  let settleClock = 0;
+  const settleApi = loadContent({
+    document: revealDocument(settleCreated),
+    getComputedStyle() {
+      return {
+        direction: 'ltr',
+        font: '16px sans-serif',
+        color: 'rgb(0, 0, 0)',
+        backgroundColor: 'transparent',
+        backgroundImage: 'none',
+      };
+    },
+  });
+  const settleRoot = element('div');
+  const settle = styleBag(element('span', {}, ['Welcome']));
+  settleRoot.append(settle);
+  const settleSession = settleApi.createSession({
+    root: settleRoot,
+    walkRoot: settleRoot,
+    enableBanner: false,
+    prefersReducedMotion: false,
+    now: () => settleClock,
+    requestAnimationFrame(fn) {
+      settleFrames.push(fn);
+      return settleFrames.length;
+    },
+    measureRect(node) { return node.parentElement.getBoundingClientRect(); },
+    setTimer(fn, ms) { settleTimers.push({ fn, ms }); return settleTimers.length; },
+    clearTimer() {},
+    IntersectionObserver: class { observe() {} disconnect() {} },
+    MutationObserver: class { observe() {} disconnect() {} },
+    sendBatch: async (texts) => ({ ok: true, translations: texts.map((text) => `번역:${text}`) }),
+  });
+  settleSession.start();
+  await until(() => settleFrames.length === 1);
+  settleFrames.shift()(settleClock);
+  settleClock = settleApi.WIPER_MS;
+  settleFrames.shift()(settleClock);
+  assert.equal(settle.classList.contains('pt-page-translator-prism'), true);
+  const settleTimer = settleTimers.find((timer) => timer.ms === settleApi.PRISM_MS);
+  assert.ok(settleTimer);
+  settleTimer.fn();
+  assert.equal(settle.classList.contains('pt-page-translator-prism'), false);
+  assert.equal(settle.ink['--pt-ink'], undefined);
+  assert.equal(settle.childNodes[0].nodeValue, '번역:Welcome');
 });
 
 test('a later chunk uses the same clip instead of popping into place', async () => {
