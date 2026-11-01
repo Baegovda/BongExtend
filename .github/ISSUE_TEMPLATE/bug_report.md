@@ -1,9 +1,9 @@
 ---
 name: 버그 제보
-about: 리프레셔 버그를 제보하세요
+about: BongExtend 버그를 알려 주세요
 title: "[BUG] "
 labels: bug
-assignees: green1052
+assignees: Baegovda
 
 ---
 
@@ -27,9 +27,9 @@ assignees: green1052
 가능하다면 스크린샷을 첨부해주세요.
 
 ## 🖥️ 환경
-- **OS**: [e.g. Windows 11, macOS 13.0, Ubuntu 22.04]
-- **브라우저**: [e.g. Chrome 119, Firefox 118, Safari 17]
-- **리프레셔 버전**: [e.g. 1.0.0]
+- **OS**: [예: Windows 11, macOS]
+- **브라우저**: [예: Chrome 131]
+- **BongExtend 버전**: [예: 1.0.15]
 - **재현 가능한 주소**: [해당되는 경우 작성]
 
 ## 📝 추가 정보

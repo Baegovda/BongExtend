@@ -1,3 +1,5 @@
+> **옛 기록이에요.** 합치기 전 확장의 글이고, 지금 BongExtend 안내가 아니에요. 지금 안내는 저장소 맨 위의 `AGENTS.md`와 `MERGE_NOTES.md`예요. 아래는 당시 내용 그대로예요.
+
 # AGENTS.md
 
 Handoff for a fresh agent that has only `https://github.com/Baegovda/bongtrans`. Read this file first. After every release, update this file and [docs/HISTORY.md](docs/HISTORY.md) in the same commit as the version bump. If a decision changes an invariant below, edit the invariant here. Do not leave the new behavior only in the changelog.

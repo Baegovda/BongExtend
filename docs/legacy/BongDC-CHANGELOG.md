@@ -1,3 +1,5 @@
+> **옛 기록이에요.** 합치기 전 확장의 글이고, 지금 BongExtend 안내가 아니에요. 지금 안내는 저장소 맨 위의 `AGENTS.md`와 `MERGE_NOTES.md`예요. 아래는 당시 내용 그대로예요.
+
 # Changelog
 
 BongDC (**Baegovda** 포크) 변경 이력.  

@@ -1,3 +1,5 @@
+> **옛 기록이에요.** 합치기 전 확장의 글이고, 지금 BongExtend 안내가 아니에요. 지금 안내는 저장소 맨 위의 `AGENTS.md`와 `MERGE_NOTES.md`예요. 아래는 당시 내용 그대로예요.
+
 # Decision log
 
 Why each version is shaped the way it is. The changelog says what shipped. This file says what the next change should not undo. Update it in the same commit as a release. The procedure lives in [AGENTS.md](../AGENTS.md).

@@ -1,37 +1,69 @@
-# BongExtend 1.0.0 통합 메모 (2026-10-31 KST)
+# BongExtend 인수인계 (1.0.15)
 
-## 출처
-- BongChzzk v1.6.2 (`Baegovda/BongChzzk` → 이름 바꾼 `Baegovda/BongExtend` main, cc801c1)
-- BongTrans main ebd79e5 (PR #2 와이퍼 병합 포함, manifest 1.5.1)
-- BongDC develop b8be749 (5.2.20 + PR #16 크롬 원클릭 업데이트)
+이 메모를 쓴 시점: 2026-11-01. main은 `ab16fe9`, 버전은 `package.json`의 **1.0.15**예요. 최신 GitHub 릴리스도 v1.0.15예요. 숫자가 다르면 `package.json`과 [Releases](https://github.com/Baegovda/BongExtend/releases)를 다시 보세요.
 
-## 한 일
-- 뼈대는 BongDC(WXT 0.20 + Vue 3 + TS + Bun). 디시 코드는 `src/` 경로 그대로 (import 경로·`import.meta.glob` 때문에 옮기지 않음).
-- 치지직: `src/modules/chzzk/` 순수 JS 그대로. 바뀐 것은 `chrome.storage.{sync,local,onChanged}` → `BCStore.*` 치환뿐 (로직 그대로, diff 확인함). `lib/ns.js` shim이 키 앞에 `chzzk.`를 붙임. 팝업에서 옛 업데이트 버튼/코드 제거. 업데이트용 lib(updates/installer/zip)와 그 테스트 제거.
-- 치지직 콘텐츠 스크립트: 배경이 `registerContentScripts`(id `bongextend-chzzk`, 옛 순서 + 맨 앞 ns.js, all_frames, document_idle)로 등록. 모듈 스위치 끄면 등록 해제.
-- 번역: `src/modules/trans/`. 저장 키 `settings`→`trans.settings`, `cacheStats`→`trans.cacheStats`. 배경 코드는 `startTransBackground()`로 감싸 `background.ts`에서 호출. 주입 파일 `trans/content/content.js`. 단축키 리스너 삭제. 우클릭 메뉴는 디시 메뉴와 같이 `createContextMenus`에서 만듦(서로 `removeAll`로 지우던 충돌 해결). 모듈 꺼지면 번역 요청 거절. `lib/updates.js`는 안내만 하는 stub(화면 코드 그대로 두려고). 팝업의 업데이트 줄 숨김, 설정 버튼은 `trans/options/options.html` 탭 열기.
-- 디시: 단축키(commands, ShortcutTab, onCommand) 제거. 팝업 → `entrypoints/dc/`(dc.html). 데이터 가져오기/백업/복원/초기화와 저장소 마이그레이션이 디시 키만 만지게 고침(`src/storage/namespace.ts`; 원래는 `storage.local.clear()`/`sync.clear()`로 다른 모듈 설정까지 지웠음).
-- 업데이트: BongDC 방식 하나만. 저장소 `Baegovda/BongExtend`, 이름 확인 `BongExtend`, zip `bongextend-X.Y.Z-chrome.zip`, 폴더 핸들 IndexedDB `bongextend-install`. 번역 캐시 IndexedDB `page-translator`는 그대로.
-- 새 팝업(`entrypoints/popup/`): 탭 치지직/번역/디시/업데이트·설정, 모듈 스위치(`core.modules`), 설정 내보내기·가져오기(`src/modules/settings-io.ts`).
-- 릴리스: `.github/workflows/release.yml` (`v*` 태그). BongDC의 build.yml, ip-isp.yml은 뺐음.
-- manifest: key 없음(새 ID), commands 없음, 권한 = 합집합, 호스트에 chzzk/api.chzzk/generativelanguage 추가. 파이어폭스 빌드는 안 함.
+## 이 프로젝트가 뭐예요
 
-## 확인한 것 (박스, 2026-10-31)
-- `bun run test`: bun 31개 + node 62개 통과.
-- `bun run build`, `bun run zip`, `bun scripts/verify-release-zip.ts 1.0.0` 통과.
-- Playwright Chromium 156(헤드리스)으로 실제 로드: 서비스 워커 오류 없음, commands 없음, 치지직 스크립트 13개 등록, 모듈 스위치로 등록 해제/재등록, 모든 페이지(popup, chzzk/popup, trans/popup, trans/options, dc, options, update) 오류 없이 뜸, 내보내기 파일 받아짐, 치지직 설정이 `chzzk.*`로 저장됨.
-- chzzk.naver.com 실제 접속: 치지직 스크립트 붙음(`[BongChzzk] 비디오 감시 시작`, 스타일 주입). 로그인 안 해서 팔로잉은 401.
-- gall.dcinside.com 실제 접속: 디시 모듈 동작(refresher 노드 49개), 콘솔 오류 없음.
+BongExtend는 크롬 확장(MV3) 하나예요. 예전에 따로 쓰던 확장 세 개를 합쳤어요.
 
-## 확인 못 한 것
-- 로그인한 실제 크롬에서: 치지직 라이브 재생 중 기능 전부, Gemini 키로 실제 번역, 디시 로그인 기능, 우클릭 메뉴 클릭.
-- 원클릭 업데이트 끝까지(실제 릴리스가 아직 없음).
-- 옛 BongTrans/BongDC 내보내기 파일로 실제 가져오기 (단위 테스트만).
-- 번역을 치지직/디시 페이지에서 켰을 때 충돌 여부.
-- TypeScript 타입 검사(원래 프로젝트에도 tsc가 없음; 빌드만 확인).
+- **치지직**: 예전 BongChzzk
+- **번역**: 예전 BongTrans (Gemini)
+- **디시**: 예전 BongDC (green1052/DCRefresher-Reborn 포크)
 
-## 남은 문제
-- BongExtend 저장소에는 BongChzzk 릴리스 v1.6.2 등이 남아 있음. v1.0.0 릴리스를 만들기 전까지 BongExtend 업데이트 확인이 "1.0.0 → 1.6.2 업데이트 가능"(zip 없음 오류)으로 보임. v1.0.0을 올리면 최신 릴리스가 바뀌어 해결되지만, 옛 BongChzzk 릴리스를 지우거나 정리하는 것도 고려.
-- 옛 BongChzzk 1.6.2 업데이터는 이름 바뀐 저장소로 연결되는데 1.0.0 < 1.6.2라 "최신"으로 보고 아무것도 안 함 (안전, 대신 옮겨 가라는 안내는 없음).
-- 아이콘은 BongDC 아이콘 그대로. IP 통신사 표는 계속 `Baegovda/BongDC` develop에서 받음(`src/utils/ipIsp.ts`).
-- 옛 BongChzzk에는 내보내기가 없어 치지직 설정은 다시 해야 함.
+라이선스는 GPL-3.0이에요. 저장소는 [Baegovda/BongExtend](https://github.com/Baegovda/BongExtend)예요. 화면 글과 안내 문서는 한국어 해요체로 써요. 오너는 개발자가 아니에요.
+
+꼭 지킬 규칙(저장 키, 단축키, 권한, `wxt.config.ts`의 `imports.parser`)은 `AGENTS.md`에 있어요. 이 파일은 지금 상태와 남은 일만 적어요.
+
+## 처음 읽을 순서
+
+1. `AGENTS.md`
+2. 이 파일 (`MERGE_NOTES.md`)
+
+`CLAUDE.md`, `.cursor/rules/handoff.mdc`, `.github/copilot-instructions.md`도 이 두 파일만 가리켜요. `docs/HANDOFF.md`라는 파일은 없어요. 옛 BongDC 인수인계는 `docs/legacy/BongDC-HANDOFF.md`예요.
+
+그다음이 필요하면 `README.md`(설치·사용), `CHANGELOG.md`(사용자에게 보이는 변경)를 보세요. `docs/legacy/`는 합치기 전 기록이라 지금 규칙이 아니에요.
+
+## 빌드, 테스트, 릴리스
+
+- `bun install`
+- `bun run test` — 디시·공통(`bun test`) + 치지직·번역(`node --test`) + 타입 검사(`test:types`, `tsc --noEmit`)
+- `bun run build` → `.output/chrome-mv3/`
+- `bun run zip` → `.output/bongextend-X.Y.Z-chrome.zip`. 그다음 `bun scripts/verify-release-zip.ts X.Y.Z`
+
+버전 숫자는 `package.json` 하나예요. 사용자용 변경은 `CHANGELOG.md`의 `## [X.Y.Z]`에 적어요. 태그 `vX.Y.Z`를 푸시하면 `.github/workflows/release.yml`이 테스트, 태그=버전 확인, zip, zip 검사, 릴리스 노트를 해요. 푸시·태그·릴리스는 오너가 확인한 뒤에만 해요.
+
+PR을 열거나 main이 아닌 일반 push에는 테스트를 돌리는 GitHub Actions가 없어요. 자동 테스트는 태그 릴리스와 수동 실행뿐이에요.
+
+## 이미 된 일
+
+- 이름 바꾼 저장소에 남아 있던 옛 BongChzzk GitHub **릴리스** v1.1.0–v1.6.2는 지웠어요. **태그** v1.1.0–v1.6.2는 그대로예요. 그래서 업데이트가 "1.6.2로 올리자"고 하던 문제는 없어요. 최신 릴리스는 BongExtend 1.0.15예요.
+- 디시 통신사 표는 `Baegovda/BongExtend`의 `main`, 파일 `src/data/ip-isp.json`에서 받아요 (`src/utils/ipIsp.ts`). 예전처럼 `Baegovda/BongDC`의 develop을 보지 않아요.
+- 타입 검사는 `bun run test` 안에 있어요 (`test:types`). 빼지 마세요.
+
+## 아직 남은 일
+
+### 실제 기기에서 확인할 것
+
+코드는 들어갔지만, 로그인된 실제 크롬에서 본 기록은 아직 없어요. [PR #1](https://github.com/Baegovda/BongExtend/pull/1)에서 특히 아래를 봐 주세요.
+
+- **항상 번역**: 번역 탭에서 이 사이트를 항상 번역하면, 그 사이트만 권한 창이 뜨는지. 허용하면 그 사이트를 새 탭으로 열어도 자동으로 번역되는지. 거절하면 스위치가 다시 꺼지는지. 스위치를 끄면 다음 방문에는 자동 번역이 안 되는지.
+- **복구 소리**: 치지직에서 버퍼링 복구 뒤 소리가 유지되는지. 복구 중에 직접 음소거하면 그 상태가 그대로인지.
+- **디시 미리보기**: 글 미리보기와 댓글이 예전처럼 보이는지.
+
+같이 아직인 것:
+
+- 치지직 라이브를 보면서 기능이 모두 도는지
+- Gemini 키로 페이지가 실제로 번역되는지
+- 로그인한 디시 기능
+- 우클릭 메뉴를 눌렀을 때
+- 옛 BongTrans·BongDC 내보내기 파일로 설정을 실제로 가져오기 (자동 테스트만 있어요)
+- 번역을 치지직·디시 페이지에서 켰을 때 서로 안 부딪히는지
+
+### 그 밖에
+
+- 아이콘은 아직 옛 BongDC 그림이에요.
+- 작업을 main에 바로 넣을지, PR로 넣을지는 아직 정하지 않았어요.
+
+## 헷갈리기 쉬운 옛 파일
+
+`scripts/bootstrap.sh`와 `scripts/bootstrap.ps1`는 옛 BongDC용이에요. `bongdc-*.zip`을 찾고, 없는 `docs/HANDOFF.md`를 가리켜요. BongExtend에서는 쓰지 마세요. 명령은 위의 빌드·테스트 절을 따르면 돼요.
