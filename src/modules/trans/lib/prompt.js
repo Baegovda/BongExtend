@@ -10,6 +10,7 @@ export function buildPrompt(texts, label) {
     'Quality:',
     '- Write the way a native speaker would. No notes, pronunciation, romanization, or alternatives.',
     '- Keep each translation about as long as the source. Do not summarize, explain, or merge items.',
+    '- If the source has no line break, keep the translation on one line. Do not add line breaks that were not in the source.',
     '- When the target is Korean and the source is Chinese, product titles, specs, and shop UI should read as natural Korean shopping copy: precise product terms, sizes, materials, colors, quantities, and sales phrases.',
     '- Use these Korean renderings only when those Chinese words are actually present: 包邮 → 무료배송, 正品 → 정품, 旗舰店 → 플래그십 스토어, 加购 → 장바구니 담기, 收藏 → 찜, 客服 → 고객센터, 发货 → 출고, 尺码 → 사이즈, 颜色 → 색상, 款 → 스타일, 评价 → 리뷰, 销量 → 판매량, 券后 → 쿠폰 적용가, 到手价 → 최종가.',
     '- Do not insert glossary words that are not in the source. For every other language pair, ignore the glossary and translate naturally.',
@@ -64,5 +65,6 @@ export function parseTranslations(raw, expectedLength) {
 
 export function sanitizeTranslation(source, translated) {
   if (typeof translated !== 'string' || !translated.trim()) return source;
-  return translated;
+  if (/[\r\n\u2028\u2029]/.test(source)) return translated;
+  return translated.replace(/[ \t]*[\r\n\u2028\u2029]+[ \t]*/g, ' ');
 }

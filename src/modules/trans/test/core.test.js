@@ -89,6 +89,8 @@ test('parser accepts an array, a wrapper object, and a fenced payload', () => {
   assert.deepEqual(parseTranslations('{"translations":["a","b"]}', 2), ['a', 'b']);
   assert.deepEqual(parseTranslations('```json\n["a"]\n```', 1), ['a']);
   assert.equal(sanitizeTranslation('包邮', '   '), '包邮');
+  assert.equal(sanitizeTranslation('旗舰店', '플래그십\n스토어'), '플래그십 스토어');
+  assert.equal(sanitizeTranslation('第一行\n第二行', '첫 줄\n둘째 줄'), '첫 줄\n둘째 줄');
   assert.throws(() => parseTranslations('["only"]', 2), GeminiError);
 });
 
