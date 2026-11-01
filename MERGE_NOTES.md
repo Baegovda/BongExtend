@@ -1,6 +1,6 @@
-# BongExtend 인수인계 (1.0.15)
+# BongExtend 인수인계 (1.0.16)
 
-코드 버전은 `package.json`의 **1.0.15**예요. 기능이 들어간 마지막 커밋은 `ab16fe9`예요. 그 위의 커밋이 문서만 고쳐도 버전 숫자는 `package.json`을 보세요. 최신 GitHub 릴리스도 v1.0.15이고, 설치 파일은 `bongextend-1.0.15-chrome.zip`이에요. 숫자가 다르면 `package.json`과 [Releases](https://github.com/Baegovda/BongExtend/releases)를 다시 보세요.
+코드 버전은 `package.json`의 **1.0.16**예요. 기능이 들어간 마지막 커밋은 `a20d24e`예요. 그 위의 커밋이 문서만 고쳐도 버전 숫자는 `package.json`을 보세요. 최신 GitHub 릴리스도 v1.0.16이고, 설치 파일은 `bongextend-1.0.16-chrome.zip`이에요. 숫자가 다르면 `package.json`과 [Releases](https://github.com/Baegovda/BongExtend/releases)를 다시 보세요.
 
 ## 이 프로젝트가 뭐예요
 
@@ -39,7 +39,7 @@ BongExtend는 크롬 확장(MV3) 하나예요. 예전에 따로 쓰던 확장 �
 
 ## 이미 된 일
 
-- 이름 바꾼 저장소에 남아 있던 옛 BongChzzk GitHub **릴리스**는 지웠어요. **태그** v1.1.0–v1.6.2(v1.1.1 포함)는 그대로예요. 그래서 업데이트가 "1.6.2로 올리자"고 하지 않아요. 최신 릴리스는 BongExtend 1.0.15예요. v1.0.0 릴리스 제목은 그날 이름인 "BongChrome 1.0.0"이에요. 1.0.1부터 이름이 BongExtend예요.
+- 이름 바꾼 저장소에 남아 있던 옛 BongChzzk GitHub **릴리스**는 지웠어요. **태그** v1.1.0–v1.6.2(v1.1.1 포함)는 그대로예요. 그래서 업데이트가 "1.6.2로 올리자"고 하지 않아요. 최신 릴리스는 BongExtend 1.0.16예요. v1.0.0 릴리스 제목은 그날 이름인 "BongChrome 1.0.0"이에요. 1.0.1부터 이름이 BongExtend예요.
 - 디시 통신사 표는 `Baegovda/BongExtend`의 `main`, 파일 `src/data/ip-isp.json`에서 받아요 (`src/utils/ipIsp.ts`의 `IP_ISP_REF`는 `main`). 예전처럼 `Baegovda/BongDC`의 develop을 보지 않아요.
 - 타입 검사는 `bun run test` 안에 있어요 (`test:types`). 빼지 마세요.
 - 확장 아이콘은 옛 BongDC 그림이 아니에요. 원본은 `src/assets/icon.png`이고, 청록에서 보라로 이어지는 BongExtend 로고예요. `@wxt-dev/auto-icons`가 빌드 때 크기별 아이콘을 만들어요. 팝업과 업데이트 화면은 그 로고를 써요. 번역 설정의 `src/modules/trans/icons/`도 같은 로고예요. 디시 화면 안 작은 그림(`src/assets/icons/*.webp`, 추천·차단 같은 버튼)은 기능 그림이라 예전 디시 모듈 그대로예요.
