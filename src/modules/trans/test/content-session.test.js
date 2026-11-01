@@ -944,6 +944,352 @@ test('tooltips already in the target language are skipped and different ones sha
   assert.equal(second.getAttribute('title'), '번역:免费配送');
 });
 
+function trackStyle(node) {
+  const bag = {};
+  node.style = {
+    setProperty(name, value) { bag[name] = String(value); },
+    removeProperty(name) { delete bag[name]; },
+    getPropertyValue(name) { return bag[name] || ''; },
+  };
+  node.locks = bag;
+  return node;
+}
+
+function taobaoComputed(node) {
+  return {
+    direction: (node && node.dir) || 'ltr',
+    font: '14px "PingFang SC", sans-serif',
+    lineHeight: '22px',
+    letterSpacing: 'normal',
+    color: 'rgb(17, 25, 45)',
+    backgroundColor: 'rgba(0, 0, 0, 0)',
+    backgroundImage: 'none',
+    whiteSpace: 'normal',
+    textOverflow: 'clip',
+    overflow: 'visible',
+    overflowX: 'visible',
+    overflowY: 'visible',
+    display: 'block',
+    maxWidth: 'none',
+    webkitLineClamp: 'none',
+    ...(node && node.lineStyle),
+  };
+}
+
+test('single-line mode, hard breaks, and the sweep slot stay predictable', () => {
+  const api = loadContent();
+  assert.equal(api.textLineMode({ whiteSpace: 'nowrap' }), 'single');
+  assert.equal(api.textLineMode({ whiteSpace: 'pre' }), 'single');
+  assert.equal(api.textLineMode({ webkitLineClamp: '1', display: '-webkit-box' }), 'single');
+  assert.equal(api.textLineMode({
+    webkitLineClamp: '2',
+    display: '-webkit-box',
+    textOverflow: 'ellipsis',
+    overflow: 'hidden',
+  }), 'clamp');
+  assert.equal(api.textLineMode({ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'normal' }), 'single');
+  assert.equal(api.textLineMode({ whiteSpace: 'normal' }), 'flow');
+  assert.equal(api.textLineMode(null), 'flow');
+  assert.equal(api.fitTranslation('旗舰店', '플래그십\n스토어', 'single'), '플래그십 스토어');
+  assert.equal(api.fitTranslation('第一行\n第二行', '첫 줄\n둘째', 'flow'), '첫 줄\n둘째');
+  assert.equal(api.fitTranslation('包邮说明', '무료배송\n안내', 'flow'), '무료배송 안내');
+  assert.equal(api.fitTranslation('标题', '제목\n둘', 'clamp'), '제목 둘');
+  assert.equal(api.fitTranslation('第一\n第二', '첫\n둘', 'clamp'), '첫\n둘');
+  const glyph = { left: 0, top: 4, width: 40, height: 16 };
+  assert.deepEqual(api.slotRect(glyph, { left: 0, top: 0, width: 160, height: 22 }, 'flow'), glyph);
+  const single = api.slotRect(glyph, { left: 0, top: 0, width: 160, height: 22 }, 'single');
+  assert.equal(single.width, 160);
+  assert.equal(single.height, 16);
+  assert.equal(api.slotRect(glyph, { left: 0, top: 0, width: 200, height: 44 }, 'clamp').height, 44);
+});
+
+test('taobao single-line cards keep nowrap and ellipsis after translation', async () => {
+  const dictionary = {
+    旗舰店: '플래그십\n스토어',
+    券后: '쿠폰\n적용가',
+    送料無料: '배송료\n무료',
+    女装: '여성\n의류',
+    Free: '무료\n배송',
+    夏季新款连衣裙: '여름\n신상 원피스 아주 긴 이름',
+    夏季新款: '여름\n신상',
+    '第一行\n第二行': '첫 줄\n둘째 줄',
+    包邮说明: '무료배송\n안내',
+    颜色分类: '색상\n분류',
+    购买商品: '상품\n구매',
+  };
+  const root = element('div');
+  const shopHost = element('div');
+  const shop = trackStyle(element('span', {}, ['旗舰店']));
+  shop.lineStyle = {
+    display: 'inline', whiteSpace: 'nowrap', overflow: 'hidden', overflowX: 'hidden',
+    textOverflow: 'ellipsis', maxWidth: '140px',
+  };
+  shopHost.append(shop);
+  const priceRow = trackStyle(element('div'));
+  priceRow.lineStyle = { display: 'flex', whiteSpace: 'nowrap' };
+  const price = trackStyle(element('span', {}, ['券后']));
+  price.lineStyle = {
+    display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', overflowX: 'hidden',
+    textOverflow: 'ellipsis', maxWidth: 'none',
+  };
+  priceRow.append(price);
+  const jp = trackStyle(element('span', {}, ['送料無料']));
+  jp.lineStyle = {
+    display: 'inline-block', whiteSpace: 'nowrap', overflow: 'hidden', overflowX: 'hidden',
+    textOverflow: 'ellipsis', maxWidth: '96px',
+  };
+  const nav = trackStyle(element('nav'));
+  nav.lineStyle = { display: 'flex', whiteSpace: 'nowrap' };
+  const category = trackStyle(element('a', {}, ['女装']));
+  category.lineStyle = { display: 'inline', whiteSpace: 'nowrap', maxWidth: 'none' };
+  const english = trackStyle(element('a', {}, ['Free']));
+  english.lineStyle = { display: 'inline', whiteSpace: 'nowrap', maxWidth: 'none' };
+  nav.append(category);
+  nav.append(english);
+  const card = trackStyle(element('div'));
+  card.lineStyle = { display: 'flex', whiteSpace: 'normal' };
+  const title = trackStyle(element('div', {
+    rect: { top: 0, bottom: 44, left: 0, right: 220, width: 220, height: 44 },
+  }, ['夏季新款连衣裙']));
+  title.lineStyle = {
+    display: '-webkit-box', webkitLineClamp: '2', overflow: 'hidden', overflowY: 'hidden',
+    whiteSpace: 'normal', textOverflow: 'ellipsis', maxWidth: 'none',
+  };
+  card.append(title);
+  const heading = trackStyle(element('h3', {}, ['夏季新款']));
+  heading.lineStyle = {
+    display: 'block', whiteSpace: 'normal', overflow: 'hidden', overflowX: 'hidden',
+    textOverflow: 'ellipsis', maxWidth: 'none',
+  };
+  const paragraph = trackStyle(element('p', {}, ['第一行\n第二行']));
+  paragraph.lineStyle = { display: 'block', whiteSpace: 'normal' };
+  const note = trackStyle(element('p', {}, ['包邮说明']));
+  note.lineStyle = { display: 'block', whiteSpace: 'pre-wrap' };
+  const cell = trackStyle(element('td', {}, ['颜色分类']));
+  cell.lineStyle = {
+    display: 'table-cell', whiteSpace: 'nowrap', overflow: 'hidden', overflowX: 'hidden',
+    textOverflow: 'ellipsis', maxWidth: 'none',
+  };
+  for (const node of [shopHost, priceRow, jp, nav, card, heading, paragraph, note, cell]) root.append(node);
+
+  const api = loadContent({ getComputedStyle: taobaoComputed });
+  const session = api.createSession({
+    root,
+    walkRoot: root,
+    enableBanner: false,
+    revealAnimation: false,
+    IntersectionObserver: class { observe() {} disconnect() {} },
+    MutationObserver: class { observe() {} disconnect() {} },
+    sendBatch: async (texts) => ({
+      ok: true,
+      translations: texts.map((text) => dictionary[text] || `번역:${text}`),
+    }),
+  });
+  session.start();
+  await session.whenIdle();
+
+  assert.equal(shop.childNodes[0].nodeValue, '플래그십 스토어');
+  assert.equal(shop.locks['white-space'], 'nowrap');
+  assert.equal(shop.locks.overflow, 'hidden');
+  assert.equal(shop.locks['text-overflow'], 'ellipsis');
+  assert.equal(shop.locks['min-width'], '0');
+  assert.equal(shop.locks.display, 'inline-block');
+  assert.equal(shop.locks['max-width'], undefined);
+
+  assert.equal(price.childNodes[0].nodeValue, '쿠폰 적용가');
+  assert.equal(price.locks['white-space'], 'nowrap');
+  assert.equal(price.locks['min-width'], '0');
+  assert.equal(price.locks['max-width'], '100%');
+  assert.equal(price.locks.display, undefined);
+  assert.equal(Object.keys(priceRow.locks).length, 0);
+
+  assert.equal(jp.childNodes[0].nodeValue, '배송료 무료');
+  assert.equal(jp.locks.display, undefined);
+  assert.equal(jp.locks['max-width'], undefined);
+  assert.equal(jp.locks['white-space'], 'nowrap');
+
+  assert.equal(category.childNodes[0].nodeValue, '여성 의류');
+  assert.equal(english.childNodes[0].nodeValue, '무료 배송');
+  assert.equal(category.locks.display, 'inline-block');
+  assert.equal(category.locks['white-space'], 'nowrap');
+  assert.equal(english.locks['text-overflow'], 'ellipsis');
+  assert.equal(Object.keys(nav.locks).length, 0);
+
+  assert.equal(title.childNodes[0].nodeValue, '여름 신상 원피스 아주 긴 이름');
+  assert.equal(title.locks['white-space'], undefined);
+  assert.equal(title.locks.display, undefined);
+  assert.equal(title.locks['min-width'], '0');
+  assert.equal(title.locks['max-width'], '100%');
+  assert.equal(Object.keys(card.locks).length, 0);
+  assert.equal(title.classList.contains('pt-page-translator-prism'), false);
+
+  assert.equal(heading.childNodes[0].nodeValue, '여름 신상');
+  assert.equal(heading.locks['white-space'], 'nowrap');
+  assert.equal(heading.locks['text-overflow'], 'ellipsis');
+
+  assert.equal(paragraph.childNodes[0].nodeValue, '첫 줄\n둘째 줄');
+  assert.equal(Object.keys(paragraph.locks).length, 0);
+  assert.equal(note.childNodes[0].nodeValue, '무료배송 안내');
+  assert.equal(Object.keys(note.locks).length, 0);
+
+  assert.equal(cell.childNodes[0].nodeValue, '색상 분류');
+  assert.equal(cell.locks['white-space'], 'nowrap');
+  assert.equal(cell.locks.display, undefined);
+
+  const tip = element('button', { attrs: { title: '购买商品' } });
+  assert.equal(await session.translateTitle(tip), true);
+  assert.equal(tip.getAttribute('title'), '상품 구매');
+
+  session.setEnabled(false);
+  assert.equal(shop.childNodes[0].nodeValue, '旗舰店');
+  assert.equal(Object.keys(shop.locks).length, 0);
+  assert.equal(title.childNodes[0].nodeValue, '夏季新款连衣裙');
+  assert.equal(Object.keys(title.locks).length, 0);
+  assert.equal(paragraph.childNodes[0].nodeValue, '第一行\n第二行');
+  assert.equal(category.childNodes[0].nodeValue, '女装');
+  assert.equal(Object.keys(category.locks).length, 0);
+
+  session.setEnabled(true);
+  await session.whenIdle();
+  assert.equal(shop.childNodes[0].nodeValue, '플래그십 스토어');
+  assert.equal(shop.locks['white-space'], 'nowrap');
+  assert.equal(title.locks['white-space'], undefined);
+  assert.equal(paragraph.childNodes[0].nodeValue, '첫 줄\n둘째 줄');
+});
+
+test('the prism sweep keeps single-line slots and does not open a clamped title', async () => {
+  const created = [];
+  const timers = [];
+  const frames = [];
+  let clock = 0;
+  const api = loadContent({
+    document: revealDocument(created),
+    getComputedStyle: taobaoComputed,
+  });
+  const root = element('div');
+  const shop = trackStyle(element('span', {
+    rect: { top: 8, bottom: 30, left: 0, right: 160, width: 160, height: 22 },
+  }, ['旗舰店']));
+  shop.lineStyle = {
+    display: 'inline', whiteSpace: 'nowrap', overflow: 'hidden', overflowX: 'hidden',
+    textOverflow: 'ellipsis', maxWidth: '160px',
+  };
+  const title = trackStyle(element('div', {
+    rect: { top: 40, bottom: 84, left: 0, right: 200, width: 200, height: 44 },
+  }, ['夏季新款连衣裙']));
+  title.lineStyle = {
+    display: '-webkit-box', webkitLineClamp: '2', overflow: 'hidden', overflowY: 'hidden',
+    whiteSpace: 'normal', maxWidth: 'none',
+  };
+  const rtl = trackStyle(element('span', {
+    rect: { top: 90, bottom: 112, left: 0, right: 120, width: 120, height: 22 },
+  }, ['שלום']));
+  rtl.dir = 'rtl';
+  rtl.lineStyle = {
+    display: 'inline', whiteSpace: 'nowrap', overflow: 'hidden', overflowX: 'hidden',
+    textOverflow: 'ellipsis', maxWidth: '120px', direction: 'rtl',
+  };
+  const paragraph = trackStyle(element('p', {
+    rect: { top: 120, bottom: 200, left: 0, right: 400, width: 400, height: 80 },
+  }, ['Hello']));
+  paragraph.lineStyle = { display: 'block', whiteSpace: 'normal' };
+  root.append(shop);
+  root.append(title);
+  root.append(rtl);
+  root.append(paragraph);
+
+  const session = api.createSession({
+    root,
+    walkRoot: root,
+    enableBanner: false,
+    prefersReducedMotion: false,
+    now: () => clock,
+    requestAnimationFrame(fn) {
+      frames.push(fn);
+      return frames.length;
+    },
+    measureRect() { return { left: 0, top: 4, width: 40, height: 16 }; },
+    setTimer(fn, ms) { timers.push({ fn, ms }); return timers.length; },
+    clearTimer() {},
+    IntersectionObserver: class { observe() {} disconnect() {} },
+    MutationObserver: class { observe() {} disconnect() {} },
+    sendBatch: async (texts) => ({
+      ok: true,
+      translations: texts.map((text) => ({
+        旗舰店: '플래그십\n스토어',
+        夏季新款连衣裙: '여름\n신상 원피스',
+        שלום: '안녕\n하세요',
+        Hello: '안녕\n하세요',
+      }[text] || text)),
+    }),
+  });
+  session.start();
+  await until(() => frames.length === 1);
+  frames.shift()(clock);
+  assert.equal(shop.childNodes[0].nodeValue, '旗舰店');
+  assert.equal(Object.keys(shop.locks).length, 0);
+  assert.equal(shop.classList.contains('pt-page-translator-hold'), true);
+  const sweeps = created.filter((node) => String(node.className).includes('pt-page-translator-sweep'));
+  assert.equal(sweeps.length, 4);
+  const shopSweep = sweeps.find((node) => node.children[1].children[0].nodeValue === '플래그십 스토어');
+  const titleSweep = sweeps.find((node) => node.children[1].children[0].nodeValue === '여름 신상 원피스');
+  const rtlSweep = sweeps.find((node) => String(node.className).includes('pt-sweep-rtl'));
+  const paragraphSweep = sweeps.find((node) => node.children[0].children[0].nodeValue === 'Hello');
+  assert.ok(shopSweep);
+  assert.equal(shopSweep.style.width, '160px');
+  assert.equal(shopSweep.style.height, '16px');
+  assert.equal(shopSweep.children[1].style.whiteSpace, 'nowrap');
+  assert.equal(shopSweep.children[1].style.textOverflow, 'ellipsis');
+  assert.ok(titleSweep);
+  assert.equal(titleSweep.style.width, '200px');
+  assert.equal(titleSweep.style.height, '44px');
+  assert.equal(titleSweep.children[1].style.whiteSpace, 'normal');
+  assert.ok(rtlSweep);
+  assert.equal(rtlSweep.children[1].style.direction, 'rtl');
+  assert.equal(rtlSweep.children[1].style.whiteSpace, 'nowrap');
+  assert.equal(rtlSweep.style.width, '120px');
+  assert.equal(paragraphSweep.style.width, '40px');
+  assert.equal(paragraphSweep.style.height, '16px');
+  assert.equal(paragraphSweep.children[1].style.whiteSpace, undefined);
+
+  clock = api.WIPER_MS;
+  frames.shift()(clock);
+  assert.equal(shop.childNodes[0].nodeValue, '플래그십 스토어');
+  assert.equal(shop.locks['white-space'], 'nowrap');
+  assert.equal(shop.locks['min-width'], '0');
+  assert.equal(shop.classList.contains('pt-page-translator-prism'), true);
+  assert.equal(shop.classList.contains('pt-page-translator-hold'), false);
+  assert.equal(title.childNodes[0].nodeValue, '여름 신상 원피스');
+  assert.equal(title.locks['white-space'], undefined);
+  assert.equal(title.locks['min-width'], '0');
+  assert.equal(title.classList.contains('pt-page-translator-prism'), false);
+  assert.equal(rtl.childNodes[0].nodeValue, '안녕 하세요');
+  assert.equal(rtl.locks['white-space'], 'nowrap');
+  assert.equal(rtl.classList.contains('pt-page-translator-prism'), true);
+  assert.equal(paragraph.childNodes[0].nodeValue, '안녕 하세요');
+  assert.equal(paragraph.locks['white-space'], undefined);
+  assert.equal(paragraph.locks['min-width'], undefined);
+  assert.equal(paragraph.locks['max-width'], undefined);
+  assert.equal(paragraph.classList.contains('pt-page-translator-prism'), true);
+
+  session.setEnabled(false);
+  assert.equal(shop.childNodes[0].nodeValue, '플래그십 스토어');
+  assert.equal(shop.locks['white-space'], 'nowrap');
+  frames.shift()(clock);
+  clock += api.WIPER_MS;
+  timers.filter((timer) => timer.ms === api.WIPER_MS).at(-1).fn();
+  while (frames.length) frames.shift()(clock);
+  assert.equal(shop.childNodes[0].nodeValue, '旗舰店');
+  assert.equal(Object.keys(shop.locks).length, 0);
+  assert.equal(rtl.childNodes[0].nodeValue, 'שלום');
+  assert.equal(Object.keys(rtl.locks).length, 0);
+  assert.equal(title.childNodes[0].nodeValue, '夏季新款连衣裙');
+  assert.equal(Object.keys(title.locks).length, 0);
+  assert.equal(paragraph.childNodes[0].nodeValue, 'Hello');
+  assert.equal(shop.classList.contains('pt-page-translator-prism'), false);
+  assert.equal(rtl.classList.contains('pt-page-translator-prism'), false);
+});
+
 test('hover title tooltips are translated once and restored with the page', async () => {
   const root = element('div');
   const api = loadContent();

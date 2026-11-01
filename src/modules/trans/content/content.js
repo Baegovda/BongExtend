@@ -26,7 +26,8 @@
     '50% { text-shadow: 0 0 0.4em rgba(244, 114, 182, 0.2), 0 0 0.22em rgba(250, 204, 21, 0.12); }',
     '}',
     `.${FADE_CLASS}, .${REVEAL_CLASS} { animation: none; }`,
-    `.${HOLD_CLASS} { -webkit-text-fill-color: transparent; }`,
+    // 글자색만 숨긴다. -webkit-text-fill-color 는 타오바오처럼 -webkit-line-clamp 로 자른 제목을 풀어 버린다.
+    `.${HOLD_CLASS} { color: transparent !important; }`,
     `.${SWEEP_CLASS} {`,
     'position: fixed; margin: 0; padding: 0; overflow: hidden; pointer-events: none; z-index: 2147483644; background: transparent;',
     '}',
@@ -83,10 +84,74 @@
     'IFRAME', 'OBJECT', 'EMBED', 'HEAD', 'TITLE', 'META', 'LINK', 'VAR',
     'NOFRAMES', 'XMP', 'PLAINTEXT',
   ]);
+  const BLOCK_TAGS = new Set([
+    'ADDRESS', 'ARTICLE', 'ASIDE', 'BLOCKQUOTE', 'DD', 'DIV', 'DL', 'DT', 'FIELDSET',
+    'FIGCAPTION', 'FIGURE', 'FOOTER', 'FORM', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6',
+    'HEADER', 'LI', 'MAIN', 'NAV', 'OL', 'P', 'PRE', 'SECTION', 'TABLE', 'TD', 'TH', 'UL',
+  ]);
 
   function splitWhitespace(value) {
     const match = String(value ?? '').match(/^(\s*)([\s\S]*?)(\s*)$/);
     return { lead: match[1], core: match[2], trail: match[3] };
+  }
+
+  function hasHardBreak(value) {
+    return /[\r\n\u2028\u2029]/.test(String(value ?? ''));
+  }
+
+  // 모델이 넣은 줄바꿈만 공백으로 바꾼다. 원문의 줄바꿈은 남겨 둔다.
+  function flattenHardBreaks(value) {
+    return String(value ?? '').replace(/[ \t]*[\r\n\u2028\u2029]+[ \t]*/g, ' ');
+  }
+
+  function lineClampOf(style) {
+    if (!style) return 0;
+    const raw = style.webkitLineClamp ?? style.lineClamp ?? style['-webkit-line-clamp'];
+    if (raw == null || raw === 'none' || raw === '') return 0;
+    const n = Number.parseInt(raw, 10);
+    return Number.isFinite(n) && n > 0 ? n : 0;
+  }
+
+  function overflowClips(style) {
+    if (!style) return false;
+    return [style.overflow, style.overflowX, style.overflowY].some((value) => value === 'hidden' || value === 'clip');
+  }
+
+  // single: 한 줄(nowrap, pre, 말줄임, 1줄 클램프). clamp: 2줄 이상. flow: 문단.
+  function textLineMode(style) {
+    if (!style) return 'flow';
+    const clamp = lineClampOf(style);
+    if (clamp === 1) return 'single';
+    if (clamp > 1) return 'clamp';
+    const whiteSpace = String(style.whiteSpace || '');
+    if (whiteSpace === 'nowrap' || whiteSpace === 'pre') return 'single';
+    if (style.textOverflow === 'ellipsis' && overflowClips(style)) return 'single';
+    return 'flow';
+  }
+
+  // 한 줄 칸은 항상 줄바꿈을 없앤다. 문단은 원문에 줄바꿈이 없을 때만 없앤다.
+  function fitTranslation(sourceCore, translated, mode) {
+    const text = String(translated ?? '');
+    if (mode === 'single' || !hasHardBreak(sourceCore)) return flattenHardBreaks(text);
+    return text;
+  }
+
+  // 번역이 길어도 원래 칸 너비 안에서 말줄임이 되도록, 글자 상자보다 칸이 넓으면 칸을 쓴다.
+  function slotRect(glyph, elementRect, mode) {
+    if (!glyph) {
+      if ((mode === 'single' || mode === 'clamp') && elementRect) return elementRect;
+      return null;
+    }
+    if ((mode !== 'single' && mode !== 'clamp') || !elementRect) return glyph;
+    const right = elementRect.left + elementRect.width;
+    const width = Math.max(glyph.width, right - glyph.left);
+    const height = mode === 'clamp' ? Math.max(glyph.height, elementRect.height) : glyph.height;
+    return {
+      left: glyph.left,
+      top: glyph.top,
+      width: Math.max(width, 1),
+      height: Math.max(height, 1),
+    };
   }
 
   function isTranslatable(core) {
@@ -311,6 +376,7 @@
     const effectToken = new WeakMap();
     const livePending = new Set();
     const activeJobs = new Set();
+    const lineLocks = new WeakMap();
     const titleRecords = new Map();
     const titleInflight = new WeakSet();
     const titleQueued = new WeakSet();
@@ -528,6 +594,169 @@
       }
     }
 
+    function inlineStyleValue(style, name) {
+      if (!style) return '';
+      if (typeof style.getPropertyValue === 'function') return style.getPropertyValue(name) || '';
+      if (style[name]) return String(style[name]);
+      return '';
+    }
+
+    function setStyleProp(style, name, value) {
+      if (!style) return;
+      if (typeof style.setProperty === 'function') style.setProperty(name, value);
+      else style[name] = value;
+    }
+
+    function removeStyleProp(style, name) {
+      if (!style) return;
+      if (typeof style.removeProperty === 'function') style.removeProperty(name);
+      else delete style[name];
+    }
+
+    function isInlineBox(style, element) {
+      const display = String((style && style.display) || '');
+      if (display) return display === 'inline' || display === 'contents';
+      const tag = String((element && element.tagName) || '').toUpperCase();
+      return !BLOCK_TAGS.has(tag);
+    }
+
+    function flexLike(style) {
+      const display = String((style && style.display) || '');
+      return display === 'flex' || display === 'inline-flex' || display === 'grid' || display === 'inline-grid';
+    }
+
+    // 글자가 들어 있는 한 줄·말줄임 칸을 찾는다. 문단은 건드리지 않고, 플렉스 줄 전체도 잠그지 않는다.
+    function findLineBox(start) {
+      if (!start || start.nodeType !== 1) return null;
+      let chosen = null;
+      let node = start;
+      for (let depth = 0; depth < 4 && node && node.nodeType === 1; depth += 1) {
+        const tag = String(node.tagName || '').toUpperCase();
+        if (tag === 'BODY' || tag === 'HTML') break;
+        const style = computedStyle(node);
+        const mode = textLineMode(style);
+        const inline = isInlineBox(style, node);
+        if (mode !== 'flow') {
+          chosen = { element: node, mode, style };
+          if (!inline) break;
+        } else if (!inline) {
+          break;
+        }
+        const parent = node.parentElement;
+        if (!parent || parent.nodeType !== 1) break;
+        if (flexLike(computedStyle(parent))) break;
+        node = parent;
+      }
+      return chosen;
+    }
+
+    function lockKind(style, mode) {
+      if (!style || mode === 'flow') return 'flow';
+      const display = String(style.display || '');
+      if (mode === 'clamp' || lineClampOf(style) > 0 || display.includes('webkit-box')) return 'clamp';
+      if (mode === 'single') return 'single';
+      return 'flow';
+    }
+
+    function paintLineLock(element, style, mode) {
+      if (!element || !element.style) return;
+      const kind = lockKind(style, mode);
+      if (kind === 'flow') return;
+      const owned = new Set(lineLocks.get(element) || []);
+      const desired = [['min-width', '0']];
+      const maxWidth = style && style.maxWidth;
+      if (!maxWidth || maxWidth === 'none') desired.push(['max-width', '100%']);
+      if (kind === 'single') {
+        desired.push(['white-space', 'nowrap'], ['overflow', 'hidden'], ['text-overflow', 'ellipsis']);
+        if (isInlineBox(style, element) && !inlineStyleValue(element.style, 'display')) {
+          desired.push(['display', 'inline-block']);
+        }
+      }
+      for (const [name, value] of desired) {
+        if (!owned.has(name) && inlineStyleValue(element.style, name)) continue;
+        setStyleProp(element.style, name, value);
+        owned.add(name);
+      }
+      lineLocks.set(element, [...owned]);
+    }
+
+    function clearLineLock(element) {
+      const owned = element && lineLocks.get(element);
+      if (!owned) return;
+      for (const name of owned) removeStyleProp(element.style, name);
+      lineLocks.delete(element);
+    }
+
+    function boxStillTranslated(element) {
+      if (!element) return false;
+      const stack = [element];
+      while (stack.length) {
+        const current = stack.pop();
+        for (const child of current.childNodes || []) {
+          if (child.nodeType === 3) {
+            const record = records.get(child);
+            if (record && child.nodeValue === record.translated && record.translated !== record.original) return true;
+          } else if (child.nodeType === 1) stack.push(child);
+        }
+      }
+      return false;
+    }
+
+    function syncLineLock(node) {
+      try {
+        if (!node) return;
+        const record = records.get(node);
+        const showing = Boolean(record && node.nodeValue === record.translated && record.translated !== record.original);
+        const box = findLineBox(node.parentElement);
+        if (!box) return;
+        if (showing) paintLineLock(box.element, box.style, box.mode);
+        else if (!boxStillTranslated(box.element)) clearLineLock(box.element);
+      } catch {
+        // 칸을 맞추지 못해도 번역 글 자체는 남겨 둔다.
+      }
+    }
+
+    // background-clip 과 -webkit-line-clamp 를 같은 요소에 쓰면 줄 제한이 풀린다.
+    function prismBreaksClamp(element) {
+      let node = element;
+      for (let depth = 0; depth < 6 && node && node.nodeType === 1; depth += 1) {
+        const style = computedStyle(node);
+        const display = String((style && style.display) || '');
+        if (display.includes('webkit-box') || lineClampOf(style) > 0) return true;
+        const tag = String(node.tagName || '').toUpperCase();
+        if (tag === 'BODY' || tag === 'HTML') break;
+        node = node.parentElement;
+      }
+      return false;
+    }
+
+    function measureLine(job) {
+      const line = findLineBox(job.element);
+      const lineMode = line ? line.mode : 'flow';
+      const lineElement = line ? line.element : null;
+      const glyph = readRect(job.node);
+      const elementRect = lineElement && typeof lineElement.getBoundingClientRect === 'function'
+        ? normalizeRect(lineElement.getBoundingClientRect())
+        : null;
+      return {
+        job,
+        rect: slotRect(glyph, elementRect, lineMode),
+        rtl: readDirection(job.element) === 'rtl',
+        style: computedStyle(job.element),
+        hold: canHold(job.element),
+        lineMode,
+        lineElement,
+      };
+    }
+
+    function rectForJob(job) {
+      const glyph = readRect(job.node);
+      if (!job || job.lineMode === 'flow' || !job.lineElement || typeof job.lineElement.getBoundingClientRect !== 'function') {
+        return glyph;
+      }
+      return slotRect(glyph, normalizeRect(job.lineElement.getBoundingClientRect()), job.lineMode);
+    }
+
     function nowMs() {
       if (typeof options.now === 'function') return options.now();
       if (typeof performance !== 'undefined' && typeof performance.now === 'function') return performance.now();
@@ -650,13 +879,20 @@
       node.style.height = `${Math.max(1, rect.height)}px`;
     }
 
-    function copyTextStyle(node, computed, rtl) {
+    function copyTextStyle(node, computed, rtl, lineMode) {
       if (!node || !node.style || !computed) return;
       node.style.font = computed.font || '';
       node.style.letterSpacing = computed.letterSpacing || '';
       node.style.color = computed.color || '';
       node.style.lineHeight = computed.lineHeight || '';
       if (rtl) node.style.direction = 'rtl';
+      if (lineMode === 'single') {
+        node.style.whiteSpace = 'nowrap';
+        node.style.textOverflow = 'ellipsis';
+        node.style.overflow = 'hidden';
+      } else if (lineMode === 'clamp') {
+        node.style.whiteSpace = 'normal';
+      }
     }
 
     function appendText(node, value) {
@@ -692,7 +928,7 @@
         const rows = [];
         for (const job of activeJobs) {
           if (!job.box || !connected(job.node)) continue;
-          rows.push({ job, rect: readRect(job.node) });
+          rows.push({ job, rect: rectForJob(job) });
         }
         for (const row of rows) {
           if (row.rect) placeBox(row.job.box, row.rect);
@@ -717,13 +953,13 @@
         box.className = row.rtl ? `${SWEEP_CLASS} pt-sweep-rtl` : SWEEP_CLASS;
         box.setAttribute('translate', 'no');
         placeBox(box, row.rect);
-        copyTextStyle(box, row.style, row.rtl);
+        copyTextStyle(box, row.style, row.rtl, row.lineMode);
         const prev = document.createElement('div');
         prev.className = 'pt-prev';
         const next = document.createElement('div');
         next.className = 'pt-next';
-        copyTextStyle(prev, row.style, row.rtl);
-        copyTextStyle(next, row.style, row.rtl);
+        copyTextStyle(prev, row.style, row.rtl, row.lineMode);
+        copyTextStyle(next, row.style, row.rtl, row.lineMode);
         appendText(prev, job.original);
         appendText(next, job.translated);
         const edge = document.createElement('div');
@@ -741,6 +977,8 @@
           original: job.original,
           translated: job.translated,
           box,
+          lineMode: row.lineMode || 'flow',
+          lineElement: row.lineElement || null,
           at: spot.at,
           band: spot.band,
           epoch: job.epoch,
@@ -761,6 +999,7 @@
     // 그래서 글자만 있는 투명한 요소에만 잠깐 프리즘을 입힌 뒤 클래스와 변수를 지운다.
     function armPrism(element) {
       if (!revealAnimation || motionReduced() || !element || !element.classList || !canHold(element)) return;
+      if (prismBreaksClamp(element)) return;
       const computed = computedStyle(element);
       if (!backgroundIsClear(computed)) return;
       const ink = computed && computed.color;
@@ -926,15 +1165,7 @@
       const batch = revealWait.splice(0);
       if (!batch.length) return;
       const measured = [];
-      for (const job of batch) {
-        measured.push({
-          job,
-          rect: readRect(job.node),
-          rtl: readDirection(job.element) === 'rtl',
-          style: computedStyle(job.element),
-          hold: canHold(job.element),
-        });
-      }
+      for (const job of batch) measured.push(measureLine(job));
       lockMutations(() => paintMeasured(measured));
     }
 
@@ -1039,6 +1270,7 @@
     function writeNode(node, value) {
       expectedWrite.set(node, value);
       if (node.nodeValue !== value) node.nodeValue = value;
+      syncLineLock(node);
     }
 
     function nodeBusy(node) {
@@ -1113,7 +1345,7 @@
               finishTitle(item, false);
               return;
             }
-            const translated = `${item.lead}${translations[index]}${item.trail}`;
+            const translated = `${item.lead}${fitTranslation(item.core, translations[index], 'single')}${item.trail}`;
             titleRecords.set(item.element, { original: item.current, translated });
             if (enabled && !showOriginal && item.element.getAttribute('title') === item.current) {
               item.element.setAttribute('title', translated);
@@ -1355,7 +1587,8 @@
               return;
             }
             const parts = splitWhitespace(item.original);
-            const translated = `${parts.lead}${response.translations[index]}${parts.trail}`;
+            const line = findLineBox(parent);
+            const translated = `${parts.lead}${fitTranslation(parts.core, response.translations[index], line ? line.mode : 'flow')}${parts.trail}`;
             records.set(item.node, {
               original: item.original,
               translated,
@@ -1523,6 +1756,11 @@
   ns.WIPER_MS = WIPER_MS;
   ns.SOFT_MS = SOFT_MS;
   ns.PRISM_MS = PRISM_MS;
+  ns.hasHardBreak = hasHardBreak;
+  ns.flattenHardBreaks = flattenHardBreaks;
+  ns.textLineMode = textLineMode;
+  ns.fitTranslation = fitTranslation;
+  ns.slotRect = slotRect;
 
   function install() {
     const session = createSession({
