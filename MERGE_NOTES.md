@@ -1,6 +1,6 @@
 # BongExtend 인수인계 (1.0.15)
 
-이 메모를 쓴 시점: 2026-11-01. main은 `ab16fe9`, 버전은 `package.json`의 **1.0.15**예요. 최신 GitHub 릴리스도 v1.0.15예요. 숫자가 다르면 `package.json`과 [Releases](https://github.com/Baegovda/BongExtend/releases)를 다시 보세요.
+코드 버전은 `package.json`의 **1.0.15**예요. 기능이 들어간 마지막 커밋은 `ab16fe9`예요. 그 위의 커밋이 문서만 고쳐도 버전 숫자는 `package.json`을 보세요. 최신 GitHub 릴리스도 v1.0.15이고, 설치 파일은 `bongextend-1.0.15-chrome.zip`이에요. 숫자가 다르면 `package.json`과 [Releases](https://github.com/Baegovda/BongExtend/releases)를 다시 보세요.
 
 ## 이 프로젝트가 뭐예요
 
@@ -26,19 +26,25 @@ BongExtend는 크롬 확장(MV3) 하나예요. 예전에 따로 쓰던 확장 �
 ## 빌드, 테스트, 릴리스
 
 - `bun install`
-- `bun run test` — 디시·공통(`bun test`) + 치지직·번역(`node --test`) + 타입 검사(`test:types`, `tsc --noEmit`)
+- `bun run test` — 세 단계를 이어서 해요.
+  - `test:dc`: `bun test src/core src/modules/settings-io.test.ts src/storage/update-keys.test.ts src/utils/sanitizeHtml.test.ts`
+  - `test:js`: `node --test`로 치지직·번역 테스트
+  - `test:types`: `tsc --noEmit -p tsconfig.json`
 - `bun run build` → `.output/chrome-mv3/`
-- `bun run zip` → `.output/bongextend-X.Y.Z-chrome.zip`. 그다음 `bun scripts/verify-release-zip.ts X.Y.Z`
+- `bun run zip` → `.output/bongextend-X.Y.Z-chrome.zip`. 그다음 `bun scripts/verify-release-zip.ts X.Y.Z`. 이 검사는 크롬 zip만 봐요.
 
-버전 숫자는 `package.json` 하나예요. 사용자용 변경은 `CHANGELOG.md`의 `## [X.Y.Z]`에 적어요. 태그 `vX.Y.Z`를 푸시하면 `.github/workflows/release.yml`이 테스트, 태그=버전 확인, zip, zip 검사, 릴리스 노트를 해요. 푸시·태그·릴리스는 오너가 확인한 뒤에만 해요.
+`package.json`의 `dev:firefox`, `build:firefox`, `zip:firefox`는 로컬에서 파이어폭스 산출물을 만들 때 쓰는 스크립트예요. 릴리스 워크플로는 크롬 zip만 만들어요. 업데이트 페이지도 크롬 zip(`*-chrome.zip`)만 받아요.
 
-PR을 열거나 main이 아닌 일반 push에는 테스트를 돌리는 GitHub Actions가 없어요. 자동 테스트는 태그 릴리스와 수동 실행뿐이에요.
+`bun run verify`는 없는 파일 `scripts/verify-build.ts`를 실행해서 실패해요. zip 확인은 `verify-release-zip.ts`를 써요.
+
+버전 숫자는 `package.json` 하나예요. 사용자용 변경은 `CHANGELOG.md`의 `## [X.Y.Z]`에 적어요. 태그 `vX.Y.Z`를 푸시하면 `.github/workflows/release.yml`이 테스트, 태그=버전 확인, zip, zip 검사, 릴리스 노트를 해요. 같은 파일을 수동으로 실행하면 테스트와 zip 검사만 하고 릴리스는 만들지 않아요. PR이나 일반 push에는 테스트 워크플로가 없어요. 푸시·태그·릴리스는 오너가 확인한 뒤에만 해요.
 
 ## 이미 된 일
 
-- 이름 바꾼 저장소에 남아 있던 옛 BongChzzk GitHub **릴리스** v1.1.0–v1.6.2는 지웠어요. **태그** v1.1.0–v1.6.2는 그대로예요. 그래서 업데이트가 "1.6.2로 올리자"고 하던 문제는 없어요. 최신 릴리스는 BongExtend 1.0.15예요.
-- 디시 통신사 표는 `Baegovda/BongExtend`의 `main`, 파일 `src/data/ip-isp.json`에서 받아요 (`src/utils/ipIsp.ts`). 예전처럼 `Baegovda/BongDC`의 develop을 보지 않아요.
+- 이름 바꾼 저장소에 남아 있던 옛 BongChzzk GitHub **릴리스**는 지웠어요. **태그** v1.1.0–v1.6.2(v1.1.1 포함)는 그대로예요. 그래서 업데이트가 "1.6.2로 올리자"고 하지 않아요. 최신 릴리스는 BongExtend 1.0.15예요. v1.0.0 릴리스 제목은 그날 이름인 "BongChrome 1.0.0"이에요. 1.0.1부터 이름이 BongExtend예요.
+- 디시 통신사 표는 `Baegovda/BongExtend`의 `main`, 파일 `src/data/ip-isp.json`에서 받아요 (`src/utils/ipIsp.ts`의 `IP_ISP_REF`는 `main`). 예전처럼 `Baegovda/BongDC`의 develop을 보지 않아요.
 - 타입 검사는 `bun run test` 안에 있어요 (`test:types`). 빼지 마세요.
+- 확장 아이콘은 옛 BongDC 그림이 아니에요. 원본은 `src/assets/icon.png`이고, 청록에서 보라로 이어지는 BongExtend 로고예요. `@wxt-dev/auto-icons`가 빌드 때 크기별 아이콘을 만들어요. 팝업과 업데이트 화면은 그 로고를 써요. 번역 설정의 `src/modules/trans/icons/`도 같은 로고예요. 디시 화면 안 작은 그림(`src/assets/icons/*.webp`, 추천·차단 같은 버튼)은 기능 그림이라 예전 디시 모듈 그대로예요.
 
 ## 아직 남은 일
 
@@ -61,9 +67,8 @@ PR을 열거나 main이 아닌 일반 push에는 테스트를 돌리는 GitHub A
 
 ### 그 밖에
 
-- 아이콘은 아직 옛 BongDC 그림이에요.
-- 작업을 main에 바로 넣을지, PR로 넣을지는 아직 정하지 않았어요.
+- 코드와 릴리스는 오너가 확인한 뒤에 반영해요.
 
 ## 헷갈리기 쉬운 옛 파일
 
-`scripts/bootstrap.sh`와 `scripts/bootstrap.ps1`는 옛 BongDC용이에요. `bongdc-*.zip`을 찾고, 없는 `docs/HANDOFF.md`를 가리켜요. BongExtend에서는 쓰지 마세요. 명령은 위의 빌드·테스트 절을 따르면 돼요.
+`scripts/bootstrap.sh`와 `scripts/bootstrap.ps1`는 옛 BongDC용이에요. `bun test`만 돌려서 치지직·번역 테스트와 타입 검사를 빠뜨리고, `bongdc-*-chrome.zip`과 `bongdc-*-firefox.zip`을 찾다가 실패해요. 없는 `docs/HANDOFF.md`도 가리켜요. BongExtend에서는 쓰지 마세요. 명령은 위의 빌드·테스트 절을 따르면 돼요.
