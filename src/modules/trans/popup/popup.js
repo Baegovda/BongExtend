@@ -1,4 +1,5 @@
 import { canTranslateUrl, LANGUAGES, normalizeSettings, resolveModel, STORAGE_KEY } from '../lib/settings.js';
+import { originPermissionPattern } from '../lib/origin-permission.js';
 import { MESSAGES } from '../lib/messages.js';
 import { blockedToggle, refreshToggle, settleToggle, startToggle } from '../lib/toggle-state.js';
 
@@ -48,6 +49,7 @@ async function activeTab() {
 }
 
 let hasKey = false;
+let watchedTab = null;
 let toggleState = { pending: false, on: false, error: '', tabId: null };
 let toggleGeneration = 0;
 
@@ -58,6 +60,7 @@ function applyToggleView() {
 
 async function refresh() {
   const tab = await activeTab();
+  watchedTab = tab;
   if (!tab?.id) return;
   if (toggleState.tabId != null && toggleState.tabId !== tab.id && !toggleState.pending) {
     toggleState = { pending: false, on: false, error: '', tabId: tab.id };
@@ -110,15 +113,39 @@ async function init() {
   optionsButton.addEventListener('click', () => chrome.tabs.create({ url: chrome.runtime.getURL('trans/options/options.html') }));
   shortcutsButton.addEventListener('click', () => chrome.runtime.sendMessage({ type: 'OPEN_SHORTCUTS' }));
   alwaysSiteBox.addEventListener('change', async () => {
-    const tab = await activeTab();
-    if (!tab?.id) return;
-    const response = await chrome.runtime.sendMessage({ type: 'SET_SITE_ALWAYS', tabId: tab.id, enabled: alwaysSiteBox.checked });
+    const want = alwaysSiteBox.checked;
+    const tab = watchedTab || await activeTab();
+    const pattern = originPermissionPattern(tab?.url || '');
+    if (want) {
+      if (!tab?.id || !pattern) {
+        alwaysSiteBox.checked = false;
+        setStatus('이 페이지는 자동 번역을 켤 수 없어요.', true);
+        return;
+      }
+      let granted = false;
+      try {
+        granted = await chrome.permissions.request({ origins: [pattern] });
+      } catch {
+        granted = false;
+      }
+      if (!granted) {
+        alwaysSiteBox.checked = false;
+        setStatus('나중에 이 사이트를 열어도 번역하려면 권한을 허용해야 해요. 요청을 거절해서 켜지 않았어요.', true);
+        return;
+      }
+    }
+    if (!tab?.id) {
+      alwaysSiteBox.checked = !want;
+      setStatus('현재 탭을 찾지 못했어요.', true);
+      return;
+    }
+    const response = await chrome.runtime.sendMessage({ type: 'SET_SITE_ALWAYS', tabId: tab.id, enabled: want });
     if (!response?.ok) {
-      alwaysSiteBox.checked = !alwaysSiteBox.checked;
+      alwaysSiteBox.checked = !want;
       setStatus(response?.message || '사이트 자동 번역 설정을 저장하지 못했어요.', true);
       return;
     }
-    if (alwaysSiteBox.checked && !toggleState.on) {
+    if (want && !toggleState.on) {
       enabledBox.checked = true;
       enabledBox.dispatchEvent(new Event('change'));
     }
@@ -157,10 +184,6 @@ async function applyToggle(turnOn, generation) {
     return;
   }
   toggleState = { ...toggleState, tabId: tab.id };
-  if (!turnOn && alwaysSiteBox.checked) {
-    alwaysSiteBox.checked = false;
-    await chrome.runtime.sendMessage({ type: 'SET_SITE_ALWAYS', tabId: tab.id, enabled: false }).catch(() => {});
-  }
   setStatus(turnOn ? '이 페이지 번역을 켜는 중…' : '원문으로 되돌리는 중…');
   let response;
   try {

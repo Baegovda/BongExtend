@@ -673,6 +673,42 @@ test('without cursor priority, pointer updates keep document order', async () =>
   assert.deepEqual([...sent[0]], ['먼글', '가까운글']);
 });
 
+test('tooltips already in the target language are skipped and different ones share one request', async () => {
+  const api = loadContent();
+  assert.equal(api.isAlreadyTargetLanguage('무료 배송', 'ko'), true);
+  assert.equal(api.isAlreadyTargetLanguage('免费配送', 'ko'), false);
+  assert.equal(api.isAlreadyTargetLanguage('무료 配送', 'ko'), false);
+  assert.equal(api.isAlreadyTargetLanguage('こんにちは', 'ja'), true);
+  assert.equal(api.isAlreadyTargetLanguage('免费配送', 'zh-CN'), true);
+  assert.equal(api.isAlreadyTargetLanguage('Hello', 'en'), false);
+  const root = element('div');
+  const calls = [];
+  const session = api.createSession({
+    root,
+    walkRoot: root,
+    enableBanner: false,
+    titleFlushMs: 0,
+    targetLanguage: 'ko',
+    IntersectionObserver: class { observe() {} disconnect() {} },
+    MutationObserver: class { observe() {} disconnect() {} },
+    sendBatch: async (texts) => {
+      calls.push(texts);
+      return { ok: true, translations: texts.map((text) => `번역:${text}`) };
+    },
+  });
+  session.start();
+  const korean = element('button', { attrs: { title: '무료 배송' } });
+  const first = element('button', { attrs: { title: '购买商品' } });
+  const second = element('button', { attrs: { title: '免费配送' } });
+  assert.equal(await session.translateTitle(korean), true);
+  assert.equal(korean.getAttribute('title'), '무료 배송');
+  await Promise.all([session.translateTitle(first), session.translateTitle(second)]);
+  assert.equal(calls.length, 1);
+  assert.deepEqual([...calls[0]], ['购买商品', '免费配送']);
+  assert.equal(first.getAttribute('title'), '번역:购买商品');
+  assert.equal(second.getAttribute('title'), '번역:免费配送');
+});
+
 test('hover title tooltips are translated once and restored with the page', async () => {
   const root = element('div');
   const api = loadContent();

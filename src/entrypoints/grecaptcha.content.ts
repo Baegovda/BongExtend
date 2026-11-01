@@ -11,50 +11,10 @@ export default defineContentScript({
     world: "MAIN",
     runAt: "document_end",
     main() {
-        const grecaptchaSiteKey = "6Lc-Fr0UAAAAAOdqLYqPy53MxlRMIXpNXFvBliwI";
-
-        interface GrecaptchaRuntime {
-            ready: (callback: () => void) => void;
-            execute: (siteKey: string, options: { action: string }) => Promise<string>;
-        }
-
-        const getGrecaptcha = (): GrecaptchaRuntime | null => {
-            const scope = window as Window & { grecaptcha?: GrecaptchaRuntime };
-            return scope.grecaptcha ?? null;
-        };
-
+        // 토큰은 페이지로 보내지 않는다. 배경 스크립트가 이 페이지의 grecaptcha 를 직접 호출한다.
         const script = document.createElement("script");
         script.src = "https://www.google.com/recaptcha/api.js?render=6Lc-Fr0UAAAAAOdqLYqPy53MxlRMIXpNXFvBliwI";
         script.async = true;
-        script.onload = () => {
-            window.addEventListener("message", (event) => {
-                if (
-                    event.source !== window ||
-                    !event.data ||
-                    event.data.type !== "refresherGrecaptcha" ||
-                    typeof event.data.action !== "string"
-                ) {
-                    return;
-                }
-
-                const grecaptcha = getGrecaptcha();
-                if (!grecaptcha) return;
-
-                grecaptcha.ready(() => {
-                    void (async () => {
-                        try {
-                            const token = await grecaptcha.execute(grecaptchaSiteKey, {
-                                action: event.data.action
-                            });
-
-                            window.postMessage({type: "refresherGrecaptchaToken", token}, "*");
-                        } catch (error) {
-                            console.error("Failed to execute reCAPTCHA:", error);
-                        }
-                    })();
-                });
-            });
-        };
         document.head.appendChild(script);
     }
 });

@@ -166,7 +166,41 @@ const migrateModuleDataKeys = (data: StorageRecord): { migrated: StorageRecord; 
     return {migrated: result, removedKeys};
 };
 
+// 업데이트 기록은 디시 초기화(refresher:*)에 지워지지 않도록 core.update.* 로 둔다.
+export const UPDATE_KEY_MAP: Record<string, string> = {
+    "refresher:update:lastCheck": "core.update:lastCheck",
+    "refresher:update:latestVersion": "core.update:latestVersion",
+    "refresher:update:available": "core.update:available",
+    "refresher:update:chromeUrl": "core.update:chromeUrl",
+    "refresher:update:firefoxUrl": "core.update:firefoxUrl",
+    "refresher:update:notes": "core.update:notes",
+    "refresher:update:releaseUrl": "core.update:releaseUrl",
+    "refresher:update:error": "core.update:error",
+    "refresher:update:autoCheck": "core.update:autoCheck",
+    "refresher:update:lastSeenVersion": "core.update:lastSeenVersion"
+};
+
+export const planUpdateKeyMigration = (data: StorageRecord): {set: StorageRecord; remove: string[]} => {
+    const set: StorageRecord = {};
+    const remove: string[] = [];
+    for (const [oldKey, newKey] of Object.entries(UPDATE_KEY_MAP)) {
+        if (!(oldKey in data)) continue;
+        remove.push(oldKey);
+        if (!(newKey in data)) set[newKey] = data[oldKey];
+    }
+    return {set, remove};
+};
+
+const applyUpdateKeyMigration = (data: StorageRecord): StorageRecord => {
+    const plan = planUpdateKeyMigration(data);
+    if (!plan.remove.length) return data;
+    const next: StorageRecord = {...data, ...plan.set};
+    for (const key of plan.remove) delete next[key];
+    return next;
+};
+
 export const normalizeStorageData = (data: StorageRecord): StorageRecord => {
+    data = applyUpdateKeyMigration(data);
     const mappings = buildKeyMappings();
     const normalized: StorageRecord = {};
     const processedOldKeys = new Set<string>();
@@ -202,6 +236,11 @@ export const normalizeStorageData = (data: StorageRecord): StorageRecord => {
 };
 
 export const migrateLocalStorageData = async (): Promise<void> => {
+    const all = await browser.storage.local.get(null);
+    const updatePlan = planUpdateKeyMigration(all);
+    if (Object.keys(updatePlan.set).length > 0) await browser.storage.local.set(updatePlan.set);
+    if (updatePlan.remove.length > 0) await browser.storage.local.remove(updatePlan.remove);
+
     const data = onlyDcKeys(await browser.storage.local.get(null));
     const normalized = normalizeStorageData(data);
 

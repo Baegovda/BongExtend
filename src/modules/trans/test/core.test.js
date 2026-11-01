@@ -48,7 +48,7 @@ test('settings default to Korean and Gemini 3.5 Flash-Lite', () => {
   assert.equal(normalizeSettings({ cacheMaxAgeDays: 12, cacheMaxBytes: 123 }).cacheMaxBytes, 0);
   assert.equal(normalizeSettings({ revealAnimation: false }).revealAnimation, false);
   const prefs = contentPrefs({ apiKey: 'secret', prioritizeCursor: true, revealAnimation: false });
-  assert.deepEqual(prefs, { prioritizeCursor: true, revealAnimation: false });
+  assert.deepEqual(prefs, { prioritizeCursor: true, revealAnimation: false, targetLanguage: 'ko' });
   assert.equal(JSON.stringify(prefs).includes('secret'), false);
   assert.equal(languageLabel('ko'), 'Korean (한국어)');
   const retired = normalizeSettings({ modelChoice: 'gemini-2.5-flash-lite', fallbackChoice: 'gemini-2.5-flash' });

@@ -38,7 +38,7 @@ describe("settings import", () => {
     });
 
     test("BongExtend export round-trips", async () => {
-        const local = {"trans.settings": {apiKey: "k"}, "chzzk.recoverCount": 2, "refresher:memo:UID": {a: 1}, "core.modules": {chzzk: true, trans: false, dc: true}};
+        const local = {"trans.settings": {apiKey: "k"}, "trans.alwaysOrigins": ["https://shop.example"], "chzzk.recoverCount": 2, "refresher:memo:UID": {a: 1}, "core.modules": {chzzk: true, trans: false, dc: true}};
         const sync = {"chzzk.vivid": false};
         const out = buildExport(local, sync);
         const l2 = memArea(), s2 = memArea();
@@ -48,6 +48,7 @@ describe("settings import", () => {
         expect(l2.data["chzzk.recoverCount"]).toBe(2);
         expect(l2.data["refresher:memo:UID"]).toEqual({a: 1});
         expect(l2.data["core.modules"]).toEqual({chzzk: true, trans: false, dc: true});
+        expect(l2.data["trans.alwaysOrigins"]).toEqual(["https://shop.example"]);
     });
 
     test("unknown data is rejected", () => {

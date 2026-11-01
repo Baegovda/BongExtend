@@ -306,6 +306,7 @@
   }
   function boostAdVideo(v) {
     if (!muteSaved.has(v)) muteSaved.set(v, v.muted);
+    v._bongAdBoost = 1;
     v.muted = true;
     try { if (v.playbackRate !== 16) v.playbackRate = 16; } catch (e) {}
     const t = P.seekEndTime(v.duration);
@@ -341,9 +342,11 @@
       for (const v of boosted) {
         if (!v.isConnected) continue;
         try { v.playbackRate = 1; } catch (e) {}
+        v._bongAdBoost = 0;
         if (muteSaved.has(v)) v.muted = muteSaved.get(v);
       }
       boosted.clear();
+      try { globalThis.__bongRetryAudioRestore?.(); } catch (e) {}
       const resume = () => { const main = document.querySelector('video.webplayer-internal-video'); if (main && main.paused && !globalThis.__bongAdActive) main.play().catch(() => {}); };
       resume(); setTimeout(resume, 800); setTimeout(resume, 2500);
       try { globalThis.__bongAutoplayRetrigger?.(); } catch (e) {}

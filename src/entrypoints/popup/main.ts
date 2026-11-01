@@ -229,7 +229,7 @@ $("exportAll").addEventListener("click", async () => {
         a.download = `bongextend-settings-${new Date().toISOString().slice(0, 10)}.json`;
         a.click();
         setTimeout(() => URL.revokeObjectURL(a.href), 5000);
-        setIo("설정 파일을 저장했어요.", "ok");
+        setIo("설정 파일을 저장했어요. Gemini API 키가 들어 있으니 이 파일은 공유하지 마세요.", "ok");
     } catch (error) {
         setIo(`저장하지 못했어요: ${(error as Error)?.message || error}`, "error");
     }

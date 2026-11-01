@@ -109,37 +109,16 @@ export function makeCommentFrame(ctx: CommentFrameContext): void {
 
             const getGreCaptchaToken = () =>
                 new Promise<string | undefined>((resolve) => {
-                    let settled = false;
-
-                    const finish = (token?: string) => {
-                        if (settled) return;
-                        settled = true;
-                        window.clearTimeout(timeoutId);
-                        window.removeEventListener("message", grecaptchaHandler);
-                        resolve(token);
-                    };
-
-                    const grecaptchaHandler = (ev: MessageEvent) => {
-                        if (
-                            ev.source !== window ||
-                            !ev.data ||
-                            ev.data.type !== "refresherGrecaptchaToken"
-                        ) {
-                            return;
-                        }
-
-                        finish(typeof ev.data.token === "string" ? ev.data.token : undefined);
-                    };
-
-                    const timeoutId = window.setTimeout(() => finish(), 3000);
-                    window.addEventListener("message", grecaptchaHandler);
-
-                    window.postMessage(
-                        {
-                            type: "refresherGrecaptcha",
-                            action: "comment_token"
+                    const timeoutId = window.setTimeout(() => resolve(undefined), 4000);
+                    browser.runtime.sendMessage({type: "refresherGrecaptcha", action: "comment_token"}).then(
+                        (response: {token?: string} | undefined) => {
+                            window.clearTimeout(timeoutId);
+                            resolve(typeof response?.token === "string" && response.token ? response.token : undefined);
                         },
-                        "*"
+                        () => {
+                            window.clearTimeout(timeoutId);
+                            resolve(undefined);
+                        }
                     );
                 });
 

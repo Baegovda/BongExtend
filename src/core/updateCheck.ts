@@ -401,16 +401,13 @@ const bindUpdateListeners = () => {
     });
 };
 
-const LAST_SEEN_VERSION_KEY = "refresher:update:lastSeenVersion";
-
 // 확장 자체가 업데이트·재설치된 뒤에는 배지를 지우고 바로 다시 확인한다.
 export const refreshUpdateStateAfterInstall = async (force = false): Promise<void> => {
     try {
         const current = normalizeVersion(getCurrentExtensionVersion());
-        const stored = await browser.storage.local.get(LAST_SEEN_VERSION_KEY);
-        const lastSeen = stored?.[LAST_SEEN_VERSION_KEY];
+        const lastSeen = await updateStorage.lastSeenVersion.getValue();
         if (!force && lastSeen === current) return;
-        await browser.storage.local.set({[LAST_SEEN_VERSION_KEY]: current});
+        await updateStorage.lastSeenVersion.setValue(current);
         await syncUpdateBadge(false);
         await checkExtensionUpdate(true);
     } catch (error) {

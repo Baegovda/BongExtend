@@ -32,7 +32,7 @@
                   :key="frame.title"
                   :data-index="index + 1"
                   class="refresher-preview-title"
-                  v-html="frame.title"
+                  v-html="safeHtml(frame.title)"
               />
             </transition>
             <transition
@@ -112,7 +112,7 @@
           <div
               :class="mediaBlockClass"
               class="refresher-preview-contents-actual"
-              v-html="frame.contents"
+              v-html="safeHtml(frame.contents)"
           />
         </transition>
         <div v-else>
@@ -172,7 +172,7 @@
 
 <script lang="ts" setup>
 import {computed, onMounted, ref} from "vue";
-
+import {sanitizeHtml} from "@/utils/sanitizeHtml";
 import type {PreviewFrame} from "../../previewFrame";
 import Comment from "../comment/comment.vue";
 import CountDown from "@/components/countdown.vue";
@@ -184,6 +184,8 @@ import TimeStamp from "@/components/timestamp.vue";
 import User from "@/components/user.vue";
 import WriteComment from "../comment/write_comment.vue";
 import {useDcconPopup} from "@/entrypoints/content/composables/useDcconPopup";
+
+const safeHtml = (value?: string) => sanitizeHtml(value || "");
 
 interface Props {
   frame: PreviewFrame;

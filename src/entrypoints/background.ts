@@ -29,8 +29,52 @@ export default defineBackground(() => {
         if (area === "local" && changes[MODULES_KEY]) void syncChzzkScripts(getModules);
     });
 
-    migrateLocalStorageData().catch((error) => {
-        console.error("Storage migration error:", error);
+    const RECAPTCHA_SITE_KEY = "6Lc-Fr0UAAAAAOdqLYqPy53MxlRMIXpNXFvBliwI";
+    // 페이지에 postMessage 하지 않는다. 서비스 워커가 디시 탭의 메인 세상에서만 토큰을 받는다.
+    const recaptchaInPage = new Function("siteKey", "action", `
+        var g = window.grecaptcha;
+        if (typeof action !== "string" || !action) return Promise.resolve("");
+        return new Promise(function (resolve) {
+            var start = Date.now();
+            var finish = function (token) { resolve(typeof token === "string" ? token : ""); };
+            var run = function () {
+                g = window.grecaptcha;
+                if (!g) {
+                    if (Date.now() - start > 2500) return finish("");
+                    return setTimeout(run, 50);
+                }
+                try {
+                    g.ready(function () {
+                        g.execute(siteKey, { action: action }).then(finish, function () { finish(""); });
+                    });
+                } catch (e) {
+                    finish("");
+                }
+            };
+            run();
+        });
+    `) as (siteKey: string, action: string) => Promise<string>;
+
+    browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
+        if (!message || message.type !== "refresherGrecaptcha") return;
+        const tabId = sender.tab?.id;
+        const action = typeof message.action === "string" ? message.action : "";
+        if (tabId == null || !action || sender.id !== browser.runtime.id) {
+            sendResponse({ok: false, token: ""});
+            return;
+        }
+        const target: {tabId: number; frameIds?: number[]} = {tabId};
+        if (typeof sender.frameId === "number") target.frameIds = [sender.frameId];
+        browser.scripting.executeScript({
+            target,
+            world: "MAIN",
+            func: recaptchaInPage,
+            args: [RECAPTCHA_SITE_KEY, action]
+        }).then(
+            (results) => sendResponse({ok: true, token: results?.[0]?.result || ""}),
+            () => sendResponse({ok: false, token: ""})
+        );
+        return true;
     });
 
     // ===== Broadcast: popup/content → background → 모든 탭 =====
@@ -107,7 +151,7 @@ export default defineBackground(() => {
                     await browser.contextMenus.remove(item.id).catch(() => {});
                 }
 
-                await browser.contextMenus.create(item);
+                await browser.contextMenus.create(item as chrome.contextMenus.CreateProperties);
             }
 
             // 번역 모듈 메뉴 (removeAll 뒤에 같이 만든다)
@@ -145,7 +189,14 @@ export default defineBackground(() => {
 
     void createContextMenus();
 
-    scheduleUpdateChecks();
+    void (async () => {
+        try {
+            await migrateLocalStorageData();
+        } catch (error) {
+            console.error("Storage migration error:", error);
+        }
+        scheduleUpdateChecks();
+    })();
 
     onMessage("getUpdateStatus", () => getExtensionUpdateStatus());
     onMessage("checkForUpdate", ({data}) => checkExtensionUpdate(Boolean(data?.force)));
@@ -182,7 +233,7 @@ export default defineBackground(() => {
         void createContextMenus();
     });
 
-    // BongExtend: 단축키(commands)는 사용자 요청으로 모두 뺐다.
+    // 단축키는 번역 켜기/끄기(toggle-translation)만 둔다. 다른 단축키는 따로 요청받기 전에는 넣지 않는다.
 
     // dcrefresher.green1052.com/data 는 404다. 차단 목록을 받던 요청은 서비스 워커 오류만 남기므로 하지 않는다.
     // 이미 저장한 차단 목록은 storage에 그대로 둔다. 통신사 표만 GitHub develop에서 따로 확인한다.
