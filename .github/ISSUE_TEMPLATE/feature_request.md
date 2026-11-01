@@ -1,9 +1,9 @@
 ---
 name: 기능 요청
-about: 리프레셔 새로운 기능을 제안하세요
+about: BongExtend에 새 기능을 제안해 주세요
 title: '[ENHANCEMENT] '
 labels: enhancement
-assignees: green1052
+assignees: Baegovda
 
 ---
 

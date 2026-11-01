@@ -1,3 +1,5 @@
+> **옛 기록이에요.** 합치기 전 확장의 글이고, 지금 BongExtend 안내가 아니에요. 지금 안내는 저장소 맨 위의 `AGENTS.md`와 `MERGE_NOTES.md`예요. 아래는 당시 내용 그대로예요.
+
 # HANDOFF
 
 Agent-to-agent continuation for this repo. Read `AGENTS.md` first, then this file. Facts below were checked against the tree and GitHub on 2026-10-26. Re-check anything you are about to change. If a command was not run, say **확인 필요**. Do not guess.
