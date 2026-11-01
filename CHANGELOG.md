@@ -7,7 +7,7 @@ BongExtend 변경 이력. GitHub **[Releases](https://github.com/Baegovda/BongEx
 
 ---
 
-## [Unreleased]
+## [1.0.17] - 2026-11-02
 
 - 번역이 문장 안에서 바뀔 때, 지나가는 선이 무지개 프리즘처럼 보여요
 - 막 번역된 글자는 잠깐 무지개색으로 보이다가 페이지의 원래 글자색으로 돌아와요

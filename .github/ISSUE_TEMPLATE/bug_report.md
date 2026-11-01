@@ -29,7 +29,7 @@ assignees: Baegovda
 ## 🖥️ 환경
 - **OS**: [예: Windows 11, macOS]
 - **브라우저**: [예: Chrome 131]
-- **BongExtend 버전**: [예: 1.0.16]
+- **BongExtend 버전**: [예: 1.0.17]
 - **재현 가능한 주소**: [해당되는 경우 작성]
 
 ## 📝 추가 정보
