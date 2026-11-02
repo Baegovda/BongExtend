@@ -281,10 +281,12 @@ test('in-flight text glows, then a prism sweep reveals the translation', async (
   assert.match(source, /width: 16px/);
   assert.match(source, /left: calc\(var\(--pt-p\) \* 100%\)/);
   assert.match(source, /right: calc\(var\(--pt-p\) \* 100%\)/);
-  assert.match(source, /rgba\(56, 189, 248, 0\.95\)/);
-  assert.match(source, /rgba\(167, 139, 250, 1\)/);
-  assert.match(source, /rgba\(244, 114, 182, 1\)/);
-  assert.match(source, /rgba\(250, 204, 21, 0\.95\)/);
+  assert.match(source, /#2a6e7a, #5568b0, #705a9e, #8f5a72, #7d6836/);
+  assert.match(source, /#9ad7e4, #c5d0f7, #e0d0f6, #f6d0e0, #f6e6c4/);
+  assert.match(source, /prefers-color-scheme:\s*dark/);
+  assert.match(source, /rgba\(85, 104, 176, 0\.62\)/);
+  assert.match(source, /rgba\(154, 215, 228, 0\.7\)/);
+  assert.doesNotMatch(source, /#0891b2|#7c3aed|#db2777/);
   assert.match(source, /background-clip: text/);
   assert.match(source, /pt-page-translator-prism/);
   assert.match(source, /pt-prism-settle/);
