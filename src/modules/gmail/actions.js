@@ -39,6 +39,44 @@ export const parseGmailTokens = (html) => {
     return {at: token, ik};
 };
 
+const PHOTO_IN_PAGE = /https:\/\/lh3\.googleusercontent\.com\/a(?:-\/|\/)[A-Za-z0-9_\-=]+/gi;
+const PHOTO_ON_GMAIL = /https:\/\/mail\.google\.com\/mail\/u\/\d+\/[^"'\\\s<>]*photo[^"'\\\s<>]*/gi;
+
+// 이미 받는 Gmail HTML 안의 프로필 사진 주소. 다른 호스트 권한은 늘리지 않는다.
+export const profileFromHtml = (html, knownEmail = "") => {
+    const source = String(html || "");
+    const known = String(knownEmail || "").trim();
+    const email = known || (source.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i) || [])[0] || "";
+    const photos = [...source.matchAll(PHOTO_IN_PAGE), ...source.matchAll(PHOTO_ON_GMAIL)].map((match) => ({
+        url: match[0],
+        at: match.index || 0
+    }));
+    if (!photos.length) return {photo: "", email};
+    const at = email ? source.toLowerCase().indexOf(email.toLowerCase()) : -1;
+    if (at < 0) return {photo: photos[0].url, email};
+    photos.sort((a, b) => Math.abs(a.at - at) - Math.abs(b.at - at));
+    return {photo: photos[0].url, email};
+};
+
+export const photoCredentials = (url) => String(url || "").startsWith("https://mail.google.com/") ? "include" : "omit";
+
+export const readProfilePhoto = async (fetchImpl, html, knownEmail = "") => {
+    const profile = profileFromHtml(html, knownEmail);
+    if (!profile.photo || !profile.email) return {email: profile.email, photo: ""};
+    try {
+        const response = await fetchImpl(profile.photo, {credentials: photoCredentials(profile.photo)});
+        if (!response?.ok || typeof response.blob !== "function") return {email: profile.email, photo: ""};
+        const blob = await response.blob();
+        if (!String(blob.type || "").startsWith("image/") || blob.size > 120000) return {email: profile.email, photo: ""};
+        const bytes = new Uint8Array(await blob.arrayBuffer());
+        let binary = "";
+        for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+        return {email: profile.email, photo: `data:${blob.type};base64,${btoa(binary)}`};
+    } catch {
+        return {email: profile.email, photo: ""};
+    }
+};
+
 export const tokenPageUrls = (index) => {
     const n = Number(index) || 0;
     return [
