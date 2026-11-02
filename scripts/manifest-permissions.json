@@ -1,0 +1,34 @@
+{
+    "permissions": [
+        "activeTab",
+        "alarms",
+        "contextMenus",
+        "declarativeNetRequest",
+        "downloads",
+        "notifications",
+        "offscreen",
+        "idle",
+        "storage",
+        "scripting",
+        "tabs",
+        "windows",
+        "unlimitedStorage",
+        "clipboardWrite"
+    ],
+    "host_permissions": [
+        "https://*.dcinside.com/*",
+        "https://chzzk.naver.com/*",
+        "https://api.chzzk.naver.com/*",
+        "https://generativelanguage.googleapis.com/*",
+        "https://api.github.com/*",
+        "https://github.com/*",
+        "https://objects.githubusercontent.com/*",
+        "https://release-assets.githubusercontent.com/*",
+        "https://mail.google.com/*",
+        "https://latest.currency-api.pages.dev/*"
+    ],
+    "optional_host_permissions": [
+        "https://*/*",
+        "http://*/*"
+    ]
+}
