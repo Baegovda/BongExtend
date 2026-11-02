@@ -8,7 +8,9 @@ import {getModules, setModuleEnabled} from "@/modules/core-modules.js";
 import {moveItem, normalizeTabOrder} from "@/core/popup/tabOrder";
 import {exportAllSettings, importSettingsText} from "@/modules/settings-io";
 // @ts-ignore 순수 JS
-import {COMMON_CODES, FX_URL, convertAmount, currencyLabel, favoriteCurrencyId, favoritePairId, formatMoney, isCacheFresh, normalizeFavorites, parseFavoriteId, parseRatePayload, pinFavoriteCodes, reorderFavorites, toggleFavorite} from "@/modules/fx/convert.js";
+import {COMMON_CODES, CURRENCY_TINT, FX_URL, convertAmount, currencyColor, currencyLabel, currencyName, formatMoney, fxTabBadge, isCacheFresh, parseRatePayload} from "@/modules/fx/convert.js";
+// @ts-ignore 순수 JS
+import {composite} from "@/modules/theme/contrast.js";
 // @ts-ignore 순수 JS
 import {dedupeAccounts, mailTabBadge, preferInbox} from "@/modules/gmail/watch.js";
 // @ts-ignore 순수 JS
@@ -666,6 +668,7 @@ effects.storageOnChanged((changes: Record<string, {newValue?: unknown}>, area: s
     if ((changes["gmail.snapshot"] || changes["gmail.photos"] || changes["gmail.accountColors"]) && (current === "gmail" || embed === "gmail")) {
         renderGmail((changes["gmail.snapshot"]?.newValue as GmailSnapshot) || gmailView);
     }
+    if (changes["fx.table"]) paintFxBadge((changes["fx.table"].newValue as FxTable | undefined)?.rates);
     if (changes["core.update:available"]) {
         $("updateDot").hidden = changes["core.update:available"].newValue !== true;
     }
@@ -673,21 +676,27 @@ effects.storageOnChanged((changes: Record<string, {newValue?: unknown}>, area: s
 
 type FxTable = {base: string; date: string; rates: Record<string, number>; fetchedAt: number};
 const FX_KEY = "fx.table";
-const FX_FAV_KEY = "fx.favorites";
 const fxAmount = $<HTMLInputElement>("fxAmount");
 const fxFrom = $<HTMLSelectElement>("fxFrom");
 const fxTo = $<HTMLSelectElement>("fxTo");
 const fxResult = $("fxResult");
 const fxMore = $("fxMore");
-const fxFavs = $("fxFavs");
-const fxFavLabel = $("fxFavLabel");
-const fxStarPair = $<HTMLButtonElement>("fxStarPair");
 const fxStatus = $("fxStatus");
 let fxTable: FxTable | null = null;
-let fxFav: {order: string[]} = {order: []};
+
+const paintFxBadge = (rates: Record<string, number> | undefined) => {
+    const badge = $("fxBadge");
+    if (!badge) return;
+    const text = fxTabBadge(rates) as string;
+    badge.textContent = text;
+    badge.hidden = !text;
+};
+
+const fxSurface = () => window.matchMedia("(prefers-color-scheme: light)").matches ? "#ffffff" : "#2c2c2e";
 
 const fillFxSelects = (codes: string[]) => {
-    const ordered = pinFavoriteCodes(codes, fxFav) as string[];
+    const have = new Set(codes);
+    const ordered = [...(COMMON_CODES as string[]).filter((code) => have.has(code)), ...codes.filter((code) => !(COMMON_CODES as string[]).includes(code)).sort()];
     const selected = {from: fxFrom.value || "krw", to: fxTo.value || "usd"};
     for (const select of [fxFrom, fxTo]) {
         select.replaceChildren();
@@ -702,99 +711,42 @@ const fillFxSelects = (codes: string[]) => {
     fxTo.value = ordered.includes(selected.to) ? selected.to : (ordered.find((code) => code !== fxFrom.value) || ordered[0] || "");
 };
 
-const saveFxFav = async (next: {order: string[]}) => {
-    fxFav = normalizeFavorites(next) as {order: string[]};
-    await effects.storageSet({[FX_FAV_KEY]: fxFav});
-    if (fxTable) fillFxSelects(Object.keys(fxTable.rates).sort());
-    renderFx();
-};
-
-const setFxPair = (from: string, to: string) => {
-    if ([...fxFrom.options].some((option) => option.value === from)) fxFrom.value = from;
-    if ([...fxTo.options].some((option) => option.value === to)) fxTo.value = to;
-    renderFx();
-};
-
 const renderFx = () => {
-    const pairId = favoritePairId(fxFrom.value, fxTo.value);
-    const pairOn = fxFav.order.includes(pairId);
-    fxStarPair.textContent = pairOn ? "★" : "☆";
-    fxStarPair.title = pairOn ? "이 통화 짝을 즐겨찾기에서 빼요" : "이 통화 짝을 즐겨찾기에 넣어요";
+    paintFxBadge(fxTable?.rates);
+    fxMore.replaceChildren();
     if (!fxTable) {
         fxResult.textContent = "환율표를 아직 받지 못했어요.";
-        fxFavs.replaceChildren();
-        fxFavs.hidden = true;
-        fxFavLabel.hidden = true;
         return;
     }
     const amount = Number(fxAmount.value);
     const value = convertAmount(amount, fxFrom.value, fxTo.value, fxTable.rates);
     fxResult.textContent = value == null ? "이 통화는 표에 없어요." : `${formatMoney(amount, fxFrom.value)} ${fxFrom.value.toUpperCase()} = ${formatMoney(value, fxTo.value)} ${fxTo.value.toUpperCase()}`;
-    const items = fxFav.order.map((id) => parseFavoriteId(id)).filter(Boolean) as Array<{kind: string; code?: string; from?: string; to?: string}>;
-    fxFavs.replaceChildren();
-    fxFavs.hidden = items.length === 0;
-    fxFavLabel.hidden = items.length === 0;
-    items.forEach((item, index) => {
-        const id = fxFav.order[index];
-        const li = document.createElement("li");
-        const apply = document.createElement("button");
-        apply.type = "button";
-        apply.className = "fx-apply";
-        if (item.kind === "pair") {
-            apply.textContent = `${currencyLabel(item.from)} → ${currencyLabel(item.to)}`;
-            apply.addEventListener("click", () => setFxPair(item.from || "", item.to || ""));
-        } else {
-            apply.textContent = currencyLabel(item.code);
-            apply.addEventListener("click", () => setFxPair(fxFrom.value, item.code || ""));
-        }
-        const star = document.createElement("button");
-        star.type = "button";
-        star.className = "fx-star";
-        star.textContent = "★";
-        star.title = "즐겨찾기 해제";
-        star.addEventListener("click", () => void saveFxFav(toggleFavorite(fxFav, id)));
-        const move = (delta: number) => {
-            const button = document.createElement("button");
-            button.type = "button";
-            button.className = "fx-mini";
-            button.textContent = delta < 0 ? "위" : "아래";
-            button.disabled = index + delta < 0 || index + delta >= items.length;
-            button.title = delta < 0 ? "위로" : "아래로";
-            button.addEventListener("click", () => void saveFxFav(reorderFavorites(fxFav, index, index + delta)));
-            return button;
-        };
-        li.append(apply, move(-1), move(1), star);
-        fxFavs.appendChild(li);
-    });
-    fxMore.replaceChildren();
-    for (const code of COMMON_CODES) {
-        if (code === fxFrom.value) continue;
+    const surface = fxSurface();
+    for (const code of COMMON_CODES as string[]) {
         const other = convertAmount(amount, fxFrom.value, code, fxTable.rates);
         if (other == null) continue;
-        const li = document.createElement("li");
-        const name = document.createElement("button");
-        name.type = "button";
-        name.className = "fx-apply";
-        name.textContent = `${currencyLabel(code)} ${formatMoney(other, code)}`;
-        name.addEventListener("click", () => setFxPair(fxFrom.value, code));
-        const star = document.createElement("button");
-        star.type = "button";
-        star.className = "fx-star";
-        const on = fxFav.order.includes(favoriteCurrencyId(code));
-        star.textContent = on ? "★" : "☆";
-        star.title = on ? "즐겨찾기 해제" : "이 통화 즐겨찾기";
-        star.addEventListener("click", () => void saveFxFav(toggleFavorite(fxFav, favoriteCurrencyId(code))));
-        li.append(name, star);
-        fxMore.appendChild(li);
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "fx-chip";
+        if (code === fxTo.value) button.classList.add("on");
+        const flag = currencyColor(code) as string;
+        button.style.setProperty("--fx-flag", flag);
+        button.style.background = composite(flag, surface, CURRENCY_TINT) as string;
+        const name = document.createElement("small");
+        name.textContent = currencyName(code) as string;
+        const money = document.createElement("b");
+        money.textContent = formatMoney(other, code);
+        button.append(name, money);
+        button.addEventListener("click", () => {
+            if ([...fxTo.options].some((option) => option.value === code)) fxTo.value = code;
+            renderFx();
+        });
+        fxMore.appendChild(button);
     }
-    fxStatus.textContent = fxTable.date
-        ? `${fxTable.date} 시세예요. 하루 한 번 바뀌고, 12시간 동안 저장해요. 실시간 시세는 아니에요.`
-        : "하루 한 번 바뀌는 시세예요. 실시간은 아니에요.";
+    fxStatus.textContent = fxTable.date ? `${fxTable.date} 시세 · 실시간은 아니에요` : "하루 한 번 바뀌는 시세예요";
 };
 
 const refreshFx = async () => {
-    const favStored = await effects.storageGet(FX_FAV_KEY);
-    fxFav = normalizeFavorites(favStored[FX_FAV_KEY]) as {order: string[]};
     const stored = await effects.storageGet(FX_KEY);
     const cached = stored[FX_KEY] as FxTable | undefined;
     if (cached?.rates && isCacheFresh(cached.fetchedAt)) {
@@ -811,6 +763,7 @@ const refreshFx = async () => {
         await effects.storageSet({[FX_KEY]: parsed});
         fillFxSelects(Object.keys(parsed.rates).sort());
         renderFx();
+        paintFxBadge(parsed.rates);
     } catch (error) {
         if (cached?.rates) {
             fxTable = cached;
@@ -880,7 +833,8 @@ $("fxSwap").addEventListener("click", () => {
     fxTo.value = next;
     renderFx();
 });
-fxStarPair.addEventListener("click", () => {
-    if (!fxFrom.value || !fxTo.value || fxFrom.value === fxTo.value) return;
-    void saveFxFav(toggleFavorite(fxFav, favoritePairId(fxFrom.value, fxTo.value)));
+window.matchMedia("(prefers-color-scheme: light)").addEventListener("change", () => { if (fxTable) renderFx(); });
+effects.storageGet(FX_KEY).then((stored: Record<string, unknown>) => {
+    const cached = stored[FX_KEY] as FxTable | undefined;
+    paintFxBadge(cached?.rates);
 });

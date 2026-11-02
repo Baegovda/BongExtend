@@ -25,6 +25,11 @@ export const FX_NAMES = {
 
 export const COMMON_CODES = ["krw", "usd", "eur", "jpy", "cny", "gbp", "btc", "eth"];
 
+export const currencyName = (code) => {
+    const id = String(code || "").toLowerCase();
+    return FX_NAMES[id] || id.toUpperCase();
+};
+
 export const currencyLabel = (code) => {
     const id = String(code || "").toLowerCase();
     const name = FX_NAMES[id];
@@ -55,66 +60,35 @@ export const formatMoney = (amount, code) => {
     return new Intl.NumberFormat("ko-KR", {maximumFractionDigits: digits, minimumFractionDigits: 0}).format(amount);
 };
 
-const FAVORITE_CODE = /^[a-z0-9]{2,12}$/;
-
-export const favoriteCurrencyId = (code) => `c:${String(code || "").toLowerCase()}`;
-
-export const favoritePairId = (from, to) => `p:${String(from || "").toLowerCase()}>${String(to || "").toLowerCase()}`;
-
-export const parseFavoriteId = (id) => {
-    const text = String(id || "");
-    if (text.startsWith("c:")) {
-        const code = text.slice(2);
-        return FAVORITE_CODE.test(code) ? {kind: "currency", code} : null;
-    }
-    if (text.startsWith("p:")) {
-        const [from, to] = text.slice(2).split(">");
-        if (FAVORITE_CODE.test(from || "") && FAVORITE_CODE.test(to || "") && from !== to) return {kind: "pair", from, to};
-    }
-    return null;
+// 나라(또는 자산)를 알아보는 상징색. 화면에는 이 색을 옅게 섞어서 글자 대비를 지킨다.
+export const CURRENCY_COLORS = {
+    krw: "#cd2e3a",
+    usd: "#3c3b6e",
+    eur: "#003399",
+    jpy: "#bc002d",
+    cny: "#de2910",
+    gbp: "#012169",
+    aud: "#012169",
+    cad: "#c8102e",
+    chf: "#da291c",
+    hkd: "#de2910",
+    sgd: "#ef3340",
+    twd: "#000095",
+    thb: "#a51931",
+    vnd: "#da251d",
+    inr: "#138808",
+    btc: "#f7931a",
+    eth: "#627eea"
 };
+export const CURRENCY_TINT = 0.14;
 
-export const normalizeFavorites = (raw) => {
-    const order = [];
-    const seen = new Set();
-    const push = (id) => {
-        const text = String(id || "");
-        if (!parseFavoriteId(text) || seen.has(text)) return;
-        seen.add(text);
-        order.push(text);
-    };
-    if (Array.isArray(raw?.order)) raw.order.forEach(push);
-    if (Array.isArray(raw?.currencies)) raw.currencies.forEach((code) => push(favoriteCurrencyId(code)));
-    if (Array.isArray(raw?.pairs)) raw.pairs.forEach((pair) => push(favoritePairId(pair?.from, pair?.to)));
-    return {order};
-};
+export const currencyColor = (code) => CURRENCY_COLORS[String(code || "").toLowerCase()] || "#6e6e73";
 
-export const toggleFavorite = (raw, id) => {
-    const fav = normalizeFavorites(raw);
-    const text = String(id || "");
-    if (!parseFavoriteId(text)) return fav;
-    const order = fav.order.includes(text) ? fav.order.filter((item) => item !== text) : [...fav.order, text];
-    return {order};
-};
-
-export const reorderFavorites = (raw, fromIndex, toIndex) => {
-    const fav = normalizeFavorites(raw);
-    const order = [...fav.order];
-    if (fromIndex < 0 || fromIndex >= order.length) return fav;
-    const clamped = Math.max(0, Math.min(order.length - 1, toIndex));
-    const [item] = order.splice(fromIndex, 1);
-    order.splice(clamped, 0, item);
-    return {order};
-};
-
-export const pinFavoriteCodes = (codes, favorites) => {
-    const fav = normalizeFavorites(favorites);
-    const have = new Set(codes || []);
-    const pinned = fav.order
-        .map(parseFavoriteId)
-        .filter((item) => item?.kind === "currency" && have.has(item.code))
-        .map((item) => item.code);
-    return [...pinned, ...(codes || []).filter((code) => !pinned.includes(code))];
+// 1달러가 몇 원인지. 표가 없으면 빈 글자.
+export const fxTabBadge = (rates) => {
+    const value = convertAmount(1, "usd", "krw", rates);
+    if (value == null || !Number.isFinite(value) || value <= 0) return "";
+    return formatMoney(value, "krw");
 };
 
 export const isCacheFresh = (savedAt, now = Date.now(), maxAge = FX_CACHE_MS) => {
