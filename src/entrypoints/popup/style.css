@@ -4,7 +4,12 @@ body { width: 780px; height: 590px; display: flex; flex-direction: column; overf
 .tabs { display: flex; align-items: center; gap: 2px; padding: 0 12px; height: 44px; flex: 0 0 auto; background: var(--be-surface); border-bottom: 1px solid var(--be-border); }
 .brand { display: flex; align-items: center; gap: 8px; margin-right: 16px; font-size: 14px; font-weight: 700; letter-spacing: -0.01em; background: var(--be-gradient); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .brand img { border-radius: 5px; }
-.be-page .tabs button { position: relative; height: 44px; padding: 0 14px; background: transparent; border: 0; border-radius: 0; color: var(--be-muted); font-size: 13px; font-weight: 500; }
+.be-page .tabs button { position: relative; height: 44px; padding: 0 10px; background: transparent; border: 0; border-radius: 0; color: var(--be-muted); font-size: 13px; font-weight: 500; }
+.mail-list { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.mail-list li { background: var(--be-surface-2); border-radius: var(--be-radius); padding: 10px 12px; }
+.mail-list strong { display: block; }
+.mail-list .mail-snippet { color: var(--be-text-2); margin: 4px 0; }
+.mail-list .be-actions { margin-top: 6px; }
 .be-page .tabs button:hover:not(:disabled) { background: transparent; color: var(--be-text); }
 .be-page .tabs button.active { color: var(--be-text); font-weight: 700; }
 .tabs button.active::after { content: ""; position: absolute; left: 10px; right: 10px; bottom: -1px; height: 2px; border-radius: 2px; background: var(--be-gradient); }

@@ -12,6 +12,7 @@
     <button data-tab="chzzk" role="tab" title="끌어서 순서 바꾸기 (Alt+←/→)" type="button">치지직</button>
     <button data-tab="trans" role="tab" title="끌어서 순서 바꾸기 (Alt+←/→)" type="button">번역</button>
     <button data-tab="dc" role="tab" title="끌어서 순서 바꾸기 (Alt+←/→)" type="button">디시</button>
+    <button data-tab="gmail" role="tab" title="끌어서 순서 바꾸기 (Alt+←/→)" type="button">메일</button>
     <button data-tab="update" role="tab" title="끌어서 순서 바꾸기 (Alt+←/→)" type="button">업데이트·설정</button>
 </nav>
 <div class="module-bar" id="moduleBar">
@@ -22,6 +23,16 @@
     <iframe data-frame="chzzk" title="치지직 설정"></iframe>
     <iframe data-frame="trans" title="번역"></iframe>
     <iframe data-frame="dc" title="디시 설정"></iframe>
+    <section class="panel be-shell" data-frame="gmail" hidden>
+        <div class="be-title"><h3>메일</h3><span class="be-sub" id="gmailAccount">Gmail 받은편지함</span></div>
+        <p id="gmailStatus" role="status">확인 중…</p>
+        <div class="be-actions">
+            <button id="gmailRefresh" type="button">다시 확인</button>
+        </div>
+        <div id="gmailAccounts" class="be-actions"></div>
+        <ul id="gmailList" class="mail-list"></ul>
+        <p class="be-hint" id="gmailLatency"></p>
+    </section>
     <section class="panel be-shell" data-frame="update" hidden>
         <div class="be-title"><h3>업데이트·설정</h3><span class="be-sub">업데이트 확인, 설정 백업, 정보</span></div>
         <div class="be-grid">

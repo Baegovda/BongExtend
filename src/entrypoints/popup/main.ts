@@ -8,18 +8,19 @@ import {getModules, setModuleEnabled} from "@/modules/core-modules.js";
 import {moveItem, normalizeTabOrder} from "@/core/popup/tabOrder";
 import {exportAllSettings, importSettingsText} from "@/modules/settings-io";
 
-type TabId = "chzzk" | "trans" | "dc" | "update";
+type TabId = "chzzk" | "trans" | "dc" | "gmail" | "update";
 
-const FRAMES: Record<Exclude<TabId, "update">, string> = {
+const FRAMES: Partial<Record<TabId, string>> = {
     chzzk: "/chzzk/popup.html",
     trans: "/trans/popup/popup.html",
     dc: "/dc.html"
 };
-const NAMES: Record<Exclude<TabId, "update">, string> = {chzzk: "치지직", trans: "번역", dc: "디시"};
+const NAMES: Partial<Record<TabId, string>> = {chzzk: "치지직", trans: "번역", dc: "디시", gmail: "메일"};
 const TAB_KEY = "core.popupTab";
 // 탭 순서. core.* 이라 전체 백업·복원에 포함되고, 디시 초기화(refresher:*)와는 무관.
 const ORDER_KEY = "core.popupTabOrder";
-const DEFAULT_ORDER: TabId[] = ["chzzk", "trans", "dc", "update"];
+const DEFAULT_ORDER: TabId[] = ["chzzk", "trans", "dc", "gmail", "update"];
+const TAB_IDS: TabId[] = [...DEFAULT_ORDER];
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 const moduleBar = $("moduleBar");
@@ -34,20 +35,22 @@ const showTab = async (tab: TabId) => {
     document.querySelectorAll<HTMLElement>("[data-frame]").forEach((el) => {
         const on = el.dataset.frame === tab;
         if (el instanceof HTMLIFrameElement) {
-            if (on && !el.src) el.src = FRAMES[el.dataset.frame as keyof typeof FRAMES];
+            const src = FRAMES[el.dataset.frame as TabId];
+            if (on && src && !el.src) el.src = src;
             el.classList.toggle("active", on);
             if (el.dataset.frame === "chzzk") el.classList.add("chzzk-frame");
         } else {
             el.hidden = !on;
         }
     });
+    if (tab === "gmail") void refreshGmail(false);
     if (tab === "update") {
         moduleBar.hidden = true;
     } else {
         moduleBar.hidden = false;
         const modules = await getModules();
         moduleSwitch.checked = modules[tab] !== false;
-        moduleLabel.textContent = `${NAMES[tab]} 모듈 사용`;
+        moduleLabel.textContent = `${NAMES[tab] || "모듈"} 모듈 사용`;
         moduleNote.textContent = moduleSwitch.checked ? "" : "꺼져 있어요. 켜면 새로 열거나 새로고침한 페이지부터 적용돼요.";
     }
     void chrome.storage.local.set({[TAB_KEY]: tab});
@@ -284,5 +287,109 @@ chrome.storage.local.get([TAB_KEY, ORDER_KEY]).then((v) => {
     applyOrder(normalizeTabOrder(v[ORDER_KEY], DEFAULT_ORDER));
     tabsNav.classList.remove("order-pending");
     const saved = v[TAB_KEY] as TabId | undefined;
-    void showTab(saved && ["chzzk", "trans", "dc", "update"].includes(saved) ? saved : "chzzk");
+    void showTab(saved && TAB_IDS.includes(saved) ? saved : "chzzk");
+});
+
+type GmailMessage = {
+    id: string; thread: string; subject: string; snippet: string;
+    fromName: string; fromEmail: string; issued: string; link: string;
+};
+type GmailAccount = {index: number; email: string; unread: number; messages: GmailMessage[]};
+type GmailSnapshot = {checkedAt?: number; loggedOut?: boolean; unread?: number; accounts?: GmailAccount[]};
+
+const gmailStatus = $("gmailStatus");
+const gmailList = $("gmailList");
+const gmailAccounts = $("gmailAccounts");
+const gmailAccount = $("gmailAccount");
+let gmailShown = 0;
+
+const gmailSend = (message: Record<string, unknown>) => chrome.runtime.sendMessage(message) as Promise<{
+    snapshot?: GmailSnapshot | null; error?: string; ok?: boolean;
+}>;
+
+const renderGmail = (snapshot: GmailSnapshot | null | undefined, error = "") => {
+    const accounts = snapshot?.accounts || [];
+    if (!accounts.length) gmailShown = 0;
+    else if (!accounts.some((account) => account.index === gmailShown)) gmailShown = accounts[0].index;
+    const account = accounts.find((item) => item.index === gmailShown) || accounts[0];
+    gmailAccounts.replaceChildren();
+    for (const item of accounts) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.textContent = item.email || `계정 ${item.index + 1}`;
+        if (item.index === account?.index) button.className = "primary";
+        button.addEventListener("click", () => { gmailShown = item.index; renderGmail(snapshot, error); });
+        gmailAccounts.appendChild(button);
+    }
+    if (error) gmailStatus.textContent = error;
+    else if (snapshot?.loggedOut) gmailStatus.textContent = "Gmail에 로그인되어 있지 않아요.";
+    else if (!account) gmailStatus.textContent = "읽지 않은 메일이 없어요.";
+    else gmailStatus.textContent = account.email
+        ? `${account.email} · 읽지 않은 메일 ${account.unread}통`
+        : `읽지 않은 메일 ${account.unread}통`;
+    gmailAccount.textContent = account?.email || "Gmail 받은편지함";
+    gmailList.replaceChildren();
+    for (const message of account?.messages || []) {
+        const li = document.createElement("li");
+        const who = document.createElement("strong");
+        who.textContent = message.fromName || message.fromEmail || "보낸 사람 없음";
+        const subject = document.createElement("div");
+        subject.textContent = message.subject;
+        const snippet = document.createElement("p");
+        snippet.className = "mail-snippet";
+        snippet.textContent = message.snippet;
+        const actions = document.createElement("div");
+        actions.className = "be-actions";
+        const add = (label: string, run: () => void) => {
+            const button = document.createElement("button");
+            button.type = "button";
+            button.textContent = label;
+            button.addEventListener("click", run);
+            actions.appendChild(button);
+        };
+        add("읽음", () => void gmailAct(account.index, message, "read"));
+        add("보관", () => void gmailAct(account.index, message, "archive"));
+        add("삭제", () => void gmailAct(account.index, message, "trash"));
+        add("답장", () => {
+            const url = new URL("https://mail.google.com/mail/");
+            url.searchParams.set("view", "cm");
+            url.searchParams.set("fs", "1");
+            url.searchParams.set("tf", "1");
+            if (message.fromEmail) url.searchParams.set("to", message.fromEmail);
+            url.searchParams.set("su", message.subject.startsWith("Re:") ? message.subject : `Re: ${message.subject}`);
+            void chrome.tabs.create({url: `https://mail.google.com/mail/u/${account.index}/${url.search}`});
+        });
+        add("열기", () => { if (message.link) void chrome.tabs.create({url: message.link}); });
+        li.append(who, subject, snippet, actions);
+        gmailList.appendChild(li);
+    }
+};
+
+const refreshGmail = async (force: boolean) => {
+    gmailStatus.textContent = "확인 중…";
+    try {
+        const result = await gmailSend({type: force ? "gmail-refresh" : "gmail-get"});
+        renderGmail(result?.snapshot, result?.error || "");
+    } catch (error) {
+        gmailStatus.textContent = (error as Error)?.message || "메일을 확인하지 못했어요.";
+    }
+};
+
+const gmailAct = async (account: number, message: GmailMessage, action: string) => {
+    gmailStatus.textContent = "Gmail에 반영하는 중…";
+    try {
+        const result = await gmailSend({type: "gmail-act", account, thread: message.thread, action});
+        if (!result?.ok) gmailStatus.textContent = result?.error || "Gmail에 반영하지 못했어요.";
+        renderGmail(result?.snapshot, result?.ok ? "" : (result?.error || ""));
+    } catch (error) {
+        gmailStatus.textContent = (error as Error)?.message || "Gmail에 반영하지 못했어요.";
+    }
+};
+
+$("gmailRefresh").addEventListener("click", () => void refreshGmail(true));
+$("gmailLatency").textContent = "새 메일은 Gmail 탭이 열려 있으면 제목이 바뀌는 즉시, 그리고 10초마다 확인해요. 탭이 없으면 크롬 알람 한계인 1분마다 확인하고, 브라우저로 돌아오면 바로 다시 봐요. 답장은 Gmail 창에서 보내야 보낸편지함과 같아요.";
+chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === "local" && changes["gmail.snapshot"] && current === "gmail") {
+        renderGmail(changes["gmail.snapshot"].newValue as GmailSnapshot);
+    }
 });
