@@ -3,16 +3,20 @@
   'use strict';
   if (window.top !== window) return;
   const X = globalThis.BongExtras;
-  const DEF = { vivid: true, hideRanking: true, chatFontSize: 0, viewerChat: true, viewerOverlay: true, arrowSeek: true, seekSeconds: 5, blurRankNames: false, hideTimeGuide: true, adSkip: true };
+  const DEF = { vivid: true, hideRanking: true, chatFontSize: 0, viewerChat: true, viewerOverlay: true, arrowSeek: true, seekSeconds: 5, blurRankNames: false, hideTimeGuide: true, adBlock: true, adSkip: true };
   let cfg = { ...DEF };
   const log = (...a) => console.log('[BongExtend]', ...a);
   const ROOT = 'div.pzp.pzp-pc';
-  BCStore.sync.get(DEF, v => { cfg = { ...DEF, ...v }; applyStyles(); });
+  const markAdBlock = () => {
+    const root = document.documentElement;
+    if (root) root.setAttribute('data-bong-adblock', cfg.adBlock === false ? '0' : '1');
+  };
+  BCStore.sync.get(DEF, v => { cfg = { ...DEF, ...v }; applyStyles(); markAdBlock(); });
   BCStore.onChanged.addListener((c, area) => {
     if (area !== 'sync') return;
     let hit = false;
     for (const k in DEF) if (c[k]) { cfg[k] = c[k].newValue; hit = true; }
-    if (hit) { applyStyles(); vividState.nextAt = 0; refreshViewerUi(); }
+    if (hit) { applyStyles(); markAdBlock(); vividState.nextAt = 0; refreshViewerUi(); }
   });
 
   // ── 스타일 주입: 랭킹 가리기 + 채팅 글씨 크기 + 시청자 배지 ──
@@ -31,6 +35,8 @@
       css += RANK.map(r => `${r} [class*="_money_"], ${r} [class*="_money_"] *`).join(', ') + '{filter:none !important}';
     }
     if (cfg.hideTimeGuide) css += '.restart_guide, .bex-guidehide{display:none !important}';
+    // display:none 은 광고 차단 탐지에 걸린다. 접어서 안 보이게만 한다.
+    if (cfg.adBlock) css += '[data-role="adVideoContainerEl"],.webplayer-internal-core-ad-ui,.pzp-ad-break-indicator{clip-path:inset(50%) !important;pointer-events:none !important}';
     const fs = X.normalizeFontSize(cfg.chatFontSize);
     if (fs) css += `#aside-chatting [class*="_chatting_message_"], #aside-chatting [class*="_chatting_message_"] > span[class*="_text_"], #aside-chatting [class*="_chatting_message_"] [class*="_nickname_"] *{font-size:${fs}px !important;line-height:1.5 !important}`;
     st.textContent = css;
@@ -230,8 +236,88 @@
 
   // ── 광고 방지 (best effort): 클래스 + 화면 텍스트(AD 1/1, N 초 후 SKIP, SKIP, 광고 페이지 보기)로 감지 ──
   let adWasActive = false, adTimer = 0;
-  const muteSaved = new WeakMap(); // 광고 영상의 원래 음소거 상태
   const boosted = new Set();
+  // 광고가 본영상 소리를 음소거로 덮어쓰기 전에 기억해 둔다.
+  let audioHold = null, audioTouched = false, restoreToken = 0, restoreUntil = 0;
+  function contentVideo() {
+    const list = [...document.querySelectorAll('video')].filter(v => v.isConnected && !v.closest(P.AD_CONTAINER_SEL));
+    return list.find(v => v.classList.contains('webplayer-internal-video'))
+      || list.sort((a, b) => b.clientWidth * b.clientHeight - a.clientWidth * a.clientHeight)[0]
+      || null;
+  }
+  function rememberQuiet() {
+    if (adWasActive || globalThis.__bongAdActive || document.querySelector(P.AD_CONTAINER_SEL)) return;
+    audioHold = P.noteLiveAudio(audioHold, P.captureAudioState(contentVideo()), false);
+  }
+  function watchContentAudio(v) {
+    if (!v || v._bongAudioWatch || (v.closest && v.closest(P.AD_CONTAINER_SEL))) return;
+    v._bongAudioWatch = 1;
+    const grab = () => {
+      const captured = P.captureAudioState(v);
+      // 광고가 같은 순간에 소리를 끄면, 그 음소거를 사용자 상태로 기억하지 않는다.
+      setTimeout(() => {
+        if (globalThis.__bongAdActive || adWasActive || (v.closest && v.closest(P.AD_CONTAINER_SEL)) || document.querySelector(P.AD_CONTAINER_SEL)) return;
+        audioHold = P.noteLiveAudio(audioHold, captured, false);
+      }, 0);
+    };
+    v.addEventListener('volumechange', grab);
+    v.addEventListener('loadedmetadata', grab);
+    grab();
+  }
+  const inAudioWindow = () => !!globalThis.__bongAdActive || Date.now() < restoreUntil;
+  function userAudioTarget(e) {
+    if (!e || !e.isTrusted || !inAudioWindow()) return false;
+    const target = e.target;
+    if (!target || !target.closest) return false;
+    if (e.type === 'keydown') {
+      if (target.closest('input, textarea, [contenteditable="true"]')) return false;
+      return e.key === 'm' || e.key === 'M';
+    }
+    if (target.closest('input[type="range"]') && target.closest('div.pzp, #live_player_layout')) return true;
+    const el = target.closest('button, [role="button"], input, a');
+    if (!el) return false;
+    const label = `${el.getAttribute('aria-label') || ''} ${el.getAttribute('title') || ''} ${el.className || ''} ${(el.textContent || '').slice(0, 80)}`;
+    return P.isAudioControlLabel(label);
+  }
+  const noteUserAudio = () => setTimeout(() => {
+    const state = P.captureAudioState(contentVideo());
+    if (state) audioHold = state;
+    else audioTouched = true;
+  }, 30);
+  document.addEventListener('pointerdown', e => { if (userAudioTarget(e)) noteUserAudio(); }, true);
+  document.addEventListener('keydown', e => { if (userAudioTarget(e)) noteUserAudio(); }, true);
+  function scheduleLiveAudioRestore() {
+    const token = ++restoreToken;
+    restoreUntil = Date.now() + 6000;
+    const apply = () => {
+      if (token !== restoreToken) return;
+      const state = P.audioAfterAd(audioHold, audioTouched);
+      const video = contentVideo();
+      if (state && video) P.restoreAudioState(video, state);
+    };
+    for (const delay of [0, 80, 250, 700, 1500, 3000, 5000]) setTimeout(apply, delay);
+  }
+  function displayAdInfo(el) {
+    return {
+      tag: el.tagName,
+      src: el.getAttribute('src') || '',
+      title: el.getAttribute('title') || '',
+      id: el.id || '',
+      cls: `${el.className || ''} ${el.closest('a')?.className || ''}`
+    };
+  }
+  function stripDisplayAds(node) {
+    if (!cfg.adBlock || !node || node.nodeType !== 1 || !node.querySelectorAll) return;
+    const list = node.matches && node.matches('img, iframe') ? [node] : [];
+    list.push(...node.querySelectorAll('img, iframe'));
+    for (const el of list) {
+      if (!P.isDisplayAdElement(displayAdInfo(el))) continue;
+      if (el.closest('#aside-chatting, div.pzp')) continue;
+      const victim = (el.tagName === 'IMG' && el.closest('a')) || el;
+      if (!victim.isConnected || victim.closest('#aside-chatting, div.pzp')) continue;
+      victim.remove();
+    }
+  }
   const visible = el => {
     if (!el || !el.isConnected) return false;
     const r = el.getBoundingClientRect();
@@ -305,9 +391,11 @@
     return false;
   }
   function boostAdVideo(v) {
-    if (!muteSaved.has(v)) muteSaved.set(v, v.muted);
     v._bongAdBoost = 1;
-    v.muted = true;
+    // 본영상 video 는 음소거하지 않는다. 광고 칸 안의 영상만, 되돌릴 소리를 알고 있을 때만 끈다.
+    if (audioHold && v.closest && v.closest(P.AD_CONTAINER_SEL)) {
+      try { v.muted = true; } catch (e) {}
+    }
     try { if (v.playbackRate !== 16) v.playbackRate = 16; } catch (e) {}
     const t = P.seekEndTime(v.duration);
     if (t != null && v.currentTime < t) { try { v.currentTime = t; } catch (e) {} }
@@ -325,9 +413,16 @@
       hits = scanTexts(root);
       active = active || P.isAdActive({ adUiExists: !!ui, adUiHidden: !!ui && ui.classList.contains('wpc-dis-hid'), indicatorVisible: visible(root.querySelector('.pzp-ad-break-indicator')), textHits: hits.length });
     }
+    if (!active) {
+      for (const v of document.querySelectorAll('video')) watchContentAudio(v);
+      rememberQuiet();
+    }
     globalThis.__bongAdActive = active; // 버퍼링 복구·자동 재생이 광고 중엔 개입하지 않도록
     if (active) {
-      if (!adWasActive) console.info('[BongExtend] 광고 감지', { naver: !!container, texts: hits.map(h => h.t) });
+      if (!adWasActive) {
+        audioTouched = false;
+        console.info('[BongExtend] 광고 감지', { naver: !!container, texts: hits.map(h => h.t) });
+      }
       if (container) {
         const r = naverAdRoot(container);
         for (const v of container.querySelectorAll('video')) boostAdVideo(v);
@@ -343,9 +438,9 @@
         if (!v.isConnected) continue;
         try { v.playbackRate = 1; } catch (e) {}
         v._bongAdBoost = 0;
-        if (muteSaved.has(v)) v.muted = muteSaved.get(v);
       }
       boosted.clear();
+      scheduleLiveAudioRestore();
       try { globalThis.__bongRetryAudioRestore?.(); } catch (e) {}
       const resume = () => { const main = document.querySelector('video.webplayer-internal-video'); if (main && main.paused && !globalThis.__bongAdActive) main.play().catch(() => {}); };
       resume(); setTimeout(resume, 800); setTimeout(resume, 2500);
@@ -354,8 +449,10 @@
     adWasActive = active;
     adTimer = setTimeout(adTick, active ? 150 : (onVideoPage ? 200 : 1000)); // 방송 페이지에선 광고 시작을 빨리 잡음
   }
-  new MutationObserver(() => { if (!adWasActive && cfg.adSkip && document.querySelector(P.AD_CONTAINER_SEL)) adTick(); })
-    .observe(document.documentElement, { childList: true, subtree: true });
+  new MutationObserver(ms => {
+    if (cfg.adBlock) for (const m of ms) for (const n of m.addedNodes) stripDisplayAds(n);
+    if (!adWasActive && cfg.adSkip && document.querySelector(P.AD_CONTAINER_SEL)) adTick();
+  }).observe(document.documentElement, { childList: true, subtree: true });
   adTick();
 
   // ── 주기 점검 (URL 변경, 재렌더 대비) ──
@@ -365,7 +462,7 @@
     ensureVivid();
     if (!document.getElementById('bex-xstyle')) applyStyles();
   }, 3000);
-  setInterval(() => { if (!vBusy) refreshViewerUi(); hideRankingFallback(); }, 1000); // 플레이어/채팅 재렌더 시 재부착
+  setInterval(() => { if (!vBusy) refreshViewerUi(); hideRankingFallback(); if (cfg.adBlock && document.body) stripDisplayAds(document.body); }, 1000); // 플레이어/채팅 재렌더 시 재부착
   setInterval(() => { // 새 비디오(광고 후 재초기화 포함)마다 선명한 화면 재적용
     const v = mainVideo();
     if (v && !v._bongVivid) { v._bongVivid = 1; ['loadedmetadata', 'playing'].forEach(ev => v.addEventListener(ev, () => { vividState.nextAt = 0; setTimeout(ensureVivid, 1500); })); }

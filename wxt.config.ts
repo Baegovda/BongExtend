@@ -59,6 +59,7 @@ export default defineConfig({
             "activeTab",
             "alarms",
             "contextMenus",
+            "declarativeNetRequest",
             "downloads",
             "notifications",
             "idle",
@@ -90,6 +91,16 @@ export default defineConfig({
             {
                 resources: ["assets/*.webp"],
                 matches: ["<all_urls>"]
+            },
+            {
+                resources: [
+                    "chzzk/noop.js",
+                    "chzzk/ima-stub.js",
+                    "chzzk/empty-ad-schedule.json",
+                    "chzzk/empty-ad-waterfall.json",
+                    "chzzk/empty-ad-poll.json"
+                ],
+                matches: ["https://chzzk.naver.com/*"]
             }
         ],
         browser_specific_settings: {

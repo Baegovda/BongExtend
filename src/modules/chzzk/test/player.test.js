@@ -83,3 +83,25 @@ test('복구 전 음소거와 볼륨 상태를 새 영상에 복원한다', () =
   P.restoreAudioState(replacement, muted);
   assert.deepEqual(replacement, { muted: true, volume: 0.7 });
 });
+
+test('광고 전 소리를 기억하고, 광고 중 음소거는 덮어쓰지 않는다', () => {
+  const before = { muted: false, volume: 0.4 };
+  assert.deepEqual(P.noteLiveAudio(null, before, false), before);
+  assert.deepEqual(P.noteLiveAudio(before, { muted: true, volume: 0 }, true), before);
+  assert.equal(P.noteLiveAudio(before, null, false), before);
+  assert.deepEqual(P.audioAfterAd(before, false), before);
+  assert.equal(P.audioAfterAd(before, true), null);
+  assert.equal(P.audioAfterAd(null, false), null);
+  const userMuted = { muted: true, volume: 0.8 };
+  assert.deepEqual(P.audioAfterAd(P.noteLiveAudio(null, userMuted, false), false), userMuted);
+});
+
+test('배너 광고 요소만 고른다', () => {
+  assert.equal(P.isDisplayAdElement({ tag: 'IFRAME', title: 'AD', id: 'x' }), true);
+  assert.equal(P.isDisplayAdElement({ tag: 'iframe', title: '채팅', id: 'live_tgtLREC' }), true);
+  assert.equal(P.isDisplayAdElement({ tag: 'IFRAME', title: '방송', id: 'player' }), false);
+  assert.equal(P.isDisplayAdElement({ tag: 'IMG', src: 'https://nng-phinf.pstatic.net/a/Banner_1.png', cls: 'banner_image_x banner_link_y' }), true);
+  assert.equal(P.isDisplayAdElement({ tag: 'IMG', src: 'https://example/thumb.png', cls: 'banner_image_x' }), false);
+  assert.equal(P.isDisplayAdElement({ tag: 'VIDEO', src: 'blob:live' }), false);
+  assert.equal(P.isDisplayAdElement(null), false);
+});
