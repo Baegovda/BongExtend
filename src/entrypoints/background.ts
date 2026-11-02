@@ -17,6 +17,8 @@ import {createTransMenus, startTransBackground} from "@/modules/trans/background
 // @ts-ignore 공통 모듈 스위치(순수 JS)
 import {MODULES_KEY, getModules} from "@/modules/core-modules.js";
 import {syncChzzkScripts} from "@/modules/chzzk-register";
+// @ts-ignore 페이지에 복사되는 순수 JS라 export 를 쓰지 않는다.
+import "@/modules/chzzk/lib/ads.js";
 // @ts-ignore 순수 JS
 import {startGmailBackground} from "@/modules/gmail/background.js";
 // @ts-ignore 순수 JS
@@ -31,9 +33,34 @@ export default defineBackground(() => {
 
     // ===== 치지직 모듈 콘텐츠 스크립트 등록 =====
     // 모듈 스위치를 끄면 등록을 풀어서 치지직 페이지에 아예 붙지 않게 한다.
+    type ChzzkAdApi = {
+        CHZZK_AD_RULE_IDS: number[];
+        chzzkAdRules: () => chrome.declarativeNetRequest.Rule[];
+    };
+    const chzzkAdApi = () => (globalThis as unknown as {BongAds?: ChzzkAdApi}).BongAds;
+    const syncChzzkAdRules = async () => {
+        const api = chzzkAdApi();
+        const dnr = browser.declarativeNetRequest;
+        if (!api || !dnr?.updateDynamicRules) return;
+        try {
+            const stored = await browser.storage.sync.get("chzzk.adBlock");
+            const modules = await getModules();
+            const on = stored["chzzk.adBlock"] !== false && modules.chzzk !== false;
+            const update: chrome.declarativeNetRequest.UpdateRuleOptions = {removeRuleIds: api.CHZZK_AD_RULE_IDS};
+            if (on) update.addRules = api.chzzkAdRules();
+            await dnr.updateDynamicRules(update);
+        } catch (error) {
+            console.error("치지직 광고 차단 규칙을 적용하지 못했어요.", error);
+        }
+    };
     void syncChzzkScripts(getModules);
+    void syncChzzkAdRules();
     browser.storage.onChanged.addListener((changes, area) => {
-        if (area === "local" && changes[MODULES_KEY]) void syncChzzkScripts(getModules);
+        if (area === "local" && changes[MODULES_KEY]) {
+            void syncChzzkScripts(getModules);
+            void syncChzzkAdRules();
+        }
+        if (area === "sync" && changes["chzzk.adBlock"]) void syncChzzkAdRules();
     });
 
     const RECAPTCHA_SITE_KEY = "6Lc-Fr0UAAAAAOdqLYqPy53MxlRMIXpNXFvBliwI";

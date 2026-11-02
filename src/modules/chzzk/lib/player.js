@@ -59,5 +59,27 @@
     if (state.adActive) return 'wait';
     return 'restore';
   }
-  root.BongPlayer = { isSkipButtonLabel, isSkipCandidate, hasAdContainer, seekEndTime, AD_CONTAINER_SEL, isAdActive, isGuideText, isPurchaseGuideDialogText, isSkipText, adTextKind, isSafeSkipLabel, isAdDuration, captureAudioState, restoreAudioState, isAudioControlLabel, audioRestoreAction };
+  // 광고가 없을 때만 본영상 소리를 기억한다. 광고 중 들어온 음소거는 사용자 상태로 보지 않는다.
+  function noteLiveAudio(snapshot, captured, adActive) {
+    if (adActive || !captured) return snapshot || null;
+    return captured;
+  }
+  // 사용자가 그 사이에 소리를 바꾸면 null (덮어쓰지 않음). 아니면 광고 전 상태.
+  function audioAfterAd(snapshot, userTouched) {
+    if (userTouched || !snapshot) return null;
+    return snapshot;
+  }
+  // 배너로 볼 요소. 광고 차단 탐지가 보는 display:none bait(.banner_ad_wrapper)는 여기 넣지 않는다.
+  function isDisplayAdElement(info) {
+    if (!info) return false;
+    const tag = String(info.tag || '').toUpperCase();
+    if (tag === 'IFRAME') {
+      if (String(info.title || '').trim().toUpperCase() === 'AD') return true;
+      if (/_tgtLREC$/i.test(String(info.id || ''))) return true;
+      return false;
+    }
+    if (tag === 'IMG') return /\/Banner_/i.test(String(info.src || '')) && /banner_(image|link)_/i.test(String(info.cls || ''));
+    return false;
+  }
+  root.BongPlayer = { isSkipButtonLabel, isSkipCandidate, hasAdContainer, seekEndTime, AD_CONTAINER_SEL, isAdActive, isGuideText, isPurchaseGuideDialogText, isSkipText, adTextKind, isSafeSkipLabel, isAdDuration, captureAudioState, restoreAudioState, isAudioControlLabel, audioRestoreAction, noteLiveAudio, audioAfterAd, isDisplayAdElement };
 })(typeof globalThis !== 'undefined' ? globalThis : this);
