@@ -47,6 +47,45 @@ export const tokenPageUrls = (index) => {
     ];
 };
 
+// 한 계정의 받은편지함에서 읽음으로 바꿀 메일 번호. 같은 번호는 한 번만 보낸다.
+export const inboxThreads = (account) =>
+    [...new Set((account?.messages || []).map((item) => item?.thread).filter(Boolean))];
+
+const TOKEN_MISS = "Gmail 작업 토큰을 아직 받지 못했어요. 메일 목록은 그대로예요. 잠시 뒤 다시 시도해 주세요.";
+
+// 토큰과 전송은 넘겨받은 함수만 쓴다. 실패해도 예외를 던지지 않아서 목록을 지우지 않는다.
+export const markInboxRead = async (accountIndex, threads, deps) => {
+    const list = [...new Set((threads || []).filter(Boolean))];
+    const fetchImpl = deps?.fetchImpl;
+    const tokensFor = deps?.tokensFor;
+    if (typeof fetchImpl !== "function" || typeof tokensFor !== "function") {
+        return {ok: false, acted: 0, error: "메일을 바꾸지 못했어요."};
+    }
+    let tokens = null;
+    let acted = 0;
+    const loadTokens = async (fresh) => {
+        try { return await tokensFor(accountIndex, fresh); }
+        catch { return null; }
+    };
+    for (const thread of list) {
+        if (!tokens?.at || !tokens?.ik) tokens = await loadTokens(false);
+        if (!tokens?.at || !tokens?.ik) return {ok: false, acted, error: TOKEN_MISS};
+        let ok = false;
+        try {
+            ok = await sendMailAction(actionRequest(accountIndex, tokens, "read", thread), fetchImpl);
+            if (!ok) {
+                tokens = await loadTokens(true);
+                if (tokens?.at && tokens?.ik) ok = await sendMailAction(actionRequest(accountIndex, tokens, "read", thread), fetchImpl);
+            }
+        } catch {
+            ok = false;
+        }
+        if (!ok) return {ok: false, acted, error: "Gmail에 반영하지 못했어요. 로그인 상태를 확인해 주세요."};
+        acted += 1;
+    }
+    return {ok: true, acted, error: ""};
+};
+
 export const sendMailAction = async (request, fetchImpl = globalThis.fetch) => {
     const response = await fetchImpl(request.url, {
         method: "POST",

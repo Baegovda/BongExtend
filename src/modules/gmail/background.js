@@ -4,6 +4,8 @@ import {
     GMAIL_ALARM_MINUTES,
     actionRequest,
     sendMailAction,
+    inboxThreads,
+    markInboxRead,
     parseGmailTokens,
     planMailNotifications,
     tokenPageUrls
@@ -427,6 +429,40 @@ function onMessage(message, _sender, sendResponse) {
         checkGmail("popup").then((snapshot) => storageGet(ERROR_KEY).then((stored) => {
             sendResponse({snapshot, error: stored[ERROR_KEY] || ""});
         }));
+        return true;
+    }
+    if (type === "gmail-read-account") {
+        (async () => {
+            const stored = await storageGet(SNAP_KEY);
+            const previous = stored[SNAP_KEY] || null;
+            const account = (previous?.accounts || []).find((item) => Number(item.index) === Number(message.account));
+            const threads = inboxThreads(account);
+            if (!threads.length) {
+                sendResponse({ok: true, error: "", snapshot: previous});
+                return;
+            }
+            const result = await markInboxRead(message.account, threads, {
+                fetchImpl: fetch,
+                tokensFor: (index, fresh) => tokensForAccount(index, fresh)
+            });
+            if (!result.ok) {
+                const after = await storageGet(SNAP_KEY);
+                sendResponse({ok: false, error: result.error, snapshot: after[SNAP_KEY] || previous});
+                return;
+            }
+            try {
+                await reloadQuietGmailTabs();
+                const snapshot = await checkGmail("action");
+                sendResponse({ok: true, error: "", snapshot: snapshot || previous});
+            } catch (error) {
+                const after = await storageGet(SNAP_KEY);
+                sendResponse({
+                    ok: false,
+                    error: error instanceof Error ? error.message : "메일을 바꾸지 못했어요.",
+                    snapshot: after[SNAP_KEY] || previous
+                });
+            }
+        })();
         return true;
     }
     if (type === "gmail-act") {

@@ -14,7 +14,7 @@ import {preferInbox} from "@/modules/gmail/watch.js";
 // @ts-ignore 순수 JS
 import {createChromeEffects} from "@/platform/effects.js";
 // @ts-ignore 순수 JS
-import {loadJson, openUrl, sendExtension} from "@/platform/popup-actions.js";
+import {gmailReadAccount, loadJson, openUrl, sendExtension} from "@/platform/popup-actions.js";
 
 const effects = createChromeEffects();
 
@@ -345,7 +345,8 @@ const renderGmail = (snapshot: GmailSnapshot | null | undefined, error = "") => 
     const account = accounts.find((item) => item.index === gmailShown) || accounts[0];
     gmailAccounts.replaceChildren();
     for (const item of accounts) {
-        const row = document.createElement("label");
+        const row = document.createElement("div");
+        row.className = "mail-account";
         const toggle = document.createElement("input");
         toggle.type = "checkbox";
         toggle.checked = item.enabled !== false;
@@ -356,7 +357,28 @@ const renderGmail = (snapshot: GmailSnapshot | null | undefined, error = "") => 
         button.textContent = `${item.email || `계정 ${item.index + 1}`} · ${item.unread}통`;
         if (item.index === account?.index) button.className = "primary";
         button.addEventListener("click", () => { gmailShown = item.index; renderGmail(view, error); });
-        row.append(toggle, button);
+        const readAll = document.createElement("button");
+        readAll.type = "button";
+        readAll.className = "mail-read";
+        readAll.title = "모두 읽음";
+        readAll.setAttribute("aria-label", "모두 읽음");
+        readAll.disabled = !(item.messages || []).length;
+        const icon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        icon.setAttribute("viewBox", "0 0 24 24");
+        icon.setAttribute("width", "16");
+        icon.setAttribute("height", "16");
+        icon.setAttribute("aria-hidden", "true");
+        const mark = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        mark.setAttribute("d", "M5 12.5 9.2 17 19 7");
+        mark.setAttribute("fill", "none");
+        mark.setAttribute("stroke", "currentColor");
+        mark.setAttribute("stroke-width", "2.2");
+        mark.setAttribute("stroke-linecap", "round");
+        mark.setAttribute("stroke-linejoin", "round");
+        icon.append(mark);
+        readAll.append(icon);
+        readAll.addEventListener("click", () => void readAccount(item.index));
+        row.append(toggle, button, readAll);
         gmailAccounts.appendChild(row);
     }
     if (error) gmailStatus.textContent = error;
@@ -410,6 +432,17 @@ const refreshGmail = async (force: boolean) => {
         renderGmail(result?.snapshot, result?.error || "");
     } catch (error) {
         gmailStatus.textContent = (error as Error)?.message || "메일을 확인하지 못했어요.";
+    }
+};
+
+const readAccount = async (account: number) => {
+    gmailStatus.textContent = "모두 읽음으로 바꾸는 중…";
+    try {
+        const result = await gmailReadAccount(effects, account) as {ok?: boolean; error?: string; snapshot?: GmailSnapshot | null};
+        if (!result?.ok) gmailStatus.textContent = result?.error || "메일을 바꾸지 못했어요.";
+        renderGmail(result?.snapshot, result?.ok ? "" : (result?.error || ""));
+    } catch (error) {
+        gmailStatus.textContent = (error as Error)?.message || "메일을 바꾸지 못했어요.";
     }
 };
 

@@ -12,3 +12,6 @@ export const sendExtension = (effects, message) => effects.sendMessage(message);
 
 export const gmailAct = (effects, account, thread, action) =>
     effects.sendMessage({type: "gmail-act", account, thread, action});
+
+export const gmailReadAccount = (effects, account) =>
+    effects.sendMessage({type: "gmail-read-account", account});
