@@ -9,6 +9,15 @@ test('buffering recovery runs only in the top frame', () => {
   assert.match(content, /if \(window\.top !== window\) return;/);
 });
 
+test('recovery and ad skip stay on a live watch page', () => {
+  assert.match(content, /canRecover\(\)/);
+  assert.match(content, /stopRecovery\(\)/);
+  assert.match(content, /if \(!cfg\.enabled \|\| !canRecover\(\)\)/);
+  assert.match(extras, /function adScope\(\)/);
+  assert.match(extras, /if \(!adScope\(\)\)/);
+  assert.match(readFileSync(new URL('../lib/retrytimer.js', import.meta.url), 'utf8'), /function shouldRecover/);
+});
+
 test('ad boost is marked so the 1x reset does not cancel it', () => {
   assert.match(extras, /_bongAdBoost = 1/);
   assert.match(content, /!v\._bongAdBoost/);

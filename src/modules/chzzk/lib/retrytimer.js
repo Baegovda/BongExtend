@@ -42,6 +42,22 @@
   const wdStepLabel = next => next === 'play' ? WD_STEPS[0] : next === 'reload' ? WD_STEPS[2] : WD_STEPS[1];
   // sessionStorage에 저장한 새로고침 시각 목록에서 최근 5분 것만 남김
   const recentReloadTimes = (list, now) => (Array.isArray(list) ? list : []).filter(t => typeof t === 'number' && now - t < RELOAD_WINDOW_MS && t <= now);
+  // 라이브 시청 주소만. 다시보기(/video), 클립, 홈, 채널, 검색은 해당 없음.
+  function isLiveWatchPath(path) {
+    const p = String(path || '').split('?')[0].split('#')[0];
+    return /^\/live\/[^/]+/.test(p);
+  }
+  // 꺼졌거나 끝난 방송, 인증·로그인 안내. 여기서는 다시 시도하면 안 된다.
+  function isStreamClosedText(text) {
+    return /방송이\s*종료|종료된\s*방송|오프라인|OFFLINE|방송\s*중이\s*아니|성인\s*인증|로그인\s*후/.test(String(text || ''));
+  }
+  // 복구·다시 시도·광고 건너뛰기 루프를 돌려도 되는지.
+  // st: { path, ended, offlineText }
+  function shouldRecover(st) {
+    if (!st || !isLiveWatchPath(st.path) || st.ended) return false;
+    if (isStreamClosedText(st.offlineText)) return false;
+    return true;
+  }
   root.BongRetryTimer = { nextRecoverIn, waitTotal, stepLabel, backoffMs, SHOW_AFTER_MS: 1200,
-    watchdogDecide, wdDelayMs, wdStepLabel, recentReloadTimes, MAX_RELOADS };
+    watchdogDecide, wdDelayMs, wdStepLabel, recentReloadTimes, MAX_RELOADS, isLiveWatchPath, isStreamClosedText, shouldRecover };
 })(globalThis);

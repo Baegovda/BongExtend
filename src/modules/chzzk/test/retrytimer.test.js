@@ -41,6 +41,27 @@ test('watchdog: escalation play → remount → reload, reload capped', () => {
   assert.equal(R.watchdogDecide({ ...base, since: 50000, attempt: 2, lastAttempt: 85000 }).action, 'reload');
   assert.equal(R.watchdogDecide({ ...base, since: 50000, attempt: 2, lastAttempt: 85000, recentReloads: 2 }).action, 'remount');
 });
+test('복구는 켜져 있는 라이브 시청 페이지에서만', () => {
+  assert.equal(R.isLiveWatchPath('/live/abc'), true);
+  assert.equal(R.isLiveWatchPath('/live/abc/'), true);
+  assert.equal(R.isLiveWatchPath('/live/'), false);
+  assert.equal(R.isLiveWatchPath('/video/123'), false);
+  assert.equal(R.isLiveWatchPath('/clips/abc'), false);
+  assert.equal(R.isLiveWatchPath('/'), false);
+  assert.equal(R.isLiveWatchPath('/following'), false);
+  assert.equal(R.isLiveWatchPath('/search'), false);
+  assert.equal(R.shouldRecover({ path: '/live/abc' }), true);
+  assert.equal(R.shouldRecover({ path: '/live/abc', offlineText: '채팅 안녕' }), true);
+  assert.equal(R.shouldRecover({ path: '/video/123' }), false);
+  assert.equal(R.shouldRecover({ path: '/' }), false);
+  assert.equal(R.shouldRecover({ path: '/live/abc', offlineText: '지금은 오프라인입니다' }), false);
+  assert.equal(R.shouldRecover({ path: '/live/abc', offlineText: '방송이 종료되었습니다' }), false);
+  assert.equal(R.shouldRecover({ path: '/live/abc', offlineText: '방송 중이 아니에요' }), false);
+  assert.equal(R.shouldRecover({ path: '/live/abc', ended: true }), false);
+  assert.equal(R.shouldRecover(null), false);
+  assert.equal(R.isStreamClosedText('OFFLINE'), true);
+  assert.equal(R.isStreamClosedText('실시간 채팅'), false);
+});
 test('recentReloadTimes keeps last 5 minutes', () => {
   assert.deepEqual([...R.recentReloadTimes([1000, 400000, 'x', 500000], 500000)], [400000, 500000]);
   assert.deepEqual([...R.recentReloadTimes(null, 1)], []);
