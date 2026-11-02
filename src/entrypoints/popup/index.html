@@ -13,6 +13,7 @@
     <button data-tab="trans" role="tab" title="끌어서 순서 바꾸기 (Alt+←/→)" type="button">번역</button>
     <button data-tab="dc" role="tab" title="끌어서 순서 바꾸기 (Alt+←/→)" type="button">디시</button>
     <button data-tab="gmail" role="tab" title="끌어서 순서 바꾸기 (Alt+←/→)" type="button">메일</button>
+    <button data-tab="fx" role="tab" title="끌어서 순서 바꾸기 (Alt+←/→)" type="button">환율</button>
     <button data-tab="update" role="tab" title="끌어서 순서 바꾸기 (Alt+←/→)" type="button">업데이트·설정</button>
 </nav>
 <div class="module-bar" id="moduleBar">
@@ -32,6 +33,18 @@
         <div id="gmailAccounts" class="be-actions"></div>
         <ul id="gmailList" class="mail-list"></ul>
         <p class="be-hint" id="gmailLatency"></p>
+    </section>
+    <section class="panel be-shell" data-frame="fx" hidden>
+        <div class="be-title"><h3>환율</h3><span class="be-sub">하루 한 번 갱신 · 암호자산 포함</span></div>
+        <div class="fx-row">
+            <input id="fxAmount" inputmode="decimal" type="number" value="10000" min="0" step="any" aria-label="금액">
+            <select id="fxFrom" aria-label="시작 통화"></select>
+            <button id="fxSwap" type="button">바꾸기</button>
+            <select id="fxTo" aria-label="바꿀 통화"></select>
+        </div>
+        <p id="fxResult" class="fx-result">계산 중…</p>
+        <ul id="fxMore" class="mail-list"></ul>
+        <p id="fxStatus" class="be-hint"></p>
     </section>
     <section class="panel be-shell" data-frame="update" hidden>
         <div class="be-title"><h3>업데이트·설정</h3><span class="be-sub">업데이트 확인, 설정 백업, 정보</span></div>

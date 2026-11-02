@@ -7,19 +7,21 @@ import {describeUpdateError, promiseWithTimeout, UPDATE_TIMEOUT_MESSAGE, UPDATE_
 import {getModules, setModuleEnabled} from "@/modules/core-modules.js";
 import {moveItem, normalizeTabOrder} from "@/core/popup/tabOrder";
 import {exportAllSettings, importSettingsText} from "@/modules/settings-io";
+// @ts-ignore 순수 JS
+import {COMMON_CODES, FX_URL, convertAmount, currencyLabel, formatMoney, isCacheFresh, parseRatePayload} from "@/modules/fx/convert.js";
 
-type TabId = "chzzk" | "trans" | "dc" | "gmail" | "update";
+type TabId = "chzzk" | "trans" | "dc" | "gmail" | "fx" | "update";
 
 const FRAMES: Partial<Record<TabId, string>> = {
     chzzk: "/chzzk/popup.html",
     trans: "/trans/popup/popup.html",
     dc: "/dc.html"
 };
-const NAMES: Partial<Record<TabId, string>> = {chzzk: "치지직", trans: "번역", dc: "디시", gmail: "메일"};
+const NAMES: Partial<Record<TabId, string>> = {chzzk: "치지직", trans: "번역", dc: "디시", gmail: "메일", fx: "환율"};
 const TAB_KEY = "core.popupTab";
 // 탭 순서. core.* 이라 전체 백업·복원에 포함되고, 디시 초기화(refresher:*)와는 무관.
 const ORDER_KEY = "core.popupTabOrder";
-const DEFAULT_ORDER: TabId[] = ["chzzk", "trans", "dc", "gmail", "update"];
+const DEFAULT_ORDER: TabId[] = ["chzzk", "trans", "dc", "gmail", "fx", "update"];
 const TAB_IDS: TabId[] = [...DEFAULT_ORDER];
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -44,6 +46,7 @@ const showTab = async (tab: TabId) => {
         }
     });
     if (tab === "gmail") void refreshGmail(false);
+    if (tab === "fx") void refreshFx();
     if (tab === "update") {
         moduleBar.hidden = true;
     } else {
@@ -392,4 +395,93 @@ chrome.storage.onChanged.addListener((changes, area) => {
     if (area === "local" && changes["gmail.snapshot"] && current === "gmail") {
         renderGmail(changes["gmail.snapshot"].newValue as GmailSnapshot);
     }
+});
+
+type FxTable = {base: string; date: string; rates: Record<string, number>; fetchedAt: number};
+const FX_KEY = "fx.table";
+const fxAmount = $<HTMLInputElement>("fxAmount");
+const fxFrom = $<HTMLSelectElement>("fxFrom");
+const fxTo = $<HTMLSelectElement>("fxTo");
+const fxResult = $("fxResult");
+const fxMore = $("fxMore");
+const fxStatus = $("fxStatus");
+let fxTable: FxTable | null = null;
+
+const fillFxSelects = (codes: string[]) => {
+    const selected = {from: fxFrom.value || "krw", to: fxTo.value || "usd"};
+    for (const select of [fxFrom, fxTo]) {
+        select.replaceChildren();
+        for (const code of codes) {
+            const option = document.createElement("option");
+            option.value = code;
+            option.textContent = currencyLabel(code);
+            select.appendChild(option);
+        }
+    }
+    fxFrom.value = codes.includes(selected.from) ? selected.from : codes[0] || "";
+    fxTo.value = codes.includes(selected.to) ? selected.to : (codes[1] || codes[0] || "");
+};
+
+const renderFx = () => {
+    if (!fxTable) {
+        fxResult.textContent = "환율표를 아직 받지 못했어요.";
+        return;
+    }
+    const amount = Number(fxAmount.value);
+    const value = convertAmount(amount, fxFrom.value, fxTo.value, fxTable.rates);
+    fxResult.textContent = value == null ? "이 통화는 표에 없어요." : `${formatMoney(amount, fxFrom.value)} ${fxFrom.value.toUpperCase()} = ${formatMoney(value, fxTo.value)} ${fxTo.value.toUpperCase()}`;
+    fxMore.replaceChildren();
+    for (const code of COMMON_CODES) {
+        if (code === fxFrom.value) continue;
+        const other = convertAmount(amount, fxFrom.value, code, fxTable.rates);
+        if (other == null) continue;
+        const li = document.createElement("li");
+        li.textContent = `${currencyLabel(code)} ${formatMoney(other, code)}`;
+        fxMore.appendChild(li);
+    }
+    fxStatus.textContent = fxTable.date
+        ? `${fxTable.date} 시세예요. 하루 한 번 바뀌고, 12시간 동안 저장해요. 실시간 시세는 아니에요.`
+        : "하루 한 번 바뀌는 시세예요. 실시간은 아니에요.";
+};
+
+const refreshFx = async () => {
+    const stored = await chrome.storage.local.get(FX_KEY);
+    const cached = stored[FX_KEY] as FxTable | undefined;
+    if (cached?.rates && isCacheFresh(cached.fetchedAt)) {
+        fxTable = cached;
+        fillFxSelects(Object.keys(cached.rates).sort());
+        renderFx();
+        return;
+    }
+    fxStatus.textContent = "환율표를 받는 중…";
+    try {
+        const response = await fetch(FX_URL);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const parsed = parseRatePayload(await response.json()) as FxTable | null;
+        if (!parsed) throw new Error("표 형식");
+        fxTable = parsed;
+        await chrome.storage.local.set({[FX_KEY]: parsed});
+        fillFxSelects(Object.keys(parsed.rates).sort());
+        renderFx();
+    } catch (error) {
+        if (cached?.rates) {
+            fxTable = cached;
+            fillFxSelects(Object.keys(cached.rates).sort());
+            renderFx();
+            fxStatus.textContent = "새 시세를 받지 못해 저장해 둔 표를 보여 줘요.";
+            return;
+        }
+        fxResult.textContent = "환율표를 받지 못했어요.";
+        fxStatus.textContent = (error as Error)?.message || "";
+    }
+};
+
+fxAmount.addEventListener("input", renderFx);
+fxFrom.addEventListener("change", renderFx);
+fxTo.addEventListener("change", renderFx);
+$("fxSwap").addEventListener("click", () => {
+    const next = fxFrom.value;
+    fxFrom.value = fxTo.value;
+    fxTo.value = next;
+    renderFx();
 });
