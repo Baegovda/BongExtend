@@ -401,10 +401,44 @@
     if (t != null && v.currentTime < t) { try { v.currentTime = t; } catch (e) {} }
     boosted.add(v);
   }
+  function adScope() {
+    const RT = globalThis.BongRetryTimer;
+    if (!RT) return false;
+    const host = document.querySelector(ROOT) || document.getElementById('live_player_layout');
+    const text = host ? (host.textContent || '').slice(0, 2000) : '';
+    const main = [...document.querySelectorAll('video.webplayer-internal-video')].find(v => v.isConnected && !v.closest(P.AD_CONTAINER_SEL));
+    return RT.shouldRecover({ path: location.pathname, offlineText: text, ended: !!(main && main.ended) });
+  }
+  function endAd(resumePlayback) {
+    console.info('[BongExtend] 광고 종료');
+    for (const v of boosted) {
+      if (!v.isConnected) continue;
+      try { v.playbackRate = 1; } catch (e) {}
+      v._bongAdBoost = 0;
+    }
+    boosted.clear();
+    scheduleLiveAudioRestore();
+    try { globalThis.__bongRetryAudioRestore?.(); } catch (e) {}
+    if (!resumePlayback) return;
+    const resume = () => {
+      if (!adScope()) return;
+      const main = document.querySelector('video.webplayer-internal-video');
+      if (main && main.paused && !globalThis.__bongAdActive) main.play().catch(() => {});
+    };
+    resume(); setTimeout(resume, 800); setTimeout(resume, 2500);
+    try { globalThis.__bongAutoplayRetrigger?.(); } catch (e) {}
+  }
   function adTick() {
     clearTimeout(adTimer);
     if (!chrome.runtime?.id) return;
-    const onVideoPage = /^\/(live|video)\//.test(location.pathname);
+    // 라이브 시청 중이 아니거나 방송이 꺼져 있으면 건너뛰기 루프를 돌리지 않는다.
+    if (!adScope()) {
+      if (adWasActive) endAd(false);
+      globalThis.__bongAdActive = false;
+      adWasActive = false;
+      adTimer = setTimeout(adTick, 1000);
+      return;
+    }
     const container = cfg.adSkip ? document.querySelector(P.AD_CONTAINER_SEL) : null;
     const root = cfg.adSkip ? (document.querySelector(ROOT) || document.getElementById('live_player_layout')) : null;
     let active = !!container, hits = [];
@@ -432,27 +466,15 @@
         clickSkip(hits.filter(h => !h.el.closest('[data-role="countDownEl"], [data-role="adLink"]')));
         for (const v of adVideos(root)) if (!v.closest(P.AD_CONTAINER_SEL) && !container && !(location.pathname.startsWith('/live/') && !P.isAdDuration(v.duration))) boostAdVideo(v); // 라이브 본방송 영상을 광고로 오인해 16배속·끝으로 이동시키지 않도록
       }
-    } else if (adWasActive) {
-      console.info('[BongExtend] 광고 종료');
-      for (const v of boosted) {
-        if (!v.isConnected) continue;
-        try { v.playbackRate = 1; } catch (e) {}
-        v._bongAdBoost = 0;
-      }
-      boosted.clear();
-      scheduleLiveAudioRestore();
-      try { globalThis.__bongRetryAudioRestore?.(); } catch (e) {}
-      const resume = () => { const main = document.querySelector('video.webplayer-internal-video'); if (main && main.paused && !globalThis.__bongAdActive) main.play().catch(() => {}); };
-      resume(); setTimeout(resume, 800); setTimeout(resume, 2500);
-      try { globalThis.__bongAutoplayRetrigger?.(); } catch (e) {}
-    }
+    } else if (adWasActive) endAd(true);
     adWasActive = active;
-    adTimer = setTimeout(adTick, active ? 150 : (onVideoPage ? 200 : 1000)); // 방송 페이지에선 광고 시작을 빨리 잡음
+    adTimer = setTimeout(adTick, active ? 150 : 200);
   }
   new MutationObserver(ms => {
     if (cfg.adBlock) for (const m of ms) for (const n of m.addedNodes) stripDisplayAds(n);
-    if (!adWasActive && cfg.adSkip && document.querySelector(P.AD_CONTAINER_SEL)) adTick();
+    if (!adWasActive && cfg.adSkip && adScope() && document.querySelector(P.AD_CONTAINER_SEL)) adTick();
   }).observe(document.documentElement, { childList: true, subtree: true });
+  window.addEventListener('bong-route', () => adTick());
   adTick();
 
   // ── 주기 점검 (URL 변경, 재렌더 대비) ──

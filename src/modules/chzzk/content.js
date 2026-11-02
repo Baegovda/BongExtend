@@ -174,6 +174,9 @@
   }
 
   async function recover(v, s) {
+    const gen = recoverGen;
+    const alive = () => gen === recoverGen && canRecover();
+    if (!alive()) return;
     const audio = Player && Player.captureAudioState(v);
     s.lastRecover = Date.now();
     if (cfg.retryTimer && RT) { rtV = v; rtBusyUntil = s.lastRecover + 1500; rtWatch(v); }
@@ -183,6 +186,7 @@
     log('복구 시도 단계', lvl + 1);
     try {
       if (lvl === 0) {
+        if (!alive()) return;
         toast('버퍼링 감지: 다시 재생하는 중');
         if (isLive(v) && v.buffered.length) {
           const end = v.buffered.end(v.buffered.length - 1);
@@ -192,12 +196,15 @@
         }
         await v.play().catch(() => {});
       } else if (lvl === 1) {
+        if (!alive()) return;
         toast('버퍼링이 계속돼서 플레이어를 다시 시작해요');
         v.pause();
         await new Promise(r => setTimeout(r, 300));
+        if (!alive()) return;
         if (isLive(v) && v.buffered.length) v.currentTime = v.buffered.end(v.buffered.length - 1) - 0.5;
         await v.play().catch(() => {});
       } else if (lvl === 2) {
+        if (!alive()) return;
         toast('버퍼링이 계속돼서 방송을 다시 불러와요');
         if (clickPlayerButton()) return;
         if (!isBlob(v) && (v.currentSrc || v.src)) {
@@ -211,6 +218,7 @@
           await v.play().catch(() => {});
         }
       } else {
+        if (!alive()) return;
         toast('버퍼링이 계속돼서 플레이어를 새로 띄워요 (페이지는 그대로)');
         if (!clickPlayerButton()) softRemount();
       }
@@ -222,16 +230,44 @@
   // ───── 시작 안 됨(무한 로딩) 감시 ─────
   // 영상이 아예 시작되지 않는 경우(로고만 도는 검은 화면)는 위 루프가 건너뛰므로 따로 지켜봄.
   const wd = { since: 0, attempt: 0, lastAttempt: 0, busyUntil: 0, view: null, key: '' };
+  let reloadTimer = 0, recoverGen = 0;
   let userPausedAt = 0;
   document.addEventListener('pause', e => { if (e.target && e.target.tagName === 'VIDEO' && document.hasFocus() && !globalThis.__bongAdActive) userPausedAt = Date.now(); }, true);
   document.addEventListener('playing', () => { userPausedAt = 0; }, true);
   function wdReset() { wd.since = 0; wd.attempt = 0; wd.lastAttempt = 0; wd.view = null; }
   const RELOAD_KEY = 'bex.wdReloads';
   function readReloads(now) { try { return RT.recentReloadTimes(JSON.parse(sessionStorage.getItem(RELOAD_KEY) || '[]'), now); } catch (e) { return []; } }
-  function isOfflineUi() {
+  function playerClosedText() {
     const r = document.querySelector('div.pzp') || document.getElementById('live_player_layout');
-    const t = r ? (r.textContent || '').slice(0, 2000) : '';
-    return /방송이\s*종료|종료된\s*방송|오프라인|OFFLINE|방송\s*중이\s*아니|성인\s*인증|로그인\s*후/.test(t);
+    return r ? (r.textContent || '').slice(0, 2000) : '';
+  }
+  function mainLiveVideo() {
+    return [...document.querySelectorAll('video.webplayer-internal-video')].find(v => v.isConnected && !v.closest('[data-role="adVideoContainerEl"]')) || null;
+  }
+  function canRecover() {
+    if (!RT) return false;
+    const main = mainLiveVideo();
+    return RT.shouldRecover({ path: location.pathname, ended: !!(main && main.ended), offlineText: playerClosedText() });
+  }
+  function stopRecovery() {
+    recoverGen++;
+    if (reloadTimer) { clearTimeout(reloadTimer); reloadTimer = 0; }
+    wdReset();
+    if (rtEl || rtTimer) rtHide();
+    for (const v of tracked) {
+      const s = states.get(v);
+      if (s) { s.stallSince = 0; s.lastTime = v.currentTime; }
+      if (v.isConnected && v.playbackRate > 2 && !v._bongAdBoost && !v.closest('[data-role="adVideoContainerEl"]')) {
+        try { v.playbackRate = 1; } catch (e) {}
+      }
+    }
+  }
+  function onRoute() {
+    if (!canRecover()) stopRecovery();
+    try { window.dispatchEvent(new Event('bong-route')); } catch (e) {}
+  }
+  function isOfflineUi() {
+    return !!(RT && RT.isStreamClosedText(playerClosedText()));
   }
   function watchdogTick(now) {
     if (!RT) return;
@@ -241,7 +277,7 @@
     const ok = vids.some(v => !v.paused && v.readyState >= 3 && (states.get(v)?.goodSince || 0) > 0);
     const main = vids.find(v => v.classList.contains('webplayer-internal-video')) || vids[0];
     const st = {
-      now, enabled: cfg.enabled, onVideoPage: /^\/(live|video)\//.test(path), visible: document.visibilityState === 'visible',
+      now, enabled: cfg.enabled, onVideoPage: !!(RT && RT.isLiveWatchPath(path)), visible: document.visibilityState === 'visible',
       adActive: adBlocking(), userPaused: !!main && main.paused && main.readyState >= 2 && !!userPausedAt,
       ended: !!main && main.ended, offline: isOfflineUi(), ok,
       loopBusy: vids.some(v => states.get(v)?.stallSince > 0 && !v.paused), // 일반 버퍼링 복구가 처리 중
@@ -266,13 +302,15 @@
     } else if (d.action === 'reload') {
       toast('방송이 계속 시작되지 않아서 페이지를 새로고침해요');
       try { sessionStorage.setItem(RELOAD_KEY, JSON.stringify([...readReloads(now), now])); } catch (e) {}
-      setTimeout(() => location.reload(), 800);
+      if (reloadTimer) clearTimeout(reloadTimer);
+      reloadTimer = setTimeout(() => { reloadTimer = 0; if (canRecover()) location.reload(); }, 800);
     }
     if (d.action !== 'reload') restoreRecoveredAudio(audio, main);
   }
 
   setInterval(() => {
-    if (!cfg.enabled) { wdReset(); if (rtEl || rtTimer) rtHide(); return; }
+    // 라이브 시청 중이 아니거나 방송이 꺼져 있으면 복구·새로고침을 멈추고, 다시 라이브로 오면 처음부터 본다.
+    if (!cfg.enabled || !canRecover()) { stopRecovery(); return; }
     const now = Date.now();
     if (adBlocking()) { if (rtEl || rtTimer) rtHide(); wdReset(); for (const v of tracked) { const s = states.get(v); if (s) { s.stallSince = 0; s.lastTime = v.currentTime; } } return; } // 광고 중엔 복구 안 함
     for (const v of tracked) {
@@ -411,4 +449,17 @@
     for (const m of ms) for (const n of m.addedNodes) if (n.nodeType === 1) scan(n);
   }).observe(document.documentElement, { childList: true, subtree: true });
   scan(document);
+  // 치지직은 주소를 바꿔도 페이지를 새로 고치지 않는다. 라이브에서 벗어나면 바로 복구를 끈다.
+  const wrapHist = (name) => {
+    const orig = history[name];
+    if (typeof orig !== 'function') return;
+    history[name] = function () {
+      const out = orig.apply(this, arguments);
+      try { onRoute(); } catch (e) {}
+      return out;
+    };
+  };
+  wrapHist('pushState');
+  wrapHist('replaceState');
+  window.addEventListener('popstate', () => { try { onRoute(); } catch (e) {} });
 })();

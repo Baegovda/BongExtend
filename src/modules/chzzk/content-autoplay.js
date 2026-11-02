@@ -45,8 +45,11 @@
   function start() {
     const k = location.pathname;
     if (k !== key) { key = k; done = false; userPaused = false; }
+    clearTimeout(timer); timer = 0;
+    // 홈·채널·검색에는 재생 버튼을 반복해서 누르지 않는다. 다시보기는 자동 재생 설정 그대로.
+    if (!A.isVideoPage(k)) return;
     deadline = Date.now() + 15000;
-    clearTimeout(timer); timer = setTimeout(tick, 800);
+    timer = setTimeout(tick, 800);
   }
   // 광고 종료 시 content-extras가 호출: 직접 멈춘 게 아니면 다시 재생 시도
   globalThis.__bongAutoplayRetrigger = () => { if (userPaused) return; done = false; deadline = Date.now() + 15000; clearTimeout(timer); timer = setTimeout(tick, 300); };
