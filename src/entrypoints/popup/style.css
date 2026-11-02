@@ -5,6 +5,9 @@ body { width: 780px; height: 590px; display: flex; flex-direction: column; overf
 .brand { display: flex; align-items: center; gap: 8px; margin-right: 16px; font-size: 14px; font-weight: 700; letter-spacing: -0.01em; background: var(--be-gradient); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .brand img { border-radius: 5px; }
 .be-page .tabs button { position: relative; height: 44px; padding: 0 10px; background: transparent; border: 0; border-radius: 0; color: var(--be-muted); font-size: 13px; font-weight: 500; }
+.be-page .tabs button.corner-toggle { margin-left: auto; height: 28px; padding: 0 10px; border: 1px solid var(--be-border); border-radius: 999px; cursor: pointer; font-size: 12px; }
+.be-page .tabs button.corner-toggle.on { background: var(--be-accent); color: var(--be-accent-ink); border-color: transparent; }
+.be-page .tabs button.corner-toggle::after { display: none; }
 .mail-list { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .mail-list li { background: var(--be-surface-2); border-radius: var(--be-radius); padding: 10px 12px; }
 .mail-list strong { display: block; }

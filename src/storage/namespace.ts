@@ -3,7 +3,7 @@
 // - 치지직 모듈: `chzzk.*` (sync/local)
 // - 번역 모듈: `trans.*` (local)
 // - 공통: `core.*`
-export const OTHER_MODULE_PREFIXES = ["chzzk.", "trans.", "core.", "gmail.", "fx."] as const;
+export const OTHER_MODULE_PREFIXES = ["chzzk.", "trans.", "core.", "gmail.", "fx.", "rc."] as const;
 
 export const isOtherModuleKey = (key: string): boolean =>
     OTHER_MODULE_PREFIXES.some((prefix) => key.startsWith(prefix));
