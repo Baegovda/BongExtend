@@ -16,7 +16,9 @@ body { width: 780px; height: 590px; display: flex; flex-direction: column; overf
 .be-page .tabs .mouse-toggle.on:hover:not(:disabled) { background: var(--be-accent-hover); color: var(--be-accent-ink); }
 .gear-fab { position: fixed; right: 14px; bottom: 14px; z-index: 20; width: 46px; height: 46px; padding: 0; border-radius: 50%; display: grid; place-items: center; box-shadow: 0 8px 18px rgba(0,0,0,.35); }
 .gear-fab.on { background: var(--be-accent); color: var(--be-accent-ink); border-color: transparent; }
-.gear-dot { position: absolute; top: 8px; right: 8px; width: 9px; height: 9px; border-radius: 50%; background: #ff5d5d; box-shadow: 0 0 0 2px var(--be-surface-2); }
+.gear-dot { position: absolute; top: 8px; right: 8px; width: 9px; height: 9px; border-radius: 50%; background: var(--be-error); box-shadow: 0 0 0 2px var(--be-surface); }
+.panel { animation: be-in var(--be-duration) var(--be-ease) both; }
+@keyframes be-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 .fx-favs li, #fxMore li { display: flex; gap: 6px; align-items: center; }
 .fx-favs .fx-apply { flex: 1; text-align: left; }
 .fx-favs .fx-mini { width: auto; padding: 6px 8px; }
