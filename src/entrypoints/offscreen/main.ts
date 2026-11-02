@@ -1,9 +1,11 @@
 // @ts-ignore 순수 JS
 import {parseAtom} from "@/modules/gmail/atom.js";
 // @ts-ignore 순수 JS
-import {parseGmailTokens, tokenPageUrls} from "@/modules/gmail/actions.js";
+import {parseGmailTokens, readProfilePhoto, tokenPageUrls} from "@/modules/gmail/actions.js";
 // @ts-ignore 순수 JS
 import {ACCOUNT_PROBE_LIMIT, inboxSignature, nextWaitMs, skipDisabledFetch, watchPayload} from "@/modules/gmail/watch.js";
+// @ts-ignore 순수 JS
+import {soundFile} from "@/modules/gmail/sound.js";
 
 type WatchConfig = {
     intervalMs?: number;
@@ -116,7 +118,7 @@ const tick = async () => {
 };
 
 const readTokens = async (indexes: unknown) => {
-    const tokens: Record<number, {at: string; ik: string}> = {};
+    const tokens: Record<number, {at: string; ik: string; email?: string; photo?: string}> = {};
     const list = Array.isArray(indexes) ? indexes : [];
     for (const raw of list) {
         const index = Number(raw);
@@ -126,11 +128,18 @@ const readTokens = async (indexes: unknown) => {
                 const response = await fetch(url, {credentials: "include", redirect: "follow"});
                 const finalUrl = response.url || "";
                 if (!response.ok || finalUrl.includes("accounts.google.com") || finalUrl.includes("ServiceLogin")) continue;
-                const parsed = parseGmailTokens(await response.text());
-                if (parsed) {
-                    tokens[index] = parsed;
-                    break;
+                const html = await response.text();
+                const profile = await readProfilePhoto(fetch, html, labels[index] || "");
+                const parsed = parseGmailTokens(html);
+                if (profile.photo || parsed) {
+                    tokens[index] = {
+                        at: parsed?.at || "",
+                        ik: parsed?.ik || "",
+                        email: labels[index] || profile.email,
+                        photo: profile.photo
+                    };
                 }
+                if (parsed) break;
             } catch {
                 // 다음 주소. 피드는 이 실패와 상관없이 계속 본다.
             }
@@ -139,11 +148,22 @@ const readTokens = async (indexes: unknown) => {
     return tokens;
 };
 
+const playSound = (name: string, volume: number) => {
+    const audio = new Audio(chrome.runtime.getURL(soundFile(name)));
+    audio.volume = Math.min(1, Math.max(0, Number(volume) || 0));
+    void audio.play();
+};
+
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     if (message?.type === "gmail-watch-config") {
         Object.assign(state, message.config || {});
         void tick();
         return;
+    }
+    if (message?.type === "gmail-play-sound") {
+        playSound(String(message.name || "soft"), Number(message.volume));
+        sendResponse({ok: true});
+        return true;
     }
     if (message?.type !== "gmail-read-tokens") return;
     void readTokens(message.indexes).then(

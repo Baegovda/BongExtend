@@ -4,10 +4,14 @@ import {
     GMAIL_ALARM_MINUTES,
     actionRequest,
     sendMailAction,
+    inboxThreads,
+    markInboxRead,
     parseGmailTokens,
     planMailNotifications,
+    readProfilePhoto,
     tokenPageUrls
 } from "./actions.js";
+import {GMAIL_SOUND_KEY, normalizeSound} from "./sound.js";
 import {paintToolbarBadge} from "../toolbar-badge.js";
 import {clampIntervalMs, enabledAccounts, notificationId, notificationTitle, unreadOf} from "./watch.js";
 
@@ -20,6 +24,8 @@ const ERROR_KEY = "gmail.error";
 const NOTIFY_KEY = "gmail.notify";
 const INTERVAL_KEY = "gmail.intervalMs";
 const DISABLED_KEY = "gmail.disabled";
+const PHOTO_KEY = "gmail.photos";
+const PHOTO_RETRY_MS = 30 * 60 * 1000;
 const ACCOUNT_LIMIT = 8;
 const OFFSCREEN_URL = "offscreen.html";
 
@@ -113,14 +119,28 @@ async function forgetToken(index) {
     } catch { /* 없음 */ }
 }
 
-async function readTokensDirect(index) {
+async function storePhoto(email, photo) {
+    if (!email || !String(photo || "").startsWith("data:image/")) return;
+    const key = String(email).toLowerCase();
+    const stored = await storageGet(PHOTO_KEY);
+    const photos = {...(stored[PHOTO_KEY] || {})};
+    if (photos[key] === photo) return;
+    photos[key] = photo;
+    await storageSet({[PHOTO_KEY]: photos});
+}
+
+async function readTokensDirect(index, email = "") {
     for (const url of tokenPageUrls(index)) {
         try {
             const response = await fetch(url, {credentials: "include", redirect: "follow"});
             const finalUrl = response.url || "";
             if (!response.ok || finalUrl.includes("accounts.google.com") || finalUrl.includes("ServiceLogin")) continue;
-            const parsed = parseGmailTokens(await response.text());
-            if (parsed) return parsed;
+            const html = await response.text();
+            const profile = await readProfilePhoto(fetch, html, email);
+            await storePhoto(email || profile.email, profile.photo);
+            const parsed = parseGmailTokens(html);
+            if (!parsed) continue;
+            return parsed;
         } catch { /* 다음 주소 */ }
     }
     return null;
@@ -151,11 +171,12 @@ async function tokensForAccount(index, fresh = false) {
     }
     const fromOffscreen = await readTokensFromOffscreen([index]);
     const picked = fromOffscreen?.[index] || fromOffscreen?.[String(index)];
+    if (picked?.photo) await storePhoto(picked.email, picked.photo);
     if (picked?.at && picked?.ik) {
         await storeToken(index, picked);
         return {at: picked.at, ik: picked.ik};
     }
-    const direct = await readTokensDirect(index);
+    const direct = await readTokensDirect(index, picked?.email || "");
     if (direct) {
         await storeToken(index, direct);
         return direct;
@@ -163,19 +184,38 @@ async function tokensForAccount(index, fresh = false) {
     return null;
 }
 
+const photoTried = new Map();
 let warming = null;
 function warmTokens(accounts) {
-    const indexes = (accounts || []).filter((account) => account && account.enabled !== false && account.index != null).map((account) => account.index);
-    if (!indexes.length || warming) return;
+    const list = (accounts || []).filter((account) => account && account.enabled !== false && account.index != null);
+    if (!list.length || warming) return;
     warming = (async () => {
+        const stored = await storageGet(PHOTO_KEY);
+        const photos = stored[PHOTO_KEY] && typeof stored[PHOTO_KEY] === "object" ? stored[PHOTO_KEY] : {};
         const missing = [];
-        for (const index of indexes) if (!(await cachedToken(index))) missing.push(index);
+        for (const account of list) {
+            const email = String(account.email || "").toLowerCase();
+            const havePhoto = email && String(photos[email] || "").startsWith("data:image/");
+            const tried = email ? photoTried.get(email) || 0 : 0;
+            const needPhoto = Boolean(email) && !havePhoto && Date.now() - tried > PHOTO_RETRY_MS;
+            if (needPhoto || !(await cachedToken(account.index))) missing.push(account);
+        }
         if (!missing.length) return;
-        const got = (await readTokensFromOffscreen(missing)) || {};
-        for (const index of missing) {
-            const picked = got[index] || got[String(index)];
-            const tokens = picked?.at && picked?.ik ? picked : await readTokensDirect(index);
-            if (tokens?.at && tokens?.ik) await storeToken(index, tokens);
+        for (const account of missing) {
+            const email = String(account.email || "").toLowerCase();
+            if (email) photoTried.set(email, Date.now());
+        }
+        const got = (await readTokensFromOffscreen(missing.map((account) => account.index))) || {};
+        for (const account of missing) {
+            const picked = got[account.index] || got[String(account.index)];
+            const email = account.email || picked?.email || "";
+            if (picked?.photo) await storePhoto(email, picked.photo);
+            if (picked?.at && picked?.ik) {
+                await storeToken(account.index, picked);
+                continue;
+            }
+            const tokens = await readTokensDirect(account.index, email);
+            if (tokens?.at && tokens?.ik) await storeToken(account.index, tokens);
         }
     })().catch(() => {}).finally(() => { warming = null; });
 }
@@ -206,8 +246,18 @@ export async function loadInbox(fetchAccountImpl = fetchAccount) {
     return {loggedOut: false, accounts};
 }
 
+async function playMailSound() {
+    const stored = await storageGet(GMAIL_SOUND_KEY);
+    const sound = normalizeSound(stored[GMAIL_SOUND_KEY]);
+    if (!sound.on || sound.volume <= 0) return;
+    try {
+        await chrome.runtime.sendMessage({type: "gmail-play-sound", name: sound.name, volume: sound.volume});
+    } catch { /* 오프스크린이 없으면 알림만 보여요. */ }
+}
+
 async function notifyNew(items, accounts) {
-    if (!chrome.notifications?.create) return;
+    if (!items?.length || !chrome.notifications?.create) return;
+    void playMailSound();
     const byIndex = new Map((accounts || []).map((account) => [account.index, account]));
     for (const item of items) {
         const account = byIndex.get(item.account) || {index: item.account, email: ""};
@@ -340,8 +390,8 @@ async function syncOffscreen() {
     if (!(await hasOffscreen())) {
         await chrome.offscreen.createDocument({
             url: chrome.runtime.getURL(OFFSCREEN_URL),
-            reasons: ["DOM_PARSER"],
-            justification: "로그인된 Gmail 받은편지함 피드만 읽어 새 메일을 확인합니다."
+            reasons: ["DOM_PARSER", "AUDIO_PLAYBACK"],
+            justification: "로그인된 Gmail 받은편지함 피드를 읽고, 새 메일 알림 소리를 재생합니다."
         });
     }
     try {
@@ -427,6 +477,40 @@ function onMessage(message, _sender, sendResponse) {
         checkGmail("popup").then((snapshot) => storageGet(ERROR_KEY).then((stored) => {
             sendResponse({snapshot, error: stored[ERROR_KEY] || ""});
         }));
+        return true;
+    }
+    if (type === "gmail-read-account") {
+        (async () => {
+            const stored = await storageGet(SNAP_KEY);
+            const previous = stored[SNAP_KEY] || null;
+            const account = (previous?.accounts || []).find((item) => Number(item.index) === Number(message.account));
+            const threads = inboxThreads(account);
+            if (!threads.length) {
+                sendResponse({ok: true, error: "", snapshot: previous});
+                return;
+            }
+            const result = await markInboxRead(message.account, threads, {
+                fetchImpl: fetch,
+                tokensFor: (index, fresh) => tokensForAccount(index, fresh)
+            });
+            if (!result.ok) {
+                const after = await storageGet(SNAP_KEY);
+                sendResponse({ok: false, error: result.error, snapshot: after[SNAP_KEY] || previous});
+                return;
+            }
+            try {
+                await reloadQuietGmailTabs();
+                const snapshot = await checkGmail("action");
+                sendResponse({ok: true, error: "", snapshot: snapshot || previous});
+            } catch (error) {
+                const after = await storageGet(SNAP_KEY);
+                sendResponse({
+                    ok: false,
+                    error: error instanceof Error ? error.message : "메일을 바꾸지 못했어요.",
+                    snapshot: after[SNAP_KEY] || previous
+                });
+            }
+        })();
         return true;
     }
     if (type === "gmail-act") {

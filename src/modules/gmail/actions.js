@@ -39,12 +39,89 @@ export const parseGmailTokens = (html) => {
     return {at: token, ik};
 };
 
+const PHOTO_IN_PAGE = /https:\/\/lh3\.googleusercontent\.com\/a(?:-\/|\/)[A-Za-z0-9_\-=]+/gi;
+const PHOTO_ON_GMAIL = /https:\/\/mail\.google\.com\/mail\/u\/\d+\/[^"'\\\s<>]*photo[^"'\\\s<>]*/gi;
+
+// 이미 받는 Gmail HTML 안의 프로필 사진 주소. 다른 호스트 권한은 늘리지 않는다.
+export const profileFromHtml = (html, knownEmail = "") => {
+    const source = String(html || "");
+    const known = String(knownEmail || "").trim();
+    const email = known || (source.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i) || [])[0] || "";
+    const photos = [...source.matchAll(PHOTO_IN_PAGE), ...source.matchAll(PHOTO_ON_GMAIL)].map((match) => ({
+        url: match[0],
+        at: match.index || 0
+    }));
+    if (!photos.length) return {photo: "", email};
+    const at = email ? source.toLowerCase().indexOf(email.toLowerCase()) : -1;
+    if (at < 0) return {photo: photos[0].url, email};
+    photos.sort((a, b) => Math.abs(a.at - at) - Math.abs(b.at - at));
+    return {photo: photos[0].url, email};
+};
+
+export const photoCredentials = (url) => String(url || "").startsWith("https://mail.google.com/") ? "include" : "omit";
+
+export const readProfilePhoto = async (fetchImpl, html, knownEmail = "") => {
+    const profile = profileFromHtml(html, knownEmail);
+    if (!profile.photo || !profile.email) return {email: profile.email, photo: ""};
+    try {
+        const response = await fetchImpl(profile.photo, {credentials: photoCredentials(profile.photo)});
+        if (!response?.ok || typeof response.blob !== "function") return {email: profile.email, photo: ""};
+        const blob = await response.blob();
+        if (!String(blob.type || "").startsWith("image/") || blob.size > 120000) return {email: profile.email, photo: ""};
+        const bytes = new Uint8Array(await blob.arrayBuffer());
+        let binary = "";
+        for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+        return {email: profile.email, photo: `data:${blob.type};base64,${btoa(binary)}`};
+    } catch {
+        return {email: profile.email, photo: ""};
+    }
+};
+
 export const tokenPageUrls = (index) => {
     const n = Number(index) || 0;
     return [
         `https://mail.google.com/mail/u/${n}/`,
         `https://mail.google.com/mail/u/${n}/?ui=2&view=tl&start=0&num=1`
     ];
+};
+
+// 한 계정의 받은편지함에서 읽음으로 바꿀 메일 번호. 같은 번호는 한 번만 보낸다.
+export const inboxThreads = (account) =>
+    [...new Set((account?.messages || []).map((item) => item?.thread).filter(Boolean))];
+
+const TOKEN_MISS = "Gmail 작업 토큰을 아직 받지 못했어요. 메일 목록은 그대로예요. 잠시 뒤 다시 시도해 주세요.";
+
+// 토큰과 전송은 넘겨받은 함수만 쓴다. 실패해도 예외를 던지지 않아서 목록을 지우지 않는다.
+export const markInboxRead = async (accountIndex, threads, deps) => {
+    const list = [...new Set((threads || []).filter(Boolean))];
+    const fetchImpl = deps?.fetchImpl;
+    const tokensFor = deps?.tokensFor;
+    if (typeof fetchImpl !== "function" || typeof tokensFor !== "function") {
+        return {ok: false, acted: 0, error: "메일을 바꾸지 못했어요."};
+    }
+    let tokens = null;
+    let acted = 0;
+    const loadTokens = async (fresh) => {
+        try { return await tokensFor(accountIndex, fresh); }
+        catch { return null; }
+    };
+    for (const thread of list) {
+        if (!tokens?.at || !tokens?.ik) tokens = await loadTokens(false);
+        if (!tokens?.at || !tokens?.ik) return {ok: false, acted, error: TOKEN_MISS};
+        let ok = false;
+        try {
+            ok = await sendMailAction(actionRequest(accountIndex, tokens, "read", thread), fetchImpl);
+            if (!ok) {
+                tokens = await loadTokens(true);
+                if (tokens?.at && tokens?.ik) ok = await sendMailAction(actionRequest(accountIndex, tokens, "read", thread), fetchImpl);
+            }
+        } catch {
+            ok = false;
+        }
+        if (!ok) return {ok: false, acted, error: "Gmail에 반영하지 못했어요. 로그인 상태를 확인해 주세요."};
+        acted += 1;
+    }
+    return {ok: true, acted, error: ""};
 };
 
 export const sendMailAction = async (request, fetchImpl = globalThis.fetch) => {
