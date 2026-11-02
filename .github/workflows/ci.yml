@@ -34,3 +34,6 @@ jobs:
 
             -   name: Check built output has no eval
                 run: bun scripts/check-no-eval.ts
+
+            -   name: Check manifest permissions did not grow
+                run: bun scripts/check-manifest-permissions.ts

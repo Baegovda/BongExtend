@@ -7,7 +7,7 @@ import {join, relative, resolve} from "node:path";
 const MODULE_ROOT = resolve(__dirname, "src/modules");
 const STATIC_MODULES: Record<string, (rel: string) => boolean> = {
     chzzk: (rel) => !rel.startsWith("test/"),
-    theme: () => true,
+    theme: (rel) => rel.endsWith(".css"),
     trans: (rel) => !rel.startsWith("test/") && rel !== "background.js"
 };
 const listFiles = (dir: string): string[] => readdirSync(dir).flatMap((name) => {
