@@ -24,7 +24,7 @@
         "zip:firefox": "wxt zip -b firefox",
         "test:dc": "bun test src/core src/modules/settings-io.test.ts src/storage/update-keys.test.ts src/utils/sanitizeHtml.test.ts src/entrypoints/dc/composables/popupTabs.test.ts",
         "test:types": "tsc --noEmit -p tsconfig.json",
-        "test:js": "node --test src/modules/chzzk/test/*.test.js src/modules/trans/test/*.test.js src/modules/gmail/test/*.test.js",
+        "test:js": "node --test src/modules/chzzk/test/*.test.js src/modules/trans/test/*.test.js src/modules/gmail/test/*.test.js src/modules/fx/test/*.test.js",
         "verify": "bun scripts/verify-release-zip.ts"
     },
     "dependencies": {

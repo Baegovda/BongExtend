@@ -78,7 +78,8 @@ export default defineConfig({
             "https://github.com/*",
             "https://objects.githubusercontent.com/*",
             "https://release-assets.githubusercontent.com/*",
-            "https://mail.google.com/*"
+            "https://mail.google.com/*",
+            "https://latest.currency-api.pages.dev/*"
         ],
         // 항상 번역을 켤 때 그 사이트만 요청한다. host_permissions 에 <all_urls> 를 넣지 않는다.
         optional_host_permissions: [
