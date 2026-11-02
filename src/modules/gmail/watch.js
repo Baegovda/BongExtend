@@ -132,21 +132,31 @@ export const notificationTitle = (message, account) => {
 export const notificationId = (message) =>
     `gmail-${Number(message?.account) || 0}-${message?.id || ""}`;
 
-// 메일 줄 오른쪽 시각. 방금, 분, 시간, 어제, 그 외에는 월·일.
+const pad2 = (value) => String(value).padStart(2, "0");
+
+// 받은 시각. 오늘이면 HH:mm, 그 외에는 M/D HH:mm. 사용자 기기의 시각이다.
 export const formatMailTime = (issued, now = Date.now()) => {
     const time = Date.parse(issued);
     if (!Number.isFinite(time)) return "";
-    const delta = now - time;
-    if (delta < 60 * 1000) return "방금";
-    const minutes = Math.floor(delta / 60000);
-    if (minutes < 60) return `${minutes}분 전`;
-    const hours = Math.floor(minutes / 60);
-    if (hours < 24) return `${hours}시간 전`;
-    const days = Math.floor(hours / 24);
-    if (days === 1) return "어제";
-    if (days < 7) return `${days}일 전`;
     const date = new Date(time);
-    return `${date.getMonth() + 1}월 ${date.getDate()}일`;
+    const today = new Date(now);
+    const clock = `${pad2(date.getHours())}:${pad2(date.getMinutes())}`;
+    const sameDay = date.getFullYear() === today.getFullYear()
+        && date.getMonth() === today.getMonth()
+        && date.getDate() === today.getDate();
+    if (sameDay) return clock;
+    return `${date.getMonth() + 1}/${date.getDate()} ${clock}`;
+};
+
+// 이름과 주소가 다르면 둘 다. 하나만 있으면 그 한 줄만.
+export const mailSenderLines = (message) => {
+    const name = String(message?.fromName || "").trim();
+    const email = String(message?.fromEmail || "").trim();
+    const same = name && email && name.toLowerCase() === email.toLowerCase();
+    if (name && email && !same) return {name, email};
+    if (name) return {name, email: ""};
+    if (email) return {name: email, email: ""};
+    return {name: "보낸 사람 없음", email: ""};
 };
 
 // 작업 토큰을 못 읽어도 이미 받아 둔 받은편지함은 남긴다. 로그아웃은 빈 목록이 맞다.
