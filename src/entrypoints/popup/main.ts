@@ -10,7 +10,7 @@ import {exportAllSettings, importSettingsText} from "@/modules/settings-io";
 // @ts-ignore 순수 JS
 import {COMMON_CODES, FX_URL, convertAmount, currencyLabel, favoriteCurrencyId, favoritePairId, formatMoney, isCacheFresh, normalizeFavorites, parseFavoriteId, parseRatePayload, pinFavoriteCodes, reorderFavorites, toggleFavorite} from "@/modules/fx/convert.js";
 // @ts-ignore 순수 JS
-import {preferInbox} from "@/modules/gmail/watch.js";
+import {dedupeAccounts, preferInbox} from "@/modules/gmail/watch.js";
 // @ts-ignore 순수 JS
 import {ACCOUNT_COLORS, accountColor, accountInitial} from "@/modules/gmail/account-style.js";
 // @ts-ignore 순수 JS
@@ -360,7 +360,7 @@ const readMark = () => {
 const renderGmail = (snapshot: GmailSnapshot | null | undefined, error = "") => {
     const view = preferInbox(snapshot, gmailView) as GmailSnapshot | null;
     if (view) gmailView = view;
-    const accounts = view?.accounts || [];
+    const accounts = dedupeAccounts(view?.accounts || []) as GmailAccount[];
     const unread = accounts.filter((item) => item.enabled !== false).reduce((sum, item) => sum + (Number(item.unread) || 0), 0);
     gmailAccounts.replaceChildren();
     gmailList.replaceChildren();
@@ -372,11 +372,6 @@ const renderGmail = (snapshot: GmailSnapshot | null | undefined, error = "") => 
         section.style.setProperty("--account-accent", color);
         const head = document.createElement("div");
         head.className = "mail-head";
-        const toggle = document.createElement("input");
-        toggle.type = "checkbox";
-        toggle.checked = item.enabled !== false;
-        toggle.setAttribute("aria-label", `${email} 알림`);
-        toggle.addEventListener("change", () => void saveGmailAccount(item.index, toggle.checked));
         const avatar = document.createElement("span");
         avatar.className = "mail-avatar";
         const photo = gmailPhotos[email.toLowerCase()];
@@ -401,7 +396,7 @@ const renderGmail = (snapshot: GmailSnapshot | null | undefined, error = "") => 
         readAll.disabled = !(item.messages || []).length;
         readAll.append(readMark());
         readAll.addEventListener("click", () => void readAccount(item.index));
-        head.append(toggle, avatar, who, readAll);
+        head.append(avatar, who, readAll);
         const list = document.createElement("ul");
         list.className = "mail-list be-group";
         for (const message of item.messages || []) {
@@ -496,6 +491,16 @@ const paintSoundAccounts = (accounts: GmailAccount[]) => {
         row.className = "be-row";
         const name = document.createElement("span");
         name.textContent = item.email;
+        const alert = document.createElement("label");
+        alert.className = "mail-alert";
+        const alertText = document.createElement("span");
+        alertText.textContent = "알림";
+        const alertToggle = document.createElement("input");
+        alertToggle.type = "checkbox";
+        alertToggle.checked = item.enabled !== false;
+        alertToggle.setAttribute("aria-label", `${item.email} 알림`);
+        alertToggle.addEventListener("change", () => void saveGmailAccount(item.index, alertToggle.checked));
+        alert.append(alertText, alertToggle);
         const picks = document.createElement("div");
         picks.className = "mail-colors";
         const current = accountColor(email, gmailColors) as string;
@@ -513,7 +518,7 @@ const paintSoundAccounts = (accounts: GmailAccount[]) => {
             });
             picks.append(button);
         }
-        row.append(name, picks);
+        row.append(name, alert, picks);
         colors.append(row);
     }
 };
@@ -576,7 +581,7 @@ if (embed === "gmail") {
     volume.addEventListener("change", saveSound);
     preview.addEventListener("click", () => void playPreview());
     const colorTitle = document.createElement("h4");
-    colorTitle.textContent = "계정 색";
+    colorTitle.textContent = "계정 알림과 색";
     gmailSound.append(title, onRow, nameRow, volumeRow, preview, colorTitle, colors);
     void effects.storageGet(GMAIL_SOUND_KEY).then((stored: Record<string, unknown>) => {
         const sound = normalizeSound(stored[GMAIL_SOUND_KEY]) as {on: boolean; name: string; volume: number};
@@ -591,7 +596,7 @@ void effects.storageGet(["gmail.photos", "gmail.accountColors"]).then((stored: R
     gmailColors = (stored["gmail.accountColors"] || {}) as Record<string, string>;
     if (gmailView) renderGmail(gmailView);
 });
-$("gmailLatency").textContent = "Gmail 탭이 없어도 로그인된 계정을 모두 확인해요. 기본 8초마다 받은편지함 피드만 보고, 자리를 비우거나 화면이 잠기면 더 천천히 봐요. 알림을 끄면 확인을 멈춰요. 계정 앞 체크를 끄면 그 계정은 알림과 숫자에서 빼요. 다른 계정을 더하려면 Gmail 오른쪽 위 프로필 사진에서 계정 추가로 로그인하세요. 그러면 여기 목록에 나타나요. 답장은 Gmail 창에서 보내야 보낸편지함과 같아요.";
+$("gmailLatency").textContent = "Gmail 탭이 없어도 로그인된 계정을 모두 확인해요. 기본 8초마다 받은편지함 피드만 보고, 자리를 비우거나 화면이 잠기면 더 천천히 봐요. 알림을 끄면 확인을 멈춰요. 한 계정의 알림만 빼려면 설정 화면의 메일에서 그 계정 알림을 끄세요. 다른 계정을 더하려면 Gmail 오른쪽 위 프로필 사진에서 계정 추가로 로그인하세요. 그러면 여기 목록에 나타나요. 답장은 Gmail 창에서 보내야 보낸편지함과 같아요.";
 
 const gmailInterval = $<HTMLInputElement>("gmailInterval");
 const gmailNotify = $<HTMLInputElement>("gmailNotify");

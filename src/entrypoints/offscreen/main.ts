@@ -3,7 +3,7 @@ import {parseAtom} from "@/modules/gmail/atom.js";
 // @ts-ignore 순수 JS
 import {parseGmailTokens, readProfilePhoto, tokenPageUrls} from "@/modules/gmail/actions.js";
 // @ts-ignore 순수 JS
-import {ACCOUNT_PROBE_LIMIT, inboxSignature, nextWaitMs, skipDisabledFetch, watchPayload} from "@/modules/gmail/watch.js";
+import {ACCOUNT_PROBE_LIMIT, inboxSignature, isDuplicateEmail, nextWaitMs, skipDisabledFetch, watchPayload} from "@/modules/gmail/watch.js";
 // @ts-ignore 순수 JS
 import {soundFile} from "@/modules/gmail/sound.js";
 
@@ -58,6 +58,7 @@ const collect = async () => {
             if (index === 0 && accounts.length === 0) return {loggedOut: true, accounts: []};
             break;
         }
+        if (isDuplicateEmail(accounts, account)) break;
         accounts.push(account);
     }
     return {loggedOut: false, accounts};
