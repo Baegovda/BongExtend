@@ -15,6 +15,7 @@ import {
     notificationId,
     preferInbox,
     notificationTitle,
+    formatMailTime,
     skipDisabledFetch,
     unreadOf,
     watchPayload
@@ -82,6 +83,17 @@ test("the same email from another mail index is kept once and the first index st
     assert.equal(filled[0].messages[0].id, "9");
     assert.equal(isDuplicateEmail(unique, {email: "REVAPTOR@gmail.com"}), true);
     assert.equal(isDuplicateEmail([], {email: ""}), false);
+});
+
+test("mail times read as just now, minutes, hours, yesterday, or a date", () => {
+    const now = Date.parse("2026-11-02T12:00:00Z");
+    assert.equal(formatMailTime("", now), "");
+    assert.equal(formatMailTime("2026-11-02T11:59:30Z", now), "방금");
+    assert.equal(formatMailTime("2026-11-02T11:50:00Z", now), "10분 전");
+    assert.equal(formatMailTime("2026-11-02T09:00:00Z", now), "3시간 전");
+    assert.equal(formatMailTime("2026-11-01T12:00:00Z", now), "어제");
+    assert.equal(formatMailTime("2026-10-30T12:00:00Z", now), "3일 전");
+    assert.equal(formatMailTime("2026-10-01T12:00:00Z", now), "10월 1일");
 });
 
 test("disabled accounts stay listed but drop out of the badge and the notification name includes the account", () => {

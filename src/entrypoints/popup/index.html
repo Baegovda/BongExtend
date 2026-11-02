@@ -38,18 +38,45 @@
     <iframe data-frame="chzzk" title="치지직 설정"></iframe>
     <iframe data-frame="trans" title="번역"></iframe>
     <iframe data-frame="dc" title="디시 설정"></iframe>
-    <section class="panel be-shell" data-frame="gmail" hidden>
-        <div class="be-title"><h3>메일</h3><span class="be-sub" id="gmailAccount">Gmail 받은편지함</span></div>
-        <p id="gmailStatus" role="status">확인 중…</p>
-        <div class="be-actions">
-            <button id="gmailRefresh" type="button">다시 확인</button>
-            <label class="be-row-text">간격 <input id="gmailInterval" type="number" min="5" max="60" value="8" aria-label="확인 간격(초)"> 초</label>
-            <label class="be-row-text"><input id="gmailNotify" type="checkbox" checked> 새 메일 알림</label>
+    <section class="panel be-shell mail-panel" data-frame="gmail" hidden>
+        <div class="be-title mail-title">
+            <h3>메일</h3>
+            <span class="be-sub" id="gmailAccount"></span>
+            <span class="be-spacer"></span>
+            <button id="gmailRefresh" class="mail-icon" type="button" title="다시 확인" aria-label="다시 확인">
+                <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+                    <path d="M20 12a8 8 0 1 1-2.2-5.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                    <path d="M20 4.5V9h-4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
+        </div>
+        <div id="mailSettings" class="mail-settings be-group" hidden>
+            <label class="be-row">
+                <span>확인 간격</span>
+                <span class="mail-interval"><input id="gmailInterval" type="number" min="5" max="60" value="8" aria-label="확인 간격(초)"> 초</span>
+            </label>
+            <label class="be-row">
+                <span>새 메일 알림</span>
+                <input id="gmailNotify" type="checkbox" role="switch" checked aria-label="새 메일 알림">
+            </label>
+            <div class="be-row">
+                <span>받은편지함</span>
+                <button id="gmailRecheck" type="button">다시 확인</button>
+            </div>
+            <p class="be-hint" id="gmailLatency"></p>
+        </div>
+        <div id="gmailSound" class="mail-sound be-group" hidden></div>
+        <p id="gmailStatus" class="mail-status" role="status">확인 중…</p>
+        <div id="gmailEmpty" class="mail-empty" hidden>
+            <svg class="mail-empty-icon" viewBox="0 0 24 24" width="44" height="44" aria-hidden="true">
+                <rect x="3" y="5" width="18" height="14" rx="3" fill="none" stroke="currentColor" stroke-width="1.6"/>
+                <path d="M4 7l8 6 8-6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+            </svg>
+            <strong id="gmailEmptyTitle">읽지 않은 메일이 없어요</strong>
+            <span id="gmailEmptyNote">새 메일이 오면 여기에 나와요.</span>
         </div>
         <div id="gmailAccounts" class="mail-accounts"></div>
-        <div id="gmailSound" class="mail-sound be-group" hidden></div>
         <ul id="gmailList" class="mail-list" hidden></ul>
-        <p class="be-hint" id="gmailLatency"></p>
     </section>
     <section class="panel be-shell fx-panel" data-frame="fx" hidden>
         <div class="be-title"><h3>환율</h3><span class="be-sub">하루 한 번 갱신</span></div>

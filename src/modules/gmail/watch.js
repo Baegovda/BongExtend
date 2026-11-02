@@ -132,6 +132,23 @@ export const notificationTitle = (message, account) => {
 export const notificationId = (message) =>
     `gmail-${Number(message?.account) || 0}-${message?.id || ""}`;
 
+// 메일 줄 오른쪽 시각. 방금, 분, 시간, 어제, 그 외에는 월·일.
+export const formatMailTime = (issued, now = Date.now()) => {
+    const time = Date.parse(issued);
+    if (!Number.isFinite(time)) return "";
+    const delta = now - time;
+    if (delta < 60 * 1000) return "방금";
+    const minutes = Math.floor(delta / 60000);
+    if (minutes < 60) return `${minutes}분 전`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}시간 전`;
+    const days = Math.floor(hours / 24);
+    if (days === 1) return "어제";
+    if (days < 7) return `${days}일 전`;
+    const date = new Date(time);
+    return `${date.getMonth() + 1}월 ${date.getDate()}일`;
+};
+
 // 작업 토큰을 못 읽어도 이미 받아 둔 받은편지함은 남긴다. 로그아웃은 빈 목록이 맞다.
 export const preferInbox = (next, previous) => {
     if (next?.loggedOut) return next;
