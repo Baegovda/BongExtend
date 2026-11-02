@@ -50,6 +50,9 @@ jobs:
                     VERSION="$(bun -e "process.stdout.write(JSON.parse(require('fs').readFileSync('package.json','utf8')).version)")"
                     bun scripts/verify-release-zip.ts "$VERSION"
 
+            -   name: Check built output has no eval
+                run: bun scripts/check-no-eval.ts
+
             -   name: Extract changelog notes
                 if: github.ref_type == 'tag'
                 run: |

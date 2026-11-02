@@ -33,9 +33,9 @@ BongExtend는 크롬 확장(MV3) 하나예요. 예전에 따로 쓰던 확장 �
 - `bun run build` → `.output/chrome-mv3/`
 - `bun run zip` → `.output/bongextend-X.Y.Z-chrome.zip`. 확인은 `bun run verify`예요. 버전을 안 적으면 `package.json`을 쓰고, 크롬 zip만 봐요. `bun scripts/verify-release-zip.ts X.Y.Z`와 같아요.
 
-`package.json`의 `dev:firefox`, `build:firefox`, `zip:firefox`는 로컬에서 파이어폭스 산출물을 만들 때 쓰는 스크립트예요. 릴리스 워크플로는 크롬 zip만 만들어요. 업데이트 페이지도 크롬 zip(`*-chrome.zip`)만 받아요.
+`package.json`의 `dev:firefox`, `build:firefox`, `zip:firefox`는 로컬에서 파이어폭스 산출물을 만들 때 쓰는 스크립트예요. 릴리스 워크플로는 크롬 zip만 만들어요. 업데이트도 크롬 zip(`*-chrome.zip`)만 받아요. `*-firefox.zip`은 찾지 않아요.
 
-버전 숫자는 `package.json` 하나예요. 사용자용 변경은 `CHANGELOG.md`의 `## [X.Y.Z]`에 적어요. 태그 `vX.Y.Z`를 푸시하면 `.github/workflows/release.yml`이 테스트, 태그=버전 확인, zip, zip 검사, 릴리스 노트를 해요. 같은 파일을 수동으로 실행하면 테스트와 zip 검사만 하고 릴리스는 만들지 않아요. PR이나 일반 push에는 테스트 워크플로가 없어요. 푸시·태그·릴리스는 오너가 확인한 뒤에만 해요.
+버전 숫자는 `package.json` 하나예요. 사용자용 변경은 `CHANGELOG.md`의 `## [X.Y.Z]`에 적어요. 태그 `vX.Y.Z`를 푸시하면 `.github/workflows/release.yml`이 테스트, 태그=버전 확인, zip, zip 검사, 빌드 결과의 eval 검사, 릴리스 노트를 해요. 같은 파일을 수동으로 실행하면 테스트와 zip 검사만 하고 릴리스는 만들지 않아요. main 푸시와 PR은 `.github/workflows/ci.yml`이 `bun install`, `bun run test`, `bun run build`, `bun scripts/check-no-eval.ts`를 해요. 푸시·태그·릴리스는 오너가 확인한 뒤에만 해요.
 
 ## 이미 된 일
 
@@ -45,6 +45,10 @@ BongExtend는 크롬 확장(MV3) 하나예요. 예전에 따로 쓰던 확장 �
 - 확장 아이콘은 옛 BongDC 그림이 아니에요. 원본은 `src/assets/icon.png`이고, 청록에서 보라로 이어지는 BongExtend 로고예요. `@wxt-dev/auto-icons`가 빌드 때 크기별 아이콘을 만들어요. 팝업과 업데이트 화면은 그 로고를 써요. 번역 설정의 `src/modules/trans/icons/`도 같은 로고예요. 디시 화면 안 작은 그림(`src/assets/icons/*.webp`, 추천·차단 같은 버튼)은 기능 그림이라 예전 디시 모듈 그대로예요.
 
 ## 아직 남은 일
+
+### 릴리스 zip
+
+설치된 1.0.18과 1.0.15의 배경 스크립트는 시작하자마자 `Function()`을 호출해요. 크롬이 막아서 서비스 워커 등록이 실패하고, 업데이트 확인이 "확인 중…"에서 멈춰요. 소스에서는 뺐어요. 이 저장소의 다음 버전을 올리기 전에는 릴리스 zip이 그대로예요.
 
 ### 실제 기기에서 확인할 것
 

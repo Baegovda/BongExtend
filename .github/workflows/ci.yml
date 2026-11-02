@@ -1,0 +1,36 @@
+# PR과 main 푸시에서 설치, 테스트, 크롬 빌드를 확인해요. 릴리스는 만들지 않아요.
+name: CI
+on:
+    pull_request:
+    push:
+        branches:
+            - main
+
+jobs:
+    check:
+        runs-on: ubuntu-latest
+        permissions:
+            contents: read
+        steps:
+            -   name: Checkout
+                uses: actions/checkout@v4
+
+            -   name: Setup Bun
+                uses: oven-sh/setup-bun@v2
+
+            -   name: Setup Node
+                uses: actions/setup-node@v4
+                with:
+                    node-version: 22
+
+            -   name: Install Dependencies
+                run: bun install
+
+            -   name: Test
+                run: bun run test
+
+            -   name: Build
+                run: bun run build
+
+            -   name: Check built output has no eval
+                run: bun scripts/check-no-eval.ts

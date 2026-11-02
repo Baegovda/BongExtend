@@ -2,6 +2,7 @@
 import "@/modules/theme/theme.css";
 import {sendMessage} from "@/http/messaging";
 import {isNewerVersion} from "@/core/update/availability";
+import {describeUpdateError, promiseWithTimeout, UPDATE_TIMEOUT_MESSAGE, UPDATE_UI_TIMEOUT_MS, UPDATE_UNKNOWN_MESSAGE} from "@/core/update/timeout";
 // @ts-ignore 순수 JS
 import {getModules, setModuleEnabled} from "@/modules/core-modules.js";
 import {moveItem, normalizeTabOrder} from "@/core/popup/tabOrder";
@@ -154,6 +155,9 @@ const lastChecked = $("lastChecked");
 const notesBox = $("releaseNotesBox");
 const notes = $("releaseNotes");
 const updateHint = $("updateHint");
+const firefoxUpdateNote = $("firefoxUpdateNote");
+const firefoxBuild = Boolean(import.meta.env.FIREFOX);
+if (firefoxBuild) firefoxUpdateNote.hidden = false;
 let releaseUrl = "";
 $("ver").textContent = chrome.runtime.getManifest().version;
 
@@ -169,22 +173,33 @@ const renderUpdate = (s: UpdateStatus | null | undefined) => {
     else if (s.latestVersion) setStatus("최신 버전이에요.");
     if (typeof s.autoCheck === "boolean") autoCheck.checked = s.autoCheck;
     lastChecked.textContent = s.lastCheckedAt ? new Date(s.lastCheckedAt).toLocaleString("ko-KR") : "아직 확인하지 않음";
-    doUpdate.hidden = !available || !s.downloadUrl;
-    downloadZip.hidden = !available || !s.downloadUrl;
+    doUpdate.hidden = firefoxBuild || !available || !s.downloadUrl;
+    downloadZip.hidden = firefoxBuild || !available || !s.downloadUrl;
     openRelease.hidden = !available || !releaseUrl;
     updateHint.hidden = doUpdate.hidden;
+    firefoxUpdateNote.hidden = !firefoxBuild;
     notesBox.hidden = !(available && s.releaseNotes);
     notes.textContent = available ? s.releaseNotes || "" : "";
 };
 
+const CHECKING = "확인 중…";
+
 const check = async (force: boolean) => {
-    if (force) { checkBtn.disabled = true; setStatus("확인 중…"); }
+    if (force) { checkBtn.disabled = true; setStatus(CHECKING); }
     try {
-        renderUpdate(await sendMessage("checkForUpdate", {force}) as UpdateStatus);
+        const status = await promiseWithTimeout(
+            sendMessage("checkForUpdate", {force}) as Promise<UpdateStatus>,
+            UPDATE_UI_TIMEOUT_MS,
+            UPDATE_TIMEOUT_MESSAGE
+        );
+        renderUpdate(status);
+        if (updateStatus.textContent === CHECKING || updateStatus.textContent === "확인 전") {
+            setStatus(UPDATE_UNKNOWN_MESSAGE, "error");
+        }
     } catch (error) {
-        if (force) setStatus((error as Error)?.message || "업데이트 정보를 가져오지 못했어요.", "error");
+        setStatus(describeUpdateError(error), "error");
     } finally {
-        checkBtn.disabled = false;
+        if (force) checkBtn.disabled = false;
     }
 };
 
@@ -210,10 +225,19 @@ autoCheck.addEventListener("change", async () => {
         setStatus("자동 확인 설정을 저장하지 못했어요.", "error");
     }
 });
-sendMessage("getUpdateStatus", undefined).then((s) => {
-    renderUpdate(s as UpdateStatus);
-    if ((s as UpdateStatus)?.autoCheck) void check(false);
-}).catch(() => {});
+void (async () => {
+    try {
+        const status = await promiseWithTimeout(
+            sendMessage("getUpdateStatus", undefined) as Promise<UpdateStatus>,
+            UPDATE_UI_TIMEOUT_MS,
+            UPDATE_TIMEOUT_MESSAGE
+        );
+        renderUpdate(status);
+        if (status?.autoCheck) await check(false);
+    } catch (error) {
+        setStatus(describeUpdateError(error), "error");
+    }
+})();
 
 // ===== 설정 내보내기·가져오기 =====
 const ioStatus = $("ioStatus");

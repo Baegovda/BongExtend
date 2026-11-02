@@ -37,5 +37,5 @@ BongExtend = BongChzzk(치지직) + BongTrans(Gemini 번역) + BongDC(디시, gr
 
 ## 릴리스
 - 버전은 `package.json` 하나. `CHANGELOG.md`에 `## [X.Y.Z]` 섹션.
-- 태그 `vX.Y.Z` 푸시 → `.github/workflows/release.yml`(테스트, 태그=버전 확인, `bun run zip`, zip 검사, 노트, gh release). 크롬 zip만 올려요. 같은 워크플로의 수동 실행은 테스트와 zip 검사만 하고 릴리스는 만들지 않아요. main 푸시나 PR에는 테스트 워크플로가 없어요.
+- 태그 `vX.Y.Z` 푸시 → `.github/workflows/release.yml`(테스트, 태그=버전 확인, `bun run zip`, zip 검사, 빌드 결과의 eval 검사, 노트, gh release). 크롬 zip만 올려요. 같은 워크플로의 수동 실행은 테스트와 zip 검사만 하고 릴리스는 만들지 않아요. main 푸시와 PR은 `.github/workflows/ci.yml`이 `bun install`, `bun run test`, `bun run build`, `bun scripts/check-no-eval.ts`를 해요. 릴리스는 만들지 않아요. 서비스 워커에서 `Function()`을 쓰지 말 것. MV3가 막아서 등록이 실패해요.
 - 푸시·태그·릴리스는 오너가 확인한 뒤에만.

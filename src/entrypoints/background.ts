@@ -31,29 +31,42 @@ export default defineBackground(() => {
 
     const RECAPTCHA_SITE_KEY = "6Lc-Fr0UAAAAAOdqLYqPy53MxlRMIXpNXFvBliwI";
     // 페이지에 postMessage 하지 않는다. 서비스 워커가 디시 탭의 메인 세상에서만 토큰을 받는다.
-    const recaptchaInPage = new Function("siteKey", "action", `
-        var g = window.grecaptcha;
+    // 문자열로 함수를 만들지 않는다. MV3 CSP가 막아서, 시작하자마자 호출하면
+    // 서비스 워커 등록이 Status code 15로 실패하고 업데이트 확인이 끝나지 않는다.
+    // executeScript는 이 함수 본문만 페이지로 넘긴다. 바깥 변수는 캡처하지 않는다.
+    const recaptchaInPage = (siteKey: string, action: string): Promise<string> => {
+        const page = window as Window & {
+            grecaptcha?: {
+                ready: (callback: () => void) => void;
+                execute: (key: string, options: {action: string}) => Promise<string>;
+            };
+        };
         if (typeof action !== "string" || !action) return Promise.resolve("");
-        return new Promise(function (resolve) {
-            var start = Date.now();
-            var finish = function (token) { resolve(typeof token === "string" ? token : ""); };
-            var run = function () {
-                g = window.grecaptcha;
-                if (!g) {
+        return new Promise((resolve) => {
+            const start = Date.now();
+            const finish = (token: unknown) => {
+                resolve(typeof token === "string" ? token : "");
+            };
+            const run = () => {
+                const widget = page.grecaptcha;
+                if (!widget) {
                     if (Date.now() - start > 2500) return finish("");
-                    return setTimeout(run, 50);
+                    setTimeout(run, 50);
+                    return;
                 }
                 try {
-                    g.ready(function () {
-                        g.execute(siteKey, { action: action }).then(finish, function () { finish(""); });
+                    widget.ready(() => {
+                        const current = page.grecaptcha;
+                        if (!current) return finish("");
+                        current.execute(siteKey, {action}).then(finish, () => finish(""));
                     });
-                } catch (e) {
+                } catch {
                     finish("");
                 }
             };
             run();
         });
-    `) as (siteKey: string, action: string) => Promise<string>;
+    };
 
     browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
         if (!message || message.type !== "refresherGrecaptcha") return;

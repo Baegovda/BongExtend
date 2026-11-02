@@ -9,6 +9,7 @@ import {
     isBongExtendManifest,
     pickReleaseZip
 } from "@/core/update/release";
+import {UPDATE_TIMEOUT_MESSAGE} from "@/core/update/timeout";
 
 describe("describeUpdate", () => {
     test("shows the current version, the latest version, and that an update is available", () => {
@@ -27,22 +28,22 @@ describe("describeUpdate", () => {
 });
 
 describe("pickReleaseZip", () => {
-    test("picks the browser zip and ignores the other one", () => {
+    test("picks the chrome zip and ignores a firefox zip", () => {
         const assets = [
             {name: "bongextend-5.2.21-firefox.zip", browser_download_url: "ff"},
             {name: "bongextend-5.2.21-chrome.zip", browser_download_url: "cr"},
             {name: "bongextend-5.2.21-sources.zip", browser_download_url: "src"}
         ];
-        expect(pickReleaseZip(assets, "chrome")?.browser_download_url).toBe("cr");
-        expect(pickReleaseZip(assets, "firefox")?.browser_download_url).toBe("ff");
-        expect(pickReleaseZip([{name: "notes.txt"}], "chrome")).toBeNull();
+        expect(pickReleaseZip(assets)?.browser_download_url).toBe("cr");
+        expect(pickReleaseZip([{name: "bongextend-5.2.21-firefox.zip", browser_download_url: "ff"}])).toBeNull();
+        expect(pickReleaseZip([{name: "notes.txt"}])).toBeNull();
     });
 });
 
 describe("checkLatestRelease", () => {
     test("does not send a token and returns the chrome zip", async () => {
         let headers: Record<string, string> | undefined;
-        const result = await checkLatestRelease("5.2.20", "chrome", {
+        const result = await checkLatestRelease("5.2.20", {
             fetchImpl: async (_url, init) => {
                 headers = init?.headers;
                 return {
@@ -66,8 +67,34 @@ describe("checkLatestRelease", () => {
         expect(result.message).toBe("5.2.20 → 5.2.21 업데이트 가능");
     });
 
+    test("a firefox zip is not a download", async () => {
+        const result = await checkLatestRelease("5.2.20", {
+            fetchImpl: async () => ({
+                ok: true,
+                status: 200,
+                json: async () => ({
+                    tag_name: "v5.2.21",
+                    assets: [{name: "bongextend-5.2.21-firefox.zip", browser_download_url: "https://example.invalid/firefox.zip"}]
+                })
+            })
+        });
+
+        expect(result.assetUrl).toBeNull();
+        expect(result.zipUrl).toBe("https://github.com/Baegovda/BongExtend/releases");
+    });
+
+    test("a timed out request becomes a readable error", async () => {
+        const error = new Error("The operation was aborted due to timeout");
+        error.name = "TimeoutError";
+        await expect(checkLatestRelease("1.0.18", {
+            fetchImpl: async () => {
+                throw error;
+            }
+        })).rejects.toThrow(UPDATE_TIMEOUT_MESSAGE);
+    });
+
     test("404 is an error", async () => {
-        await expect(checkLatestRelease("5.2.20", "chrome", {
+        await expect(checkLatestRelease("5.2.20", {
             fetchImpl: async () => ({ok: false, status: 404, json: async () => ({})})
         })).rejects.toThrow(/HTTP 404/);
     });
