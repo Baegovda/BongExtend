@@ -39,7 +39,9 @@ body { width: 780px; height: 590px; display: flex; flex-direction: column; overf
 .mail-list .be-actions { margin-top: 6px; }
 .mail-accounts { display: flex; flex-direction: column; gap: 16px; margin-top: 12px; }
 .mail-section { --account-accent: var(--be-accent); border-left: 3px solid var(--account-accent); padding-left: 10px; }
-.mail-head { display: flex; align-items: center; gap: 10px; margin: 0 2px 8px; }
+.mail-head { display: flex; align-items: center; gap: 10px; margin: 0 2px 8px; cursor: grab; touch-action: none; }
+.mail-accounts.reordering .mail-head { cursor: grabbing; }
+.mail-section.dragging { position: relative; z-index: 3; opacity: .96; }
 .mail-avatar { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; overflow: hidden; flex: 0 0 auto; color: #fff; font-weight: 700; background: var(--account-accent); box-shadow: 0 0 0 2px var(--be-bg), 0 0 0 4px var(--account-accent); }
 .mail-avatar img { width: 100%; height: 100%; object-fit: cover; }
 .mail-head .mail-who { flex: 1; min-width: 0; }

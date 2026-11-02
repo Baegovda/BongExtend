@@ -7,6 +7,7 @@ import {
     clampIntervalMs,
     dedupeAccounts,
     enabledAccounts,
+    orderAccounts,
     mailTabBadge,
     isDuplicateEmail,
     inboxSignature,
@@ -47,6 +48,19 @@ test("the mail tab badge counts each email once, skips disabled accounts, and ca
     assert.equal(mailTabBadge([{index: 0, email: "a@gmail.com", unread: 0, enabled: true}], []), "");
     assert.equal(mailTabBadge([{index: 0, email: "a@gmail.com", unread: 99, enabled: true}], []), "99");
     assert.equal(mailTabBadge([{index: 0, email: "a@gmail.com", unread: 120, enabled: true}], []), "99+");
+});
+
+test("saved email order is kept, duplicates stay one row, and new accounts go last", () => {
+    const accounts = [
+        {index: 0, email: "ada@gmail.com", unread: 1},
+        {index: 1, email: "Ada@gmail.com", unread: 9},
+        {index: 2, email: "bea@gmail.com", unread: 2},
+        {index: 3, email: "cy@gmail.com", unread: 3}
+    ];
+    const ordered = orderAccounts(accounts, ["bea@gmail.com", "missing@gmail.com", "ADA@gmail.com"]);
+    assert.deepEqual(ordered.map((account) => account.email), ["bea@gmail.com", "ada@gmail.com", "cy@gmail.com"]);
+    assert.equal(ordered[1].index, 0);
+    assert.deepEqual(orderAccounts(accounts, []).map((account) => account.index), [0, 2, 3]);
 });
 
 test("the same email from another mail index is kept once and the first index stays", () => {

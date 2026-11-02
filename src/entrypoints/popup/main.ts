@@ -12,7 +12,7 @@ import {COMMON_CODES, CURRENCY_TINT, FX_URL, convertAmount, currencyColor, curre
 // @ts-ignore 순수 JS
 import {composite} from "@/modules/theme/contrast.js";
 // @ts-ignore 순수 JS
-import {dedupeAccounts, mailTabBadge, preferInbox} from "@/modules/gmail/watch.js";
+import {dedupeAccounts, mailTabBadge, orderAccounts, preferInbox} from "@/modules/gmail/watch.js";
 // @ts-ignore 순수 JS
 import {ACCOUNT_COLORS, accountColor, accountInitial} from "@/modules/gmail/account-style.js";
 // @ts-ignore 순수 JS
@@ -349,6 +349,74 @@ const gmailSend = (message: Record<string, unknown>) => sendExtension(effects, m
 let gmailView: GmailSnapshot | null = null;
 let gmailPhotos: Record<string, string> = {};
 let gmailColors: Record<string, string> = {};
+let mailOrder: string[] = [];
+const ACCOUNT_ORDER_KEY = "gmail.accountOrder";
+const MAIL_EASE = "cubic-bezier(0.25, 0.1, 0.25, 1)";
+
+const saveMailOrder = () => {
+    const order = [...gmailAccounts.querySelectorAll<HTMLElement>(".mail-section")]
+        .map((section) => section.dataset.email || "")
+        .filter(Boolean);
+    mailOrder = order;
+    void effects.storageSet({[ACCOUNT_ORDER_KEY]: order});
+};
+
+const bindMailDrag = (section: HTMLElement, head: HTMLElement) => {
+    head.addEventListener("pointerdown", (event) => {
+        if (event.button !== 0 || (event.target as Element).closest("button")) return;
+        const startY = event.clientY;
+        let dragging = false;
+        const onMove = (ev: PointerEvent) => {
+            if (!dragging) {
+                if (Math.abs(ev.clientY - startY) < 6) return;
+                dragging = true;
+                head.setPointerCapture(ev.pointerId);
+                section.classList.add("dragging");
+                gmailAccounts.classList.add("reordering");
+            }
+            section.style.transform = "";
+            const others = [...gmailAccounts.querySelectorAll<HTMLElement>(".mail-section")].filter((item) => item !== section);
+            const before = others.find((item) => {
+                const box = item.getBoundingClientRect();
+                return ev.clientY < box.top + box.height / 2;
+            });
+            const prevTop = section.getBoundingClientRect().top;
+            const first = new Map(others.map((item) => [item, item.getBoundingClientRect().top]));
+            if (before) {
+                if (section.nextElementSibling !== before) gmailAccounts.insertBefore(section, before);
+            } else if (gmailAccounts.lastElementChild !== section) gmailAccounts.appendChild(section);
+            const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+            if (!reduce) {
+                for (const [item, top] of first) {
+                    const delta = top - item.getBoundingClientRect().top;
+                    if (delta) item.animate([{transform: `translateY(${delta}px)`}, {transform: "none"}], {duration: 250, easing: MAIL_EASE});
+                }
+            }
+            const shift = section.getBoundingClientRect().top - prevTop;
+            const base = ((section as HTMLElement & {_base?: number})._base ?? startY) + shift;
+            (section as HTMLElement & {_base?: number})._base = base;
+            section.style.transform = `translateY(${ev.clientY - base}px)`;
+        };
+        const onUp = () => {
+            head.removeEventListener("pointermove", onMove);
+            head.removeEventListener("pointerup", onUp);
+            head.removeEventListener("pointercancel", onUp);
+            delete (section as HTMLElement & {_base?: number})._base;
+            if (!dragging) return;
+            const from = section.style.transform;
+            section.classList.remove("dragging");
+            gmailAccounts.classList.remove("reordering");
+            section.style.transform = "";
+            if (from && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+                section.animate([{transform: from}, {transform: "none"}], {duration: 250, easing: MAIL_EASE});
+            }
+            saveMailOrder();
+        };
+        head.addEventListener("pointermove", onMove);
+        head.addEventListener("pointerup", onUp);
+        head.addEventListener("pointercancel", onUp);
+    });
+};
 
 const readMark = () => {
     const icon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
@@ -370,7 +438,7 @@ const readMark = () => {
 const renderGmail = (snapshot: GmailSnapshot | null | undefined, error = "") => {
     const view = preferInbox(snapshot, gmailView) as GmailSnapshot | null;
     if (view) gmailView = view;
-    const accounts = dedupeAccounts(view?.accounts || []) as GmailAccount[];
+    const accounts = orderAccounts(dedupeAccounts(view?.accounts || []), mailOrder) as GmailAccount[];
     const unread = accounts.filter((item) => item.enabled !== false).reduce((sum, item) => sum + (Number(item.unread) || 0), 0);
     gmailAccounts.replaceChildren();
     gmailList.replaceChildren();
@@ -379,9 +447,11 @@ const renderGmail = (snapshot: GmailSnapshot | null | undefined, error = "") => 
         const color = accountColor(email, gmailColors) as string;
         const section = document.createElement("section");
         section.className = "mail-section";
+        section.dataset.email = (item.email || "").trim().toLowerCase();
         section.style.setProperty("--account-accent", color);
         const head = document.createElement("div");
         head.className = "mail-head";
+        head.title = "끌어서 순서 바꾸기";
         const avatar = document.createElement("span");
         avatar.className = "mail-avatar";
         const photo = gmailPhotos[email.toLowerCase()];
@@ -444,6 +514,7 @@ const renderGmail = (snapshot: GmailSnapshot | null | undefined, error = "") => 
             list.append(li);
         }
         section.append(head, list);
+        bindMailDrag(section, head);
         gmailAccounts.appendChild(section);
     }
     if (error) gmailStatus.textContent = error;
@@ -637,6 +708,10 @@ const saveGmailAccount = async (index: number, enabled: boolean) => {
 };
 gmailInterval.addEventListener("change", () => void saveGmailWatch());
 gmailNotify.addEventListener("change", () => void saveGmailWatch());
+effects.storageGet(ACCOUNT_ORDER_KEY).then((stored: Record<string, unknown>) => {
+    mailOrder = Array.isArray(stored[ACCOUNT_ORDER_KEY]) ? stored[ACCOUNT_ORDER_KEY] as string[] : [];
+    if (gmailView) renderGmail(gmailView);
+});
 effects.storageGet(["gmail.snapshot", "gmail.disabled"]).then((stored: Record<string, unknown>) => {
     const snapshot = stored["gmail.snapshot"] as GmailSnapshot | undefined;
     paintMailBadge(snapshot?.accounts, stored["gmail.disabled"]);
@@ -658,6 +733,10 @@ effects.storageOnChanged((changes: Record<string, {newValue?: unknown}>, area: s
         if (toggle) toggle.checked = sound.on;
         if (select) select.value = sound.name;
         if (range) range.value = String(Math.round(sound.volume * 100));
+    }
+    if (changes["gmail.accountOrder"]) {
+        mailOrder = Array.isArray(changes["gmail.accountOrder"].newValue) ? changes["gmail.accountOrder"].newValue as string[] : [];
+        if ((current === "gmail" || embed === "gmail") && gmailView && !gmailAccounts.classList.contains("reordering")) renderGmail(gmailView);
     }
     if (changes["gmail.snapshot"] || changes["gmail.disabled"]) {
         effects.storageGet(["gmail.snapshot", "gmail.disabled"]).then((stored: Record<string, unknown>) => {
