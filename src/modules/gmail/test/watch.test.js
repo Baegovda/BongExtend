@@ -7,6 +7,7 @@ import {
     clampIntervalMs,
     dedupeAccounts,
     enabledAccounts,
+    mailTabBadge,
     isDuplicateEmail,
     inboxSignature,
     nextWaitMs,
@@ -32,6 +33,20 @@ test("watcher stops when notifications or the module are off, and backs off othe
     assert.equal(nextWaitMs({notify: true, moduleOn: true, online: true, idle: "idle", intervalMs: 8000}), GMAIL_IDLE_MS);
     assert.equal(nextWaitMs({notify: true, moduleOn: true, online: true, idle: "locked", intervalMs: 8000}), GMAIL_LOCKED_MS);
     assert.equal(nextWaitMs({notify: true, moduleOn: true, online: true, idle: "active", intervalMs: 8000}), 8000);
+});
+
+test("the mail tab badge counts each email once, skips disabled accounts, and caps at 99+", () => {
+    const accounts = [
+        {index: 0, email: "a@gmail.com", unread: 4, enabled: true},
+        {index: 1, email: "A@gmail.com", unread: 9, enabled: true},
+        {index: 2, email: "b@gmail.com", unread: 3, enabled: false},
+        {index: 3, email: "c@gmail.com", unread: 2, enabled: true}
+    ];
+    assert.equal(mailTabBadge(accounts, []), "6");
+    assert.equal(mailTabBadge(accounts, [0]), "2");
+    assert.equal(mailTabBadge([{index: 0, email: "a@gmail.com", unread: 0, enabled: true}], []), "");
+    assert.equal(mailTabBadge([{index: 0, email: "a@gmail.com", unread: 99, enabled: true}], []), "99");
+    assert.equal(mailTabBadge([{index: 0, email: "a@gmail.com", unread: 120, enabled: true}], []), "99+");
 });
 
 test("the same email from another mail index is kept once and the first index stays", () => {
