@@ -60,3 +60,11 @@ export const notificationTitle = (message, account) => {
 
 export const notificationId = (message) =>
     `gmail-${Number(message?.account) || 0}-${message?.id || ""}`;
+
+// 작업 토큰을 못 읽어도 이미 받아 둔 받은편지함은 남긴다. 로그아웃은 빈 목록이 맞다.
+export const preferInbox = (next, previous) => {
+    if (next?.loggedOut) return next;
+    if (Array.isArray(next?.accounts) && next.accounts.length) return next;
+    if (previous) return previous;
+    return next ?? null;
+};

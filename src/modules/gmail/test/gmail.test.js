@@ -63,6 +63,14 @@ test("action request uses the session token and does not need an OAuth client", 
     const tokens = parseGmailTokens(`var GM_ACTION_TOKEN = "tok en"; var GM_ID_KEY='ik1';`);
     assert.deepEqual(tokens, {at: "tok en", ik: "ik1"});
     assert.equal(parseGmailTokens(`GM_ACTION_TOKEN="null"; GM_ID_KEY="ik";`), null);
+    assert.deepEqual(
+        parseGmailTokens(`GM_ACTION_TOKEN="null"; GM_ACTION_TOKEN="abcdefgh"; GM_ID_KEY="null"; "ik","abc123";`),
+        {at: "abcdefgh", ik: "abc123"}
+    );
+    assert.deepEqual(
+        parseGmailTokens(`["sdpc","AF6tokenvalue"] ?ik=abc123def`),
+        {at: "AF6tokenvalue", ik: "abc123def"}
+    );
     const request = actionRequest(1, tokens, "archive", "18f3abc");
     assert.match(request.url, /\/mail\/u\/1\//);
     assert.match(request.body, /act=rc_\^i|act=rc_%5Ei/);

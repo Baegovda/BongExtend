@@ -9,6 +9,7 @@ import {
     inboxSignature,
     nextWaitMs,
     notificationId,
+    preferInbox,
     notificationTitle,
     skipDisabledFetch,
     unreadOf,
@@ -51,4 +52,8 @@ test("disabled accounts stay listed but drop out of the badge and the notificati
     assert.equal(quiet[0].messages, undefined);
     assert.equal(quiet[0].unread, 2);
     assert.equal(watchPayload(kept, true)[0].kept, true);
+    const previous = {accounts: [{index: 0, email: "a@gmail.com"}], loggedOut: false};
+    assert.equal(preferInbox(null, previous), previous);
+    assert.equal(preferInbox({accounts: [], loggedOut: false}, previous), previous);
+    assert.equal(preferInbox({accounts: [], loggedOut: true}, previous).loggedOut, true);
 });
