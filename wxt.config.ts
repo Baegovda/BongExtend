@@ -61,9 +61,11 @@ export default defineConfig({
             "contextMenus",
             "downloads",
             "notifications",
+            "idle",
             "storage",
             "scripting",
             "tabs",
+            "windows",
             "unlimitedStorage",
             "clipboardWrite"
         ],
@@ -75,7 +77,8 @@ export default defineConfig({
             "https://api.github.com/*",
             "https://github.com/*",
             "https://objects.githubusercontent.com/*",
-            "https://release-assets.githubusercontent.com/*"
+            "https://release-assets.githubusercontent.com/*",
+            "https://mail.google.com/*"
         ],
         // 항상 번역을 켤 때 그 사이트만 요청한다. host_permissions 에 <all_urls> 를 넣지 않는다.
         optional_host_permissions: [

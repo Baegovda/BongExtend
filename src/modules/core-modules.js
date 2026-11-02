@@ -1,8 +1,8 @@
 // BongExtend 공통: 모듈(치지직/번역/디시) 켜기·끄기 상태.
-// chrome.storage.local 'core.modules' = { chzzk: true, trans: true, dc: true }
+// chrome.storage.local 'core.modules' = { chzzk: true, trans: true, dc: true, gmail: true }
 export const MODULES_KEY = 'core.modules';
-export const MODULE_IDS = ['chzzk', 'trans', 'dc'];
-export const DEFAULT_MODULES = { chzzk: true, trans: true, dc: true };
+export const MODULE_IDS = ['chzzk', 'trans', 'dc', 'gmail'];
+export const DEFAULT_MODULES = { chzzk: true, trans: true, dc: true, gmail: true };
 
 export function normalizeModules(value) {
   const out = { ...DEFAULT_MODULES };

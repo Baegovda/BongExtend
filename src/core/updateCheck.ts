@@ -3,6 +3,8 @@ import {compareVersions, parseSemver} from "@/core/semver";
 import {GITHUB_RELEASE_REPO, pickReleaseZip} from "@/core/update/release";
 import {deriveUpdateAvailable} from "@/core/update/availability";
 import {isTimeoutError, UPDATE_FETCH_TIMEOUT_MS, UPDATE_TIMEOUT_MESSAGE} from "@/core/update/timeout";
+// @ts-ignore 순수 JS
+import {paintToolbarBadge} from "@/modules/toolbar-badge.js";
 
 // 하루 한 번 최신 릴리스를 확인한다.
 // 설치 파일은 크롬 zip(*-chrome.zip)만 받는다. 파이어폭스용 zip은 릴리스에 없다.
@@ -145,26 +147,11 @@ const fetchLatestRelease = async () => {
     };
 };
 
-const badgeApi = () => (import.meta.env.FIREFOX ? browser.browserAction : browser.action);
-
-const syncUpdateBadge = async (updateAvailable: boolean) => {
-    const api = badgeApi();
-
+const syncUpdateBadge = async (_updateAvailable: boolean) => {
     try {
-        await api.setBadgeText({text: updateAvailable ? "NEW" : ""});
-        if (!updateAvailable) return;
-        await api.setBadgeBackgroundColor({color: "#3b5bdb"});
+        await paintToolbarBadge();
     } catch (error) {
         console.error("업데이트 배지 표시 실패:", error);
-        return;
-    }
-
-    if (import.meta.env.FIREFOX) return;
-
-    try {
-        await browser.action.setBadgeTextColor({color: "#ffffff"});
-    } catch {
-        // 배지 글자색을 지원하지 않는 브라우저는 건너뛴다.
     }
 };
 
