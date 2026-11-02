@@ -1,4 +1,4 @@
-// BongChzzk 화질 선택 순수 로직 (콘텐츠 스크립트에서 전역 BongQuality로 사용, 테스트는 vm으로 로드)
+// 치지직 화질 선택 순수 로직 (콘텐츠 스크립트에서 전역 BongQuality로 사용, 테스트는 vm으로 로드)
 (function (root) {
   'use strict';
   // "1080p", "1080p60", "720p 60fps", "자동(720p)" 같은 라벨에서 높이 추출. 자동 항목은 null.

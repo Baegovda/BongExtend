@@ -1,4 +1,4 @@
-// BongChzzk 넓은 화면 자동 순수 로직 (전역 BongWide)
+// 치지직 넓은 화면 자동 순수 로직 (전역 BongWide)
 (function (root) {
   'use strict';
   const LABEL = /넓은\s*화면|와이드|wide/i;

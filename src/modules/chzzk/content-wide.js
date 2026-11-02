@@ -1,4 +1,4 @@
-// BongChzzk 넓은 화면 자동: /live, /video 진입 시 플레이어 '넓은 화면'을 한 번 켬
+// 치지직 넓은 화면 자동: /live, /video 진입 시 플레이어 '넓은 화면'을 한 번 켬
 // 주의: 넓은 화면 버튼 선택자는 실사이트에서 확인하지 못한 추정입니다.
 (() => {
   'use strict';
@@ -26,7 +26,7 @@
       if (s > 0) found.push(`${s}:${i.cls}|${i.label}`);
       if (s > bestS) { best = el; bestS = s; }
     }
-    console.debug('[BongChzzk] 넓은 화면 후보:', found.length ? found : '(없음)');
+    console.debug('[BongExtend] 넓은 화면 후보:', found.length ? found : '(없음)');
     return best ? (best.closest('button') || best) : null;
   }
   const pageKey = () => /^\/(live|video)\//.test(location.pathname) ? location.pathname : '';
@@ -41,9 +41,9 @@
     }
     doneUrl = key; // 상태를 몰라도 URL당 최대 1번만 클릭(토글 반복 방지)
     const st = D.wideState(info(btn));
-    if (st === true) { console.debug('[BongChzzk] 이미 넓은 화면'); return; }
+    if (st === true) { console.debug('[BongExtend] 이미 넓은 화면'); return; }
     btn.click();
-    console.debug('[BongChzzk] 넓은 화면 버튼 클릭', btn);
+    console.debug('[BongExtend] 넓은 화면 버튼 클릭', btn);
   }
   function start() { clearTimeout(timer); tries = 0; timer = setTimeout(attempt, 1500); }
   let last = location.pathname;

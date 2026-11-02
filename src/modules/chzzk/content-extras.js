@@ -1,11 +1,11 @@
-// BongChzzk 부가 기능: 선명한 화면, 주간 랭킹 가리기, 채팅 글씨 크기, 시청자 수, 방향키 이동
+// 치지직 부가 기능: 선명한 화면, 주간 랭킹 가리기, 채팅 글씨 크기, 시청자 수, 방향키 이동
 (() => {
   'use strict';
   if (window.top !== window) return;
   const X = globalThis.BongExtras;
   const DEF = { vivid: true, hideRanking: true, chatFontSize: 0, viewerChat: true, viewerOverlay: true, arrowSeek: true, seekSeconds: 5, blurRankNames: false, hideTimeGuide: true, adSkip: true };
   let cfg = { ...DEF };
-  const log = (...a) => console.log('[BongChzzk]', ...a);
+  const log = (...a) => console.log('[BongExtend]', ...a);
   const ROOT = 'div.pzp.pzp-pc';
   BCStore.sync.get(DEF, v => { cfg = { ...DEF, ...v }; applyStyles(); });
   BCStore.onChanged.addListener((c, area) => {
@@ -17,20 +17,20 @@
 
   // ── 스타일 주입: 랭킹 가리기 + 채팅 글씨 크기 + 시청자 배지 ──
   function applyStyles() {
-    let st = document.getElementById('bongchzzk-xstyle');
-    if (!st) { st = document.createElement('style'); st.id = 'bongchzzk-xstyle'; (document.head || document.documentElement).appendChild(st); }
-    let css = '#bongchzzk-vov{position:absolute;top:12px;left:12px;z-index:2147483000;pointer-events:none;background:rgba(0,0,0,.55);color:#fff;font:600 13px/1 sans-serif;padding:5px 9px;border-radius:999px;white-space:nowrap}'
-      + '#bongchzzk-vchat{display:inline-block;margin-left:8px;font-size:12px;font-weight:400;color:#9aa0a6;white-space:nowrap;vertical-align:middle;max-width:calc(100% - 60px);overflow:hidden;text-overflow:ellipsis}'
-      + '.bongchzzk-seektoast{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:2147483000;pointer-events:none;background:rgba(0,0,0,.6);color:#fff;font:700 18px sans-serif;padding:8px 14px;border-radius:10px;transition:opacity .3s}';
-    const RANK = ['#aside-chatting > div:has(> strong[class*="_ranking_"])', '#aside-chatting > div:has(> strong[class*="_title_"][class*="_ranking"])', '#aside-chatting > div:has([class*="_qxsox_"])', '#aside-chatting > div:has(i[class*="icon_cheese"]):not(:has([role="log"]))', '.bongchzzk-rank'];
+    let st = document.getElementById('bex-xstyle');
+    if (!st) { st = document.createElement('style'); st.id = 'bex-xstyle'; (document.head || document.documentElement).appendChild(st); }
+    let css = '#bex-vov{position:absolute;top:12px;left:12px;z-index:2147483000;pointer-events:none;background:rgba(0,0,0,.55);color:#fff;font:600 13px/1 sans-serif;padding:5px 9px;border-radius:999px;white-space:nowrap}'
+      + '#bex-vchat{display:inline-block;margin-left:8px;font-size:12px;font-weight:400;color:#9aa0a6;white-space:nowrap;vertical-align:middle;max-width:calc(100% - 60px);overflow:hidden;text-overflow:ellipsis}'
+      + '.bex-seektoast{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:2147483000;pointer-events:none;background:rgba(0,0,0,.6);color:#fff;font:700 18px sans-serif;padding:8px 14px;border-radius:10px;transition:opacity .3s}';
+    const RANK = ['#aside-chatting > div:has(> strong[class*="_ranking_"])', '#aside-chatting > div:has(> strong[class*="_title_"][class*="_ranking"])', '#aside-chatting > div:has([class*="_qxsox_"])', '#aside-chatting > div:has(i[class*="icon_cheese"]):not(:has([role="log"]))', '.bex-rank'];
     // 줄 숨기기와 닉네임 흐림은 각자 스위치대로. 줄이 숨겨지면 흐림은 보이지 않을 뿐.
     if (cfg.hideRanking) css += RANK.join(', ') + '{display:none !important}';
     if (cfg.blurRankNames) {
-      const names = ['[class*="_nickname_"]', '[class*="_ellipsis_"]', '[class*="_text_"]', '.bongchzzk-blurname'];
+      const names = ['[class*="_nickname_"]', '[class*="_ellipsis_"]', '[class*="_text_"]', '.bex-blurname'];
       css += RANK.flatMap(r => names.map(n => `${r} ${n}`)).join(', ') + '{filter:blur(6px) !important;user-select:none !important}';
       css += RANK.map(r => `${r} [class*="_money_"], ${r} [class*="_money_"] *`).join(', ') + '{filter:none !important}';
     }
-    if (cfg.hideTimeGuide) css += '.restart_guide, .bongchzzk-guidehide{display:none !important}';
+    if (cfg.hideTimeGuide) css += '.restart_guide, .bex-guidehide{display:none !important}';
     const fs = X.normalizeFontSize(cfg.chatFontSize);
     if (fs) css += `#aside-chatting [class*="_chatting_message_"], #aside-chatting [class*="_chatting_message_"] > span[class*="_text_"], #aside-chatting [class*="_chatting_message_"] [class*="_nickname_"] *{font-size:${fs}px !important;line-height:1.5 !important}`;
     st.textContent = css;
@@ -47,12 +47,12 @@
       hasInput: !!d.querySelector('textarea, [contenteditable="true"], [contenteditable=""]'),
       signal: !!d.querySelector('[class*="_qxsox_"], i[class*="icon_cheese"], strong[class*="_ranking"]') || /랭킹/.test(d.querySelector('strong')?.textContent || '')
     })));
-    kids.forEach((d, i) => d.classList.toggle('bongchzzk-rank', rows.includes(i)));
+    kids.forEach((d, i) => d.classList.toggle('bex-rank', rows.includes(i)));
     // 닉네임 텍스트 표시(금액/제목/숫자는 제외)
     for (const i of rows) {
       for (const el of kids[i].querySelectorAll('*')) {
         if (el.childElementCount || el.closest('[class*="_money_"], strong, button, [class*="blind"]')) continue;
-        el.classList.toggle('bongchzzk-blurname', X.isNameText(el.textContent));
+        el.classList.toggle('bex-blurname', X.isNameText(el.textContent));
       }
     }
   }
@@ -103,23 +103,23 @@
   function refreshViewerUi() {
     const onLive = !!X.channelIdFromPath(location.pathname);
     // 채팅 헤더: h2("채팅") 안쪽에 붙임(형제로 두면 보이지 않음, 실사이트 확인)
-    let chatEl = document.getElementById('bongchzzk-vchat');
+    let chatEl = document.getElementById('bex-vchat');
     const h2 = document.querySelector('#aside-chatting > div:first-child h2');
     if (cfg.viewerChat && onLive && h2) {
       if (!chatEl || chatEl.parentElement !== h2) {
         chatEl?.remove();
-        chatEl = document.createElement('span'); chatEl.id = 'bongchzzk-vchat';
+        chatEl = document.createElement('span'); chatEl.id = 'bex-vchat';
         h2.appendChild(chatEl);
       }
       paintViewer(chatEl);
     } else chatEl?.remove();
     // 플레이어 오버레이 (fullscreen에서도 보이도록 .pzp 안에)
-    let ov = document.getElementById('bongchzzk-vov');
+    let ov = document.getElementById('bex-vov');
     const host = document.querySelector(ROOT) || document.getElementById('live_player_layout');
     if (cfg.viewerOverlay && onLive && host) {
       if (!ov || ov.parentElement !== host) {
         ov?.remove();
-        ov = document.createElement('div'); ov.id = 'bongchzzk-vov';
+        ov = document.createElement('div'); ov.id = 'bex-vov';
         if (getComputedStyle(host).position === 'static') host.style.position = 'relative';
         host.appendChild(ov);
       }
@@ -160,8 +160,8 @@
   function seekToast(text) {
     const host = document.querySelector(ROOT) || document.getElementById('live_player_layout');
     if (!host) return;
-    let t = host.querySelector('.bongchzzk-seektoast');
-    if (!t) { t = document.createElement('div'); t.className = 'bongchzzk-seektoast'; host.appendChild(t); }
+    let t = host.querySelector('.bex-seektoast');
+    if (!t) { t = document.createElement('div'); t.className = 'bex-seektoast'; host.appendChild(t); }
     t.textContent = text; t.style.opacity = '1';
     clearTimeout(t._h); t._h = setTimeout(() => { t.style.opacity = '0'; }, 600);
   }
@@ -190,12 +190,12 @@
   // ── 타임머신/치트키 안내창 숨김 (클릭은 하지 않고 숨기기만) ──
   const P = globalThis.BongPlayer;
   function checkGuide(el) {
-    if (!cfg.hideTimeGuide || el.nodeType !== 1 || el.id?.startsWith('bongchzzk') || el.classList.contains('bongchzzk-guidehide')) return;
+    if (!cfg.hideTimeGuide || el.nodeType !== 1 || el.id?.startsWith('bex') || el.classList.contains('bex-guidehide')) return;
     if (el.closest('.pzp-pc-settings, #aside-chatting, [class*="pzp-pc__bottom"], [class*="pzp-pc-ui-controls"]')) return;
     if (el.tagName === 'VIDEO' || el.querySelector('video')) return;
     if (!P.isGuideText(el.textContent)) return;
-    el.classList.add('bongchzzk-guidehide');
-    console.debug('[BongChzzk] 안내창 숨김', el.outerHTML.slice(0, 300));
+    el.classList.add('bex-guidehide');
+    console.debug('[BongExtend] 안내창 숨김', el.outerHTML.slice(0, 300));
   }
   let guideObs = null, guideRoot = null;
   setInterval(() => {
@@ -210,15 +210,15 @@
   // ── body 바로 아래에 붙는 치트키·타임머신 구매 안내 팝업 ('실시간' 버튼) ──
   function checkBodyGuide(node) {
     if (!cfg.hideTimeGuide || !node || node.nodeType !== 1 || node.parentNode !== document.body) return;
-    if (node.id === 'root' || node.id?.startsWith('bongchzzk') || node.classList.contains('bongchzzk-guidehide')) return;
+    if (node.id === 'root' || node.id?.startsWith('bex') || node.classList.contains('bex-guidehide')) return;
     const dlg = node.matches('[role="alertdialog"]') ? node : node.querySelector('[role="alertdialog"]');
     if (!dlg || !P.isPurchaseGuideDialogText(dlg.textContent)) return;
-    node.classList.add('bongchzzk-guidehide');
+    node.classList.add('bex-guidehide');
     node.style.setProperty('display', 'none', 'important');
     setTimeout(() => {
       const close = node.querySelector('button[aria-label="팝업 닫기"]');
       if (close) close.click();
-      setTimeout(() => { if (document.body.style.overflow === 'hidden' && !document.querySelector('body > :not(.bongchzzk-guidehide) [role="alertdialog"], body > [role="alertdialog"]:not(.bongchzzk-guidehide)')) document.body.style.overflow = ''; }, 300);
+      setTimeout(() => { if (document.body.style.overflow === 'hidden' && !document.querySelector('body > :not(.bex-guidehide) [role="alertdialog"], body > [role="alertdialog"]:not(.bex-guidehide)')) document.body.style.overflow = ''; }, 300);
     }, 0);
   }
   function startBodyGuide() {
@@ -241,7 +241,7 @@
   function scanTexts(root) {
     const hits = [];
     for (const el of root.querySelectorAll('*')) {
-      if (el.id?.startsWith('bongchzzk') || el.tagName === 'VIDEO' || el.tagName === 'svg') continue;
+      if (el.id?.startsWith('bex') || el.tagName === 'VIDEO' || el.tagName === 'svg') continue;
       const t = (el.childElementCount === 0 ? el.textContent : ownText(el)).trim();
       if (t && t.length < 40 && P.adTextKind(t) && visible(el)) hits.push({ el, t, kind: P.adTextKind(t) });
     }
@@ -254,7 +254,7 @@
       if (c.closest('a[href]') || c.closest('.pzp-ad-click-through-button')) continue; // 광고 페이지로 이동하는 요소는 누르지 않음
       if (!P.isSafeSkipLabel(ownText(c) || c.textContent || h.t)) continue;
       c.click();
-      console.info('[BongChzzk] 광고 SKIP 클릭', h.t);
+      console.info('[BongExtend] 광고 SKIP 클릭', h.t);
       return true;
     }
     return false;
@@ -292,14 +292,14 @@
     const cands = new Set(r.querySelectorAll('[data-role*="skip" i], .btn_skip, .skip_btn, button, [role="button"]'));
     for (const el of r.querySelectorAll('*')) if (el.childElementCount <= 3 && /SKIP|건너뛰기/i.test(el.textContent || '')) cands.add(el);
     for (const el of cands) {
-      if (el.id?.startsWith('bongchzzk') || !visible(el)) continue;
+      if (el.id?.startsWith('bex') || !visible(el)) continue;
       const info = { text: el.textContent, inCountdown: !!el.closest('[data-role="countDownEl"], [data-role="skipInfo"]'), inLink: !!el.closest('a[href], [data-role="adLink"]'), dataRole: el.getAttribute('data-role') || '', cls: String(el.className || '') };
       if (!P.isSkipCandidate(info)) continue;
       const c = el.closest('button, [role="button"], [tabindex]') || el;
       if (c.closest('a[href], [data-role="adLink"], [data-role="countDownEl"]')) continue;
       lastSkipClick = Date.now();
       fireClick(c);
-      console.info('[BongChzzk] 광고 SKIP 클릭(네이버 광고)', c.outerHTML.slice(0, 200));
+      console.info('[BongExtend] 광고 SKIP 클릭(네이버 광고)', c.outerHTML.slice(0, 200));
       return true;
     }
     return false;
@@ -327,7 +327,7 @@
     }
     globalThis.__bongAdActive = active; // 버퍼링 복구·자동 재생이 광고 중엔 개입하지 않도록
     if (active) {
-      if (!adWasActive) console.info('[BongChzzk] 광고 감지', { naver: !!container, texts: hits.map(h => h.t) });
+      if (!adWasActive) console.info('[BongExtend] 광고 감지', { naver: !!container, texts: hits.map(h => h.t) });
       if (container) {
         const r = naverAdRoot(container);
         for (const v of container.querySelectorAll('video')) boostAdVideo(v);
@@ -338,7 +338,7 @@
         for (const v of adVideos(root)) if (!v.closest(P.AD_CONTAINER_SEL) && !container && !(location.pathname.startsWith('/live/') && !P.isAdDuration(v.duration))) boostAdVideo(v); // 라이브 본방송 영상을 광고로 오인해 16배속·끝으로 이동시키지 않도록
       }
     } else if (adWasActive) {
-      console.info('[BongChzzk] 광고 종료');
+      console.info('[BongExtend] 광고 종료');
       for (const v of boosted) {
         if (!v.isConnected) continue;
         try { v.playbackRate = 1; } catch (e) {}
@@ -363,7 +363,7 @@
   setInterval(() => {
     if (location.pathname !== lastPath) { lastPath = location.pathname; vividState.nextAt = 0; pollViewers(); }
     ensureVivid();
-    if (!document.getElementById('bongchzzk-xstyle')) applyStyles();
+    if (!document.getElementById('bex-xstyle')) applyStyles();
   }, 3000);
   setInterval(() => { if (!vBusy) refreshViewerUi(); hideRankingFallback(); }, 1000); // 플레이어/채팅 재렌더 시 재부착
   setInterval(() => { // 새 비디오(광고 후 재초기화 포함)마다 선명한 화면 재적용

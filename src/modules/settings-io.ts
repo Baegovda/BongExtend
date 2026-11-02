@@ -1,9 +1,9 @@
 // BongExtend 설정 내보내기·가져오기
 // 받는 형식
 //  1) BongExtend 파일: {type:"bongextend-settings", chzzk:{sync,local}, trans:{settings}, dc:{...}, core:{...}}
-//  2) 옛 BongTrans 파일: {type:"page-translator-settings", settings:{...}}
-//  3) 옛 BongDC 데이터: 디시 탭 → 데이터 → 내보내기로 복사한 JSON (refresher:* 키)
-//  4) 옛 BongChzzk 설정 객체: {enabled, watchList, ...} (옛 확장에는 내보내기 버튼이 없어서 직접 만든 경우만)
+//  2) 예전 번역 설정: {type:"page-translator-settings", settings:{...}}
+//  3) 예전 디시 데이터: 디시 탭 → 데이터 → 내보내기로 복사한 JSON (refresher:* 키)
+//  4) 예전 치지직 설정 객체: {enabled, watchList, ...} (내보내기 버튼이 없어서 직접 만든 경우만)
 // @ts-ignore 순수 JS
 import {normalizeSettings, SETTINGS_FILE_TYPE, STORAGE_KEY as TRANS_KEY} from "@/modules/trans/lib/settings.js";
 import {normalizeStorageData} from "@/storage/migration";
@@ -116,7 +116,7 @@ export const applyImport = async (plan: ImportPlan, local: Area, sync: Area): Pr
     if (Object.keys(plan.local).length) await local.set(plan.local);
     if (plan.dcReplace) {
         const dcKeys = Object.keys(await local.get(null)).filter((k) => !isOtherModuleKey(k));
-        // 통신사 표 같은 큰 데이터베이스는 그대로 둔다 (옛 BongDC 가져오기와 같은 동작)
+        // 통신사 표 같은 큰 데이터베이스는 그대로 둔다 (예전 디시 설정 가져오기와 같은 동작)
         const keep = dcKeys.filter((k) => !k.startsWith("refresher:database:"));
         await local.remove(keep);
         await local.set(plan.dcReplace);

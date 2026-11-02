@@ -1,4 +1,4 @@
-// BongChzzk 부가 기능 순수 로직 (전역 BongExtras, 테스트는 vm으로 로드)
+// 치지직 부가 기능 순수 로직 (전역 BongExtras, 테스트는 vm으로 로드)
 (function (root) {
   'use strict';
   // "/live/<32자리 hex>" 경로에서 채널 ID 추출, 아니면 null

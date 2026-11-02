@@ -1,11 +1,11 @@
-// BongChzzk 팔로잉 채널 자동 새로고침 (버퍼링 복구/화질 고정과 독립)
+// 치지직 팔로잉 채널 자동 새로고침 (버퍼링 복구/화질 고정과 독립)
 (() => {
   'use strict';
   if (window.top !== window) return; // 사이드바는 최상위 프레임에만 있음
   const F = globalThis.BongFollowing;
   const DEF = { followRefresh: true, followInterval: 5 };
   const API = 'https://api.chzzk.naver.com/service/v1/channels/followings/live';
-  const log = (...a) => console.log('[BongChzzk]', ...a);
+  const log = (...a) => console.log('[BongExtend]', ...a);
   let cfg = { ...DEF }, timer = 0, failures = 0, lastSig = null, busy = false;
 
   // 사이드바 '팔로잉 채널' 영역 찾기 (추정: 제목 텍스트 기준, 클래스명 해시 변경에 대비)

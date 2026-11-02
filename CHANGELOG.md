@@ -3,8 +3,6 @@
 BongExtend 변경 이력. GitHub **[Releases](https://github.com/Baegovda/BongExtend/releases)** 와 같이 갑니다.
 설치 파일은 Releases의 `bongextend-*-chrome.zip` 입니다 (Source code zip 아님).
 
-옛 확장 이력: `docs/legacy/` (BongChzzk, BongTrans, BongDC).
-
 ---
 
 ## [1.0.18] - 2026-11-02
@@ -67,7 +65,7 @@ BongExtend 변경 이력. GitHub **[Releases](https://github.com/Baegovda/BongEx
 - 치지직: 버퍼링 복구·화질 고정·관심 스트리머 알림 문구를 알기 쉽게 정리
 - 번역: ON/OFF를 켜짐/꺼짐으로, 오류 문구 끝의 영어 표기 삭제. 팝업의 언어 표시는 `Korean (한국어)` 대신 그 언어 이름(한국어 등)만 보여요. 번역 설정 목록은 `한국어 · Korean`처럼 영어 이름도 같이 보여요
 - 업데이트·설정: 백업 버튼 이름을 "파일로 저장 / 파일 불러오기 / 붙여넣어 불러오기"로 정리
-- 디시: 옛 이름(BongDC) 문구 삭제, 어색한 설정 이름 정리 (블러 → 흐리게, 딜레이 → 지연 시간 등), 띄어쓰기 수정
+- 디시: 옛 확장 이름 문구 삭제, 어색한 설정 이름 정리 (블러 → 흐리게, 딜레이 → 지연 시간 등), 띄어쓰기 수정
 - 업데이트 페이지 버튼 이름 정리
 
 ## [1.0.10] - 2026-10-31
@@ -142,13 +140,13 @@ BongExtend 변경 이력. GitHub **[Releases](https://github.com/Baegovda/BongEx
 ## [1.0.0] - 2026-10-31
 
 ### 추가
-- BongChzzk(치지직) 1.6.2, BongTrans(번역) 1.5.1, BongDC(디시) 5.2.20을 하나로 합친 첫 버전
+- 치지직 1.6.2, 번역 1.5.1, 디시 5.2.20을 하나로 합친 첫 버전
 - 팝업 하나에 탭 네 개: 치지직 / 번역 / 디시 / 업데이트·설정. 모듈마다 켜기·끄기 스위치
-- 설정 내보내기·가져오기: BongChrome 파일, 옛 BongTrans 설정 파일, 옛 BongDC 데이터를 받음
-- 업데이트는 하나로: 업데이트 확인 → 지금 업데이트 (압축 푼 BongChrome 폴더를 한 번만 고르면 다음부터 자동)
+- 설정 내보내기·가져오기: 이 확장 파일, 예전 번역 설정 파일, 예전 디시 데이터를 받음
+- 업데이트는 하나로: 업데이트 확인 → 지금 업데이트 (압축 푼 설치 폴더를 한 번만 고르면 다음부터 자동)
 
 ### 바뀐 점
 - 단축키는 모두 뺐음 (Ctrl+Shift+Y, Alt+Shift+O, Alt+R, Alt+S, Alt+P). 필요하면 나중에 다시 넣음
-- 번역 우클릭 메뉴 이름: "BongChrome: 페이지 번역 켜기/끄기"
+- 번역 우클릭 메뉴 이름: "BongExtend: 페이지 번역 켜기/끄기"
 - 새 확장 ID로 시작. 옛 확장 설정은 자동으로 넘어오지 않으니 내보내기·가져오기로 옮김
 - 라이선스 GPL-3.0 (디시 모듈이 green1052/DCRefresher-Reborn 포크)

@@ -12,17 +12,17 @@ import {
 } from "@/core/updateCheck";
 import {refreshUpdateStateAfterInstall} from "@/core/updateCheck";
 
-// @ts-ignore 번역 모듈은 기존 BongTrans 순수 JS를 그대로 쓴다.
+// @ts-ignore 번역 모듈은 순수 JS를 그대로 쓴다.
 import {createTransMenus, startTransBackground} from "@/modules/trans/background.js";
 // @ts-ignore 공통 모듈 스위치(순수 JS)
 import {MODULES_KEY, getModules} from "@/modules/core-modules.js";
 import {syncChzzkScripts} from "@/modules/chzzk-register";
 
 export default defineBackground(() => {
-    // ===== BongExtend: 번역 모듈(옛 BongTrans) 처리기 =====
+    // ===== 번역 모듈 처리기 =====
     startTransBackground();
 
-    // ===== BongExtend: 치지직 모듈(옛 BongChzzk) 콘텐츠 스크립트 등록 =====
+    // ===== 치지직 모듈 콘텐츠 스크립트 등록 =====
     // 모듈 스위치를 끄면 등록을 풀어서 치지직 페이지에 아예 붙지 않게 한다.
     void syncChzzkScripts(getModules);
     browser.storage.onChanged.addListener((changes, area) => {

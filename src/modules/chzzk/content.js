@@ -3,7 +3,7 @@
   if (window.top !== window) return;
   const DEF = { enabled: true, threshold: 5, cooldown: 10, toast: true, retryTimer: true, lockQuality: true, targetQuality: 1080 };
   let cfg = { ...DEF };
-  const TAG = '[BongChzzk]';
+  const TAG = '[BongExtend]';
   const log = (...a) => console.log(TAG, ...a);
   BCStore.sync.get(DEF, v => { cfg = { ...DEF, ...v }; });
   BCStore.onChanged.addListener((c, area) => {
@@ -226,7 +226,7 @@
   document.addEventListener('pause', e => { if (e.target && e.target.tagName === 'VIDEO' && document.hasFocus() && !globalThis.__bongAdActive) userPausedAt = Date.now(); }, true);
   document.addEventListener('playing', () => { userPausedAt = 0; }, true);
   function wdReset() { wd.since = 0; wd.attempt = 0; wd.lastAttempt = 0; wd.view = null; }
-  const RELOAD_KEY = 'bongchzzk.wdReloads';
+  const RELOAD_KEY = 'bex.wdReloads';
   function readReloads(now) { try { return RT.recentReloadTimes(JSON.parse(sessionStorage.getItem(RELOAD_KEY) || '[]'), now); } catch (e) { return []; } }
   function isOfflineUi() {
     const r = document.querySelector('div.pzp') || document.getElementById('live_player_layout');
@@ -311,14 +311,14 @@
     prefix: '.pzp-ui-setting-quality-item__prefix',
     checked: 'pzp-ui-setting-pane-item--checked'
   };
-  const HIDE_CLASS = 'bongchzzk-qhide';
+  const HIDE_CLASS = 'bex-qhide';
   const q = { busy: false, nextAt: 0, fails: 0, userUntil: 0, timer: 0, lastPath: location.pathname };
   const sleep = ms => new Promise(r => setTimeout(r, ms));
 
   function injectHideStyle() {
-    if (document.getElementById('bongchzzk-qstyle')) return;
+    if (document.getElementById('bex-qstyle')) return;
     const st = document.createElement('style');
-    st.id = 'bongchzzk-qstyle';
+    st.id = 'bex-qstyle';
     st.textContent = `html.${HIDE_CLASS} .pzp-pc-settings,html.${HIDE_CLASS} [class*="pzp-pc-setting-"]:not(.pzp-pc-setting-button){opacity:0!important;transition:none!important}`;
     (document.head || document.documentElement).appendChild(st);
   }

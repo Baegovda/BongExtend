@@ -103,7 +103,7 @@ describe("checkLatestRelease", () => {
 describe("isBongExtendManifest", () => {
     test("accepts only the BongExtend manifest name", () => {
         expect(isBongExtendManifest('{"name":"BongExtend"}')).toBe(true);
-        expect(isBongExtendManifest('{"name":"BongDC"}')).toBe(false);
+        expect(isBongExtendManifest('{"name":"OtherExtension"}')).toBe(false);
         expect(isBongExtendManifest('{"name":"Other"}')).toBe(false);
         expect(isBongExtendManifest("nope")).toBe(false);
     });
