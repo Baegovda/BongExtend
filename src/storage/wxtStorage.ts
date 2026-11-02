@@ -77,6 +77,7 @@ export const updateStorage = {
     latestVersion: storage.defineItem<string>("local:core.update:latestVersion", {defaultValue: ""}),
     updateAvailable: storage.defineItem<boolean>("local:core.update:available", {defaultValue: false}),
     chromeDownloadUrl: storage.defineItem<string>("local:core.update:chromeUrl", {defaultValue: ""}),
+    // 옛 BongDC 키를 옮길 자리만 남겨 둔다. 업데이트는 이 주소를 읽지 않는다.
     firefoxDownloadUrl: storage.defineItem<string>("local:core.update:firefoxUrl", {defaultValue: ""}),
     releaseNotes: storage.defineItem<string>("local:core.update:notes", {defaultValue: ""}),
     releaseUrl: storage.defineItem<string>("local:core.update:releaseUrl", {defaultValue: ""}),

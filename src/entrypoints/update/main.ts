@@ -47,7 +47,8 @@ const setError = (text: string) => {
 
 const showFirefox = () => {
     if (versionEl) versionEl.textContent = browser.runtime.getManifest().version;
-    setStatus("파이어폭스는 폴더에 바로 쓰는 업데이트를 지원하지 않아요. 설정에서 zip을 받아 기존 폴더에 덮어써 주세요.");
+    setStatus("파이어폭스용 설치 파일은 없어요. 업데이트는 크롬에서만 할 수 있어요.");
+    document.querySelector(".note")?.setAttribute("hidden", "");
     if (startButton) startButton.hidden = true;
     if (resumeButton) resumeButton.hidden = true;
 };
@@ -244,7 +245,7 @@ if (import.meta.env.FIREFOX) {
         }
 
         try {
-            release = await checkLatestRelease(running, "chrome");
+            release = await checkLatestRelease(running);
             if (decision === "resume") return;
             if (versionEl) versionEl.textContent = release.upToDate ? running : versionLine(running, release.latest);
             if (release.upToDate) {

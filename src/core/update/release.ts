@@ -1,11 +1,10 @@
 import {compareVersions} from "@/core/semver";
+import {isTimeoutError, UPDATE_FETCH_TIMEOUT_MS, UPDATE_TIMEOUT_MESSAGE} from "@/core/update/timeout";
 
 export const GITHUB_RELEASE_REPO = "Baegovda/BongExtend";
 export const EXTENSION_NAME = "BongExtend";
 export const RELEASES_LATEST = `https://api.github.com/repos/${GITHUB_RELEASE_REPO}/releases/latest`;
 export const RELEASES_PAGE = `https://github.com/${GITHUB_RELEASE_REPO}/releases`;
-
-export type UpdateBrowserName = "chrome" | "firefox";
 
 export type ReleaseZipAsset = {
     name?: string;
@@ -37,13 +36,13 @@ export const describeUpdate = (currentVersion: string, latest: string | null | u
 export const canApplyVersion = (currentVersion: string, nextVersion: string): boolean =>
     compareVersions(nextVersion, currentVersion) === 1;
 
+// 릴리스에 올리는 설치 파일은 크롬 zip뿐이다. *-firefox.zip 은 찾지 않는다.
 export const pickReleaseZip = (
-    assets: ReleaseZipAsset[] | null | undefined,
-    browserName: UpdateBrowserName
+    assets: ReleaseZipAsset[] | null | undefined
 ): ReleaseZipAsset | null => {
     const list = Array.isArray(assets) ? assets : [];
     return list.find((asset) =>
-        String(asset?.name ?? "").endsWith(`-${browserName}.zip`) && Boolean(asset?.browser_download_url)
+        String(asset?.name ?? "").endsWith("-chrome.zip") && Boolean(asset?.browser_download_url)
     ) ?? null;
 };
 
@@ -55,7 +54,7 @@ export const isBongExtendManifest = (text: string): boolean => {
     }
 };
 
-type FetchLike = (input: string, init?: { headers?: Record<string, string> }) => Promise<{
+type FetchLike = (input: string, init?: { headers?: Record<string, string>; signal?: AbortSignal }) => Promise<{
     ok: boolean;
     status: number;
     json: () => Promise<unknown>;
@@ -63,17 +62,23 @@ type FetchLike = (input: string, init?: { headers?: Record<string, string> }) =>
 
 export const checkLatestRelease = async (
     currentVersion: string,
-    browserName: UpdateBrowserName,
     deps: { fetchImpl?: FetchLike; url?: string } = {}
 ): Promise<LatestRelease> => {
     const fetchImpl = deps.fetchImpl ?? fetch;
-    const response = await fetchImpl(deps.url ?? RELEASES_LATEST, {
-        headers: {
-            Accept: "application/vnd.github+json",
-            "User-Agent": "BongExtend",
-            "X-GitHub-Api-Version": "2022-11-28"
-        }
-    });
+    let response: Awaited<ReturnType<FetchLike>>;
+    try {
+        response = await fetchImpl(deps.url ?? RELEASES_LATEST, {
+            headers: {
+                Accept: "application/vnd.github+json",
+                "User-Agent": "BongExtend",
+                "X-GitHub-Api-Version": "2022-11-28"
+            },
+            signal: AbortSignal.timeout(UPDATE_FETCH_TIMEOUT_MS)
+        });
+    } catch (error) {
+        if (isTimeoutError(error)) throw new Error(UPDATE_TIMEOUT_MESSAGE);
+        throw error instanceof Error ? error : new Error("업데이트 정보를 가져오지 못했어요.");
+    }
 
     if (!response.ok) {
         const error = new Error(`업데이트 정보를 가져오지 못했어요. (HTTP ${response.status})`);
@@ -87,7 +92,7 @@ export const checkLatestRelease = async (
         assets?: ReleaseZipAsset[];
     };
     const latest = String(body?.tag_name || "").replace(/^v/i, "");
-    const zip = pickReleaseZip(body?.assets, browserName);
+    const zip = pickReleaseZip(body?.assets);
     const htmlUrl = body?.html_url || RELEASES_PAGE;
     const assetUrl = zip?.browser_download_url || null;
     const compared = compareVersions(latest, currentVersion);

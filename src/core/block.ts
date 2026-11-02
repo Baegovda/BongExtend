@@ -33,11 +33,9 @@ export type BlockCache = Record<RefresherBlockType, RefresherBlockValue[]>;
 export type BlockModeCache = Record<RefresherBlockType, RefresherBlockDetectMode>;
 
 const regexCache = new Map<string, RegExp>();
-const advancedFnCache = new Map<string, (...args: unknown[]) => unknown>();
 
 const clearCompiledCaches = (): void => {
     regexCache.clear();
-    advancedFnCache.clear();
 };
 
 const getCompiledRegex = (pattern: string): RegExp | null => {
@@ -50,18 +48,6 @@ const getCompiledRegex = (pattern: string): RegExp | null => {
     }
     regexCache.set(pattern, regex);
     return regex;
-};
-
-const getCompiledAdvancedFn = (content: string): ((...args: unknown[]) => unknown) | null => {
-    let fn = advancedFnCache.get(content);
-    if (fn) return fn;
-    try {
-        fn = new Function("type", "content", "gallery", content) as (...args: unknown[]) => unknown;
-    } catch {
-        return null;
-    }
-    advancedFnCache.set(content, fn);
-    return fn;
 };
 
 let blockCache: BlockCache = {
@@ -279,16 +265,9 @@ export const check = (type: RefresherBlockType, content: string, gallery?: strin
     const result = cache.some((v) => {
         if (v.gallery && v.gallery !== gallery) return false;
 
-        if (v.isAdvanced) {
-            const fn = getCompiledAdvancedFn(v.content);
-            if (!fn) return false;
-            try {
-                const response = fn(type, content, gallery);
-                return typeof response === "boolean" ? response : false;
-            } catch {
-                return false;
-            }
-        }
+        // 고급 식은 사용자가 적은 자바스크립트다. MV3에서는 그 식을 실행하지 않는다.
+        // 목록에는 그대로 두고, 맞는지 검사만 건너뛴다.
+        if (v.isAdvanced) return false;
 
         const mode = v.mode ?? blockModeCache[type];
 

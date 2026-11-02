@@ -2,8 +2,10 @@ import {updateStorage} from "@/storage/wxtStorage";
 import {compareVersions, parseSemver} from "@/core/semver";
 import {GITHUB_RELEASE_REPO, pickReleaseZip} from "@/core/update/release";
 import {deriveUpdateAvailable} from "@/core/update/availability";
+import {isTimeoutError, UPDATE_FETCH_TIMEOUT_MS, UPDATE_TIMEOUT_MESSAGE} from "@/core/update/timeout";
 
 // 하루 한 번 최신 릴리스를 확인한다.
+// 설치 파일은 크롬 zip(*-chrome.zip)만 받는다. 파이어폭스용 zip은 릴리스에 없다.
 // 크롬 압축 해제 설치는 업데이트 탭에서 폴더에 바로 넣고, 그 외에는 zip을 받아 덮어쓴다.
 
 export {GITHUB_RELEASE_REPO};
@@ -67,8 +69,8 @@ const briefReleaseNotes = (body: string): string => {
     return `${text.slice(0, RELEASE_NOTES_LIMIT).trimEnd()}…`;
 };
 
-const findAssetUrl = (assets: GitHubReleaseAsset[], browserName: UpdateBrowser): string =>
-    pickReleaseZip(assets, browserName)?.browser_download_url ?? "";
+const findChromeAssetUrl = (assets: GitHubReleaseAsset[]): string =>
+    pickReleaseZip(assets)?.browser_download_url ?? "";
 
 const filenameFromUrl = (url: string, fallback: string): string => {
     try {
@@ -98,9 +100,11 @@ const fetchLatestRelease = async () => {
                 Accept: "application/vnd.github+json",
                 "User-Agent": "BongExtend",
                 "X-GitHub-Api-Version": "2022-11-28"
-            }
+            },
+            signal: AbortSignal.timeout(UPDATE_FETCH_TIMEOUT_MS)
         });
-    } catch {
+    } catch (error) {
+        if (isTimeoutError(error)) throw new UpdateCheckError(UPDATE_TIMEOUT_MESSAGE);
         throw new UpdateCheckError("네트워크에 연결할 수 없어요. 인터넷 연결을 확인해 주세요.");
     }
 
@@ -135,8 +139,7 @@ const fetchLatestRelease = async () => {
 
     return {
         version,
-        chromeDownloadUrl: findAssetUrl(assets, "chrome"),
-        firefoxDownloadUrl: findAssetUrl(assets, "firefox"),
+        chromeDownloadUrl: findChromeAssetUrl(assets),
         releaseUrl: payload?.html_url || `https://github.com/${GITHUB_RELEASE_REPO}/releases/latest`,
         releaseNotes: briefReleaseNotes(payload?.body ?? "")
     };
@@ -197,7 +200,6 @@ const buildStatus = async (currentVersion = getCurrentExtensionVersion()): Promi
         latestVersion,
         storedUpdateAvailable,
         chromeDownloadUrl,
-        firefoxDownloadUrl,
         releaseNotes,
         releaseUrl,
         lastCheckedAt,
@@ -207,7 +209,6 @@ const buildStatus = async (currentVersion = getCurrentExtensionVersion()): Promi
         updateStorage.latestVersion.getValue(),
         updateStorage.updateAvailable.getValue(),
         updateStorage.chromeDownloadUrl.getValue(),
-        updateStorage.firefoxDownloadUrl.getValue(),
         updateStorage.releaseNotes.getValue(),
         updateStorage.releaseUrl.getValue(),
         updateStorage.lastCheck.getValue(),
@@ -215,7 +216,7 @@ const buildStatus = async (currentVersion = getCurrentExtensionVersion()): Promi
         updateStorage.autoCheck.getValue()
     ]);
 
-    const downloadUrl = browserName === "firefox" ? firefoxDownloadUrl : chromeDownloadUrl;
+    const downloadUrl = chromeDownloadUrl;
     const updateAvailable = deriveUpdateAvailable(storedUpdateAvailable, latestVersion, currentVersion);
     let error = storedError;
 
@@ -238,7 +239,7 @@ const buildStatus = async (currentVersion = getCurrentExtensionVersion()): Promi
         updateAvailable,
         downloadUrl,
         downloadFilename: downloadUrl
-            ? filenameFromUrl(downloadUrl, `bongextend-${latestVersion}-${browserName}.zip`)
+            ? filenameFromUrl(downloadUrl, `bongextend-${latestVersion}-chrome.zip`)
             : "",
         releaseNotes,
         releaseUrl,
@@ -257,10 +258,7 @@ export const getExtensionUpdateStatus = async (): Promise<ExtensionUpdateStatus>
     return status;
 };
 
-const missingAssetMessage = (browserName: UpdateBrowser): string =>
-    browserName === "firefox"
-        ? "Firefox용 설치 파일(*-firefox.zip)을 찾지 못했어요."
-        : "Chrome용 설치 파일(*-chrome.zip)을 찾지 못했어요.";
+const MISSING_CHROME_ZIP = "Chrome용 설치 파일(*-chrome.zip)을 찾지 못했어요.";
 
 export const checkExtensionUpdate = async (force = false): Promise<ExtensionUpdateStatus> => {
     const currentVersion = getCurrentExtensionVersion();
@@ -288,16 +286,15 @@ export const checkExtensionUpdate = async (force = false): Promise<ExtensionUpda
         }
 
         const updateAvailable = compared > 0;
-        const browserName = getUpdateBrowser();
-        const downloadUrl = browserName === "firefox" ? latest.firefoxDownloadUrl : latest.chromeDownloadUrl;
-        const error = updateAvailable && !downloadUrl ? missingAssetMessage(browserName) : "";
+        const downloadUrl = latest.chromeDownloadUrl;
+        const error = updateAvailable && !downloadUrl ? MISSING_CHROME_ZIP : "";
 
         await Promise.all([
             updateStorage.lastCheck.setValue(Date.now()),
             updateStorage.latestVersion.setValue(latest.version),
             updateStorage.updateAvailable.setValue(updateAvailable),
             updateStorage.chromeDownloadUrl.setValue(latest.chromeDownloadUrl),
-            updateStorage.firefoxDownloadUrl.setValue(latest.firefoxDownloadUrl),
+            updateStorage.firefoxDownloadUrl.setValue(""),
             updateStorage.releaseNotes.setValue(latest.releaseNotes),
             updateStorage.releaseUrl.setValue(latest.releaseUrl),
             updateStorage.checkError.setValue(error)
