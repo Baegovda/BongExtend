@@ -1292,6 +1292,207 @@ test('the prism sweep keeps single-line slots and does not open a clamped title'
   assert.equal(rtl.classList.contains('pt-page-translator-prism'), false);
 });
 
+test('chat bubbles inside shadow roots, including ones that arrive later, are translated', async () => {
+  const observed = [];
+  const api = loadContent({
+    chrome: {
+      dom: {
+        openOrClosedShadowRoot(node) {
+          return node.closedShadow || null;
+        },
+      },
+    },
+  });
+  const root = element('div');
+  const host = element('div');
+  const shadow = { nodeType: 11, childNodes: [], parentElement: null };
+  host.shadowRoot = shadow;
+  const closedHost = element('div');
+  const closed = { nodeType: 11, childNodes: [], parentElement: null };
+  closedHost.closedShadow = closed;
+  const first = element('span', {}, ['官方旗舰店']);
+  first.parentElement = closed;
+  closed.childNodes.push(first);
+  root.append(host);
+  root.append(closedHost);
+
+  const session = api.createSession({
+    root,
+    walkRoot: root,
+    enableBanner: false,
+    revealAnimation: false,
+    IntersectionObserver: class { observe() {} disconnect() {} },
+    MutationObserver: class {
+      observe(target) { observed.push(target); }
+      disconnect() {}
+    },
+    sendBatch: async (texts) => ({
+      ok: true,
+      translations: texts.map((text) => ({
+        官方旗舰店: '공식 플래그십 스토어',
+        在吗: '계세요?',
+        你好: '안녕하세요',
+      }[text] || text)),
+    }),
+  });
+  session.start();
+  await session.whenIdle();
+  assert.ok(observed.includes(shadow));
+  assert.ok(observed.includes(closed));
+  assert.equal(first.childNodes[0].nodeValue, '공식 플래그십 스토어');
+
+  const bubble = element('div', {}, ['在吗']);
+  shadow.childNodes.push(bubble);
+  session.emitMutations([{ type: 'childList', target: shadow, addedNodes: [bubble] }]);
+  await session.whenIdle();
+  assert.equal(bubble.childNodes[0].nodeValue, '계세요?');
+
+  const lateHost = element('div');
+  const lateShadow = { nodeType: 11, childNodes: [], parentElement: null };
+  const lateText = element('span', {}, ['你好']);
+  lateText.parentElement = lateShadow;
+  lateShadow.childNodes.push(lateText);
+  lateHost.shadowRoot = lateShadow;
+  root.append(lateHost);
+  session.emitMutations([{ type: 'childList', target: root, addedNodes: [lateHost] }]);
+  await session.whenIdle();
+  assert.equal(lateText.childNodes[0].nodeValue, '안녕하세요');
+  assert.ok(observed.includes(lateShadow));
+});
+
+test('rescan translates chat text that showed up without a mutation', async () => {
+  const api = loadContent();
+  const root = element('div');
+  const session = api.createSession({
+    root,
+    walkRoot: root,
+    enableBanner: false,
+    revealAnimation: false,
+    IntersectionObserver: class { observe() {} disconnect() {} },
+    MutationObserver: class { observe() {} disconnect() {} },
+    sendBatch: async (texts) => ({
+      ok: true,
+      translations: texts.map((text) => (text === '包邮' ? '무료배송' : text)),
+    }),
+  });
+  session.start();
+  await session.whenIdle();
+  const bubble = element('p', {}, ['包邮']);
+  root.append(bubble);
+  assert.equal(bubble.childNodes[0].nodeValue, '包邮');
+  session.rescan();
+  await session.whenIdle();
+  assert.equal(bubble.childNodes[0].nodeValue, '무료배송');
+
+  session.setEnabled(false);
+  const quiet = element('p', {}, ['颜色']);
+  root.append(quiet);
+  session.rescan();
+  await session.whenIdle();
+  assert.equal(quiet.childNodes[0].nodeValue, '颜色');
+});
+
+test('a chat frame added after translation starts asks for another pass', async () => {
+  const messages = [];
+  const timers = [];
+  const source = readFileSync(new URL('../content/content.js', import.meta.url), 'utf8');
+  assert.match(source, /hashchange/);
+  assert.match(source, /popstate/);
+  assert.match(source, /openOrClosedShadowRoot/);
+  const api = loadContent({
+    chrome: {
+      runtime: {
+        sendMessage(message) {
+          messages.push(message);
+          return Promise.resolve();
+        },
+      },
+    },
+  });
+  assert.equal(api.frameHostAdded(element('iframe')), true);
+  assert.equal(api.frameHostAdded(element('frame')), true);
+  assert.equal(api.frameHostAdded(element('div')), false);
+  const wrap = element('div');
+  wrap.querySelector = (selector) => (String(selector).includes('iframe') ? element('iframe') : null);
+  assert.equal(api.frameHostAdded(wrap), true);
+  const plain = element('section');
+  plain.querySelector = () => null;
+  assert.equal(api.frameHostAdded(plain), false);
+  assert.equal(api.frameHostAdded(textNode('你好')), false);
+
+  const root = element('div');
+  const session = api.createSession({
+    root,
+    walkRoot: root,
+    enableBanner: false,
+    revealAnimation: false,
+    setTimer(fn, ms) {
+      timers.push({ fn, ms });
+      return timers.length;
+    },
+    clearTimer() {},
+    IntersectionObserver: class { observe() {} disconnect() {} },
+    MutationObserver: class { observe() {} disconnect() {} },
+    sendBatch: async (texts) => ({ ok: true, translations: texts.map(() => '') }),
+  });
+  session.start();
+  const frame = element('iframe');
+  session.emitMutations([{ type: 'childList', addedNodes: [frame, wrap] }]);
+  assert.equal(timers.length, 1);
+  assert.equal(timers[0].ms, 200);
+  assert.equal(messages.length, 0);
+  timers[0].fn();
+  assert.equal(messages.length, 1);
+  assert.equal(messages[0].type, 'TRANSLATE_FRAMES');
+
+  session.setEnabled(false);
+  session.emitMutations([{ type: 'childList', addedNodes: [element('iframe')] }]);
+  assert.equal(timers.length, 1);
+  assert.equal(messages.length, 1);
+});
+
+test('a shadow root attached onto an existing chat host is picked up', async () => {
+  const observed = [];
+  const api = loadContent({
+    chrome: {
+      dom: {
+        openOrClosedShadowRoot(node) {
+          return node.closedShadow || null;
+        },
+      },
+    },
+  });
+  const root = element('div');
+  const host = element('div');
+  root.append(host);
+  const session = api.createSession({
+    root,
+    walkRoot: root,
+    enableBanner: false,
+    revealAnimation: false,
+    IntersectionObserver: class { observe() {} disconnect() {} },
+    MutationObserver: class {
+      observe(target) { observed.push(target); }
+      disconnect() {}
+    },
+    sendBatch: async (texts) => ({
+      ok: true,
+      translations: texts.map((text) => (text === '明天发货' ? '내일 출고' : text)),
+    }),
+  });
+  session.start();
+  await session.whenIdle();
+  const shadow = { nodeType: 11, childNodes: [], parentElement: null };
+  const bubble = element('span', {}, ['明天发货']);
+  bubble.parentElement = shadow;
+  shadow.childNodes.push(bubble);
+  host.closedShadow = shadow;
+  session.emitMutations([{ type: 'childList', target: host, addedNodes: [] }]);
+  await session.whenIdle();
+  assert.ok(observed.includes(shadow));
+  assert.equal(bubble.childNodes[0].nodeValue, '내일 출고');
+});
+
 test('hover title tooltips are translated once and restored with the page', async () => {
   const root = element('div');
   const api = loadContent();

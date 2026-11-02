@@ -9,8 +9,19 @@ test('page inject functions do not call service-worker helpers', () => {
   const disable = source.slice(source.indexOf('function disableInPage'), source.indexOf('function readStatusInPage'));
   assert.match(enable, /window\.top === window/);
   assert.match(disable, /window\.top === window/);
+  assert.match(enable, /session\.setEnabled\(true\)/);
+  assert.match(disable, /session\.setEnabled\(false\)/);
+  assert.match(enable, /return top \? status : null/);
+  assert.match(disable, /return top \? status : null/);
+  assert.doesNotMatch(enable, /if \(!session \|\| !top\)/);
+  assert.doesNotMatch(disable, /if \(!session \|\| !top\)/);
   assert.doesNotMatch(enable, /topStatus|isTopFrame/);
   assert.doesNotMatch(disable, /topStatus|isTopFrame/);
+  const pass = source.slice(source.indexOf('function scheduleFramePass'), source.indexOf('chrome.tabs.onRemoved'));
+  assert.match(pass, /enabledTabs\.has\(tabId\)/);
+  assert.match(source, /message\.type === 'TRANSLATE_FRAMES'/);
+  assert.match(source, /rememberEnabled\(tab\.id, true\)/);
+  assert.match(source, /rememberEnabled\(tab\.id, false\)/);
 });
 
 test('a status poll cannot turn an in-flight switch off', () => {

@@ -156,26 +156,28 @@ async function runInFrames(tabId, func, args) {
 
 function enableInPage() {
   const session = globalThis.__pageTranslator?.session;
+  if (!session) return null;
   let top = true;
   try {
     top = window.top === window;
   } catch {
     top = false;
   }
-  if (!session || !top) return null;
-  return session.setEnabled(true);
+  const status = session.setEnabled(true);
+  return top ? status : null;
 }
 
 function disableInPage() {
   const session = globalThis.__pageTranslator?.session;
+  if (!session) return null;
   let top = true;
   try {
     top = window.top === window;
   } catch {
     top = false;
   }
-  if (!session || !top) return null;
-  return session.setEnabled(false);
+  const status = session.setEnabled(false);
+  return top ? status : null;
 }
 
 function readStatusInPage() {
@@ -200,6 +202,31 @@ function setBadge(tabId, status) {
 function clearBadge(tabId) {
   setBadge(tabId, null);
 }
+
+const enabledTabs = new Set();
+const frameRetry = new Map();
+
+function rememberEnabled(tabId, enabled) {
+  if (tabId == null) return;
+  if (enabled) enabledTabs.add(tabId);
+  else enabledTabs.delete(tabId);
+}
+
+function scheduleFramePass(tabId) {
+  if (tabId == null || !enabledTabs.has(tabId) || frameRetry.has(tabId)) return;
+  const timer = setTimeout(() => {
+    frameRetry.delete(tabId);
+    setEnabled(tabId, true).catch(() => {});
+  }, 250);
+  frameRetry.set(tabId, timer);
+}
+
+chrome.tabs.onRemoved.addListener((tabId) => {
+  const timer = frameRetry.get(tabId);
+  if (timer != null) clearTimeout(timer);
+  frameRetry.delete(tabId);
+  rememberEnabled(tabId, false);
+});
 
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   if (typeof changeInfo.url === 'string') clearBadge(tabId);
@@ -230,6 +257,7 @@ async function setEnabled(tabId, enabled) {
     }
     const settled = status || { enabled: false, showOriginal: true, started: false, done: 0, pending: 0 };
     setBadge(tab.id, settled);
+    rememberEnabled(tab.id, false);
     return { ok: true, status: settled };
   }
   const results = await runInFrames(tab.id, enableInPage);
@@ -237,6 +265,7 @@ async function setEnabled(tabId, enabled) {
   if (!status?.enabled) {
     return { ok: false, code: 'INJECT_FAILED', message: MESSAGES.INJECT_FAILED };
   }
+  rememberEnabled(tab.id, true);
   setBadge(tab.id, status);
   return { ok: true, status };
 }
@@ -341,6 +370,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
   if (message.type === 'CLEAR_BADGE') {
     if (sender.tab?.id != null) clearBadge(sender.tab.id);
+    return;
+  }
+  if (message.type === 'TRANSLATE_FRAMES') {
+    if (sender.tab?.id != null) scheduleFramePass(sender.tab.id);
     return;
   }
   if (message.type === 'GET_PREFS') {

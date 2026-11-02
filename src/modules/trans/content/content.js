@@ -215,6 +215,19 @@
     return false;
   }
 
+  // iframe 글자는 부모 문서에 없다. 그 창이 생겼는지만 보고, 번역은 그 창 문서에서 따로 켠다.
+  function frameHostAdded(node) {
+    if (!node || node.nodeType !== 1) return false;
+    const tag = String(node.tagName || '').toUpperCase();
+    if (tag === 'IFRAME' || tag === 'FRAME') return true;
+    if (typeof node.querySelector !== 'function') return false;
+    try {
+      return Boolean(node.querySelector('iframe, frame'));
+    } catch {
+      return false;
+    }
+  }
+
   function defaultIsNearViewport(element) {
     if (!element || typeof element.getBoundingClientRect !== 'function') return false;
     const rect = element.getBoundingClientRect();
@@ -396,6 +409,8 @@
     let revealFrame = 0;
     let scrollBound = false;
     let mutationLock = 0;
+    let frameNotice = null;
+    const watchedShadows = new WeakSet();
 
     const IntersectionObserverCtor = options.IntersectionObserver || globalThis.IntersectionObserver;
     const MutationObserverCtor = options.MutationObserver || globalThis.MutationObserver;
@@ -1433,14 +1448,63 @@
       }
     }
 
+    // 열린 그림자는 shadowRoot로, 닫힌 그림자는 확장 프로그램이 원래 볼 수 있는 길로 연다. 새 권한은 없다.
+    function shadowOf(element) {
+      if (!element || element.nodeType !== 1) return null;
+      if (element.shadowRoot) return element.shadowRoot;
+      try {
+        const opener = globalThis.chrome && globalThis.chrome.dom && globalThis.chrome.dom.openOrClosedShadowRoot;
+        if (typeof opener === 'function') return opener.call(globalThis.chrome.dom, element) || null;
+      } catch {
+        return null;
+      }
+      return null;
+    }
+
+    function watchShadow(rootNode) {
+      if (!mutationObserver || !rootNode || rootNode.nodeType !== 11 || watchedShadows.has(rootNode)) return;
+      watchedShadows.add(rootNode);
+      try {
+        mutationObserver.observe(rootNode, { childList: true, subtree: true, characterData: true });
+      } catch {
+        // 페이지가 닫아 둔 칸은 못 보면 그대로 둔다.
+      }
+    }
+
+    function noteFrames(node) {
+      if (!enabled || !frameHostAdded(node)) return;
+      const runtime = globalThis.chrome && globalThis.chrome.runtime;
+      if (!runtime || typeof runtime.sendMessage !== 'function') return;
+      if (frameNotice != null) return;
+      frameNotice = setTimer(() => {
+        frameNotice = null;
+        if (!enabled) return;
+        try {
+          const sent = runtime.sendMessage({ type: 'TRANSLATE_FRAMES' });
+          if (sent && typeof sent.catch === 'function') sent.catch(() => {});
+        } catch {
+          // 이 창에서는 확장 프로그램에 말을 걸 수 없다.
+        }
+      }, 200);
+    }
+
     function walk(node) {
-      if (!node || !node.childNodes) return;
+      if (!node) return;
+      if (node.nodeType === 1) {
+        const shadow = shadowOf(node);
+        if (shadow) {
+          watchShadow(shadow);
+          walk(shadow);
+        }
+      } else if (node.nodeType === 11) {
+        watchShadow(node);
+      }
+      if (!node.childNodes) return;
       const children = [...node.childNodes];
       for (const child of children) {
         if (child.nodeType === 3) considerText(child);
         else if (child.nodeType === 1) {
           if (isSkipElement(child)) continue;
-          if (child.shadowRoot) walk(child.shadowRoot);
           walk(child);
         } else if (child.nodeType === 11) {
           walk(child);
@@ -1494,8 +1558,17 @@
         for (const node of mutation.addedNodes || []) {
           if (isOwnNode(node)) continue;
           if (node.nodeType === 3) considerText(node);
-          else if (node.nodeType === 1 && !isSkipElement(node)) walk(node);
-          else if (node.nodeType === 11) walk(node);
+          else if (node.nodeType === 1) {
+            noteFrames(node);
+            if (!isSkipElement(node)) walk(node);
+          } else if (node.nodeType === 11) walk(node);
+        }
+        if (mutation.target && mutation.target.nodeType === 1 && !isSkipElement(mutation.target)) {
+          const shadow = shadowOf(mutation.target);
+          if (shadow && !watchedShadows.has(shadow)) {
+            watchShadow(shadow);
+            walk(shadow);
+          }
         }
       }
     }
@@ -1652,6 +1725,17 @@
       notify();
     }
 
+    function rescan() {
+      if (!started || !enabled) return getStatus();
+      if (walkRoot) {
+        walk(walkRoot);
+        noteFrames(walkRoot);
+      }
+      scheduleFlush();
+      notify();
+      return getStatus();
+    }
+
     function setEnabled(value) {
       if (value) {
         if (!started) {
@@ -1744,6 +1828,7 @@
       translateTitle,
       getStatus,
       recheck,
+      rescan,
       whenIdle,
       emitMutations: onMutations,
     };
@@ -1755,6 +1840,7 @@
   ns.isTranslatable = isTranslatable;
   ns.isAlreadyTargetLanguage = isAlreadyTargetLanguage;
   ns.shouldSkipText = shouldSkipText;
+  ns.frameHostAdded = frameHostAdded;
   ns.planWiperOrder = planWiperOrder;
   ns.crossProgress = crossProgress;
   ns.wiperSpot = wiperSpot;
@@ -1819,6 +1905,13 @@
       });
     }
     ns.session = session;
+    if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+      const onRoute = () => {
+        if (session.getStatus().enabled) session.rescan();
+      };
+      window.addEventListener('hashchange', onRoute);
+      window.addEventListener('popstate', onRoute);
+    }
     chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       if (!message || typeof message !== 'object') return;
       if (message.type === 'START_TRANSLATE') {
