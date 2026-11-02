@@ -476,6 +476,50 @@ const refreshFx = async () => {
     }
 };
 
+const rightClick = $<HTMLButtonElement>("rightClick");
+const paintRightClick = (on: boolean) => {
+    rightClick.classList.toggle("on", on);
+    rightClick.textContent = on ? "오른쪽 클릭 켜짐" : "오른쪽 클릭";
+};
+const activePage = async () => {
+    const [tab] = await chrome.tabs.query({active: true, currentWindow: true});
+    return tab;
+};
+const syncRightClick = async () => {
+    const tab = await activePage();
+    const result = await chrome.runtime.sendMessage({type: "right-click-state", url: tab?.url || ""}) as {on?: boolean};
+    paintRightClick(Boolean(result?.on));
+};
+rightClick.addEventListener("click", async () => {
+    const tab = await activePage();
+    if (!tab?.id || !tab.url) return;
+    const state = await chrome.runtime.sendMessage({type: "right-click-state", url: tab.url}) as {on?: boolean; origin?: string};
+    if (!state?.origin) {
+        rightClick.title = "이 페이지에서는 오른쪽 클릭을 바꿀 수 없어요.";
+        return;
+    }
+    const enable = !state.on;
+    let persist = true;
+    if (enable) {
+        try {
+            persist = await chrome.permissions.request({origins: [`${state.origin}/*`]});
+            if (!persist) rightClick.title = "이번 탭만 적용했어요. 다음 방문에도 쓰려면 사이트 권한을 허용해 주세요.";
+        } catch {
+            persist = false;
+            rightClick.title = "이번 탭만 적용했어요.";
+        }
+    } else {
+        try { await chrome.permissions.remove({origins: [`${state.origin}/*`]}); } catch { /* 이미 없는 권한 */ }
+    }
+    const result = await chrome.runtime.sendMessage({type: "right-click-apply", tabId: tab.id, url: tab.url, enabled: enable, persist}) as {ok?: boolean; on?: boolean; error?: string};
+    if (!result?.ok) {
+        rightClick.title = result?.error || "적용하지 못했어요.";
+        return;
+    }
+    paintRightClick(Boolean(result.on));
+});
+void syncRightClick();
+
 fxAmount.addEventListener("input", renderFx);
 fxFrom.addEventListener("change", renderFx);
 fxTo.addEventListener("change", renderFx);
