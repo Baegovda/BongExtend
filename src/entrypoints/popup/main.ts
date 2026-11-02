@@ -12,7 +12,7 @@ import {COMMON_CODES, CURRENCY_TINT, FX_URL, convertAmount, currencyColor, curre
 // @ts-ignore 순수 JS
 import {composite} from "@/modules/theme/contrast.js";
 // @ts-ignore 순수 JS
-import {dedupeAccounts, mailTabBadge, orderAccounts, preferInbox} from "@/modules/gmail/watch.js";
+import {dedupeAccounts, formatMailTime, mailTabBadge, orderAccounts, preferInbox} from "@/modules/gmail/watch.js";
 // @ts-ignore 순수 JS
 import {ACCOUNT_COLORS, accountColor, accountInitial} from "@/modules/gmail/account-style.js";
 // @ts-ignore 순수 JS
@@ -67,7 +67,7 @@ const showTab = async (tab: TabId, persist = true) => {
     });
     if (tab === "gmail") void refreshGmail(false);
     if (tab === "fx") void refreshFx();
-    if (tab === "update") {
+    if (tab === "update" || (tab === "gmail" && !embedded)) {
         moduleBar.hidden = true;
     } else {
         moduleBar.hidden = false;
@@ -342,6 +342,10 @@ const gmailStatus = $("gmailStatus");
 const gmailList = $("gmailList");
 const gmailAccounts = $("gmailAccounts");
 const gmailAccount = $("gmailAccount");
+const gmailEmpty = $("gmailEmpty");
+const gmailEmptyTitle = $("gmailEmptyTitle");
+const gmailEmptyNote = $("gmailEmptyNote");
+const mailPanel = document.querySelector<HTMLElement>(".mail-panel");
 const gmailSend = (message: Record<string, unknown>) => sendExtension(effects, message) as Promise<{
     snapshot?: GmailSnapshot | null; error?: string; ok?: boolean;
 }>;
@@ -465,9 +469,13 @@ const renderGmail = (snapshot: GmailSnapshot | null | undefined, error = "") => 
         who.className = "mail-who";
         const title = document.createElement("strong");
         title.textContent = email;
+        who.append(title);
         const count = document.createElement("span");
-        count.textContent = `읽지 않은 메일 ${item.unread}통`;
-        who.append(title, count);
+        count.className = "mail-count";
+        const unreadCount = Number(item.unread) || 0;
+        count.textContent = unreadCount > 99 ? "99+" : String(unreadCount);
+        count.hidden = unreadCount <= 0;
+        count.setAttribute("aria-label", `읽지 않은 메일 ${unreadCount}통`);
         const readAll = document.createElement("button");
         readAll.type = "button";
         readAll.className = "mail-read";
@@ -476,20 +484,28 @@ const renderGmail = (snapshot: GmailSnapshot | null | undefined, error = "") => 
         readAll.disabled = !(item.messages || []).length;
         readAll.append(readMark());
         readAll.addEventListener("click", () => void readAccount(item.index));
-        head.append(avatar, who, readAll);
+        head.append(avatar, who, count, readAll);
         const list = document.createElement("ul");
-        list.className = "mail-list be-group";
+        list.className = "mail-list";
         for (const message of item.messages || []) {
             const li = document.createElement("li");
+            li.className = "mail-item";
+            const line = document.createElement("div");
+            line.className = "mail-line";
             const from = document.createElement("strong");
             from.textContent = message.fromName || message.fromEmail || "보낸 사람 없음";
+            const time = document.createElement("time");
+            if (message.issued) time.dateTime = message.issued;
+            time.textContent = formatMailTime(message.issued) as string;
+            line.append(from, time);
             const subject = document.createElement("div");
+            subject.className = "mail-subject";
             subject.textContent = message.subject;
             const snippet = document.createElement("p");
             snippet.className = "mail-snippet";
             snippet.textContent = message.snippet;
             const actions = document.createElement("div");
-            actions.className = "be-actions";
+            actions.className = "mail-actions";
             const add = (label: string, run: () => void) => {
                 const button = document.createElement("button");
                 button.type = "button";
@@ -510,24 +526,41 @@ const renderGmail = (snapshot: GmailSnapshot | null | undefined, error = "") => 
                 void openUrl(effects, `https://mail.google.com/mail/u/${item.index}/${url.search}`);
             });
             add("열기", () => { if (message.link) void openUrl(effects, message.link); });
-            li.append(from, subject, snippet, actions);
+            li.append(line, subject, snippet, actions);
             list.append(li);
         }
-        section.append(head, list);
+        section.append(head);
+        if ((item.messages || []).length) section.append(list);
         bindMailDrag(section, head);
         gmailAccounts.appendChild(section);
     }
+    const messages = accounts.reduce((sum, item) => sum + (item.messages || []).length, 0);
+    const showList = messages > 0 && !view?.loggedOut;
+    if (mailPanel) mailPanel.classList.toggle("is-empty", !showList && !error);
+    gmailAccounts.hidden = !showList;
+    gmailEmpty.hidden = showList || Boolean(error);
+    gmailStatus.hidden = !error;
     if (error) gmailStatus.textContent = error;
-    else if (view?.loggedOut) gmailStatus.textContent = "Gmail에 로그인되어 있지 않아요.";
-    else if (!accounts.length) gmailStatus.textContent = "읽지 않은 메일이 없어요.";
-    else gmailStatus.textContent = `읽지 않은 메일 ${unread}통`;
-    gmailAccount.textContent = accounts.length > 1 ? `계정 ${accounts.length}개` : (accounts[0]?.email || "Gmail 받은편지함");
+    else if (view?.loggedOut) {
+        gmailEmptyTitle.textContent = "Gmail에 로그인되어 있지 않아요";
+        gmailEmptyNote.textContent = "브라우저에서 Gmail에 로그인한 뒤 오른쪽 위 새로고침을 눌러 주세요.";
+    } else if (!showList) {
+        gmailEmptyTitle.textContent = "읽지 않은 메일이 없어요";
+        gmailEmptyNote.textContent = "새 메일이 오면 여기에 나와요.";
+    } else gmailStatus.textContent = "";
+    gmailAccount.textContent = showList
+        ? (accounts.length > 1 ? `계정 ${accounts.length}개 · ${unread}통` : `${unread}통`)
+        : "";
     paintMailBadge(accounts, accounts.filter((item) => item.enabled === false).map((item) => item.index));
     paintSoundAccounts(accounts);
 };
 
 const refreshGmail = async (force: boolean) => {
-    gmailStatus.textContent = "확인 중…";
+    if (!gmailAccounts.childElementCount) {
+        gmailStatus.hidden = false;
+        gmailStatus.textContent = "확인 중…";
+        gmailEmpty.hidden = true;
+    }
     try {
         const result = await gmailSend({type: force ? "gmail-refresh" : "gmail-get"});
         renderGmail(result?.snapshot, result?.error || "");
@@ -537,6 +570,7 @@ const refreshGmail = async (force: boolean) => {
 };
 
 const readAccount = async (account: number) => {
+    gmailStatus.hidden = false;
     gmailStatus.textContent = "모두 읽음으로 바꾸는 중…";
     try {
         const result = await gmailReadAccount(effects, account) as {ok?: boolean; error?: string; snapshot?: GmailSnapshot | null};
@@ -548,6 +582,7 @@ const readAccount = async (account: number) => {
 };
 
 const runGmailAct = async (account: number, message: GmailMessage, action: string) => {
+    gmailStatus.hidden = false;
     gmailStatus.textContent = "Gmail에 반영하는 중…";
     try {
         const result = await gmailSend({type: "gmail-act", account, thread: message.thread, action});
@@ -559,6 +594,7 @@ const runGmailAct = async (account: number, message: GmailMessage, action: strin
 };
 
 $("gmailRefresh").addEventListener("click", () => void refreshGmail(true));
+$("gmailRecheck").addEventListener("click", () => void refreshGmail(true));
 
 const gmailSound = $("gmailSound");
 const soundState = {...defaultSound()};
@@ -605,6 +641,7 @@ const paintSoundAccounts = (accounts: GmailAccount[]) => {
     }
 };
 if (embed === "gmail") {
+    $("mailSettings").hidden = false;
     gmailSound.hidden = false;
     const title = document.createElement("h4");
     title.textContent = "새 메일 소리";
