@@ -11,6 +11,7 @@ body { width: 780px; height: 590px; display: flex; flex-direction: column; overf
 .be-page .tabs button { position: relative; height: 44px; padding: 0 10px; background: transparent; border: 0; border-radius: 0; color: var(--be-muted); font-size: 13px; font-weight: 500; }
 .be-page .tabs .tab-badge[hidden] { display: none; }
 .be-page .tabs .tab-badge:not([hidden]) { display: inline-grid; place-items: center; min-width: 16px; height: 16px; margin-left: 4px; padding: 0 4px; border-radius: 999px; background: #d70015; color: #fff; font-size: 11px; font-weight: 700; line-height: 1; letter-spacing: 0; vertical-align: 1px; }
+.be-page .tabs .tab-badge.fx:not([hidden]) { background: var(--be-accent); color: var(--be-accent-ink); }
 .be-page .tabs .mouse-toggle { justify-self: end; width: 36px; height: 36px; padding: 0; border: 1px solid var(--be-border); border-radius: 10px; color: var(--be-muted); background: transparent; display: grid; place-items: center; }
 .be-page .tabs .mouse-toggle::after { display: none; }
 .be-page .tabs .mouse-toggle.on { background: var(--be-accent); color: var(--be-accent-ink); border-color: transparent; }
@@ -21,10 +22,16 @@ body { width: 780px; height: 590px; display: flex; flex-direction: column; overf
 .gear-dot { position: absolute; top: 8px; right: 8px; width: 9px; height: 9px; border-radius: 50%; background: var(--be-error); box-shadow: 0 0 0 2px var(--be-surface); }
 .panel { animation: be-in var(--be-duration) var(--be-ease) both; }
 @keyframes be-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
-.fx-favs li, #fxMore li { display: flex; gap: 6px; align-items: center; }
-.fx-favs .fx-apply { flex: 1; text-align: left; }
-.fx-favs .fx-mini { width: auto; padding: 6px 8px; }
-.fx-star { width: 32px; padding: 6px 0; }
+.fx-panel { overflow: hidden; padding-bottom: 16px; }
+.fx-panel .fx-row { flex-wrap: nowrap; }
+.fx-panel .fx-row select { flex: 1; min-width: 0; }
+.fx-panel .fx-row input { width: 112px; flex: 0 0 auto; }
+.fx-panel .fx-result { margin: 8px 0; font-size: 26px; }
+.fx-board { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.be-page .fx-chip { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; width: 100%; min-height: 58px; padding: 8px 10px; border-radius: 14px; text-align: left; box-shadow: inset 3px 0 0 var(--fx-flag, var(--be-accent)); }
+.be-page .fx-chip.on { box-shadow: inset 3px 0 0 var(--fx-flag, var(--be-accent)), inset 0 0 0 1.5px var(--be-text); }
+.fx-chip small { color: var(--be-text-2); font-size: 12px; font-weight: 600; }
+.fx-chip b { font-size: 15px; font-weight: 700; letter-spacing: -0.02em; }
 .mail-list { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .mail-list li { background: var(--be-surface-2); border-radius: var(--be-radius); padding: 10px 12px; }
 .mail-list strong { display: block; }

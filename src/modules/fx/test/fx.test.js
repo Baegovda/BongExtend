@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import {convertAmount, formatMoney, isCacheFresh, parseRatePayload, currencyLabel, normalizeFavorites, toggleFavorite, reorderFavorites, pinFavoriteCodes, favoriteCurrencyId, favoritePairId} from "../convert.js";
+import {convertAmount, formatMoney, isCacheFresh, parseRatePayload, currencyLabel, CURRENCY_COLORS, CURRENCY_TINT, currencyColor, fxTabBadge} from "../convert.js";
+import {composite, contrastRatio} from "../../theme/contrast.js";
 
 test("converts through a KRW rate table, including crypto", () => {
     const rates = {krw: 1, usd: 0.0007, jpy: 0.11, btc: 0.00000001};
@@ -23,13 +24,19 @@ test("parses the no-key payload and keeps a cached table for 12 hours", () => {
     assert.equal(isCacheFresh(0, now), false);
 });
 
-test("favorites pin currencies, toggle pairs, and keep a manual order", () => {
-    const starred = toggleFavorite(toggleFavorite({order: []}, favoriteCurrencyId("usd")), favoritePairId("krw", "jpy"));
-    assert.deepEqual(starred.order, ["c:usd", "p:krw>jpy"]);
-    assert.deepEqual(toggleFavorite(starred, "c:usd").order, ["p:krw>jpy"]);
-    assert.deepEqual(normalizeFavorites({currencies: ["EUR"], pairs: [{from: "krw", to: "krw"}, {from: "usd", to: "eur"}]}).order, ["c:eur", "p:usd>eur"]);
-    assert.deepEqual(reorderFavorites(starred, 1, 0).order, ["p:krw>jpy", "c:usd"]);
-    assert.deepEqual(pinFavoriteCodes(["krw", "jpy", "usd", "eur"], starred), ["usd", "krw", "jpy", "eur"]);
+test("one dollar in won is the tab badge, and flag tints stay readable", () => {
+    assert.equal(fxTabBadge({krw: 1, usd: 1 / 1382}), "1,382");
+    assert.equal(fxTabBadge({krw: 1}), "");
+    assert.equal(fxTabBadge(null), "");
+    assert.equal(currencyColor("USD"), CURRENCY_COLORS.usd);
+    for (const color of Object.values(CURRENCY_COLORS)) {
+        const light = composite(color, "#ffffff", CURRENCY_TINT);
+        const dark = composite(color, "#2c2c2e", CURRENCY_TINT);
+        assert.ok(contrastRatio("#1c1c1e", light) >= 4.5, color);
+        assert.ok(contrastRatio("#3a3a3c", light) >= 4.5, color);
+        assert.ok(contrastRatio("#ffffff", dark) >= 4.5, color);
+        assert.ok(contrastRatio("#e5e5ea", dark) >= 4.5, color);
+    }
 });
 
 test("formats won without decimals and labels Korean names", () => {
