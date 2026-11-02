@@ -1,6 +1,6 @@
-# BongExtend 인수인계 (1.1.1)
+# BongExtend 인수인계 (1.1.2)
 
-코드 버전은 `package.json`의 **1.1.1**예요. 최신 GitHub 릴리스도 v1.1.1이고, 설치 파일은 `bongextend-1.1.1-chrome.zip`이에요. 숫자가 다르면 `package.json`과 [Releases](https://github.com/Baegovda/BongExtend/releases)를 다시 보세요.
+코드 버전은 `package.json`의 **1.1.2**예요. 최신 GitHub 릴리스도 v1.1.2이고, 설치 파일은 `bongextend-1.1.2-chrome.zip`이에요. 숫자가 다르면 `package.json`과 [Releases](https://github.com/Baegovda/BongExtend/releases)를 다시 보세요.
 
 ## 이 프로젝트가 뭐예요
 
@@ -39,7 +39,7 @@ BongExtend는 크롬 확장(MV3) 하나예요. 예전에 따로 쓰던 확장 �
 
 ## 이미 된 일
 
-- 이름 바꾸기 전 저장소의 GitHub 릴리스는 지웠어요. 태그 v1.1.0, v1.1.1, v1.2.0, v1.3.0, v1.3.1, v1.4.0, v1.5.0, v1.5.1, v1.6.0, v1.6.1, v1.6.2도 지웠어요. 최신 릴리스는 BongExtend 1.1.1예요.
+- 이름 바꾸기 전 저장소의 GitHub 릴리스는 지웠어요. 태그 v1.1.0, v1.1.1, v1.2.0, v1.3.0, v1.3.1, v1.4.0, v1.5.0, v1.5.1, v1.6.0, v1.6.1, v1.6.2도 지웠어요. 최신 릴리스는 BongExtend 1.1.2예요.
 - 치지직 광고 차단은 기본으로 켜져 있어요. 광고 일정과 배너 응답을 비우고, 건너뛴 뒤에는 이전 소리를 되돌려요. 로그인된 방송에서 직접 본 기록은 아직 없어요.
 - 디시 통신사 표는 `Baegovda/BongExtend`의 `main`, 파일 `src/data/ip-isp.json`에서 받아요 (`src/utils/ipIsp.ts`의 `IP_ISP_REF`는 `main`).
 - 타입 검사는 `bun run test` 안에 있어요 (`test:types`). 빼지 마세요.
