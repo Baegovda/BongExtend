@@ -96,6 +96,40 @@ test('광고 전 소리를 기억하고, 광고 중 음소거는 덮어쓰지 �
   assert.deepEqual(P.audioAfterAd(P.noteLiveAudio(null, userMuted, false), false), userMuted);
 });
 
+test('광고 화면은 가리고 본방송 영상과 채팅은 남긴다', () => {
+  assert.equal(P.isAdChrome({ text: '광고 페이지 보기' }), true);
+  assert.equal(P.isAdChrome({ text: '9초 후 SKIP' }), true);
+  assert.equal(P.isAdChrome({ text: 'SKIP', className: 'btn_skip' }), true);
+  assert.equal(P.isAdChrome({ text: '안녕하세요', inChat: true }), false);
+  assert.equal(P.isAdChrome({ text: '실시간' }), false);
+  const overlay = P.pickAdConcealNode([
+    { id: 'label' },
+    { id: 'overlay' },
+    { id: 'player', isPlayer: true, hasLiveVideo: true }
+  ]);
+  assert.equal(overlay.id, 'overlay');
+  const buttonOnly = P.pickAdConcealNode([
+    { id: 'skip' },
+    { id: 'stack', hasLiveVideo: true },
+    { id: 'player', isPlayer: true }
+  ]);
+  assert.equal(buttonOnly.id, 'skip');
+  assert.equal(P.pickAdConcealNode([
+    { id: 'row', hasChat: true },
+    { id: 'player', isPlayer: true }
+  ]), null);
+  assert.equal(P.pickAdConcealNode([{ id: 'player', isPlayer: true }]), null);
+  assert.equal(P.isAdVideo({ isMain: true, duration: Infinity }), false);
+  assert.equal(P.isAdVideo({ isMain: true, duration: 15 }), true);
+  assert.equal(P.isAdVideo({ isMain: false, duration: 30, inAdBox: true }), true);
+  assert.equal(P.isAdVideo({ inChat: true, duration: 15 }), false);
+  assert.equal(P.isAdVideo({ isMain: false, duration: NaN }), false);
+  assert.match(P.AD_CONCEAL_CSS, /opacity:0/);
+  assert.match(P.AD_CONCEAL_CSS, /bex-adhide/);
+  assert.doesNotMatch(P.AD_CONCEAL_CSS, /display:\s*none/);
+  assert.doesNotMatch(P.AD_CONCEAL_CSS, /aside-chatting/);
+});
+
 test('배너 광고 요소만 고른다', () => {
   assert.equal(P.isDisplayAdElement({ tag: 'IFRAME', title: 'AD', id: 'x' }), true);
   assert.equal(P.isDisplayAdElement({ tag: 'iframe', title: '채팅', id: 'live_tgtLREC' }), true);

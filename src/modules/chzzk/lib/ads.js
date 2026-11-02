@@ -32,11 +32,17 @@
 
     const display = payload.playerAdDisplayResponse;
     if (isObj(display)) {
-      for (const key of ['preRoll', 'midRoll', 'postRoll']) {
-        if (display[key] === true) {
+      for (const key of Object.keys(display)) {
+        if (/^(pre|mid|post)roll$/i.test(key) && display[key] === true) {
           display[key] = false;
           changed = true;
         }
+      }
+    }
+    for (const key of ['showPreroll', 'showMidroll', 'prerollEnabled', 'midrollEnabled']) {
+      if (payload[key] === true) {
+        payload[key] = false;
+        changed = true;
       }
     }
 
@@ -91,7 +97,7 @@
   function isAdEndpoint(url, method) {
     if (String(method || 'GET').toUpperCase() === 'OPTIONS') return false;
     const u = String(url || '');
-    if (/^https:\/\/nam\.veta\.naver\.com\/(vas|gfp|call)(?:\/|\?|$)/.test(u)) return true;
+    if (/^https:\/\/nam\.veta\.naver\.com\/(vas|gfp|call|dfp)(?:\/|\?|$)/.test(u)) return true;
     if (/^https:\/\/gfp\.veta\.naver\.com\/adcall(?:\/|\?|$)/.test(u)) return true;
     if (/^https:\/\/siape\.veta\.naver\.com\/openrtb\//.test(u)) return true;
     if (/^https:\/\/api\.chzzk\.naver\.com\/ad-polling\/v\d+\/lives\/[^/?#]+\/ad(?:\/|\?|$)/.test(u)) return true;
