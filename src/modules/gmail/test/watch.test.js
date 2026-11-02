@@ -16,6 +16,7 @@ import {
     preferInbox,
     notificationTitle,
     formatMailTime,
+    mailSenderLines,
     skipDisabledFetch,
     unreadOf,
     watchPayload
@@ -85,15 +86,21 @@ test("the same email from another mail index is kept once and the first index st
     assert.equal(isDuplicateEmail([], {email: ""}), false);
 });
 
-test("mail times read as just now, minutes, hours, yesterday, or a date", () => {
-    const now = Date.parse("2026-11-02T12:00:00Z");
+test("mail times are a clock today and a date otherwise, in local time", () => {
+    const now = new Date(2026, 10, 2, 15, 0, 0).getTime();
     assert.equal(formatMailTime("", now), "");
-    assert.equal(formatMailTime("2026-11-02T11:59:30Z", now), "방금");
-    assert.equal(formatMailTime("2026-11-02T11:50:00Z", now), "10분 전");
-    assert.equal(formatMailTime("2026-11-02T09:00:00Z", now), "3시간 전");
-    assert.equal(formatMailTime("2026-11-01T12:00:00Z", now), "어제");
-    assert.equal(formatMailTime("2026-10-30T12:00:00Z", now), "3일 전");
-    assert.equal(formatMailTime("2026-10-01T12:00:00Z", now), "10월 1일");
+    assert.equal(formatMailTime(new Date(2026, 10, 2, 8, 5, 0).toISOString(), now), "08:05");
+    assert.equal(formatMailTime(new Date(2026, 10, 1, 9, 7, 0).toISOString(), now), "11/1 09:07");
+    assert.equal(formatMailTime(new Date(2026, 9, 1, 9, 7, 0).toISOString(), now), "10/1 09:07");
+});
+
+test("sender lines keep the name and the email when they differ", () => {
+    assert.deepEqual(mailSenderLines({fromName: "Cursor Team", fromEmail: "team@cursor.com"}), {name: "Cursor Team", email: "team@cursor.com"});
+    assert.deepEqual(mailSenderLines({fromName: "Ada", fromEmail: "ada@gmail.com"}), {name: "Ada", email: "ada@gmail.com"});
+    assert.deepEqual(mailSenderLines({fromName: "ada@gmail.com", fromEmail: "Ada@gmail.com"}), {name: "ada@gmail.com", email: ""});
+    assert.deepEqual(mailSenderLines({fromName: "", fromEmail: "only@gmail.com"}), {name: "only@gmail.com", email: ""});
+    assert.deepEqual(mailSenderLines({fromName: "이름만", fromEmail: ""}), {name: "이름만", email: ""});
+    assert.deepEqual(mailSenderLines({}), {name: "보낸 사람 없음", email: ""});
 });
 
 test("disabled accounts stay listed but drop out of the badge and the notification name includes the account", () => {

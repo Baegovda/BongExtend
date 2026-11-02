@@ -12,7 +12,7 @@ import {COMMON_CODES, CURRENCY_TINT, FX_URL, convertAmount, currencyColor, curre
 // @ts-ignore 순수 JS
 import {composite} from "@/modules/theme/contrast.js";
 // @ts-ignore 순수 JS
-import {dedupeAccounts, formatMailTime, mailTabBadge, orderAccounts, preferInbox} from "@/modules/gmail/watch.js";
+import {dedupeAccounts, formatMailTime, mailSenderLines, mailTabBadge, orderAccounts, preferInbox} from "@/modules/gmail/watch.js";
 // @ts-ignore 순수 JS
 import {ACCOUNT_COLORS, accountColor, accountInitial} from "@/modules/gmail/account-style.js";
 // @ts-ignore 순수 JS
@@ -492,15 +492,21 @@ const renderGmail = (snapshot: GmailSnapshot | null | undefined, error = "") => 
             li.className = "mail-item";
             const line = document.createElement("div");
             line.className = "mail-line";
-            const from = document.createElement("strong");
-            from.textContent = message.fromName || message.fromEmail || "보낸 사람 없음";
+            const subject = document.createElement("strong");
+            subject.className = "mail-subject";
+            subject.textContent = message.subject;
             const time = document.createElement("time");
             if (message.issued) time.dateTime = message.issued;
             time.textContent = formatMailTime(message.issued) as string;
-            line.append(from, time);
-            const subject = document.createElement("div");
-            subject.className = "mail-subject";
-            subject.textContent = message.subject;
+            line.append(subject, time);
+            const who = mailSenderLines(message) as {name: string; email: string};
+            const from = document.createElement("div");
+            from.className = "mail-from";
+            from.textContent = who.name;
+            const email = document.createElement("div");
+            email.className = "mail-email";
+            email.textContent = who.email;
+            email.hidden = !who.email;
             const snippet = document.createElement("p");
             snippet.className = "mail-snippet";
             snippet.textContent = message.snippet;
@@ -526,7 +532,7 @@ const renderGmail = (snapshot: GmailSnapshot | null | undefined, error = "") => 
                 void openUrl(effects, `https://mail.google.com/mail/u/${item.index}/${url.search}`);
             });
             add("열기", () => { if (message.link) void openUrl(effects, message.link); });
-            li.append(line, subject, snippet, actions);
+            li.append(line, from, email, snippet, actions);
             list.append(li);
         }
         section.append(head);
