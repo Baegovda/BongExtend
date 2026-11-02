@@ -15,15 +15,18 @@
   const WIPER_MS = 680;
   const SOFT_MS = 220;
   const PRISM_MS = 860;
-  // v1.0.13 화면 전체 선의 색만 가져왔다. 선은 문장 칸 안에서만 움직인다.
-  const PRISM_INK = 'linear-gradient(105deg, #0891b2, #2563eb, #7c3aed, #db2777, #ca8a04, #0891b2)';
+  // 부드러운 파스텔 무지개. 밝은 화면은 탁한 색이라 흰 바탕에서도 글자가 읽히고, 어두운 화면은 더 옅다.
+  const PRISM_INK = 'linear-gradient(105deg, #2a6e7a, #5568b0, #705a9e, #8f5a72, #7d6836, #2a6e7a)';
+  const PRISM_INK_DARK = 'linear-gradient(105deg, #9ad7e4, #c5d0f7, #e0d0f6, #f6d0e0, #f6e6c4, #9ad7e4)';
+  const PRISM_EDGE = 'linear-gradient(90deg, transparent 0%, rgba(42, 110, 122, 0.55) 14%, rgba(85, 104, 176, 0.62) 32%, rgba(112, 90, 158, 0.62) 48%, rgba(143, 90, 114, 0.62) 64%, rgba(125, 104, 54, 0.55) 82%, transparent 100%)';
+  const PRISM_EDGE_DARK = 'linear-gradient(90deg, transparent 0%, rgba(154, 215, 228, 0.7) 14%, rgba(197, 208, 247, 0.75) 32%, rgba(224, 208, 246, 0.75) 48%, rgba(246, 208, 224, 0.75) 64%, rgba(246, 230, 196, 0.7) 82%, transparent 100%)';
   const MOTION_CSS = [
     '@property --pt-p { syntax: "<number>"; inherits: true; initial-value: 0; }',
-    `.${PENDING_CLASS} { text-shadow: 0 0 0.28em rgba(56, 189, 248, 0.16); }`,
+    `.${PENDING_CLASS} { text-shadow: 0 0 0.28em rgba(85, 104, 176, 0.16); }`,
     `.${PENDING_LIVE_CLASS} { animation: pt-prism-glow 1.6s ease-in-out infinite; }`,
     '@keyframes pt-prism-glow {',
-    '0%, 100% { text-shadow: 0 0 0.32em rgba(56, 189, 248, 0.16); }',
-    '50% { text-shadow: 0 0 0.4em rgba(244, 114, 182, 0.2), 0 0 0.22em rgba(250, 204, 21, 0.12); }',
+    '0%, 100% { text-shadow: 0 0 0.32em rgba(85, 104, 176, 0.16); }',
+    '50% { text-shadow: 0 0 0.4em rgba(143, 90, 114, 0.18), 0 0 0.22em rgba(125, 104, 54, 0.12); }',
     '}',
     `.${FADE_CLASS}, .${REVEAL_CLASS} { animation: none; }`,
     // 글자색만 숨긴다. -webkit-text-fill-color 는 타오바오처럼 -webkit-line-clamp 로 자른 제목을 풀어 버린다.
@@ -47,9 +50,9 @@
     `.${SWEEP_CLASS} .${EDGE_CLASS} {`,
     'position: absolute; top: 0; bottom: 0; width: 16px; z-index: 2; pointer-events: none;',
     'left: calc(var(--pt-p) * 100%); transform: translateX(-50%);',
-    'background-image: linear-gradient(90deg, transparent 0%, rgba(56, 189, 248, 0.95) 14%, rgba(99, 102, 241, 1) 32%, rgba(167, 139, 250, 1) 48%, rgba(244, 114, 182, 1) 64%, rgba(250, 204, 21, 0.95) 82%, transparent 100%);',
+    `background-image: ${PRISM_EDGE};`,
     'background-size: 180% 100%;',
-    'box-shadow: 0 0 8px rgba(167, 139, 250, 0.55), 0 0 2px rgba(56, 189, 248, 0.85);',
+    'box-shadow: 0 0 8px rgba(112, 90, 158, 0.28), 0 0 2px rgba(42, 110, 122, 0.35);',
     'opacity: clamp(0, min(var(--pt-p), 1 - var(--pt-p)) * 16, 1);',
     'animation: pt-edge-shimmer 0.85s linear infinite;',
     '-webkit-mask-image: linear-gradient(180deg, transparent, #000 16%, #000 84%, transparent);',
@@ -64,6 +67,10 @@
     'text-decoration-color: var(--pt-ink, currentColor); caret-color: var(--pt-ink, auto);',
     `animation: pt-prism-settle ${PRISM_MS}ms ease forwards;`,
     '}',
+    '@media (prefers-color-scheme: dark) {',
+    `.${SWEEP_CLASS} .pt-next, .${PRISM_CLASS} { background-image: ${PRISM_INK_DARK}; }`,
+    `.${SWEEP_CLASS} .${EDGE_CLASS} { background-image: ${PRISM_EDGE_DARK}; box-shadow: 0 0 8px rgba(224, 208, 246, 0.35), 0 0 2px rgba(154, 215, 228, 0.4); }`,
+    '}',
     '@keyframes pt-prism-settle {',
     '0% { background-position: 0% 50%; -webkit-text-fill-color: transparent; }',
     '58% { background-position: 72% 50%; -webkit-text-fill-color: transparent; }',
@@ -71,7 +78,7 @@
     '}',
     `.${PRISM_CLASS}::selection { -webkit-text-fill-color: HighlightText; color: HighlightText; background-color: Highlight; }`,
     '@media (prefers-reduced-motion: reduce) {',
-    `.${PENDING_CLASS}, .${PENDING_LIVE_CLASS} { animation: none; text-shadow: 0 0 0.22em rgba(56, 189, 248, 0.18); }`,
+    `.${PENDING_CLASS}, .${PENDING_LIVE_CLASS} { animation: none; text-shadow: 0 0 0.22em rgba(85, 104, 176, 0.18); }`,
     `.${SWEEP_CLASS} .pt-next, .${PRISM_CLASS} { animation: none; -webkit-text-fill-color: unset; background-image: none; }`,
     `.${SWEEP_CLASS} .${EDGE_CLASS} { animation: none; opacity: 0; }`,
     '}',
