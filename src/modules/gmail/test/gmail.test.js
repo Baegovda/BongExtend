@@ -2,8 +2,6 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {parseAtom, threadFromLink} from "../atom.js";
 import {
-    GMAIL_ALARM_MINUTES,
-    GMAIL_TAB_POLL_MS,
     actionRequest,
     describeGmailLatency,
     parseGmailTokens,
@@ -52,6 +50,13 @@ test("the first check does not notify, later new mail does", () => {
     assert.deepEqual(next.notify.map((item) => item.id), ["c"]);
     const again = planMailNotifications(next.seen, [{id: "b"}, {id: "c"}], true);
     assert.deepEqual(again.notify, []);
+    const shared = planMailNotifications(["0:same"], [
+        {id: "same", account: 0, subject: "old"},
+        {id: "same", account: 1, subject: "other inbox"}
+    ], true);
+    assert.deepEqual(shared.notify.map((item) => item.account), [1]);
+    const legacy = planMailNotifications(["same"], [{id: "same", account: 0}], true);
+    assert.deepEqual(legacy.notify, []);
 });
 
 test("action request uses the session token and does not need an OAuth client", () => {
@@ -66,10 +71,8 @@ test("action request uses the session token and does not need an OAuth client", 
     assert.doesNotMatch(`${request.url} ${request.body}`, /oauth|googleapis\.com\/gmail/);
 });
 
-test("latency bounds are the 1 minute alarm and the 10 second open-tab poll", () => {
+test("latency without a Gmail tab is the offscreen interval, not the alarm", () => {
     const latency = describeGmailLatency();
-    assert.equal(GMAIL_ALARM_MINUTES, 1);
-    assert.equal(GMAIL_TAB_POLL_MS, 10000);
-    assert.match(latency.withTab, /10초/);
-    assert.match(latency.withoutTab, /1분/);
+    assert.match(latency.withoutTab, /8초/);
+    assert.match(latency.withoutTab, /알림을 끄면/);
 });

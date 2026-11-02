@@ -30,8 +30,10 @@
         <p id="gmailStatus" role="status">확인 중…</p>
         <div class="be-actions">
             <button id="gmailRefresh" type="button">다시 확인</button>
+            <label class="be-row-text">간격 <input id="gmailInterval" type="number" min="5" max="60" value="8" aria-label="확인 간격(초)"> 초</label>
+            <label class="be-row-text"><input id="gmailNotify" type="checkbox" checked> 새 메일 알림</label>
         </div>
-        <div id="gmailAccounts" class="be-actions"></div>
+        <div id="gmailAccounts" class="mail-accounts"></div>
         <ul id="gmailList" class="mail-list"></ul>
         <p class="be-hint" id="gmailLatency"></p>
     </section>

@@ -2,50 +2,25 @@ export default defineContentScript({
     matches: ["https://mail.google.com/*"],
     runAt: "document_idle",
     main() {
-        let timer = 0;
         let lastTitle = document.title;
         let watching = false;
 
         const signal = () => {
+            if (document.title === lastTitle) return;
+            lastTitle = document.title;
             try {
                 chrome.runtime.sendMessage({type: "gmail-tab-signal"});
             } catch {
-                // 서비스 워커가 잠들어 있으면 다음 알람이 다시 확인한다.
+                // 백그라운드 확인이 곧 같은 변화를 본다.
             }
-        };
-
-        const watchTitle = () => {
-            if (document.title === lastTitle) return;
-            lastTitle = document.title;
-            signal();
-        };
-
-        const arm = () => {
-            window.clearInterval(timer);
-            timer = window.setInterval(() => {
-                watchTitle();
-                signal();
-            }, document.hidden ? 20000 : 10000);
         };
 
         const start = () => {
-            if (watching) {
-                arm();
-                return;
-            }
+            if (watching) return;
             watching = true;
             const title = document.querySelector("title");
-            if (title) {
-                new MutationObserver(watchTitle).observe(title, {subtree: true, childList: true, characterData: true});
-            }
-            document.addEventListener("visibilitychange", arm);
-            arm();
+            if (title) new MutationObserver(signal).observe(title, {subtree: true, childList: true, characterData: true});
             signal();
-        };
-
-        const stop = () => {
-            watching = false;
-            window.clearInterval(timer);
         };
 
         chrome.storage.local.get("core.modules").then((stored) => {
@@ -53,12 +28,5 @@ export default defineContentScript({
             if (modules?.gmail === false) return;
             start();
         }).catch(() => start());
-
-        chrome.storage.onChanged.addListener((changes, area) => {
-            if (area !== "local" || !changes["core.modules"]) return;
-            const next = changes["core.modules"].newValue as {gmail?: boolean} | undefined;
-            if (next?.gmail === false) stop();
-            else start();
-        });
     }
 });

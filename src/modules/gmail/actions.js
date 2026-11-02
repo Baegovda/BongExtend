@@ -7,10 +7,9 @@ export const GMAIL_ACTIONS = {
     trash: "tr"
 };
 
-// 크롬 주기 알람의 최소 간격은 1분이다. Gmail 탭이 열려 있으면 그 탭이 더 자주 깨운다.
+// 새 메일 확인은 오프스크린 문서가 한다. 알람은 그 문서가 꺼졌을 때만 다시 켠다.
 export const GMAIL_ALARM_MINUTES = 1;
-export const GMAIL_TAB_POLL_MS = 10_000;
-export const GMAIL_WAKE_FOLLOWUP_MS = 20_000;
+export const GMAIL_TAB_POLL_MS = 0;
 
 export const parseGmailTokens = (html) => {
     const source = String(html || "");
@@ -36,13 +35,26 @@ export const actionRequest = (accountIndex, tokens, action, thread) => {
     return {url, body: body.toString()};
 };
 
+// 계정마다 메일 번호가 겹칠 수 있어서, 본 적 있는 메일은 계정 번호를 붙여 기억한다.
+export const mailSeenKey = (item) => {
+    if (!item?.id) return "";
+    if (item.account == null || item.account === "") return String(item.id);
+    return `${Number(item.account)}:${item.id}`;
+};
+
 export const planMailNotifications = (previousIds, messages, hasBaseline) => {
-    const ids = (messages || []).map((item) => item.id).filter(Boolean);
+    const list = messages || [];
+    const ids = list.map(mailSeenKey).filter(Boolean);
     if (!hasBaseline) {
         return {notify: [], seen: ids.slice(-400), baseline: true};
     }
     const prev = new Set(previousIds || []);
-    const notify = (messages || []).filter((item) => item.id && !prev.has(item.id));
+    const notify = list.filter((item) => {
+        const key = mailSeenKey(item);
+        if (!key) return false;
+        if (prev.has(key) || prev.has(item.id)) return false;
+        return true;
+    });
     const seen = [...new Set([...(previousIds || []), ...ids])].slice(-400);
     return {notify, seen, baseline: true};
 };
@@ -50,7 +62,6 @@ export const planMailNotifications = (previousIds, messages, hasBaseline) => {
 export const describeGmailLatency = () => ({
     alarmMinutes: GMAIL_ALARM_MINUTES,
     tabPollMs: GMAIL_TAB_POLL_MS,
-    followupMs: GMAIL_WAKE_FOLLOWUP_MS,
-    withTab: "Gmail 탭이 열려 있으면 제목이 바뀌는 즉시, 그리고 10초마다 확인해요. Gmail이 받은편지함을 갱신하는 시간(보통 몇 초)이 더해져요.",
-    withoutTab: "Gmail 탭이 없으면 크롬 알람이 1분에 한 번만 허용돼요. 브라우저로 돌아오거나 자리를 비웠다 돌아오면 그 사이에도 바로 확인해요."
+    withTab: "Gmail 탭이 열려 있으면 제목이 바뀌는 즉시 확인해요.",
+    withoutTab: "Gmail 탭이 없어도 로그인된 계정을 모두, 기본 8초마다 받은편지함 피드만 확인해요. 간격은 5초에서 60초 사이로 바꿀 수 있어요. 자리를 비우거나 화면이 잠기면 더 느리게 보고, 알림을 끄면 확인을 멈춥니다."
 });
