@@ -2,25 +2,35 @@ import {isModuleEnabled} from "../core-modules.js";
 import {parseAtom} from "./atom.js";
 import {
     GMAIL_ALARM_MINUTES,
-    GMAIL_WAKE_FOLLOWUP_MS,
     actionRequest,
     parseGmailTokens,
     planMailNotifications
 } from "./actions.js";
 import {paintToolbarBadge} from "../toolbar-badge.js";
+import {clampIntervalMs, enabledAccounts, notificationId, notificationTitle, unreadOf} from "./watch.js";
 
-const ALARM = "gmail-poll";
+const ALARM = "gmail-watchdog";
 const SEEN_KEY = "gmail.seen";
 const BASE_KEY = "gmail.baseline";
 const SNAP_KEY = "gmail.snapshot";
 const UNREAD_KEY = "gmail.unread";
 const ERROR_KEY = "gmail.error";
-const ACCOUNT_LIMIT = 6;
+const NOTIFY_KEY = "gmail.notify";
+const INTERVAL_KEY = "gmail.intervalMs";
+const DISABLED_KEY = "gmail.disabled";
+const ACCOUNT_LIMIT = 8;
+const OFFSCREEN_URL = "offscreen.html";
 
 let started = false;
 let checking = null;
 let lastCheckAt = 0;
-let followupTimer = 0;
+let lock = Promise.resolve();
+
+const exclusive = (fn) => {
+    const run = lock.then(() => fn());
+    lock = run.then(() => {}, () => {});
+    return run;
+};
 
 const gaps = {action: 0, popup: 0, alarm: 0, followup: 0, tab: 2000, focus: 10000, idle: 10000};
 
@@ -92,17 +102,18 @@ export async function loadInbox(fetchAccountImpl = fetchAccount) {
     return {loggedOut: false, accounts};
 }
 
-async function notifyNew(items) {
+async function notifyNew(items, accounts) {
     if (!chrome.notifications?.create) return;
+    const byIndex = new Map((accounts || []).map((account) => [account.index, account]));
     for (const item of items) {
-        const who = item.fromName || item.fromEmail || "새 메일";
+        const account = byIndex.get(item.account) || {index: item.account, email: ""};
         try {
-            await chrome.notifications.create(`gmail-${item.id}`, {
+            await chrome.notifications.create(notificationId(item), {
                 type: "basic",
                 iconUrl: chrome.runtime.getURL("/icons/128.png"),
-                title: who,
+                title: notificationTitle(item, account),
                 message: item.subject || "(제목 없음)",
-                contextMessage: item.snippet || ""
+                contextMessage: account.email || item.snippet || ""
             });
         } catch (error) {
             console.error("메일 알림을 띄우지 못했어요.", error);
@@ -114,7 +125,7 @@ export async function checkGmail(reason = "alarm", deps = {}) {
     const gap = gaps[reason] ?? 0;
     if (checking) return checking;
     if (gap && Date.now() - lastCheckAt < gap) return storageGet(SNAP_KEY).then((s) => s[SNAP_KEY] || null);
-    checking = (async () => {
+    checking = exclusive(async () => {
         if (!(await isModuleEnabled("gmail"))) {
             await storageSet({[UNREAD_KEY]: 0});
             await paintToolbarBadge();
@@ -128,11 +139,16 @@ export async function checkGmail(reason = "alarm", deps = {}) {
                 await paintToolbarBadge();
                 return snapshot;
             }
-            const stored = await storageGet([SEEN_KEY, BASE_KEY]);
-            const messages = inbox.accounts.flatMap((account) => account.messages.map((message) => ({...message, account: account.index})));
+            const stored = await storageGet([SEEN_KEY, BASE_KEY, NOTIFY_KEY, DISABLED_KEY]);
+            const disabled = Array.isArray(stored[DISABLED_KEY]) ? stored[DISABLED_KEY] : [];
+            const messages = enabledAccounts(inbox.accounts, disabled).flatMap((account) =>
+                (account.messages || []).map((message) => ({...message, account: account.index}))
+            );
             const plan = planMailNotifications(stored[SEEN_KEY], messages, stored[BASE_KEY] === true);
-            const unread = inbox.accounts.reduce((sum, account) => sum + (Number(account.unread) || 0), 0);
-            const snapshot = {checkedAt: Date.now(), loggedOut: false, accounts: inbox.accounts, unread};
+            const off = new Set(disabled.map(Number));
+            const unread = unreadOf(inbox.accounts, disabled);
+            const accounts = inbox.accounts.map((account) => ({...account, enabled: !off.has(Number(account.index))}));
+            const snapshot = {checkedAt: Date.now(), loggedOut: false, accounts, unread};
             await storageSet({
                 [SNAP_KEY]: snapshot,
                 [UNREAD_KEY]: unread,
@@ -140,10 +156,9 @@ export async function checkGmail(reason = "alarm", deps = {}) {
                 [BASE_KEY]: true,
                 [ERROR_KEY]: ""
             });
-            if (reason !== "baseline") await notifyNew(plan.notify);
+            if (reason !== "baseline" && stored[NOTIFY_KEY] !== false) await notifyNew(plan.notify, accounts);
             await paintToolbarBadge();
             lastCheckAt = Date.now();
-            if (reason === "alarm" || reason === "focus" || reason === "idle") scheduleFollowup();
             return snapshot;
         } catch (error) {
             const message = error instanceof Error ? error.message : "메일을 확인하지 못했어요.";
@@ -153,13 +168,8 @@ export async function checkGmail(reason = "alarm", deps = {}) {
         } finally {
             checking = null;
         }
-    })();
+    });
     return checking;
-}
-
-function scheduleFollowup() {
-    clearTimeout(followupTimer);
-    followupTimer = setTimeout(() => { void checkGmail("followup"); }, GMAIL_WAKE_FOLLOWUP_MS);
 }
 
 async function reloadQuietGmailTabs() {
@@ -189,11 +199,117 @@ export async function actOnGmail(accountIndex, thread, action, deps = {}) {
     return checkGmail("action", deps);
 }
 
+async function watchSettings() {
+    const stored = await storageGet([NOTIFY_KEY, INTERVAL_KEY, DISABLED_KEY]);
+    let idle = "active";
+    try { idle = await chrome.idle.queryState(60); } catch { /* 상태를 모르면 평소 간격을 쓴다. */ }
+    return {
+        notify: stored[NOTIFY_KEY] !== false,
+        moduleOn: await isModuleEnabled("gmail"),
+        intervalMs: clampIntervalMs(stored[INTERVAL_KEY]),
+        disabled: Array.isArray(stored[DISABLED_KEY]) ? stored[DISABLED_KEY] : [],
+        idle
+    };
+}
+
+async function hasOffscreen() {
+    if (chrome.offscreen?.hasDocument) return chrome.offscreen.hasDocument();
+    const contexts = await chrome.runtime.getContexts?.({contextTypes: ["OFFSCREEN_DOCUMENT"]});
+    return Array.isArray(contexts) && contexts.length > 0;
+}
+
+async function closeOffscreen() {
+    if (!(await hasOffscreen())) return;
+    try { await chrome.offscreen.closeDocument(); } catch { /* 이미 닫힘 */ }
+}
+
+async function syncOffscreen() {
+    const settings = await watchSettings();
+    if (!settings.moduleOn || !settings.notify) {
+        await closeOffscreen();
+        if (!settings.moduleOn) {
+            await storageSet({[UNREAD_KEY]: 0});
+            await paintToolbarBadge();
+        }
+        return;
+    }
+    if (!(await hasOffscreen())) {
+        await chrome.offscreen.createDocument({
+            url: chrome.runtime.getURL(OFFSCREEN_URL),
+            reasons: ["DOM_PARSER"],
+            justification: "로그인된 Gmail 받은편지함 피드만 읽어 새 메일을 확인합니다."
+        });
+    }
+    try {
+        await chrome.runtime.sendMessage({type: "gmail-watch-config", config: settings});
+    } catch { /* 문서가 아직 준비되지 않으면 ready 신호에서 다시 보냅니다. */ }
+}
+
+async function applyWatchTick(message) {
+    return exclusive(async () => {
+    if (!(await isModuleEnabled("gmail"))) return;
+    if (message.error) {
+        await storageSet({[ERROR_KEY]: message.error});
+        return;
+    }
+    if (message.loggedOut) {
+        const snapshot = {checkedAt: Date.now(), loggedOut: true, accounts: [], unread: 0};
+        await storageSet({[SNAP_KEY]: snapshot, [UNREAD_KEY]: 0, [ERROR_KEY]: "Gmail에 로그인되어 있지 않아요. 브라우저에서 Gmail을 연 뒤 다시 확인해 주세요."});
+        await paintToolbarBadge();
+        return;
+    }
+    const stored = await storageGet([SEEN_KEY, BASE_KEY, NOTIFY_KEY, DISABLED_KEY, SNAP_KEY]);
+    const disabled = Array.isArray(stored[DISABLED_KEY]) ? stored[DISABLED_KEY] : [];
+    const previous = new Map((stored[SNAP_KEY]?.accounts || []).map((account) => [account.index, account]));
+    const off = new Set(disabled.map(Number));
+    const accounts = (message.accounts || []).map((account) => {
+        const prior = previous.get(account.index);
+        const messages = account.kept ? (prior?.messages || []) : (Array.isArray(account.messages) ? account.messages : (prior?.messages || []));
+        const unread = account.kept ? (prior?.unread || 0) : account.unread;
+        return {...account, messages, unread, enabled: !off.has(Number(account.index))};
+    });
+    const watched = enabledAccounts(accounts, disabled);
+    const messages = watched.flatMap((account) => (account.messages || []).map((item) => ({...item, account: account.index})));
+    const plan = message.changed
+        ? planMailNotifications(stored[SEEN_KEY], messages, stored[BASE_KEY] === true)
+        : {notify: [], seen: stored[SEEN_KEY] || [], baseline: stored[BASE_KEY] === true};
+    const unread = unreadOf(accounts, disabled);
+    const snapshot = {checkedAt: Date.now(), loggedOut: false, accounts, unread};
+    await storageSet({
+        [SNAP_KEY]: snapshot,
+        [UNREAD_KEY]: unread,
+        [SEEN_KEY]: plan.seen,
+        [BASE_KEY]: true,
+        [ERROR_KEY]: ""
+    });
+    if (stored[NOTIFY_KEY] !== false && message.changed) await notifyNew(plan.notify, accounts);
+    await paintToolbarBadge();
+    });
+}
+
 function onMessage(message, _sender, sendResponse) {
     const type = message?.type;
     if (type === "gmail-tab-signal") {
         void checkGmail("tab");
         return;
+    }
+    if (type === "gmail-watch-ready") {
+        void syncOffscreen();
+        return;
+    }
+    if (type === "gmail-watch-tick") {
+        void applyWatchTick(message);
+        return;
+    }
+    if (type === "gmail-config") {
+        const intervalMs = clampIntervalMs(message.intervalMs);
+        const disabled = Array.isArray(message.disabled) ? message.disabled.map(Number) : [];
+        storageSet({
+            [NOTIFY_KEY]: message.notify !== false,
+            [INTERVAL_KEY]: intervalMs,
+            [DISABLED_KEY]: disabled
+        }).then(() => syncOffscreen()).then(() => sendResponse({ok: true, intervalMs}));
+        return true;
     }
     if (type === "gmail-get") {
         storageGet([SNAP_KEY, ERROR_KEY]).then((stored) => {
@@ -222,23 +338,21 @@ export function startGmailBackground() {
     started = true;
     chrome.runtime.onMessage.addListener(onMessage);
     chrome.alarms.onAlarm.addListener((alarm) => {
-        if (alarm.name === ALARM) void checkGmail("alarm");
+        if (alarm.name === ALARM) void syncOffscreen();
     });
-    chrome.idle?.onStateChanged?.addListener((state) => {
-        if (state === "active") void checkGmail("idle");
-    });
+    chrome.idle?.onStateChanged?.addListener(() => { void syncOffscreen(); });
     try { chrome.idle?.setDetectionInterval?.(60); } catch { /* 간격 변경을 지원하지 않으면 기본값을 쓴다. */ }
     chrome.windows?.onFocusChanged?.addListener((windowId) => {
         if (windowId === chrome.windows.WINDOW_ID_NONE) return;
-        void checkGmail("focus");
+        void syncOffscreen();
     });
-    chrome.notifications?.onClicked?.addListener((notificationId) => {
-        if (!String(notificationId).startsWith("gmail-")) return;
+    chrome.notifications?.onClicked?.addListener((clickedId) => {
+        if (!String(clickedId).startsWith("gmail-")) return;
         void (async () => {
             const stored = await storageGet(SNAP_KEY);
             const accounts = stored[SNAP_KEY]?.accounts || [];
             for (const account of accounts) {
-                const message = (account.messages || []).find((item) => `gmail-${item.id}` === notificationId);
+                const message = (account.messages || []).find((item) => notificationId({...item, account: account.index}) === clickedId || `gmail-${item.id}` === clickedId);
                 if (message?.link) {
                     await chrome.tabs.create({url: message.link});
                     return;
@@ -248,8 +362,9 @@ export function startGmailBackground() {
         })();
     });
     chrome.storage.onChanged.addListener((changes, area) => {
-        if (area === "local" && changes["core.modules"]) void checkGmail("popup");
+        if (area === "local" && (changes["core.modules"] || changes[NOTIFY_KEY])) void syncOffscreen();
     });
     void chrome.alarms.create(ALARM, {periodInMinutes: GMAIL_ALARM_MINUTES, delayInMinutes: GMAIL_ALARM_MINUTES});
+    void syncOffscreen();
     void checkGmail("popup");
 }

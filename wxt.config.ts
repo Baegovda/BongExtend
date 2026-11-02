@@ -62,6 +62,7 @@ export default defineConfig({
             "declarativeNetRequest",
             "downloads",
             "notifications",
+            "offscreen",
             "idle",
             "storage",
             "scripting",

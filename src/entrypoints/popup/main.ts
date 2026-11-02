@@ -297,7 +297,7 @@ type GmailMessage = {
     id: string; thread: string; subject: string; snippet: string;
     fromName: string; fromEmail: string; issued: string; link: string;
 };
-type GmailAccount = {index: number; email: string; unread: number; messages: GmailMessage[]};
+type GmailAccount = {index: number; email: string; unread: number; enabled?: boolean; messages: GmailMessage[]};
 type GmailSnapshot = {checkedAt?: number; loggedOut?: boolean; unread?: number; accounts?: GmailAccount[]};
 
 const gmailStatus = $("gmailStatus");
@@ -317,12 +317,19 @@ const renderGmail = (snapshot: GmailSnapshot | null | undefined, error = "") => 
     const account = accounts.find((item) => item.index === gmailShown) || accounts[0];
     gmailAccounts.replaceChildren();
     for (const item of accounts) {
+        const row = document.createElement("label");
+        const toggle = document.createElement("input");
+        toggle.type = "checkbox";
+        toggle.checked = item.enabled !== false;
+        toggle.setAttribute("aria-label", `${item.email || `계정 ${item.index + 1}`} 알림`);
+        toggle.addEventListener("change", () => void saveGmailAccount(item.index, toggle.checked));
         const button = document.createElement("button");
         button.type = "button";
-        button.textContent = item.email || `계정 ${item.index + 1}`;
+        button.textContent = `${item.email || `계정 ${item.index + 1}`} · ${item.unread}통`;
         if (item.index === account?.index) button.className = "primary";
         button.addEventListener("click", () => { gmailShown = item.index; renderGmail(snapshot, error); });
-        gmailAccounts.appendChild(button);
+        row.append(toggle, button);
+        gmailAccounts.appendChild(row);
     }
     if (error) gmailStatus.textContent = error;
     else if (snapshot?.loggedOut) gmailStatus.textContent = "Gmail에 로그인되어 있지 않아요.";
@@ -335,7 +342,7 @@ const renderGmail = (snapshot: GmailSnapshot | null | undefined, error = "") => 
     for (const message of account?.messages || []) {
         const li = document.createElement("li");
         const who = document.createElement("strong");
-        who.textContent = message.fromName || message.fromEmail || "보낸 사람 없음";
+        who.textContent = `${message.fromName || message.fromEmail || "보낸 사람 없음"} · ${account.email || `계정 ${account.index + 1}`}`;
         const subject = document.createElement("div");
         subject.textContent = message.subject;
         const snippet = document.createElement("p");
@@ -390,7 +397,40 @@ const gmailAct = async (account: number, message: GmailMessage, action: string) 
 };
 
 $("gmailRefresh").addEventListener("click", () => void refreshGmail(true));
-$("gmailLatency").textContent = "새 메일은 Gmail 탭이 열려 있으면 제목이 바뀌는 즉시, 그리고 10초마다 확인해요. 탭이 없으면 크롬 알람 한계인 1분마다 확인하고, 브라우저로 돌아오면 바로 다시 봐요. 답장은 Gmail 창에서 보내야 보낸편지함과 같아요.";
+$("gmailLatency").textContent = "Gmail 탭이 없어도 로그인된 계정을 모두 확인해요. 기본 8초마다 받은편지함 피드만 보고, 자리를 비우거나 화면이 잠기면 더 천천히 봐요. 알림을 끄면 확인을 멈춰요. 계정 앞 체크를 끄면 그 계정은 알림과 숫자에서 빼요. 다른 계정을 더하려면 Gmail 오른쪽 위 프로필 사진에서 계정 추가로 로그인하세요. 그러면 여기 목록에 나타나요. 답장은 Gmail 창에서 보내야 보낸편지함과 같아요.";
+
+const gmailInterval = $<HTMLInputElement>("gmailInterval");
+const gmailNotify = $<HTMLInputElement>("gmailNotify");
+const saveGmailWatch = async () => {
+    const seconds = Math.min(60, Math.max(5, Number(gmailInterval.value) || 8));
+    gmailInterval.value = String(seconds);
+    const stored = await chrome.storage.local.get("gmail.disabled");
+    await chrome.runtime.sendMessage({
+        type: "gmail-config",
+        notify: gmailNotify.checked,
+        intervalMs: seconds * 1000,
+        disabled: Array.isArray(stored["gmail.disabled"]) ? stored["gmail.disabled"] : []
+    });
+};
+const saveGmailAccount = async (index: number, enabled: boolean) => {
+    const stored = await chrome.storage.local.get("gmail.disabled");
+    const disabled = new Set<number>(Array.isArray(stored["gmail.disabled"]) ? stored["gmail.disabled"] : []);
+    if (enabled) disabled.delete(index);
+    else disabled.add(index);
+    await chrome.runtime.sendMessage({
+        type: "gmail-config",
+        notify: gmailNotify.checked,
+        intervalMs: Number(gmailInterval.value) * 1000,
+        disabled: [...disabled]
+    });
+    void refreshGmail(true);
+};
+gmailInterval.addEventListener("change", () => void saveGmailWatch());
+gmailNotify.addEventListener("change", () => void saveGmailWatch());
+chrome.storage.local.get(["gmail.intervalMs", "gmail.notify"]).then((stored) => {
+    if (typeof stored["gmail.intervalMs"] === "number") gmailInterval.value = String(Math.round(stored["gmail.intervalMs"] / 1000));
+    gmailNotify.checked = stored["gmail.notify"] !== false;
+});
 chrome.storage.onChanged.addListener((changes, area) => {
     if (area === "local" && changes["gmail.snapshot"] && current === "gmail") {
         renderGmail(changes["gmail.snapshot"].newValue as GmailSnapshot);
