@@ -50,6 +50,33 @@ export const dedupeAccounts = (accounts) => {
     return [...order.map((key) => seen.get(key)), ...nameless];
 };
 
+// 저장된 이메일 순서대로 놓고, 순서에 없는 새 계정은 맨 아래에 둔다.
+export const orderAccounts = (accounts, saved) => {
+    const unique = dedupeAccounts(accounts);
+    const byEmail = new Map();
+    const nameless = [];
+    for (const account of unique) {
+        const key = accountEmailKey(account);
+        if (!key) nameless.push(account);
+        else if (!byEmail.has(key)) byEmail.set(key, account);
+    }
+    const used = new Set();
+    const ordered = [];
+    for (const raw of saved || []) {
+        const key = String(raw || "").trim().toLowerCase();
+        const account = byEmail.get(key);
+        if (!key || !account || used.has(key)) continue;
+        used.add(key);
+        ordered.push(account);
+    }
+    for (const account of unique) {
+        const key = accountEmailKey(account);
+        if (!key || used.has(key)) continue;
+        ordered.push(account);
+    }
+    return [...ordered, ...nameless];
+};
+
 export const isDuplicateEmail = (accounts, account) => {
     const key = accountEmailKey(account);
     if (!key) return false;
