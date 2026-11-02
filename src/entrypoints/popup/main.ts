@@ -10,7 +10,7 @@ import {exportAllSettings, importSettingsText} from "@/modules/settings-io";
 // @ts-ignore 순수 JS
 import {COMMON_CODES, FX_URL, convertAmount, currencyLabel, favoriteCurrencyId, favoritePairId, formatMoney, isCacheFresh, normalizeFavorites, parseFavoriteId, parseRatePayload, pinFavoriteCodes, reorderFavorites, toggleFavorite} from "@/modules/fx/convert.js";
 // @ts-ignore 순수 JS
-import {dedupeAccounts, preferInbox} from "@/modules/gmail/watch.js";
+import {dedupeAccounts, mailTabBadge, preferInbox} from "@/modules/gmail/watch.js";
 // @ts-ignore 순수 JS
 import {ACCOUNT_COLORS, accountColor, accountInitial} from "@/modules/gmail/account-style.js";
 // @ts-ignore 순수 JS
@@ -328,6 +328,14 @@ type GmailMessage = {
 type GmailAccount = {index: number; email: string; unread: number; enabled?: boolean; messages: GmailMessage[]};
 type GmailSnapshot = {checkedAt?: number; loggedOut?: boolean; unread?: number; accounts?: GmailAccount[]};
 
+const paintMailBadge = (accounts: GmailAccount[] | undefined, disabled: unknown) => {
+    const badge = $("mailBadge");
+    if (!badge) return;
+    const text = mailTabBadge(accounts, Array.isArray(disabled) ? disabled : []) as string;
+    badge.textContent = text;
+    badge.hidden = !text;
+};
+
 const gmailStatus = $("gmailStatus");
 const gmailList = $("gmailList");
 const gmailAccounts = $("gmailAccounts");
@@ -441,6 +449,7 @@ const renderGmail = (snapshot: GmailSnapshot | null | undefined, error = "") => 
     else if (!accounts.length) gmailStatus.textContent = "읽지 않은 메일이 없어요.";
     else gmailStatus.textContent = `읽지 않은 메일 ${unread}통`;
     gmailAccount.textContent = accounts.length > 1 ? `계정 ${accounts.length}개` : (accounts[0]?.email || "Gmail 받은편지함");
+    paintMailBadge(accounts, accounts.filter((item) => item.enabled === false).map((item) => item.index));
     paintSoundAccounts(accounts);
 };
 
@@ -626,6 +635,10 @@ const saveGmailAccount = async (index: number, enabled: boolean) => {
 };
 gmailInterval.addEventListener("change", () => void saveGmailWatch());
 gmailNotify.addEventListener("change", () => void saveGmailWatch());
+effects.storageGet(["gmail.snapshot", "gmail.disabled"]).then((stored: Record<string, unknown>) => {
+    const snapshot = stored["gmail.snapshot"] as GmailSnapshot | undefined;
+    paintMailBadge(snapshot?.accounts, stored["gmail.disabled"]);
+});
 effects.storageGet(["gmail.intervalMs", "gmail.notify"]).then((stored: Record<string, unknown>) => {
     if (typeof stored["gmail.intervalMs"] === "number") gmailInterval.value = String(Math.round(stored["gmail.intervalMs"] / 1000));
     gmailNotify.checked = stored["gmail.notify"] !== false;
@@ -643,6 +656,12 @@ effects.storageOnChanged((changes: Record<string, {newValue?: unknown}>, area: s
         if (toggle) toggle.checked = sound.on;
         if (select) select.value = sound.name;
         if (range) range.value = String(Math.round(sound.volume * 100));
+    }
+    if (changes["gmail.snapshot"] || changes["gmail.disabled"]) {
+        effects.storageGet(["gmail.snapshot", "gmail.disabled"]).then((stored: Record<string, unknown>) => {
+            const snapshot = (stored["gmail.snapshot"] || changes["gmail.snapshot"]?.newValue) as GmailSnapshot | undefined;
+            paintMailBadge(snapshot?.accounts, stored["gmail.disabled"]);
+        });
     }
     if ((changes["gmail.snapshot"] || changes["gmail.photos"] || changes["gmail.accountColors"]) && (current === "gmail" || embed === "gmail")) {
         renderGmail((changes["gmail.snapshot"]?.newValue as GmailSnapshot) || gmailView);
