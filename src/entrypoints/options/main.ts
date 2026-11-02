@@ -14,7 +14,7 @@ const PANES: Pane[] = [
     {id: "trans", label: "번역", src: "/trans/options/options.html"},
     {id: "dc", label: "디시", src: "/dc-options.html"},
     {id: "right", label: "우클릭"},
-    {id: "update", label: "업데이트/정보", src: "/popup.html?embed=update"}
+    {id: "update", label: "설정", src: "/popup.html?embed=update"}
 ];
 
 const nav = document.querySelector<HTMLElement>("#settingsNav")!;
