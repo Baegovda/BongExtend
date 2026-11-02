@@ -32,6 +32,7 @@ export const CHZZK_AD_SCRIPT_FILES = [
 export const CHZZK_AD_FLAG_ID = "bongextend-chzzk-adflag";
 export const CHZZK_AD_FLAG_FILES = [
     "chzzk/lib/ns.js",
+    "chzzk/lib/player.js",
     "chzzk/content-adflag.js"
 ];
 

@@ -113,6 +113,45 @@
     if (userTouched || !snapshot) return null;
     return snapshot;
   }
+  // 광고 화면(건너뛰기, 광고 페이지 보기, 광고 칸). 채팅은 아니다.
+  function isAdChrome(info) {
+    if (!info || info.inChat) return false;
+    const kind = adTextKind(info.text || '');
+    if (kind === 'clickthrough' || kind === 'countdown' || kind === 'counter' || kind === 'skip') return true;
+    if (/adVideo|adControl|adLink|skipBtn|countDown/i.test(String(info.dataRole || ''))) return true;
+    if (/pzp-ad-|webplayer-internal-core-ad|ad-click-through|ad-skip|btn_skip|skip_btn/i.test(String(info.className || ''))) return true;
+    return false;
+  }
+  // 버튼에서 플레이어까지 올라갈 때, 본영상과 채팅이 없는 가장 바깥 칸을 고른다.
+  function pickAdConcealNode(chain) {
+    if (!Array.isArray(chain) || chain.length < 2) return null;
+    let chosen = null;
+    for (let i = 0; i < chain.length - 1; i += 1) {
+      const node = chain[i];
+      if (!node || node.hasChat || node.hasLiveVideo || node.isPlayer) break;
+      chosen = node;
+    }
+    return chosen;
+  }
+  // 광고 영상만. 길이 없는 본방송 영상은 숨기지 않는다.
+  function isAdVideo(info) {
+    if (!info || info.inChat) return false;
+    if (info.inAdBox) return true;
+    if (info.isMain && !isAdDuration(info.duration)) return false;
+    return isAdDuration(info.duration);
+  }
+  // display:none 은 광고 차단 탐지에 걸린다. 투명하게 가려서 프레임이 안 보이게 한다.
+  const AD_CONCEAL_CSS = [
+    'html[data-bong-adblock="1"] [data-role="adVideoContainerEl"]',
+    'html[data-bong-adblock="1"] [data-role="adControlEl"]',
+    'html[data-bong-adblock="1"] [data-role="skipBtn"]',
+    'html[data-bong-adblock="1"] .webplayer-internal-core-ad-ui',
+    'html[data-bong-adblock="1"] .pzp-ad-break-indicator',
+    'html[data-bong-adblock="1"] .pzp-ad-click-through-button',
+    'html[data-bong-adblock="1"] .btn_skip',
+    'html[data-bong-adblock="1"] .bex-adhide',
+    'html[data-bong-adblock="1"] video.bex-advideo'
+  ].join(',') + '{opacity:0 !important;visibility:hidden !important;pointer-events:none !important}';
   // 배너로 볼 요소. 광고 차단 탐지가 보는 display:none bait(.banner_ad_wrapper)는 여기 넣지 않는다.
   function isDisplayAdElement(info) {
     if (!info) return false;
@@ -125,5 +164,5 @@
     if (tag === 'IMG') return /\/Banner_/i.test(String(info.src || '')) && /banner_(image|link)_/i.test(String(info.cls || ''));
     return false;
   }
-  root.BongPlayer = { isSkipButtonLabel, isSkipCandidate, hasAdContainer, seekEndTime, AD_CONTAINER_SEL, isAdActive, isGuideText, isPurchaseGuideDialogText, isSkipText, adTextKind, isSafeSkipLabel, isAdDuration, captureAudioState, restoreAudioState, isAudioControlLabel, audioRestoreAction, noteLiveAudio, audioAfterAd, isDisplayAdElement, countdownSeconds, skipAction, pickSkipElement };
+  root.BongPlayer = { isSkipButtonLabel, isSkipCandidate, hasAdContainer, seekEndTime, AD_CONTAINER_SEL, isAdActive, isGuideText, isPurchaseGuideDialogText, isSkipText, adTextKind, isSafeSkipLabel, isAdDuration, captureAudioState, restoreAudioState, isAudioControlLabel, audioRestoreAction, noteLiveAudio, audioAfterAd, isDisplayAdElement, countdownSeconds, skipAction, pickSkipElement, isAdChrome, pickAdConcealNode, isAdVideo, AD_CONCEAL_CSS };
 })(typeof globalThis !== 'undefined' ? globalThis : this);

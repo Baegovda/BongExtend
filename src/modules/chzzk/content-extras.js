@@ -35,8 +35,8 @@
       css += RANK.map(r => `${r} [class*="_money_"], ${r} [class*="_money_"] *`).join(', ') + '{filter:none !important}';
     }
     if (cfg.hideTimeGuide) css += '.restart_guide, .bex-guidehide{display:none !important}';
-    // display:none 은 광고 차단 탐지에 걸린다. 접어서 안 보이게만 한다.
-    if (cfg.adBlock) css += '[data-role="adVideoContainerEl"],.webplayer-internal-core-ad-ui,.pzp-ad-break-indicator{clip-path:inset(50%) !important;pointer-events:none !important}';
+    // display:none 은 광고 차단 탐지에 걸린다. 광고 칸만 투명하게 가린다.
+    if (cfg.adBlock && P.AD_CONCEAL_CSS) css += P.AD_CONCEAL_CSS;
     const fs = X.normalizeFontSize(cfg.chatFontSize);
     if (fs) css += `#aside-chatting [class*="_chatting_message_"], #aside-chatting [class*="_chatting_message_"] > span[class*="_text_"], #aside-chatting [class*="_chatting_message_"] [class*="_nickname_"] *{font-size:${fs}px !important;line-height:1.5 !important}`;
     st.textContent = css;
@@ -440,7 +440,85 @@
     const main = [...document.querySelectorAll('video.webplayer-internal-video')].find(v => v.isConnected && !v.closest(P.AD_CONTAINER_SEL));
     return RT.shouldRecover({ path: location.pathname, offlineText: text, ended: !!(main && main.ended) });
   }
+  function playerBox() {
+    return document.querySelector(ROOT) || document.querySelector('div.pzp') || document.getElementById('live_player_layout');
+  }
+  function liveVideoInside(node) {
+    if (!node || !node.querySelectorAll) return false;
+    for (const video of node.querySelectorAll('video.webplayer-internal-video')) {
+      if (!P.isAdDuration(video.duration)) return true;
+    }
+    return false;
+  }
+  function concealChain(el, player) {
+    const chain = [];
+    let node = el;
+    const seen = new Set();
+    while (node && !seen.has(node)) {
+      seen.add(node);
+      chain.push({
+        el: node,
+        hasChat: node.id === 'aside-chatting' || !!(node.querySelector && node.querySelector('#aside-chatting')),
+        hasLiveVideo: liveVideoInside(node),
+        isPlayer: node === player
+      });
+      if (node === player || node === document.body) break;
+      node = node.parentElement || (node.getRootNode && node.getRootNode().host) || null;
+    }
+    return chain;
+  }
+  function markAdChrome(scope, player, bucket) {
+    if (!scope || !scope.querySelectorAll) return;
+    for (const el of scope.querySelectorAll('*')) {
+      if (el.id?.startsWith('bex') || el.closest && el.closest('#aside-chatting')) continue;
+      const text = (el.textContent || '').replace(/\s+/g, ' ').trim();
+      const info = {
+        text: text.length < 40 ? text : '',
+        dataRole: el.getAttribute ? (el.getAttribute('data-role') || '') : '',
+        className: String(el.className || ''),
+        inChat: false
+      };
+      if (!P.isAdChrome(info)) {
+        const shadow = shadowOf(el);
+        if (shadow) markAdChrome(shadow, player, bucket);
+        continue;
+      }
+      bucket.push(el);
+      const shadow = shadowOf(el);
+      if (shadow) markAdChrome(shadow, player, bucket);
+    }
+  }
+  function concealAds(player) {
+    if (!player || cfg.adBlock === false) return;
+    const chrome = [];
+    markAdChrome(player, player, chrome);
+    const top = shadowOf(player);
+    if (top) markAdChrome(top, player, chrome);
+    for (const el of chrome) {
+      const picked = P.pickAdConcealNode(concealChain(el, player));
+      if (picked && picked.el && picked.el.classList && picked.el !== player) picked.el.classList.add('bex-adhide');
+    }
+    const videos = [...player.querySelectorAll('video')];
+    if (top && top.querySelectorAll) videos.push(...top.querySelectorAll('video'));
+    for (const video of videos) {
+      const ad = P.isAdVideo({
+        inChat: !!(video.closest && video.closest('#aside-chatting')),
+        inAdBox: !!(video.closest && (video.closest(P.AD_CONTAINER_SEL) || video.closest('.bex-adhide') || video.closest('.webplayer-internal-core-ad-ui'))),
+        duration: video.duration,
+        isMain: video.classList.contains('webplayer-internal-video')
+      });
+      if (!ad) continue;
+      video.classList.add('bex-advideo');
+      try { video.muted = true; } catch (e) {}
+      try { video.volume = 0; } catch (e) {}
+      boostAdVideo(video);
+    }
+  }
+  function releaseConceal() {
+    for (const el of document.querySelectorAll('.bex-adhide, .bex-advideo')) el.classList.remove('bex-adhide', 'bex-advideo');
+  }
   function endAd(resumePlayback) {
+    releaseConceal();
     console.info('[BongExtend] 광고 종료');
     for (const v of boosted) {
       if (!v.isConnected) continue;
@@ -483,6 +561,7 @@
       rememberQuiet();
     }
     globalThis.__bongAdActive = active; // 버퍼링 복구·자동 재생이 광고 중엔 개입하지 않도록
+    if (cfg.adBlock !== false) concealAds(root || playerBox());
     if (active) {
       if (!adWasActive) {
         audioTouched = false;
@@ -502,6 +581,7 @@
   }
   new MutationObserver(ms => {
     if (cfg.adBlock) for (const m of ms) for (const n of m.addedNodes) stripDisplayAds(n);
+    if (cfg.adBlock !== false && adScope() && ms.some(m => m.target && m.target.closest && (m.target.closest(ROOT) || m.target.closest('div.pzp') || m.target.id === 'live_player_layout'))) concealAds(playerBox());
     if (!adWasActive && cfg.adSkip && adScope() && document.querySelector(P.AD_CONTAINER_SEL)) adTick();
   }).observe(document.documentElement, { childList: true, subtree: true });
   window.addEventListener('bong-route', () => adTick());

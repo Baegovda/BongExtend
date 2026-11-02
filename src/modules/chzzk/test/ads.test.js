@@ -52,6 +52,11 @@ test('재생 주소는 두고 프리롤·미드롤 표시만 끈다', () => {
   assert.equal(body.content.livePlaybackJson, playback);
   assert.equal(body.content.liveId, 9);
   assert.equal(body.content.skipPreRollAd, true);
+  const flags = { liveId: 1, livePlaybackJson: playback, showPreroll: true, prerollEnabled: true };
+  assert.equal(A.patchAdPayload(flags), true);
+  assert.equal(flags.showPreroll, false);
+  assert.equal(flags.prerollEnabled, false);
+  assert.equal(flags.livePlaybackJson, playback);
   assert.equal(body.content.chatChannelId, 'chat-1');
   assert.equal(A.patchAdResponse(body), false);
 });
@@ -90,6 +95,7 @@ test('광고 전용 주소만 가로챈다', () => {
   assert.equal(A.isAdEndpoint('https://api.chzzk.naver.com/ad-polling/v1/lives/123/ad'), true);
   assert.equal(A.isAdEndpoint('https://api.chzzk.naver.com/service/v3/lives/abc/ads/current?z=1'), true);
   assert.equal(A.isAdEndpoint('https://nam.veta.naver.com/vas', 'OPTIONS'), false);
+  assert.equal(A.isAdEndpoint('https://nam.veta.naver.com/dfp?x=1'), true);
   assert.equal(A.isAdEndpoint('https://nam.veta.naver.com/nac/'), false);
   assert.equal(A.isAdEndpoint('https://api.chzzk.naver.com/service/v1/seoraksan'), false);
   assert.equal(A.isAdEndpoint('https://api.chzzk.naver.com/service/v2/channels/abc/live-detail'), false);
