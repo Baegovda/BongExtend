@@ -55,6 +55,68 @@ export const formatMoney = (amount, code) => {
     return new Intl.NumberFormat("ko-KR", {maximumFractionDigits: digits, minimumFractionDigits: 0}).format(amount);
 };
 
+const FAVORITE_CODE = /^[a-z0-9]{2,12}$/;
+
+export const favoriteCurrencyId = (code) => `c:${String(code || "").toLowerCase()}`;
+
+export const favoritePairId = (from, to) => `p:${String(from || "").toLowerCase()}>${String(to || "").toLowerCase()}`;
+
+export const parseFavoriteId = (id) => {
+    const text = String(id || "");
+    if (text.startsWith("c:")) {
+        const code = text.slice(2);
+        return FAVORITE_CODE.test(code) ? {kind: "currency", code} : null;
+    }
+    if (text.startsWith("p:")) {
+        const [from, to] = text.slice(2).split(">");
+        if (FAVORITE_CODE.test(from || "") && FAVORITE_CODE.test(to || "") && from !== to) return {kind: "pair", from, to};
+    }
+    return null;
+};
+
+export const normalizeFavorites = (raw) => {
+    const order = [];
+    const seen = new Set();
+    const push = (id) => {
+        const text = String(id || "");
+        if (!parseFavoriteId(text) || seen.has(text)) return;
+        seen.add(text);
+        order.push(text);
+    };
+    if (Array.isArray(raw?.order)) raw.order.forEach(push);
+    if (Array.isArray(raw?.currencies)) raw.currencies.forEach((code) => push(favoriteCurrencyId(code)));
+    if (Array.isArray(raw?.pairs)) raw.pairs.forEach((pair) => push(favoritePairId(pair?.from, pair?.to)));
+    return {order};
+};
+
+export const toggleFavorite = (raw, id) => {
+    const fav = normalizeFavorites(raw);
+    const text = String(id || "");
+    if (!parseFavoriteId(text)) return fav;
+    const order = fav.order.includes(text) ? fav.order.filter((item) => item !== text) : [...fav.order, text];
+    return {order};
+};
+
+export const reorderFavorites = (raw, fromIndex, toIndex) => {
+    const fav = normalizeFavorites(raw);
+    const order = [...fav.order];
+    if (fromIndex < 0 || fromIndex >= order.length) return fav;
+    const clamped = Math.max(0, Math.min(order.length - 1, toIndex));
+    const [item] = order.splice(fromIndex, 1);
+    order.splice(clamped, 0, item);
+    return {order};
+};
+
+export const pinFavoriteCodes = (codes, favorites) => {
+    const fav = normalizeFavorites(favorites);
+    const have = new Set(codes || []);
+    const pinned = fav.order
+        .map(parseFavoriteId)
+        .filter((item) => item?.kind === "currency" && have.has(item.code))
+        .map((item) => item.code);
+    return [...pinned, ...(codes || []).filter((code) => !pinned.includes(code))];
+};
+
 export const isCacheFresh = (savedAt, now = Date.now(), maxAge = FX_CACHE_MS) => {
     const time = Number(savedAt) || 0;
     return time > 0 && now - time < maxAge;

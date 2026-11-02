@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import {convertAmount, formatMoney, isCacheFresh, parseRatePayload, currencyLabel} from "../convert.js";
+import {convertAmount, formatMoney, isCacheFresh, parseRatePayload, currencyLabel, normalizeFavorites, toggleFavorite, reorderFavorites, pinFavoriteCodes, favoriteCurrencyId, favoritePairId} from "../convert.js";
 
 test("converts through a KRW rate table, including crypto", () => {
     const rates = {krw: 1, usd: 0.0007, jpy: 0.11, btc: 0.00000001};
@@ -21,6 +21,15 @@ test("parses the no-key payload and keeps a cached table for 12 hours", () => {
     assert.equal(isCacheFresh(now - 60_000, now), true);
     assert.equal(isCacheFresh(now - 13 * 60 * 60 * 1000, now), false);
     assert.equal(isCacheFresh(0, now), false);
+});
+
+test("favorites pin currencies, toggle pairs, and keep a manual order", () => {
+    const starred = toggleFavorite(toggleFavorite({order: []}, favoriteCurrencyId("usd")), favoritePairId("krw", "jpy"));
+    assert.deepEqual(starred.order, ["c:usd", "p:krw>jpy"]);
+    assert.deepEqual(toggleFavorite(starred, "c:usd").order, ["p:krw>jpy"]);
+    assert.deepEqual(normalizeFavorites({currencies: ["EUR"], pairs: [{from: "krw", to: "krw"}, {from: "usd", to: "eur"}]}).order, ["c:eur", "p:usd>eur"]);
+    assert.deepEqual(reorderFavorites(starred, 1, 0).order, ["p:krw>jpy", "c:usd"]);
+    assert.deepEqual(pinFavoriteCodes(["krw", "jpy", "usd", "eur"], starred), ["usd", "krw", "jpy", "eur"]);
 });
 
 test("formats won without decimals and labels Korean names", () => {

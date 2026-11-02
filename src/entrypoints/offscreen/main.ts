@@ -1,6 +1,8 @@
 // @ts-ignore 순수 JS
 import {parseAtom} from "@/modules/gmail/atom.js";
 // @ts-ignore 순수 JS
+import {parseGmailTokens, tokenPageUrls} from "@/modules/gmail/actions.js";
+// @ts-ignore 순수 JS
 import {ACCOUNT_PROBE_LIMIT, inboxSignature, nextWaitMs, skipDisabledFetch, watchPayload} from "@/modules/gmail/watch.js";
 
 type WatchConfig = {
@@ -113,10 +115,42 @@ const tick = async () => {
     }
 };
 
-chrome.runtime.onMessage.addListener((message) => {
-    if (message?.type !== "gmail-watch-config") return;
-    Object.assign(state, message.config || {});
-    void tick();
+const readTokens = async (indexes: unknown) => {
+    const tokens: Record<number, {at: string; ik: string}> = {};
+    const list = Array.isArray(indexes) ? indexes : [];
+    for (const raw of list) {
+        const index = Number(raw);
+        if (!Number.isInteger(index) || index < 0 || index >= ACCOUNT_PROBE_LIMIT) continue;
+        for (const url of tokenPageUrls(index)) {
+            try {
+                const response = await fetch(url, {credentials: "include", redirect: "follow"});
+                const finalUrl = response.url || "";
+                if (!response.ok || finalUrl.includes("accounts.google.com") || finalUrl.includes("ServiceLogin")) continue;
+                const parsed = parseGmailTokens(await response.text());
+                if (parsed) {
+                    tokens[index] = parsed;
+                    break;
+                }
+            } catch {
+                // 다음 주소. 피드는 이 실패와 상관없이 계속 본다.
+            }
+        }
+    }
+    return tokens;
+};
+
+chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+    if (message?.type === "gmail-watch-config") {
+        Object.assign(state, message.config || {});
+        void tick();
+        return;
+    }
+    if (message?.type !== "gmail-read-tokens") return;
+    void readTokens(message.indexes).then(
+        (tokens) => sendResponse({ok: true, tokens}),
+        () => sendResponse({ok: false, tokens: {}})
+    );
+    return true;
 });
 
 window.addEventListener("online", () => { void tick(); });

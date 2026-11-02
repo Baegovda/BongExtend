@@ -1,13 +1,23 @@
 /* 팝업 틀. 색·글꼴·버튼·토글은 공통 테마(modules/theme/theme.css). */
 html, body { margin: 0; }
 body { width: 780px; height: 590px; display: flex; flex-direction: column; overflow: hidden; }
-.tabs { display: flex; align-items: center; gap: 2px; padding: 0 12px; height: 44px; flex: 0 0 auto; background: var(--be-surface); border-bottom: 1px solid var(--be-border); }
-.brand { display: flex; align-items: center; gap: 8px; margin-right: 16px; font-size: 14px; font-weight: 700; letter-spacing: -0.01em; background: var(--be-gradient); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.tabs { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; padding: 0 10px 0 12px; height: 44px; flex: 0 0 auto; background: var(--be-surface); border-bottom: 1px solid var(--be-border); }
+.brand { justify-self: start; display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; letter-spacing: -0.01em; background: var(--be-gradient); -webkit-background-clip: text; background-clip: text; color: transparent; white-space: nowrap; }
 .brand img { border-radius: 5px; }
+.tab-group { display: flex; justify-content: center; align-items: center; gap: 2px; min-width: 0; }
 .be-page .tabs button { position: relative; height: 44px; padding: 0 10px; background: transparent; border: 0; border-radius: 0; color: var(--be-muted); font-size: 13px; font-weight: 500; }
-.be-page .tabs button.corner-toggle { margin-left: auto; height: 28px; padding: 0 10px; border: 1px solid var(--be-border); border-radius: 999px; cursor: pointer; font-size: 12px; }
-.be-page .tabs button.corner-toggle.on { background: var(--be-accent); color: var(--be-accent-ink); border-color: transparent; }
-.be-page .tabs button.corner-toggle::after { display: none; }
+.be-page .tabs .mouse-toggle { justify-self: end; width: 36px; height: 36px; padding: 0; border: 1px solid var(--be-border); border-radius: 10px; color: var(--be-muted); background: transparent; display: grid; place-items: center; }
+.be-page .tabs .mouse-toggle::after { display: none; }
+.be-page .tabs .mouse-toggle.on { background: var(--be-accent); color: var(--be-accent-ink); border-color: transparent; }
+.be-page .tabs .mouse-toggle:hover:not(:disabled) { background: var(--be-surface-3); color: var(--be-text); }
+.be-page .tabs .mouse-toggle.on:hover:not(:disabled) { background: var(--be-accent-hover); color: var(--be-accent-ink); }
+.gear-fab { position: fixed; right: 14px; bottom: 14px; z-index: 20; width: 46px; height: 46px; padding: 0; border-radius: 50%; display: grid; place-items: center; box-shadow: 0 8px 18px rgba(0,0,0,.35); }
+.gear-fab.on { background: var(--be-accent); color: var(--be-accent-ink); border-color: transparent; }
+.gear-dot { position: absolute; top: 8px; right: 8px; width: 9px; height: 9px; border-radius: 50%; background: #ff5d5d; box-shadow: 0 0 0 2px var(--be-surface-2); }
+.fx-favs li, #fxMore li { display: flex; gap: 6px; align-items: center; }
+.fx-favs .fx-apply { flex: 1; text-align: left; }
+.fx-favs .fx-mini { width: auto; padding: 6px 8px; }
+.fx-star { width: 32px; padding: 6px 0; }
 .mail-list { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .mail-list li { background: var(--be-surface-2); border-radius: var(--be-radius); padding: 10px 12px; }
 .mail-list strong { display: block; }
@@ -31,8 +41,8 @@ body { width: 780px; height: 590px; display: flex; flex-direction: column; overf
 main { flex: 1; min-height: 0; position: relative; }
 iframe { border: 0; width: 100%; height: 100%; display: none; background: var(--be-bg); }
 iframe.active { display: block; }
-.panel { padding: 8px 20px 16px; overflow: auto; height: 100%; }
-.panel.be-shell { padding: 14px 16px; }
+.panel { padding: 8px 20px 72px; overflow: auto; height: 100%; }
+.panel.be-shell { padding: 14px 16px 72px; }
 .panel h2 { font-size: 13px; color: var(--be-text); margin: 16px 0 8px; padding-bottom: 6px; border-bottom: 1px solid var(--be-border); }
 .panel p { margin: 6px 0; }
 .panel #ver { color: var(--be-accent); }

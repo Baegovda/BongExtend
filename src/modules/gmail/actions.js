@@ -11,12 +11,40 @@ export const GMAIL_ACTIONS = {
 export const GMAIL_ALARM_MINUTES = 1;
 export const GMAIL_TAB_POLL_MS = 0;
 
+const usable = (value, min) => {
+    const text = String(value || "");
+    return text.length >= min && text !== "null" && text !== "undefined";
+};
+
+const firstUsable = (source, pattern, min) => {
+    const flags = pattern.flags.includes("g") ? pattern.flags : `${pattern.flags}g`;
+    const re = new RegExp(pattern.source, flags);
+    let match;
+    while ((match = re.exec(source))) {
+        if (usable(match[1], min)) return match[1];
+    }
+    return "";
+};
+
+// 지금 Gmail HTML은 GM_ACTION_TOKEN="null" 이 먼저 나오고, 실제 값은 뒤에나 sdpc 안에 있다.
 export const parseGmailTokens = (html) => {
     const source = String(html || "");
-    const token = (source.match(/GM_ACTION_TOKEN\s*=\s*['"]([^'"]+)['"]/) || [])[1] || "";
-    const ik = (source.match(/GM_ID_KEY\s*=\s*['"]([^'"]+)['"]/) || [])[1] || "";
-    if (!token || token === "null" || !ik || ik === "null") return null;
+    const token = firstUsable(source, /GM_ACTION_TOKEN\s*=\s*['"]([^'"]+)['"]/gi, 4)
+        || firstUsable(source, /\["sdpc"\s*,\s*"([^"]+)"\]/gi, 8)
+        || firstUsable(source, /"sdpc"\s*,\s*"([^"]+)"/gi, 8);
+    const ik = firstUsable(source, /GM_ID_KEY\s*=\s*['"]([^'"]+)['"]/gi, 2)
+        || firstUsable(source, /[?&]ik=([a-z0-9]+)/gi, 4)
+        || firstUsable(source, /"ik"\s*,\s*"([a-z0-9]+)"/gi, 4);
+    if (!token || !ik) return null;
     return {at: token, ik};
+};
+
+export const tokenPageUrls = (index) => {
+    const n = Number(index) || 0;
+    return [
+        `https://mail.google.com/mail/u/${n}/`,
+        `https://mail.google.com/mail/u/${n}/?ui=2&view=tl&start=0&num=1`
+    ];
 };
 
 export const actionRequest = (accountIndex, tokens, action, thread) => {

@@ -4,7 +4,8 @@ import {
     GMAIL_ALARM_MINUTES,
     actionRequest,
     parseGmailTokens,
-    planMailNotifications
+    planMailNotifications,
+    tokenPageUrls
 } from "./actions.js";
 import {paintToolbarBadge} from "../toolbar-badge.js";
 import {clampIntervalMs, enabledAccounts, notificationId, notificationTitle, unreadOf} from "./watch.js";
@@ -63,17 +64,119 @@ export async function readGmailTokensFromTab(tabId) {
     }
 }
 
-async function tokensForAccount(index) {
+const TOKEN_KEY = "gmail.sessionTokens";
+const TOKEN_TTL_MS = 20 * 60 * 1000;
+const TOKEN_MISS = "Gmail 작업 토큰을 아직 받지 못했어요. 메일 목록은 그대로예요. 잠시 뒤 다시 시도해 주세요.";
+const memoryTokens = new Map();
+
+async function sessionTokens() {
+    try {
+        const stored = await chrome.storage.session.get(TOKEN_KEY);
+        return stored[TOKEN_KEY] && typeof stored[TOKEN_KEY] === "object" ? stored[TOKEN_KEY] : {};
+    } catch {
+        return {};
+    }
+}
+
+async function cachedToken(index) {
+    const key = String(Number(index) || 0);
+    const hit = memoryTokens.get(key);
+    if (hit && Date.now() - hit.savedAt < TOKEN_TTL_MS) return {at: hit.at, ik: hit.ik};
+    const all = await sessionTokens();
+    const row = all[key];
+    if (row?.at && row?.ik && Date.now() - Number(row.savedAt) < TOKEN_TTL_MS) {
+        memoryTokens.set(key, row);
+        return {at: row.at, ik: row.ik};
+    }
+    return null;
+}
+
+async function storeToken(index, tokens) {
+    const key = String(Number(index) || 0);
+    const row = {at: tokens.at, ik: tokens.ik, savedAt: Date.now()};
+    memoryTokens.set(key, row);
+    try {
+        const all = await sessionTokens();
+        all[key] = row;
+        await chrome.storage.session.set({[TOKEN_KEY]: all});
+    } catch { /* 세션 저장이 없어도 메모리에 남아요. 설정 파일에는 넣지 않아요. */ }
+}
+
+async function forgetToken(index) {
+    const key = String(Number(index) || 0);
+    memoryTokens.delete(key);
+    try {
+        const all = await sessionTokens();
+        delete all[key];
+        await chrome.storage.session.set({[TOKEN_KEY]: all});
+    } catch { /* 없음 */ }
+}
+
+async function readTokensDirect(index) {
+    for (const url of tokenPageUrls(index)) {
+        try {
+            const response = await fetch(url, {credentials: "include", redirect: "follow"});
+            const finalUrl = response.url || "";
+            if (!response.ok || finalUrl.includes("accounts.google.com") || finalUrl.includes("ServiceLogin")) continue;
+            const parsed = parseGmailTokens(await response.text());
+            if (parsed) return parsed;
+        } catch { /* 다음 주소 */ }
+    }
+    return null;
+}
+
+async function readTokensFromOffscreen(indexes) {
+    if (!(await hasOffscreen())) return null;
+    try {
+        const response = await chrome.runtime.sendMessage({type: "gmail-read-tokens", indexes});
+        return response?.tokens || null;
+    } catch {
+        return null;
+    }
+}
+
+async function tokensForAccount(index, fresh = false) {
+    if (!fresh) {
+        const cached = await cachedToken(index);
+        if (cached) return cached;
+    } else await forgetToken(index);
     const tabs = await chrome.tabs.query({url: `https://mail.google.com/mail/u/${index}/*`});
     for (const tab of tabs) {
         const fromTab = await readGmailTokensFromTab(tab.id);
-        if (fromTab) return fromTab;
+        if (fromTab) {
+            await storeToken(index, fromTab);
+            return fromTab;
+        }
     }
-    const response = await fetch(accountUrl(index, ""), {credentials: "include", redirect: "follow"});
-    const finalUrl = response.url || "";
-    if (finalUrl.includes("accounts.google.com") || finalUrl.includes("ServiceLogin")) return null;
-    const html = await response.text();
-    return parseGmailTokens(html);
+    const fromOffscreen = await readTokensFromOffscreen([index]);
+    const picked = fromOffscreen?.[index] || fromOffscreen?.[String(index)];
+    if (picked?.at && picked?.ik) {
+        await storeToken(index, picked);
+        return {at: picked.at, ik: picked.ik};
+    }
+    const direct = await readTokensDirect(index);
+    if (direct) {
+        await storeToken(index, direct);
+        return direct;
+    }
+    return null;
+}
+
+let warming = null;
+function warmTokens(accounts) {
+    const indexes = (accounts || []).filter((account) => account && account.enabled !== false && account.index != null).map((account) => account.index);
+    if (!indexes.length || warming) return;
+    warming = (async () => {
+        const missing = [];
+        for (const index of indexes) if (!(await cachedToken(index))) missing.push(index);
+        if (!missing.length) return;
+        const got = (await readTokensFromOffscreen(missing)) || {};
+        for (const index of missing) {
+            const picked = got[index] || got[String(index)];
+            const tokens = picked?.at && picked?.ik ? picked : await readTokensDirect(index);
+            if (tokens?.at && tokens?.ik) await storeToken(index, tokens);
+        }
+    })().catch(() => {}).finally(() => { warming = null; });
 }
 
 async function fetchAccount(index) {
@@ -159,6 +262,7 @@ export async function checkGmail(reason = "alarm", deps = {}) {
             if (reason !== "baseline" && stored[NOTIFY_KEY] !== false) await notifyNew(plan.notify, accounts);
             await paintToolbarBadge();
             lastCheckAt = Date.now();
+            warmTokens(accounts);
             return snapshot;
         } catch (error) {
             const message = error instanceof Error ? error.message : "메일을 확인하지 못했어요.";
@@ -180,9 +284,7 @@ async function reloadQuietGmailTabs() {
     }));
 }
 
-export async function actOnGmail(accountIndex, thread, action, deps = {}) {
-    const tokens = deps.tokens || await tokensForAccount(accountIndex);
-    if (!tokens) throw new Error("Gmail 작업 토큰을 읽지 못했어요. Gmail 탭을 한 번 연 뒤 다시 시도해 주세요.");
+async function postMailAction(accountIndex, tokens, action, thread, deps) {
     const request = actionRequest(accountIndex, tokens, action, thread);
     const response = await (deps.fetchImpl || fetch)(request.url, {
         method: "POST",
@@ -192,9 +294,18 @@ export async function actOnGmail(accountIndex, thread, action, deps = {}) {
         body: request.body
     });
     const finalUrl = response.url || "";
-    if (!response.ok || finalUrl.includes("accounts.google.com")) {
-        throw new Error("Gmail에 반영하지 못했어요. 로그인 상태를 확인해 주세요.");
+    return response.ok && !finalUrl.includes("accounts.google.com");
+}
+
+export async function actOnGmail(accountIndex, thread, action, deps = {}) {
+    let tokens = deps.tokens || await tokensForAccount(accountIndex, false);
+    if (!tokens) throw new Error(TOKEN_MISS);
+    let ok = await postMailAction(accountIndex, tokens, action, thread, deps);
+    if (!ok && !deps.tokens) {
+        tokens = await tokensForAccount(accountIndex, true);
+        if (tokens) ok = await postMailAction(accountIndex, tokens, action, thread, deps);
     }
+    if (!ok) throw new Error("Gmail에 반영하지 못했어요. 로그인 상태를 확인해 주세요.");
     if (!deps.skipReload) await reloadQuietGmailTabs();
     return checkGmail("action", deps);
 }
@@ -284,6 +395,7 @@ async function applyWatchTick(message) {
     });
     if (stored[NOTIFY_KEY] !== false && message.changed) await notifyNew(plan.notify, accounts);
     await paintToolbarBadge();
+    warmTokens(accounts);
     });
 }
 
@@ -327,7 +439,11 @@ function onMessage(message, _sender, sendResponse) {
     if (type === "gmail-act") {
         actOnGmail(message.account, message.thread, message.action)
             .then((snapshot) => sendResponse({ok: true, snapshot, error: ""}))
-            .catch((error) => sendResponse({ok: false, error: error instanceof Error ? error.message : "메일을 바꾸지 못했어요."}));
+            .catch((error) => storageGet(SNAP_KEY).then((stored) => sendResponse({
+                ok: false,
+                error: error instanceof Error ? error.message : "메일을 바꾸지 못했어요.",
+                snapshot: stored[SNAP_KEY] || null
+            })));
         return true;
     }
     return undefined;

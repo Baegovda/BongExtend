@@ -8,7 +8,9 @@ import {getModules, setModuleEnabled} from "@/modules/core-modules.js";
 import {moveItem, normalizeTabOrder} from "@/core/popup/tabOrder";
 import {exportAllSettings, importSettingsText} from "@/modules/settings-io";
 // @ts-ignore 순수 JS
-import {COMMON_CODES, FX_URL, convertAmount, currencyLabel, formatMoney, isCacheFresh, parseRatePayload} from "@/modules/fx/convert.js";
+import {COMMON_CODES, FX_URL, convertAmount, currencyLabel, favoriteCurrencyId, favoritePairId, formatMoney, isCacheFresh, normalizeFavorites, parseFavoriteId, parseRatePayload, pinFavoriteCodes, reorderFavorites, toggleFavorite} from "@/modules/fx/convert.js";
+// @ts-ignore 순수 JS
+import {preferInbox} from "@/modules/gmail/watch.js";
 
 type TabId = "chzzk" | "trans" | "dc" | "gmail" | "fx" | "update";
 
@@ -21,8 +23,8 @@ const NAMES: Partial<Record<TabId, string>> = {chzzk: "치지직", trans: "번�
 const TAB_KEY = "core.popupTab";
 // 탭 순서. core.* 이라 전체 백업·복원에 포함되고, 디시 초기화(refresher:*)와는 무관.
 const ORDER_KEY = "core.popupTabOrder";
-const DEFAULT_ORDER: TabId[] = ["chzzk", "trans", "dc", "gmail", "fx", "update"];
-const TAB_IDS: TabId[] = [...DEFAULT_ORDER];
+const DEFAULT_ORDER: TabId[] = ["chzzk", "trans", "dc", "gmail", "fx"];
+const TAB_IDS: TabId[] = [...DEFAULT_ORDER, "update"];
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 const moduleBar = $("moduleBar");
@@ -30,10 +32,13 @@ const moduleSwitch = $<HTMLInputElement>("moduleSwitch");
 const moduleLabel = $("moduleLabel");
 const moduleNote = $("moduleNote");
 let current: TabId = "chzzk";
+let pageBeforeSettings: TabId = "chzzk";
 
 const showTab = async (tab: TabId) => {
+    if (tab === "update" && current !== "update") pageBeforeSettings = current;
     current = tab;
-    document.querySelectorAll<HTMLButtonElement>(".tabs button").forEach((b) => b.classList.toggle("active", b.dataset.tab === tab));
+    document.querySelectorAll<HTMLButtonElement>("#tabGroup button").forEach((b) => b.classList.toggle("active", b.dataset.tab === tab));
+    $("settingsGear").classList.toggle("on", tab === "update");
     document.querySelectorAll<HTMLElement>("[data-frame]").forEach((el) => {
         const on = el.dataset.frame === tab;
         if (el instanceof HTMLIFrameElement) {
@@ -61,12 +66,13 @@ const showTab = async (tab: TabId) => {
 
 // ===== 탭 끌어서 순서 바꾸기 (포인터 이벤트, 의존성 없음) =====
 const tabsNav = document.querySelector<HTMLElement>(".tabs")!;
-const tabButtons = () => [...tabsNav.querySelectorAll<HTMLButtonElement>("button[data-tab]")];
+const tabGroup = document.querySelector<HTMLElement>("#tabGroup")!;
+const tabButtons = () => [...tabGroup.querySelectorAll<HTMLButtonElement>("button[data-tab]")];
 const currentOrder = () => tabButtons().map((b) => b.dataset.tab as TabId);
 const applyOrder = (order: TabId[]) => {
     for (const id of order) {
-        const b = tabsNav.querySelector(`button[data-tab="${id}"]`);
-        if (b) tabsNav.appendChild(b);
+        const b = tabGroup.querySelector(`button[data-tab="${id}"]`);
+        if (b) tabGroup.appendChild(b);
     }
 };
 const saveOrder = () => void chrome.storage.local.set({[ORDER_KEY]: currentOrder()});
@@ -105,8 +111,8 @@ tabButtons().forEach((b) => {
             const before = others.find((x) => { const r = x.getBoundingClientRect(); return ev.clientX < r.left + r.width / 2; });
             const prevLeft = b.getBoundingClientRect().left;
             const first = new Map(others.map((x) => [x, x.getBoundingClientRect().left]));
-            if (before) { if (b.nextElementSibling !== before) tabsNav.insertBefore(b, before); }
-            else if (tabsNav.lastElementChild !== b) tabsNav.appendChild(b);
+            if (before) { if (b.nextElementSibling !== before) tabGroup.insertBefore(b, before); }
+            else if (tabGroup.lastElementChild !== b) tabGroup.appendChild(b);
             // 이웃 탭이 부드럽게 밀려나는 애니메이션 (FLIP)
             for (const [x, left] of first) {
                 const d = left - x.getBoundingClientRect().left;
@@ -174,6 +180,7 @@ const renderUpdate = (s: UpdateStatus | null | undefined) => {
     const cur = chrome.runtime.getManifest().version;
     releaseUrl = s.releaseUrl || "";
     const available = Boolean(s.updateAvailable && s.latestVersion && isNewerVersion(s.latestVersion, cur));
+    $("updateDot").hidden = !available;
     if (s.error) setStatus(s.error, "error");
     else if (available) setStatus(`${cur} → ${s.latestVersion} 업데이트할 수 있어요`, "ok");
     else if (s.latestVersion) setStatus("최신 버전이에요.");
@@ -231,6 +238,10 @@ autoCheck.addEventListener("change", async () => {
         setStatus("자동 확인 설정을 저장하지 못했어요.", "error");
     }
 });
+$("settingsGear").addEventListener("click", () => {
+    void showTab(current === "update" ? pageBeforeSettings : "update");
+});
+
 void (async () => {
     try {
         const status = await promiseWithTimeout(
@@ -310,8 +321,12 @@ const gmailSend = (message: Record<string, unknown>) => chrome.runtime.sendMessa
     snapshot?: GmailSnapshot | null; error?: string; ok?: boolean;
 }>;
 
+let gmailView: GmailSnapshot | null = null;
+
 const renderGmail = (snapshot: GmailSnapshot | null | undefined, error = "") => {
-    const accounts = snapshot?.accounts || [];
+    const view = preferInbox(snapshot, gmailView) as GmailSnapshot | null;
+    if (view) gmailView = view;
+    const accounts = view?.accounts || [];
     if (!accounts.length) gmailShown = 0;
     else if (!accounts.some((account) => account.index === gmailShown)) gmailShown = accounts[0].index;
     const account = accounts.find((item) => item.index === gmailShown) || accounts[0];
@@ -327,12 +342,12 @@ const renderGmail = (snapshot: GmailSnapshot | null | undefined, error = "") => 
         button.type = "button";
         button.textContent = `${item.email || `계정 ${item.index + 1}`} · ${item.unread}통`;
         if (item.index === account?.index) button.className = "primary";
-        button.addEventListener("click", () => { gmailShown = item.index; renderGmail(snapshot, error); });
+        button.addEventListener("click", () => { gmailShown = item.index; renderGmail(view, error); });
         row.append(toggle, button);
         gmailAccounts.appendChild(row);
     }
     if (error) gmailStatus.textContent = error;
-    else if (snapshot?.loggedOut) gmailStatus.textContent = "Gmail에 로그인되어 있지 않아요.";
+    else if (view?.loggedOut) gmailStatus.textContent = "Gmail에 로그인되어 있지 않아요.";
     else if (!account) gmailStatus.textContent = "읽지 않은 메일이 없어요.";
     else gmailStatus.textContent = account.email
         ? `${account.email} · 읽지 않은 메일 ${account.unread}통`
@@ -435,48 +450,125 @@ chrome.storage.onChanged.addListener((changes, area) => {
     if (area === "local" && changes["gmail.snapshot"] && current === "gmail") {
         renderGmail(changes["gmail.snapshot"].newValue as GmailSnapshot);
     }
+    if (area === "local" && changes["core.update:available"]) {
+        $("updateDot").hidden = changes["core.update:available"].newValue !== true;
+    }
 });
 
 type FxTable = {base: string; date: string; rates: Record<string, number>; fetchedAt: number};
 const FX_KEY = "fx.table";
+const FX_FAV_KEY = "fx.favorites";
 const fxAmount = $<HTMLInputElement>("fxAmount");
 const fxFrom = $<HTMLSelectElement>("fxFrom");
 const fxTo = $<HTMLSelectElement>("fxTo");
 const fxResult = $("fxResult");
 const fxMore = $("fxMore");
+const fxFavs = $("fxFavs");
+const fxFavLabel = $("fxFavLabel");
+const fxStarPair = $<HTMLButtonElement>("fxStarPair");
 const fxStatus = $("fxStatus");
 let fxTable: FxTable | null = null;
+let fxFav: {order: string[]} = {order: []};
 
 const fillFxSelects = (codes: string[]) => {
+    const ordered = pinFavoriteCodes(codes, fxFav) as string[];
     const selected = {from: fxFrom.value || "krw", to: fxTo.value || "usd"};
     for (const select of [fxFrom, fxTo]) {
         select.replaceChildren();
-        for (const code of codes) {
+        for (const code of ordered) {
             const option = document.createElement("option");
             option.value = code;
             option.textContent = currencyLabel(code);
             select.appendChild(option);
         }
     }
-    fxFrom.value = codes.includes(selected.from) ? selected.from : codes[0] || "";
-    fxTo.value = codes.includes(selected.to) ? selected.to : (codes[1] || codes[0] || "");
+    fxFrom.value = ordered.includes(selected.from) ? selected.from : ordered[0] || "";
+    fxTo.value = ordered.includes(selected.to) ? selected.to : (ordered.find((code) => code !== fxFrom.value) || ordered[0] || "");
+};
+
+const saveFxFav = async (next: {order: string[]}) => {
+    fxFav = normalizeFavorites(next) as {order: string[]};
+    await chrome.storage.local.set({[FX_FAV_KEY]: fxFav});
+    if (fxTable) fillFxSelects(Object.keys(fxTable.rates).sort());
+    renderFx();
+};
+
+const setFxPair = (from: string, to: string) => {
+    if ([...fxFrom.options].some((option) => option.value === from)) fxFrom.value = from;
+    if ([...fxTo.options].some((option) => option.value === to)) fxTo.value = to;
+    renderFx();
 };
 
 const renderFx = () => {
+    const pairId = favoritePairId(fxFrom.value, fxTo.value);
+    const pairOn = fxFav.order.includes(pairId);
+    fxStarPair.textContent = pairOn ? "★" : "☆";
+    fxStarPair.title = pairOn ? "이 통화 짝을 즐겨찾기에서 빼요" : "이 통화 짝을 즐겨찾기에 넣어요";
     if (!fxTable) {
         fxResult.textContent = "환율표를 아직 받지 못했어요.";
+        fxFavs.replaceChildren();
+        fxFavs.hidden = true;
+        fxFavLabel.hidden = true;
         return;
     }
     const amount = Number(fxAmount.value);
     const value = convertAmount(amount, fxFrom.value, fxTo.value, fxTable.rates);
     fxResult.textContent = value == null ? "이 통화는 표에 없어요." : `${formatMoney(amount, fxFrom.value)} ${fxFrom.value.toUpperCase()} = ${formatMoney(value, fxTo.value)} ${fxTo.value.toUpperCase()}`;
+    const items = fxFav.order.map((id) => parseFavoriteId(id)).filter(Boolean) as Array<{kind: string; code?: string; from?: string; to?: string}>;
+    fxFavs.replaceChildren();
+    fxFavs.hidden = items.length === 0;
+    fxFavLabel.hidden = items.length === 0;
+    items.forEach((item, index) => {
+        const id = fxFav.order[index];
+        const li = document.createElement("li");
+        const apply = document.createElement("button");
+        apply.type = "button";
+        apply.className = "fx-apply";
+        if (item.kind === "pair") {
+            apply.textContent = `${currencyLabel(item.from)} → ${currencyLabel(item.to)}`;
+            apply.addEventListener("click", () => setFxPair(item.from || "", item.to || ""));
+        } else {
+            apply.textContent = currencyLabel(item.code);
+            apply.addEventListener("click", () => setFxPair(fxFrom.value, item.code || ""));
+        }
+        const star = document.createElement("button");
+        star.type = "button";
+        star.className = "fx-star";
+        star.textContent = "★";
+        star.title = "즐겨찾기 해제";
+        star.addEventListener("click", () => void saveFxFav(toggleFavorite(fxFav, id)));
+        const move = (delta: number) => {
+            const button = document.createElement("button");
+            button.type = "button";
+            button.className = "fx-mini";
+            button.textContent = delta < 0 ? "위" : "아래";
+            button.disabled = index + delta < 0 || index + delta >= items.length;
+            button.title = delta < 0 ? "위로" : "아래로";
+            button.addEventListener("click", () => void saveFxFav(reorderFavorites(fxFav, index, index + delta)));
+            return button;
+        };
+        li.append(apply, move(-1), move(1), star);
+        fxFavs.appendChild(li);
+    });
     fxMore.replaceChildren();
     for (const code of COMMON_CODES) {
         if (code === fxFrom.value) continue;
         const other = convertAmount(amount, fxFrom.value, code, fxTable.rates);
         if (other == null) continue;
         const li = document.createElement("li");
-        li.textContent = `${currencyLabel(code)} ${formatMoney(other, code)}`;
+        const name = document.createElement("button");
+        name.type = "button";
+        name.className = "fx-apply";
+        name.textContent = `${currencyLabel(code)} ${formatMoney(other, code)}`;
+        name.addEventListener("click", () => setFxPair(fxFrom.value, code));
+        const star = document.createElement("button");
+        star.type = "button";
+        star.className = "fx-star";
+        const on = fxFav.order.includes(favoriteCurrencyId(code));
+        star.textContent = on ? "★" : "☆";
+        star.title = on ? "즐겨찾기 해제" : "이 통화 즐겨찾기";
+        star.addEventListener("click", () => void saveFxFav(toggleFavorite(fxFav, favoriteCurrencyId(code))));
+        li.append(name, star);
         fxMore.appendChild(li);
     }
     fxStatus.textContent = fxTable.date
@@ -485,6 +577,8 @@ const renderFx = () => {
 };
 
 const refreshFx = async () => {
+    const favStored = await chrome.storage.local.get(FX_FAV_KEY);
+    fxFav = normalizeFavorites(favStored[FX_FAV_KEY]) as {order: string[]};
     const stored = await chrome.storage.local.get(FX_KEY);
     const cached = stored[FX_KEY] as FxTable | undefined;
     if (cached?.rates && isCacheFresh(cached.fetchedAt)) {
@@ -519,7 +613,10 @@ const refreshFx = async () => {
 const rightClick = $<HTMLButtonElement>("rightClick");
 const paintRightClick = (on: boolean) => {
     rightClick.classList.toggle("on", on);
-    rightClick.textContent = on ? "오른쪽 클릭 켜짐" : "오른쪽 클릭";
+    rightClick.setAttribute("aria-pressed", on ? "true" : "false");
+    rightClick.title = on
+        ? "이 사이트에서 오른쪽 클릭을 되살리고 있어요. 누르면 꺼요."
+        : "이 사이트에서 오른쪽 클릭, 복사, 글자 선택을 되살려요.";
 };
 const activePage = async () => {
     const [tab] = await chrome.tabs.query({active: true, currentWindow: true});
@@ -568,4 +665,8 @@ $("fxSwap").addEventListener("click", () => {
     fxFrom.value = fxTo.value;
     fxTo.value = next;
     renderFx();
+});
+fxStarPair.addEventListener("click", () => {
+    if (!fxFrom.value || !fxTo.value || fxFrom.value === fxTo.value) return;
+    void saveFxFav(toggleFavorite(fxFav, favoritePairId(fxFrom.value, fxTo.value)));
 });
