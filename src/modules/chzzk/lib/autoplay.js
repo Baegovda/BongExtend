@@ -1,4 +1,4 @@
-// BongChzzk 자동 재생 순수 로직 (전역 BongAutoplay)
+// 치지직 자동 재생 순수 로직 (전역 BongAutoplay)
 (function (root) {
   'use strict';
   const PLAY = /재생|play|start|시작/i;

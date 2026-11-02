@@ -1,4 +1,4 @@
-// BongChzzk 관심 스트리머 자동 이동 순수 로직 (전역 BongWatch; 팝업은 classic script로, 테스트는 vm으로 로드)
+// 치지직 관심 스트리머 자동 이동 순수 로직 (전역 BongWatch; 팝업은 classic script로, 테스트는 vm으로 로드)
 (function (root) {
   'use strict';
   const HEX32 = /^[0-9a-f]{32}$/i;

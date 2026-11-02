@@ -14,13 +14,13 @@ const memArea = (init: Record<string, unknown> = {}) => {
 };
 
 describe("settings import", () => {
-    test("old BongTrans file goes to trans.settings", () => {
+    test("old translator file goes to trans.settings", () => {
         const plan = planImport(JSON.stringify({type: "page-translator-settings", version: 1, settings: {apiKey: "k", targetLanguage: "ja"}}));
         expect((plan.local["trans.settings"] as {apiKey: string}).apiKey).toBe("k");
         expect(plan.dcReplace).toBeNull();
     });
 
-    test("old BongDC data replaces only dc keys", async () => {
+    test("old dc data replaces only dc keys", async () => {
         const local = memArea({"trans.settings": {apiKey: "keep"}, "chzzk.recoverCount": 3, "refresher:block:NICK": ["old"], "refresher:database:ip": {x: 1}});
         const sync = memArea();
         const plan = planImport(JSON.stringify({"refresher:block:NICK": ["new"]}));
@@ -31,7 +31,7 @@ describe("settings import", () => {
         expect(local.data["refresher:database:ip"]).toEqual({x: 1});
     });
 
-    test("BongChzzk-style object goes to chzzk.* sync", () => {
+    test("old chzzk settings object goes to chzzk.* sync", () => {
         const plan = planImport(JSON.stringify({watchList: [{id: "a"}], enabled: false}));
         expect(plan.sync["chzzk.watchList"]).toEqual([{id: "a"}]);
         expect(plan.sync["chzzk.enabled"]).toBe(false);

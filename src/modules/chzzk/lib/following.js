@@ -1,4 +1,4 @@
-// BongChzzk 팔로잉 채널 자동 새로고침 순수 로직 (전역 BongFollowing, 테스트는 vm으로 로드)
+// 치지직 팔로잉 채널 자동 새로고침 순수 로직 (전역 BongFollowing, 테스트는 vm으로 로드)
 (function (root) {
   'use strict';
   const ALLOWED = [5, 10, 30, 60];

@@ -109,8 +109,8 @@ describe("extractAll", () => {
 
     test("strips a single top folder when manifest.json is inside it", async () => {
         const files = await extractAll(makeZip([
-            {name: "bongdc/manifest.json", data: new TextEncoder().encode("{}")},
-            {name: "bongdc/icons/i.png", data: new TextEncoder().encode("x"), deflate: true}
+            {name: "packed/manifest.json", data: new TextEncoder().encode("{}")},
+            {name: "packed/icons/i.png", data: new TextEncoder().encode("x"), deflate: true}
         ]));
         expect(files.map((file) => file.path.join("/"))).toEqual(["manifest.json", "icons/i.png"]);
     });

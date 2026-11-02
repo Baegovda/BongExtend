@@ -1,10 +1,10 @@
 # BongExtend — 에이전트 안내
 
-BongExtend = BongChzzk(치지직) + BongTrans(Gemini 번역) + BongDC(디시, green1052/DCRefresher-Reborn 포크)를 합친 크롬 MV3 확장. 라이선스 GPL-3.0.
+BongExtend는 치지직, Gemini 번역, 디시인사이드(green1052/DCRefresher-Reborn 포크)를 합친 크롬 MV3 확장. 라이선스 GPL-3.0.
 오너(Guilliman / GitHub Baegovda)는 개발자가 아님. 화면 글, README, CHANGELOG, 보고는 한국어로 쉽게.
 
 ## 꼭 지킬 것
-- `wxt.config.ts`의 `imports.parser: "oxc"`는 빼지 말 것 (기본 스캐너가 순환 import를 만들어 배경 스크립트가 죽음. docs/legacy/BongDC-AGENTS.md 참고).
+- `wxt.config.ts`의 `imports.parser: "oxc"`는 빼지 말 것 (기본 스캐너가 순환 import를 만들어 배경 스크립트가 죽음).
 - 단축키(`commands`)는 오너 요청으로 번역 켜기/끄기(`toggle-translation`) 하나만 허용. 다른 단축키는 따로 요청받기 전까지 추가하지 말 것.
 - manifest `key` 넣지 말 것 (새 확장 ID로 시작하기로 함).
 - 권한에 `webNavigation`을 넣지 말 것. `host_permissions`에 `<all_urls>`도 넣지 말 것. 지금 호스트 권한은 `https://*.dcinside.com/*`, `https://chzzk.naver.com/*`, `https://api.chzzk.naver.com/*`, `https://generativelanguage.googleapis.com/*`, `https://api.github.com/*`, `https://github.com/*`, `https://objects.githubusercontent.com/*`, `https://release-assets.githubusercontent.com/*`예요. 항상 번역용 `optional_host_permissions`는 `https://*/*`, `http://*/*`예요. 사이트를 켤 때 그 주소만 요청해요. WAR `assets/*.webp`의 `matches: <all_urls>`는 디시 모듈 그대로예요.
@@ -17,12 +17,12 @@ BongExtend = BongChzzk(치지직) + BongTrans(Gemini 번역) + BongDC(디시, gr
 ## 구조
 - `src/entrypoints/` WXT 진입점: `background.ts`(서비스 워커 하나), `popup/`(탭 셸. 치지직·번역·디시는 iframe, 업데이트·설정은 이 페이지 안), `dc/`(디시 Vue 팝업 → `dc.html`), `options/`(디시 전체 설정 → `options.html`), `update/`(원클릭 업데이트 → `update.html`), `content/` + `grecaptcha.content.ts`(디시).
 - 팝업 iframe 주소: `/chzzk/popup.html`, `/trans/popup/popup.html`, `/dc.html`.
-- `src/modules/chzzk/` 옛 BongChzzk 순수 JS (빌드 때 그대로 `chzzk/`로 복사. 테스트 폴더는 제외).
-- `src/modules/trans/` 옛 BongTrans 순수 JS. `background.js`는 `startTransBackground()`로 배경에 붙고 복사하지 않아요. 테스트 폴더도 제외하고 나머지는 `trans/`로 복사해요.
+- `src/modules/chzzk/` 치지직 순수 JS (빌드 때 그대로 `chzzk/`로 복사. 테스트 폴더는 제외).
+- `src/modules/trans/` 번역 순수 JS. `background.js`는 `startTransBackground()`로 배경에 붙고 복사하지 않아요. 테스트 폴더도 제외하고 나머지는 `trans/`로 복사해요.
 - `src/modules/theme/`는 빌드 때 `theme/`로 복사해요. 공통 테마는 `theme/theme.css`예요.
-- `src/modules/core-modules.js` 모듈 스위치(`core.modules`), `src/modules/settings-io.ts` 설정 내보내기·가져오기. 파일 종류는 `bongextend-settings`(전체), `page-translator-settings`(옛 번역), `refresher:*` JSON(옛 디시), 치지직 설정 키만 있는 객체예요.
+- `src/modules/core-modules.js` 모듈 스위치(`core.modules`), `src/modules/settings-io.ts` 설정 내보내기·가져오기. 파일 종류는 `bongextend-settings`(전체), `page-translator-settings`(예전 번역 설정), `refresher:*` JSON(예전 디시 설정), 치지직 설정 키만 있는 객체예요.
 - 확장 아이콘 원본은 `src/assets/icon.png`예요. `@wxt-dev/auto-icons`가 크기를 만들어요. 디시 버튼 그림은 `src/assets/icons/*.webp`예요.
-- 그 밖의 `src/*`(core, storage, utils, components, …)는 디시 모듈(옛 BongDC) 코드. 경로 그대로 둠.
+- 그 밖의 `src/*`(core, storage, utils, components, …)는 디시 모듈 코드. 경로 그대로 둠. 디시 모듈 라이선스 표시(green1052/DCRefresher-Reborn)는 빼지 말 것.
 
 ## 명령
 - `bun install`

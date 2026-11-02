@@ -1,4 +1,4 @@
-// BongChzzk 관심 스트리머 자동 이동: 감시 중인 스트리머가 방송을 켜면(꺼짐→켜짐 전환) 해당 /live 페이지로 이동
+// 치지직 관심 스트리머 자동 이동: 감시 중인 스트리머가 방송을 켜면(꺼짐→켜짐 전환) 해당 /live 페이지로 이동
 (() => {
   'use strict';
   if (window.top !== window) return;
@@ -6,7 +6,7 @@
   const DEF = { watchEnabled: true, watchList: [] }; // watchList: [{ id, name }]
   const POLL = 5000, TTL = 15000;
   const myId = Math.random().toString(36).slice(2) + Date.now().toString(36);
-  const log = (...a) => console.log('[BongChzzk]', ...a);
+  const log = (...a) => console.log('[BongExtend]', ...a);
   let cfg = { ...DEF }, timer = 0, busy = false, fails = 0, navigating = false;
   BCStore.sync.get(DEF, v => { cfg = { ...DEF, ...v }; schedule(1000); });
   BCStore.onChanged.addListener((c, area) => {

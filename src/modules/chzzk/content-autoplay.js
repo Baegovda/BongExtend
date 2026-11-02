@@ -1,4 +1,4 @@
-// BongChzzk 자동 재생: /live, /video 진입·새로고침 시 멈춰 있으면 한 번 재생 (사용자가 직접 멈추면 다시 안 건드림)
+// 치지직 자동 재생: /live, /video 진입·새로고침 시 멈춰 있으면 한 번 재생 (사용자가 직접 멈추면 다시 안 건드림)
 (() => {
   'use strict';
   if (window.top !== window) return;
@@ -29,14 +29,14 @@
     if (Date.now() > deadline) return;
     const v = document.querySelector(VIDEO);
     const st = { enabled, onVideoPage: A.isVideoPage(location.pathname), hasVideo: !!v, userPaused, adActive: !!globalThis.__bongAdActive, done, paused: v && v.paused, ended: v && v.ended };
-    if (v && !v.paused && v.currentTime > 0) { done = true; console.debug('[BongChzzk] 자동 재생: 재생 중 확인'); return; }
+    if (v && !v.paused && v.currentTime > 0) { done = true; console.debug('[BongExtend] 자동 재생: 재생 중 확인'); return; }
     if (A.shouldPlay(st)) {
       const p = v.play();
       if (p && p.catch) p.catch(err => {
-        console.debug('[BongChzzk] 자동 재생 play() 실패:', err && err.name);
+        console.debug('[BongExtend] 자동 재생 play() 실패:', err && err.name);
         if (Date.now() - clicked > 3000) {
           const b = findPlayButton();
-          if (b) { clicked = Date.now(); b.click(); console.debug('[BongChzzk] 자동 재생: 재생 버튼 클릭', b); }
+          if (b) { clicked = Date.now(); b.click(); console.debug('[BongExtend] 자동 재생: 재생 버튼 클릭', b); }
         }
       });
     }

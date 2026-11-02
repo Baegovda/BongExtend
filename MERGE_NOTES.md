@@ -6,9 +6,9 @@
 
 BongExtend는 크롬 확장(MV3) 하나예요. 예전에 따로 쓰던 확장 세 개를 합쳤어요.
 
-- **치지직**: 예전 BongChzzk
-- **번역**: 예전 BongTrans (Gemini)
-- **디시**: 예전 BongDC (green1052/DCRefresher-Reborn 포크)
+- **치지직**
+- **번역**: Gemini
+- **디시**: green1052/DCRefresher-Reborn 포크
 
 라이선스는 GPL-3.0이에요. 저장소는 [Baegovda/BongExtend](https://github.com/Baegovda/BongExtend)예요. 화면 글과 안내 문서는 한국어 해요체로 써요. 오너는 개발자가 아니에요.
 
@@ -19,9 +19,9 @@ BongExtend는 크롬 확장(MV3) 하나예요. 예전에 따로 쓰던 확장 �
 1. `AGENTS.md`
 2. 이 파일 (`MERGE_NOTES.md`)
 
-`CLAUDE.md`, `.cursor/rules/handoff.mdc`, `.github/copilot-instructions.md`도 이 두 파일만 가리켜요. `docs/HANDOFF.md`라는 파일은 없어요. 옛 BongDC 인수인계는 `docs/legacy/BongDC-HANDOFF.md`예요.
+`CLAUDE.md`, `.cursor/rules/handoff.mdc`, `.github/copilot-instructions.md`도 이 두 파일만 가리켜요. `docs/HANDOFF.md`라는 파일은 없어요.
 
-그다음이 필요하면 `README.md`(설치·사용), `CHANGELOG.md`(사용자에게 보이는 변경)를 보세요. `docs/legacy/`는 합치기 전 기록이라 지금 규칙이 아니에요.
+그다음이 필요하면 `README.md`(설치·사용), `CHANGELOG.md`(사용자에게 보이는 변경)를 보세요.
 
 ## 빌드, 테스트, 릴리스
 
@@ -39,10 +39,10 @@ BongExtend는 크롬 확장(MV3) 하나예요. 예전에 따로 쓰던 확장 �
 
 ## 이미 된 일
 
-- 이름 바꾼 저장소에 남아 있던 옛 BongChzzk GitHub **릴리스**는 지웠어요. **태그** v1.1.0–v1.6.2(v1.1.1 포함)는 그대로예요. 그래서 업데이트가 "1.6.2로 올리자"고 하지 않아요. 최신 릴리스는 BongExtend 1.0.18예요. v1.0.0 릴리스 제목은 그날 이름인 "BongChrome 1.0.0"이에요. 1.0.1부터 이름이 BongExtend예요.
-- 디시 통신사 표는 `Baegovda/BongExtend`의 `main`, 파일 `src/data/ip-isp.json`에서 받아요 (`src/utils/ipIsp.ts`의 `IP_ISP_REF`는 `main`). 예전처럼 `Baegovda/BongDC`의 develop을 보지 않아요.
+- 이름 바꾸기 전 저장소의 GitHub 릴리스는 지웠어요. 태그 v1.1.0, v1.1.1, v1.2.0, v1.3.0, v1.3.1, v1.4.0, v1.5.0, v1.5.1, v1.6.0, v1.6.1, v1.6.2도 지웠어요. 최신 릴리스는 BongExtend 1.0.18예요.
+- 디시 통신사 표는 `Baegovda/BongExtend`의 `main`, 파일 `src/data/ip-isp.json`에서 받아요 (`src/utils/ipIsp.ts`의 `IP_ISP_REF`는 `main`).
 - 타입 검사는 `bun run test` 안에 있어요 (`test:types`). 빼지 마세요.
-- 확장 아이콘은 옛 BongDC 그림이 아니에요. 원본은 `src/assets/icon.png`이고, 청록에서 보라로 이어지는 BongExtend 로고예요. `@wxt-dev/auto-icons`가 빌드 때 크기별 아이콘을 만들어요. 팝업과 업데이트 화면은 그 로고를 써요. 번역 설정의 `src/modules/trans/icons/`도 같은 로고예요. 디시 화면 안 작은 그림(`src/assets/icons/*.webp`, 추천·차단 같은 버튼)은 기능 그림이라 예전 디시 모듈 그대로예요.
+- 확장 아이콘 원본은 `src/assets/icon.png`이고, 청록에서 보라로 이어지는 BongExtend 로고예요. `@wxt-dev/auto-icons`가 빌드 때 크기별 아이콘을 만들어요. 팝업과 업데이트 화면은 그 로고를 써요. 번역 설정의 `src/modules/trans/icons/`도 같은 로고예요. 디시 화면 안 작은 그림(`src/assets/icons/*.webp`, 추천·차단 같은 버튼)은 기능 그림이에요.
 
 ## 아직 남은 일
 
@@ -64,7 +64,7 @@ BongExtend는 크롬 확장(MV3) 하나예요. 예전에 따로 쓰던 확장 �
 - Gemini 키로 페이지가 실제로 번역되는지
 - 로그인한 디시 기능
 - 우클릭 메뉴를 눌렀을 때
-- 옛 BongTrans·BongDC 내보내기 파일로 설정을 실제로 가져오기 (자동 테스트만 있어요)
+- 예전 번역 설정 파일(`page-translator-settings`)과 예전 디시 설정(`refresher:*`)으로 설정을 실제로 가져오기 (자동 테스트만 있어요)
 - 번역을 치지직·디시 페이지에서 켰을 때 서로 안 부딪히는지
 
 ### 그 밖에
