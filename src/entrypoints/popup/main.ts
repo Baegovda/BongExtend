@@ -40,7 +40,10 @@ const moduleNote = $("moduleNote");
 let current: TabId = "chzzk";
 let pageBeforeSettings: TabId = "chzzk";
 
-const showTab = async (tab: TabId) => {
+const embed = new URLSearchParams(location.search).get("embed");
+const embedded = embed === "gmail" || embed === "fx" || embed === "update";
+
+const showTab = async (tab: TabId, persist = true) => {
     if (tab === "update" && current !== "update") pageBeforeSettings = current;
     current = tab;
     document.querySelectorAll<HTMLButtonElement>("#tabGroup button").forEach((b) => b.classList.toggle("active", b.dataset.tab === tab));
@@ -67,7 +70,7 @@ const showTab = async (tab: TabId) => {
         moduleLabel.textContent = `${NAMES[tab] || "모듈"} 모듈 사용`;
         moduleNote.textContent = moduleSwitch.checked ? "" : "꺼져 있어요. 켜면 새로 열거나 새로고침한 페이지부터 적용돼요.";
     }
-    void effects.storageSet({[TAB_KEY]: tab});
+    if (persist) void effects.storageSet({[TAB_KEY]: tab});
 };
 
 // ===== 탭 끌어서 순서 바꾸기 (포인터 이벤트, 의존성 없음) =====
@@ -303,7 +306,11 @@ $("importPaste").addEventListener("click", async () => {
     if (text) await runImport(text);
 });
 
-effects.storageGet([TAB_KEY, ORDER_KEY]).then((v: Record<string, unknown>) => {
+if (embedded) {
+    document.documentElement.classList.add("embed");
+    tabsNav.classList.remove("order-pending");
+    void showTab(embed as TabId, false);
+} else effects.storageGet([TAB_KEY, ORDER_KEY]).then((v: Record<string, unknown>) => {
     applyOrder(normalizeTabOrder(v[ORDER_KEY], DEFAULT_ORDER));
     tabsNav.classList.remove("order-pending");
     const saved = v[TAB_KEY] as TabId | undefined;
