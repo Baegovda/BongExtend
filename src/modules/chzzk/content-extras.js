@@ -324,26 +324,74 @@
     return r.width > 0 && r.height > 0 && getComputedStyle(el).display !== 'none' && getComputedStyle(el).visibility !== 'hidden';
   };
   const ownText = el => { let t = ''; for (const n of el.childNodes) if (n.nodeType === 3) t += n.nodeValue; return t.trim(); };
+  function shadowOf(el) {
+    if (!el || el.nodeType !== 1) return null;
+    if (el.shadowRoot) return el.shadowRoot;
+    try {
+      const opener = globalThis.chrome && chrome.dom && chrome.dom.openOrClosedShadowRoot;
+      if (typeof opener === 'function') return opener.call(chrome.dom, el) || null;
+    } catch (e) {}
+    return null;
+  }
   function scanTexts(root) {
     const hits = [];
-    for (const el of root.querySelectorAll('*')) {
-      if (el.id?.startsWith('bex') || el.tagName === 'VIDEO' || el.tagName === 'svg') continue;
-      const t = (el.childElementCount === 0 ? el.textContent : ownText(el)).trim();
-      if (t && t.length < 40 && P.adTextKind(t) && visible(el)) hits.push({ el, t, kind: P.adTextKind(t) });
-    }
+    const visit = (scope) => {
+      if (!scope || !scope.querySelectorAll) return;
+      for (const el of scope.querySelectorAll('*')) {
+        if (el.id?.startsWith('bex') || el.tagName === 'VIDEO' || el.tagName === 'svg') continue;
+        const full = (el.textContent || '').replace(/\s+/g, ' ').trim();
+        const t = full && full.length < 40 && el.childElementCount <= 6 ? full : ownText(el).trim();
+        const kind = t && t.length < 40 ? P.adTextKind(t) : null;
+        if (kind && visible(el)) hits.push({ el, t, kind });
+        const shadow = shadowOf(el);
+        if (shadow) visit(shadow);
+      }
+    };
+    visit(root);
+    const top = shadowOf(root);
+    if (top) visit(top);
     return hits;
   }
-  function clickSkip(hits) {
-    for (const h of hits) {
-      if (h.kind !== 'skip') continue;
-      const c = h.el.closest('button, [role="button"], a, [tabindex]') || h.el;
-      if (c.closest('a[href]') || c.closest('.pzp-ad-click-through-button')) continue; // 광고 페이지로 이동하는 요소는 누르지 않음
-      if (!P.isSafeSkipLabel(ownText(c) || c.textContent || h.t)) continue;
-      c.click();
-      console.info('[BongExtend] 광고 SKIP 클릭', h.t);
-      return true;
+  const SKIP_QUERY = 'button, [role="button"], a, [tabindex], [data-role*="skip" i], [class*="skip" i], [class*="Skip"]';
+  function skipInfo(el) {
+    const aria = el.getAttribute ? (el.getAttribute('aria-label') || '') : '';
+    return {
+      text: `${aria} ${el.textContent || ''}`.replace(/\s+/g, ' ').trim(),
+      ariaLabel: aria,
+      disabled: !!(el.disabled || (el.hasAttribute && el.hasAttribute('disabled'))),
+      ariaDisabled: el.getAttribute ? el.getAttribute('aria-disabled') : null,
+      className: String(el.className || ''),
+      clickThrough: !!(el.matches && el.matches('a[href], .pzp-ad-click-through-button, [data-role="adLink"]')),
+      el
+    };
+  }
+  function collectSkipControls(scope, out) {
+    if (!scope || !scope.querySelectorAll) return;
+    let nodes = [];
+    try { nodes = [...scope.querySelectorAll(SKIP_QUERY)]; } catch (e) { nodes = [...scope.querySelectorAll('button, [role="button"], a')]; }
+    for (const el of nodes) {
+      if (!visible(el)) continue;
+      const info = skipInfo(el);
+      if (info.text.length > 80) continue;
+      out.push(info);
     }
-    return false;
+    const own = shadowOf(scope);
+    if (own) collectSkipControls(own, out);
+    for (const el of scope.querySelectorAll('*')) {
+      const shadow = shadowOf(el);
+      if (shadow) collectSkipControls(shadow, out);
+    }
+  }
+  function clickReadySkip(scope) {
+    if (Date.now() - lastSkipClick < 400) return false;
+    const controls = [];
+    collectSkipControls(scope, controls);
+    const picked = P.pickSkipElement(controls);
+    if (!picked) return false;
+    lastSkipClick = Date.now();
+    fireClick(picked.el);
+    console.info('[BongExtend] 광고 SKIP 클릭', picked.text.slice(0, 40));
+    return true;
   }
   function adVideos(root) {
     const vs = [...root.querySelectorAll('video')].filter(visible).map(v => { const r = v.getBoundingClientRect(); return { v, area: r.width * r.height, w: r.width, h: r.height }; });
@@ -373,23 +421,6 @@
     try { el.click(); } catch (e) {}
   }
   let lastSkipClick = 0;
-  function clickNaverSkip(r) {
-    if (Date.now() - lastSkipClick < 400) return false;
-    const cands = new Set(r.querySelectorAll('[data-role*="skip" i], .btn_skip, .skip_btn, button, [role="button"]'));
-    for (const el of r.querySelectorAll('*')) if (el.childElementCount <= 3 && /SKIP|건너뛰기/i.test(el.textContent || '')) cands.add(el);
-    for (const el of cands) {
-      if (el.id?.startsWith('bex') || !visible(el)) continue;
-      const info = { text: el.textContent, inCountdown: !!el.closest('[data-role="countDownEl"], [data-role="skipInfo"]'), inLink: !!el.closest('a[href], [data-role="adLink"]'), dataRole: el.getAttribute('data-role') || '', cls: String(el.className || '') };
-      if (!P.isSkipCandidate(info)) continue;
-      const c = el.closest('button, [role="button"], [tabindex]') || el;
-      if (c.closest('a[href], [data-role="adLink"], [data-role="countDownEl"]')) continue;
-      lastSkipClick = Date.now();
-      fireClick(c);
-      console.info('[BongExtend] 광고 SKIP 클릭(네이버 광고)', c.outerHTML.slice(0, 200));
-      return true;
-    }
-    return false;
-  }
   function boostAdVideo(v) {
     v._bongAdBoost = 1;
     // 본영상 video 는 음소거하지 않는다. 광고 칸 안의 영상만, 되돌릴 소리를 알고 있을 때만 끈다.
@@ -440,7 +471,7 @@
       return;
     }
     const container = cfg.adSkip ? document.querySelector(P.AD_CONTAINER_SEL) : null;
-    const root = cfg.adSkip ? (document.querySelector(ROOT) || document.getElementById('live_player_layout')) : null;
+    const root = cfg.adSkip ? (document.querySelector(ROOT) || document.querySelector('div.pzp') || document.getElementById('live_player_layout')) : null;
     let active = !!container, hits = [];
     if (root) {
       const ui = root.querySelector('.webplayer-internal-core-ad-ui');
@@ -458,12 +489,11 @@
         console.info('[BongExtend] 광고 감지', { naver: !!container, texts: hits.map(h => h.t) });
       }
       if (container) {
-        const r = naverAdRoot(container);
         for (const v of container.querySelectorAll('video')) boostAdVideo(v);
-        clickNaverSkip(r) || clickNaverSkip(document.body);
       }
+      const skipScope = root || (container ? naverAdRoot(container) : null);
+      if (skipScope) clickReadySkip(skipScope);
       if (root) {
-        clickSkip(hits.filter(h => !h.el.closest('[data-role="countDownEl"], [data-role="adLink"]')));
         for (const v of adVideos(root)) if (!v.closest(P.AD_CONTAINER_SEL) && !container && !(location.pathname.startsWith('/live/') && !P.isAdDuration(v.duration))) boostAdVideo(v); // 라이브 본방송 영상을 광고로 오인해 16배속·끝으로 이동시키지 않도록
       }
     } else if (adWasActive) endAd(true);
