@@ -3,6 +3,7 @@ import {parseAtom} from "./atom.js";
 import {
     GMAIL_ALARM_MINUTES,
     actionRequest,
+    sendMailAction,
     parseGmailTokens,
     planMailNotifications,
     tokenPageUrls
@@ -286,15 +287,7 @@ async function reloadQuietGmailTabs() {
 
 async function postMailAction(accountIndex, tokens, action, thread, deps) {
     const request = actionRequest(accountIndex, tokens, action, thread);
-    const response = await (deps.fetchImpl || fetch)(request.url, {
-        method: "POST",
-        credentials: "include",
-        redirect: "follow",
-        headers: {"Content-Type": "application/x-www-form-urlencoded"},
-        body: request.body
-    });
-    const finalUrl = response.url || "";
-    return response.ok && !finalUrl.includes("accounts.google.com");
+    return sendMailAction(request, deps.fetchImpl);
 }
 
 export async function actOnGmail(accountIndex, thread, action, deps = {}) {
