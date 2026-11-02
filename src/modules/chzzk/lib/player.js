@@ -6,12 +6,18 @@
     return !!(s && ((s.adUiExists && !s.adUiHidden) || s.indicatorVisible || s.textHits > 0));
   }
   // 플레이어 안 짧은 텍스트 분류: 'counter'(AD 1/1) | 'countdown'(1 초 후 SKIP) | 'skip'(SKIP/건너뛰기) | 'clickthrough'(광고 페이지 보기) | null
+  const normLabel = t => String(t || '').replace(/\s+/g, ' ').trim();
+  // '9초 후 SKIP', '9초 뒤 건너뛰기'처럼 숫자가 남아 있으면 그 초. 없으면 null.
+  function countdownSeconds(text) {
+    const matched = normLabel(text).match(/(\d+)\s*초\s*(?:후|뒤)\s*(?:SKIP|건너뛰기)/i);
+    return matched ? Number(matched[1]) : null;
+  }
   function adTextKind(t) {
-    const s = String(t || '').replace(/\s+/g, ' ').trim();
+    const s = normLabel(t);
     if (/^AD\s*\d+\s*\/\s*\d+$/i.test(s)) return 'counter';
-    if (/\d+\s*초\s*후\s*SKIP/i.test(s)) return 'countdown';
+    if (countdownSeconds(s) != null) return 'countdown';
     if (/^(SKIP|건너뛰기|광고\s*건너뛰기)$/i.test(s)) return 'skip';
-    if (/^광고\s*페이지\s*보기$/.test(s)) return 'clickthrough';
+    if (/광고\s*페이지\s*보기/.test(s)) return 'clickthrough';
     return null;
   }
   // 누를 수 있는 SKIP 라벨인지(정확히 SKIP/건너뛰기/광고 건너뛰기만)
@@ -29,9 +35,47 @@
   }
   // 요소 자체 정보로 SKIP 클릭 후보 판정. info {text, inCountdown, inLink, dataRole, cls}
   function isSkipCandidate(info) {
-    if (!info || info.inCountdown || info.inLink) return false;
-    if (/adLink/i.test(info.dataRole || '') || /countDown|skipInfo/i.test(info.dataRole || '')) return false;
-    return isSkipButtonLabel(info.text);
+    if (!info || info.inLink) return false;
+    if (/adLink/i.test(info.dataRole || '')) return false;
+    const seconds = countdownSeconds(info.text);
+    if (info.inCountdown && !(seconds === 0 || (seconds == null && isSkipButtonLabel(info.text) && info.disabled !== true))) return false;
+    if (/countDown|skipInfo/i.test(info.dataRole || '') && seconds != null && seconds > 0) return false;
+    return skipAction(info) === 'ready';
+  }
+  function controlEnabled(info) {
+    if (!info) return false;
+    if (info.disabled === true || info.disabled === '') return false;
+    const aria = info.ariaDisabled;
+    if (aria === true || aria === 'true') return false;
+    if (/(?:^|\s)(?:disabled|is-disabled|btn_disabled)(?:\s|$)/i.test(info.className || info.cls || '')) return false;
+    return true;
+  }
+  function labelOf(info) {
+    const aria = normLabel(info && info.ariaLabel);
+    const text = normLabel(info && info.text);
+    if (!aria) return text;
+    if (!text || aria.indexOf(text) !== -1) return aria;
+    if (text.indexOf(aria) !== -1) return text;
+    return normLabel(`${aria} ${text}`);
+  }
+  // 'wait' 초가 남았거나 버튼이 꺼짐 | 'ready' 지금 누름 | 'ignore' 광고 링크 등
+  function skipAction(info) {
+    const text = labelOf(info);
+    if (!text || adTextKind(text) === 'clickthrough') return 'ignore';
+    const seconds = countdownSeconds(text);
+    if (seconds != null && seconds > 0) return 'wait';
+    if (!controlEnabled(info || {})) return 'wait';
+    if (seconds === 0) return 'ready';
+    if (isSafeSkipLabel(text) || isSkipButtonLabel(text)) return 'ready';
+    return 'ignore';
+  }
+  // 가짜 버튼 목록에서, 켜진 SKIP만 고른다. 카운트다운과 광고 페이지 보기는 누르지 않는다.
+  function pickSkipElement(elements) {
+    for (const el of elements || []) {
+      if (!el || el.clickThrough) continue;
+      if (skipAction(el) === 'ready') return el;
+    }
+    return null;
   }
   const AD_CONTAINER_SEL = '[data-role="adVideoContainerEl"]';
   const hasAdContainer = doc => { const el = doc && doc.querySelector && doc.querySelector(AD_CONTAINER_SEL); return !!(el && el.isConnected !== false); };
@@ -81,5 +125,5 @@
     if (tag === 'IMG') return /\/Banner_/i.test(String(info.src || '')) && /banner_(image|link)_/i.test(String(info.cls || ''));
     return false;
   }
-  root.BongPlayer = { isSkipButtonLabel, isSkipCandidate, hasAdContainer, seekEndTime, AD_CONTAINER_SEL, isAdActive, isGuideText, isPurchaseGuideDialogText, isSkipText, adTextKind, isSafeSkipLabel, isAdDuration, captureAudioState, restoreAudioState, isAudioControlLabel, audioRestoreAction, noteLiveAudio, audioAfterAd, isDisplayAdElement };
+  root.BongPlayer = { isSkipButtonLabel, isSkipCandidate, hasAdContainer, seekEndTime, AD_CONTAINER_SEL, isAdActive, isGuideText, isPurchaseGuideDialogText, isSkipText, adTextKind, isSafeSkipLabel, isAdDuration, captureAudioState, restoreAudioState, isAudioControlLabel, audioRestoreAction, noteLiveAudio, audioAfterAd, isDisplayAdElement, countdownSeconds, skipAction, pickSkipElement };
 })(typeof globalThis !== 'undefined' ? globalThis : this);
