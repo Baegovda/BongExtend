@@ -13,7 +13,7 @@ import {
 } from "./actions.js";
 import {GMAIL_SOUND_KEY, normalizeSound} from "./sound.js";
 import {paintToolbarBadge} from "../toolbar-badge.js";
-import {clampIntervalMs, enabledAccounts, notificationId, notificationTitle, unreadOf} from "./watch.js";
+import {clampIntervalMs, dedupeAccounts, enabledAccounts, isDuplicateEmail, notificationId, notificationTitle, unreadOf} from "./watch.js";
 
 const ALARM = "gmail-watchdog";
 const SEEN_KEY = "gmail.seen";
@@ -241,9 +241,10 @@ export async function loadInbox(fetchAccountImpl = fetchAccount) {
             if (index === 0) return {loggedOut: true, accounts: []};
             break;
         }
+        if (isDuplicateEmail(accounts, account)) break;
         accounts.push(account);
     }
-    return {loggedOut: false, accounts};
+    return {loggedOut: false, accounts: dedupeAccounts(accounts)};
 }
 
 async function playMailSound() {
@@ -295,13 +296,14 @@ export async function checkGmail(reason = "alarm", deps = {}) {
             }
             const stored = await storageGet([SEEN_KEY, BASE_KEY, NOTIFY_KEY, DISABLED_KEY]);
             const disabled = Array.isArray(stored[DISABLED_KEY]) ? stored[DISABLED_KEY] : [];
-            const messages = enabledAccounts(inbox.accounts, disabled).flatMap((account) =>
+            const unique = dedupeAccounts(inbox.accounts);
+            const messages = enabledAccounts(unique, disabled).flatMap((account) =>
                 (account.messages || []).map((message) => ({...message, account: account.index}))
             );
             const plan = planMailNotifications(stored[SEEN_KEY], messages, stored[BASE_KEY] === true);
             const off = new Set(disabled.map(Number));
-            const unread = unreadOf(inbox.accounts, disabled);
-            const accounts = inbox.accounts.map((account) => ({...account, enabled: !off.has(Number(account.index))}));
+            const unread = unreadOf(unique, disabled);
+            const accounts = unique.map((account) => ({...account, enabled: !off.has(Number(account.index))}));
             const snapshot = {checkedAt: Date.now(), loggedOut: false, accounts, unread};
             await storageSet({
                 [SNAP_KEY]: snapshot,
@@ -416,12 +418,12 @@ async function applyWatchTick(message) {
     const disabled = Array.isArray(stored[DISABLED_KEY]) ? stored[DISABLED_KEY] : [];
     const previous = new Map((stored[SNAP_KEY]?.accounts || []).map((account) => [account.index, account]));
     const off = new Set(disabled.map(Number));
-    const accounts = (message.accounts || []).map((account) => {
+    const accounts = dedupeAccounts((message.accounts || []).map((account) => {
         const prior = previous.get(account.index);
         const messages = account.kept ? (prior?.messages || []) : (Array.isArray(account.messages) ? account.messages : (prior?.messages || []));
         const unread = account.kept ? (prior?.unread || 0) : account.unread;
         return {...account, messages, unread, enabled: !off.has(Number(account.index))};
-    });
+    }));
     const watched = enabledAccounts(accounts, disabled);
     const messages = watched.flatMap((account) => (account.messages || []).map((item) => ({...item, account: account.index})));
     const plan = message.changed
@@ -559,5 +561,25 @@ export function startGmailBackground() {
     });
     void chrome.alarms.create(ALARM, {periodInMinutes: GMAIL_ALARM_MINUTES, delayInMinutes: GMAIL_ALARM_MINUTES});
     void syncOffscreen();
-    void checkGmail("popup");
+    void migrateDuplicateAccounts().then(() => checkGmail("popup"));
+}
+
+// 이미 저장된 목록에 같은 주소가 여러 번 있으면 첫 계정만 남긴다. 다른 설정 키는 건드리지 않는다.
+async function migrateDuplicateAccounts() {
+    const stored = await storageGet([SNAP_KEY, DISABLED_KEY]);
+    const snapshot = stored[SNAP_KEY];
+    if (!snapshot || !Array.isArray(snapshot.accounts)) return;
+    const accounts = dedupeAccounts(snapshot.accounts);
+    if (accounts.length === snapshot.accounts.length) return;
+    const kept = new Set(accounts.map((account) => Number(account.index)));
+    const disabled = (Array.isArray(stored[DISABLED_KEY]) ? stored[DISABLED_KEY] : []).map(Number).filter((index) => kept.has(index));
+    const off = new Set(disabled);
+    const nextAccounts = accounts.map((account) => ({...account, enabled: !off.has(Number(account.index))}));
+    const unread = unreadOf(nextAccounts, disabled);
+    await storageSet({
+        [SNAP_KEY]: {...snapshot, accounts: nextAccounts, unread},
+        [UNREAD_KEY]: unread,
+        [DISABLED_KEY]: disabled
+    });
+    await paintToolbarBadge();
 }

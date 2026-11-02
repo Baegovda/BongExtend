@@ -5,7 +5,9 @@ import {
     GMAIL_INTERVAL_DEFAULT_MS,
     GMAIL_LOCKED_MS,
     clampIntervalMs,
+    dedupeAccounts,
     enabledAccounts,
+    isDuplicateEmail,
     inboxSignature,
     nextWaitMs,
     notificationId,
@@ -30,6 +32,27 @@ test("watcher stops when notifications or the module are off, and backs off othe
     assert.equal(nextWaitMs({notify: true, moduleOn: true, online: true, idle: "idle", intervalMs: 8000}), GMAIL_IDLE_MS);
     assert.equal(nextWaitMs({notify: true, moduleOn: true, online: true, idle: "locked", intervalMs: 8000}), GMAIL_LOCKED_MS);
     assert.equal(nextWaitMs({notify: true, moduleOn: true, online: true, idle: "active", intervalMs: 8000}), 8000);
+});
+
+test("the same email from another mail index is kept once and the first index stays", () => {
+    const accounts = [
+        {index: 0, email: "Revaptor@gmail.com", unread: 4, messages: [{id: "1"}]},
+        {index: 1, email: "other@gmail.com", unread: 1, messages: []},
+        {index: 2, email: "revaptor@gmail.com", unread: 4, messages: [{id: "1"}, {id: "2"}]},
+        {index: 3, email: "revaptor@gmail.com", unread: 4, messages: []}
+    ];
+    const unique = dedupeAccounts(accounts);
+    assert.deepEqual(unique.map((account) => account.index), [0, 1]);
+    assert.equal(unique[0].messages.length, 1);
+    const filled = dedupeAccounts([
+        {index: 0, email: "a@gmail.com", enabled: true, messages: []},
+        {index: 4, email: "a@gmail.com", enabled: false, messages: [{id: "9"}]}
+    ]);
+    assert.equal(filled[0].index, 0);
+    assert.equal(filled[0].enabled, true);
+    assert.equal(filled[0].messages[0].id, "9");
+    assert.equal(isDuplicateEmail(unique, {email: "REVAPTOR@gmail.com"}), true);
+    assert.equal(isDuplicateEmail([], {email: ""}), false);
 });
 
 test("disabled accounts stay listed but drop out of the badge and the notification name includes the account", () => {

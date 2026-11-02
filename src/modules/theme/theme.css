@@ -129,7 +129,7 @@
 .be-page input[type=checkbox] {
   -webkit-appearance: none; appearance: none;
   flex: 0 0 auto;
-  width: 51px; height: 31px; margin: 0;
+  width: 40px; height: 24px; margin: 0;
   border-radius: 999px;
   background: var(--be-surface-3);
   border: 0;
@@ -139,13 +139,13 @@
 }
 .be-page input[type=checkbox]::after {
   content: ""; position: absolute; top: 2px; left: 2px;
-  width: 27px; height: 27px; border-radius: 50%;
+  width: 20px; height: 20px; border-radius: 50%;
   background: var(--be-knob);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
   transition: transform var(--be-duration) var(--be-ease);
 }
 .be-page input[type=checkbox]:checked { background: var(--be-ok); }
-.be-page input[type=checkbox]:checked::after { transform: translateX(20px); }
+.be-page input[type=checkbox]:checked::after { transform: translateX(16px); }
 .be-page input[type=checkbox]:disabled { opacity: 0.45; cursor: default; }
 
 .be-card, .be-group {

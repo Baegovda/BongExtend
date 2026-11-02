@@ -23,6 +23,39 @@ export const nextWaitMs = ({notify, moduleOn, online, idle, intervalMs}) => {
     return clampIntervalMs(intervalMs);
 };
 
+export const accountEmailKey = (account) => String(account?.email || "").trim().toLowerCase();
+
+// 같은 주소는 한 번만 둔다. Gmail 이 /mail/u/N 여러 번호를 같은 계정으로 돌려줘도 목록이 늘어나지 않는다.
+// 먼저 본 번호를 유지해서 읽음·보관 주소와 알림 끄기가 그대로다.
+export const dedupeAccounts = (accounts) => {
+    const seen = new Map();
+    const order = [];
+    const nameless = [];
+    for (const account of accounts || []) {
+        const key = accountEmailKey(account);
+        if (!key) {
+            nameless.push(account);
+            continue;
+        }
+        const prev = seen.get(key);
+        if (!prev) {
+            seen.set(key, account);
+            order.push(key);
+            continue;
+        }
+        const prevCount = Array.isArray(prev.messages) ? prev.messages.length : 0;
+        const nextCount = Array.isArray(account.messages) ? account.messages.length : 0;
+        if (!prevCount && nextCount) seen.set(key, {...account, index: prev.index, enabled: prev.enabled});
+    }
+    return [...order.map((key) => seen.get(key)), ...nameless];
+};
+
+export const isDuplicateEmail = (accounts, account) => {
+    const key = accountEmailKey(account);
+    if (!key) return false;
+    return (accounts || []).some((item) => accountEmailKey(item) === key);
+};
+
 export const enabledAccounts = (accounts, disabled) => {
     const off = new Set((disabled || []).map(Number));
     return (accounts || []).filter((account) => !off.has(Number(account.index)));

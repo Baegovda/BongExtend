@@ -6,18 +6,18 @@ import {isTimeoutError, UPDATE_FETCH_TIMEOUT_MS, UPDATE_TIMEOUT_MESSAGE} from "@
 // @ts-ignore 순수 JS
 import {paintToolbarBadge} from "@/modules/toolbar-badge.js";
 
-// 하루 한 번 최신 릴리스를 확인한다.
+// 5분마다 최신 릴리스를 확인한다.
 // 설치 파일은 크롬 zip(*-chrome.zip)만 받는다. 파이어폭스용 zip은 릴리스에 없다.
 // 크롬 압축 해제 설치는 업데이트 탭에서 폴더에 바로 넣고, 그 외에는 zip을 받아 덮어쓴다.
 
 export {GITHUB_RELEASE_REPO};
 export const UPDATE_ALARM_NAME = "refresher-update-check";
-export const UPDATE_CHECK_INTERVAL_MINUTES = 24 * 60;
+export const UPDATE_CHECK_INTERVAL_MINUTES = 5;
 export const UPDATE_NOTIFICATION_ID = "refresher-update-available";
 
 const RELEASE_NOTES_LIMIT = 400;
 const CHECK_INTERVAL_MS = UPDATE_CHECK_INTERVAL_MINUTES * 60_000;
-const CHECK_INTERVAL_SLACK_MS = 5 * 60_000;
+const CHECK_INTERVAL_SLACK_MS = 30_000;
 
 export type UpdateBrowser = "chrome" | "firefox";
 
@@ -355,9 +355,9 @@ export const setUpdateAutoCheck = async (enabled: boolean): Promise<ExtensionUpd
 
 const ensureUpdateAlarm = async () => {
     const existing = await browser.alarms.get(UPDATE_ALARM_NAME);
-    // 서비스 워커가 깨어날 때마다 알람을 다시 만들면 24시간 주기가 초기화된다.
-    // 예전 1분 주기 알람만 교체하고, 그 외 기존 알람은 유지한다.
-    if (existing && existing.periodInMinutes !== 1) return;
+    // 서비스 워커가 깨어날 때마다 알람을 다시 만들면 5분 주기가 초기화된다.
+    // 이미 5분 주기면 그대로 두고, 하루 주기나 1분 주기는 5분으로 바꾼다.
+    if (existing && existing.periodInMinutes === UPDATE_CHECK_INTERVAL_MINUTES) return;
 
     await browser.alarms.create(UPDATE_ALARM_NAME, {
         periodInMinutes: UPDATE_CHECK_INTERVAL_MINUTES
