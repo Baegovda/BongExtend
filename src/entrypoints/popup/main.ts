@@ -11,6 +11,12 @@ import {exportAllSettings, importSettingsText} from "@/modules/settings-io";
 import {COMMON_CODES, FX_URL, convertAmount, currencyLabel, favoriteCurrencyId, favoritePairId, formatMoney, isCacheFresh, normalizeFavorites, parseFavoriteId, parseRatePayload, pinFavoriteCodes, reorderFavorites, toggleFavorite} from "@/modules/fx/convert.js";
 // @ts-ignore 순수 JS
 import {preferInbox} from "@/modules/gmail/watch.js";
+// @ts-ignore 순수 JS
+import {createChromeEffects} from "@/platform/effects.js";
+// @ts-ignore 순수 JS
+import {loadJson, openUrl, sendExtension} from "@/platform/popup-actions.js";
+
+const effects = createChromeEffects();
 
 type TabId = "chzzk" | "trans" | "dc" | "gmail" | "fx" | "update";
 
@@ -61,7 +67,7 @@ const showTab = async (tab: TabId) => {
         moduleLabel.textContent = `${NAMES[tab] || "모듈"} 모듈 사용`;
         moduleNote.textContent = moduleSwitch.checked ? "" : "꺼져 있어요. 켜면 새로 열거나 새로고침한 페이지부터 적용돼요.";
     }
-    void chrome.storage.local.set({[TAB_KEY]: tab});
+    void effects.storageSet({[TAB_KEY]: tab});
 };
 
 // ===== 탭 끌어서 순서 바꾸기 (포인터 이벤트, 의존성 없음) =====
@@ -75,7 +81,7 @@ const applyOrder = (order: TabId[]) => {
         if (b) tabGroup.appendChild(b);
     }
 };
-const saveOrder = () => void chrome.storage.local.set({[ORDER_KEY]: currentOrder()});
+const saveOrder = () => void effects.storageSet({[ORDER_KEY]: currentOrder()});
 
 let suppressClick = false;
 tabButtons().forEach((b) => {
@@ -171,13 +177,13 @@ const firefoxUpdateNote = $("firefoxUpdateNote");
 const firefoxBuild = Boolean(import.meta.env.FIREFOX);
 if (firefoxBuild) firefoxUpdateNote.hidden = false;
 let releaseUrl = "";
-$("ver").textContent = chrome.runtime.getManifest().version;
+$("ver").textContent = effects.getManifest().version;
 
 const setStatus = (text: string, kind = "") => { updateStatus.textContent = text; updateStatus.className = kind; };
 
 const renderUpdate = (s: UpdateStatus | null | undefined) => {
     if (!s) return;
-    const cur = chrome.runtime.getManifest().version;
+    const cur = effects.getManifest().version;
     releaseUrl = s.releaseUrl || "";
     const available = Boolean(s.updateAvailable && s.latestVersion && isNewerVersion(s.latestVersion, cur));
     $("updateDot").hidden = !available;
@@ -217,7 +223,7 @@ const check = async (force: boolean) => {
 };
 
 checkBtn.addEventListener("click", () => void check(true));
-doUpdate.addEventListener("click", () => void chrome.tabs.create({url: chrome.runtime.getURL("/update.html")}));
+doUpdate.addEventListener("click", () => void openUrl(effects, effects.getURL("/update.html")));
 downloadZip.addEventListener("click", async () => {
     try {
         const r = await sendMessage("applyUpdate", undefined) as {ok: boolean; error?: string};
@@ -227,8 +233,8 @@ downloadZip.addEventListener("click", async () => {
         setStatus("zip 파일을 받지 못했어요.", "error");
     }
 });
-openRelease.addEventListener("click", () => { if (releaseUrl) void chrome.tabs.create({url: releaseUrl}); });
-$("manage").addEventListener("click", () => void chrome.tabs.create({url: `chrome://extensions/?id=${chrome.runtime.id}`}));
+openRelease.addEventListener("click", () => { if (releaseUrl) void openUrl(effects, releaseUrl); });
+$("manage").addEventListener("click", () => void openUrl(effects, `chrome://extensions/?id=${effects.runtimeId()}`));
 autoCheck.addEventListener("change", async () => {
     const want = autoCheck.checked;
     try {
@@ -297,7 +303,7 @@ $("importPaste").addEventListener("click", async () => {
     if (text) await runImport(text);
 });
 
-chrome.storage.local.get([TAB_KEY, ORDER_KEY]).then((v) => {
+effects.storageGet([TAB_KEY, ORDER_KEY]).then((v: Record<string, unknown>) => {
     applyOrder(normalizeTabOrder(v[ORDER_KEY], DEFAULT_ORDER));
     tabsNav.classList.remove("order-pending");
     const saved = v[TAB_KEY] as TabId | undefined;
@@ -317,7 +323,7 @@ const gmailAccounts = $("gmailAccounts");
 const gmailAccount = $("gmailAccount");
 let gmailShown = 0;
 
-const gmailSend = (message: Record<string, unknown>) => chrome.runtime.sendMessage(message) as Promise<{
+const gmailSend = (message: Record<string, unknown>) => sendExtension(effects, message) as Promise<{
     snapshot?: GmailSnapshot | null; error?: string; ok?: boolean;
 }>;
 
@@ -372,9 +378,9 @@ const renderGmail = (snapshot: GmailSnapshot | null | undefined, error = "") => 
             button.addEventListener("click", run);
             actions.appendChild(button);
         };
-        add("읽음", () => void gmailAct(account.index, message, "read"));
-        add("보관", () => void gmailAct(account.index, message, "archive"));
-        add("삭제", () => void gmailAct(account.index, message, "trash"));
+        add("읽음", () => void runGmailAct(account.index, message, "read"));
+        add("보관", () => void runGmailAct(account.index, message, "archive"));
+        add("삭제", () => void runGmailAct(account.index, message, "trash"));
         add("답장", () => {
             const url = new URL("https://mail.google.com/mail/");
             url.searchParams.set("view", "cm");
@@ -382,9 +388,9 @@ const renderGmail = (snapshot: GmailSnapshot | null | undefined, error = "") => 
             url.searchParams.set("tf", "1");
             if (message.fromEmail) url.searchParams.set("to", message.fromEmail);
             url.searchParams.set("su", message.subject.startsWith("Re:") ? message.subject : `Re: ${message.subject}`);
-            void chrome.tabs.create({url: `https://mail.google.com/mail/u/${account.index}/${url.search}`});
+            void openUrl(effects, `https://mail.google.com/mail/u/${account.index}/${url.search}`);
         });
-        add("열기", () => { if (message.link) void chrome.tabs.create({url: message.link}); });
+        add("열기", () => { if (message.link) void openUrl(effects, message.link); });
         li.append(who, subject, snippet, actions);
         gmailList.appendChild(li);
     }
@@ -400,7 +406,7 @@ const refreshGmail = async (force: boolean) => {
     }
 };
 
-const gmailAct = async (account: number, message: GmailMessage, action: string) => {
+const runGmailAct = async (account: number, message: GmailMessage, action: string) => {
     gmailStatus.textContent = "Gmail에 반영하는 중…";
     try {
         const result = await gmailSend({type: "gmail-act", account, thread: message.thread, action});
@@ -419,8 +425,8 @@ const gmailNotify = $<HTMLInputElement>("gmailNotify");
 const saveGmailWatch = async () => {
     const seconds = Math.min(60, Math.max(5, Number(gmailInterval.value) || 8));
     gmailInterval.value = String(seconds);
-    const stored = await chrome.storage.local.get("gmail.disabled");
-    await chrome.runtime.sendMessage({
+    const stored = await effects.storageGet("gmail.disabled");
+    await sendExtension(effects, {
         type: "gmail-config",
         notify: gmailNotify.checked,
         intervalMs: seconds * 1000,
@@ -428,11 +434,11 @@ const saveGmailWatch = async () => {
     });
 };
 const saveGmailAccount = async (index: number, enabled: boolean) => {
-    const stored = await chrome.storage.local.get("gmail.disabled");
+    const stored = await effects.storageGet("gmail.disabled");
     const disabled = new Set<number>(Array.isArray(stored["gmail.disabled"]) ? stored["gmail.disabled"] : []);
     if (enabled) disabled.delete(index);
     else disabled.add(index);
-    await chrome.runtime.sendMessage({
+    await sendExtension(effects, {
         type: "gmail-config",
         notify: gmailNotify.checked,
         intervalMs: Number(gmailInterval.value) * 1000,
@@ -442,11 +448,11 @@ const saveGmailAccount = async (index: number, enabled: boolean) => {
 };
 gmailInterval.addEventListener("change", () => void saveGmailWatch());
 gmailNotify.addEventListener("change", () => void saveGmailWatch());
-chrome.storage.local.get(["gmail.intervalMs", "gmail.notify"]).then((stored) => {
+effects.storageGet(["gmail.intervalMs", "gmail.notify"]).then((stored: Record<string, unknown>) => {
     if (typeof stored["gmail.intervalMs"] === "number") gmailInterval.value = String(Math.round(stored["gmail.intervalMs"] / 1000));
     gmailNotify.checked = stored["gmail.notify"] !== false;
 });
-chrome.storage.onChanged.addListener((changes, area) => {
+effects.storageOnChanged((changes: Record<string, {newValue?: unknown}>, area: string) => {
     if (area === "local" && changes["gmail.snapshot"] && current === "gmail") {
         renderGmail(changes["gmail.snapshot"].newValue as GmailSnapshot);
     }
@@ -488,7 +494,7 @@ const fillFxSelects = (codes: string[]) => {
 
 const saveFxFav = async (next: {order: string[]}) => {
     fxFav = normalizeFavorites(next) as {order: string[]};
-    await chrome.storage.local.set({[FX_FAV_KEY]: fxFav});
+    await effects.storageSet({[FX_FAV_KEY]: fxFav});
     if (fxTable) fillFxSelects(Object.keys(fxTable.rates).sort());
     renderFx();
 };
@@ -577,9 +583,9 @@ const renderFx = () => {
 };
 
 const refreshFx = async () => {
-    const favStored = await chrome.storage.local.get(FX_FAV_KEY);
+    const favStored = await effects.storageGet(FX_FAV_KEY);
     fxFav = normalizeFavorites(favStored[FX_FAV_KEY]) as {order: string[]};
-    const stored = await chrome.storage.local.get(FX_KEY);
+    const stored = await effects.storageGet(FX_KEY);
     const cached = stored[FX_KEY] as FxTable | undefined;
     if (cached?.rates && isCacheFresh(cached.fetchedAt)) {
         fxTable = cached;
@@ -589,12 +595,10 @@ const refreshFx = async () => {
     }
     fxStatus.textContent = "환율표를 받는 중…";
     try {
-        const response = await fetch(FX_URL);
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const parsed = parseRatePayload(await response.json()) as FxTable | null;
+        const parsed = parseRatePayload(await loadJson(effects, FX_URL)) as FxTable | null;
         if (!parsed) throw new Error("표 형식");
         fxTable = parsed;
-        await chrome.storage.local.set({[FX_KEY]: parsed});
+        await effects.storageSet({[FX_KEY]: parsed});
         fillFxSelects(Object.keys(parsed.rates).sort());
         renderFx();
     } catch (error) {
@@ -619,18 +623,18 @@ const paintRightClick = (on: boolean) => {
         : "이 사이트에서 오른쪽 클릭, 복사, 글자 선택을 되살려요.";
 };
 const activePage = async () => {
-    const [tab] = await chrome.tabs.query({active: true, currentWindow: true});
+    const [tab] = await effects.tabsQuery({active: true, currentWindow: true});
     return tab;
 };
 const syncRightClick = async () => {
     const tab = await activePage();
-    const result = await chrome.runtime.sendMessage({type: "right-click-state", url: tab?.url || ""}) as {on?: boolean};
+    const result = await sendExtension(effects, {type: "right-click-state", url: tab?.url || ""}) as {on?: boolean};
     paintRightClick(Boolean(result?.on));
 };
 rightClick.addEventListener("click", async () => {
     const tab = await activePage();
     if (!tab?.id || !tab.url) return;
-    const state = await chrome.runtime.sendMessage({type: "right-click-state", url: tab.url}) as {on?: boolean; origin?: string};
+    const state = await sendExtension(effects, {type: "right-click-state", url: tab.url}) as {on?: boolean; origin?: string};
     if (!state?.origin) {
         rightClick.title = "이 페이지에서는 오른쪽 클릭을 바꿀 수 없어요.";
         return;
@@ -639,16 +643,16 @@ rightClick.addEventListener("click", async () => {
     let persist = true;
     if (enable) {
         try {
-            persist = await chrome.permissions.request({origins: [`${state.origin}/*`]});
+            persist = await effects.permissionsRequest({origins: [`${state.origin}/*`]});
             if (!persist) rightClick.title = "이번 탭만 적용했어요. 다음 방문에도 쓰려면 사이트 권한을 허용해 주세요.";
         } catch {
             persist = false;
             rightClick.title = "이번 탭만 적용했어요.";
         }
     } else {
-        try { await chrome.permissions.remove({origins: [`${state.origin}/*`]}); } catch { /* 이미 없는 권한 */ }
+        try { await effects.permissionsRemove({origins: [`${state.origin}/*`]}); } catch { /* 이미 없는 권한 */ }
     }
-    const result = await chrome.runtime.sendMessage({type: "right-click-apply", tabId: tab.id, url: tab.url, enabled: enable, persist}) as {ok?: boolean; on?: boolean; error?: string};
+    const result = await sendExtension(effects, {type: "right-click-apply", tabId: tab.id, url: tab.url, enabled: enable, persist}) as {ok?: boolean; on?: boolean; error?: string};
     if (!result?.ok) {
         rightClick.title = result?.error || "적용하지 못했어요.";
         return;

@@ -47,6 +47,18 @@ export const tokenPageUrls = (index) => {
     ];
 };
 
+export const sendMailAction = async (request, fetchImpl = globalThis.fetch) => {
+    const response = await fetchImpl(request.url, {
+        method: "POST",
+        credentials: "include",
+        redirect: "follow",
+        headers: {"Content-Type": "application/x-www-form-urlencoded"},
+        body: request.body
+    });
+    const finalUrl = response.url || "";
+    return Boolean(response.ok && !String(finalUrl).includes("accounts.google.com"));
+};
+
 export const actionRequest = (accountIndex, tokens, action, thread) => {
     const act = GMAIL_ACTIONS[action];
     if (!act) throw new Error("알 수 없는 메일 작업이에요.");
