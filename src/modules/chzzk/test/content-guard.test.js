@@ -23,3 +23,10 @@ test('ad boost is marked so the 1x reset does not cancel it', () => {
   assert.match(content, /!v\._bongAdBoost/);
   assert.match(extras, /__bongRetryAudioRestore/);
 });
+
+test('live conceal uses the planner and does not boost the broadcast video', () => {
+  assert.match(extras, /resolveAdConceal/);
+  assert.match(extras, /isBoostTarget/);
+  assert.match(extras, /AD_CONCEAL_SHADOW_CSS/);
+  assert.match(readFileSync(new URL('../content-adflag.js', import.meta.url), 'utf8'), /AD_CONCEAL_SHADOW_CSS/);
+});

@@ -16,7 +16,7 @@
     if (area !== 'sync') return;
     let hit = false;
     for (const k in DEF) if (c[k]) { cfg[k] = c[k].newValue; hit = true; }
-    if (hit) { applyStyles(); markAdBlock(); vividState.nextAt = 0; refreshViewerUi(); }
+    if (hit) { applyStyles(); markAdBlock(); vividState.nextAt = 0; refreshViewerUi(); if (cfg.adBlock === false) releaseConceal(); }
   });
 
   // ── 스타일 주입: 랭킹 가리기 + 채팅 글씨 크기 + 시청자 배지 ──
@@ -421,10 +421,21 @@
     try { el.click(); } catch (e) {}
   }
   let lastSkipClick = 0;
+  const AD_LAYER_SEL = '[data-role="adVideoContainerEl"], [data-role="imaAdContainerEl"], [data-role="gvAdContainerEl"], .webplayer-internal-core-ad-ui';
   function boostAdVideo(v) {
+    if (!v) return;
+    const inAdLayer = !!(v.closest && v.closest(AD_LAYER_SEL));
+    if (!P.isBoostTarget({
+      isContent: v.classList.contains('webplayer-internal-video') && !inAdLayer,
+      isMain: v.classList.contains('webplayer-internal-video'),
+      inAdLayer,
+      live: location.pathname.startsWith('/live/'),
+      duration: v.duration,
+      inChat: !!(v.closest && v.closest('#aside-chatting'))
+    })) return;
     v._bongAdBoost = 1;
     // 본영상 video 는 음소거하지 않는다. 광고 칸 안의 영상만, 되돌릴 소리를 알고 있을 때만 끈다.
-    if (audioHold && v.closest && v.closest(P.AD_CONTAINER_SEL)) {
+    if (audioHold && inAdLayer) {
       try { v.muted = true; } catch (e) {}
     }
     try { if (v.playbackRate !== 16) v.playbackRate = 16; } catch (e) {}
@@ -443,82 +454,122 @@
   function playerBox() {
     return document.querySelector(ROOT) || document.querySelector('div.pzp') || document.getElementById('live_player_layout');
   }
-  function liveVideoInside(node) {
-    if (!node || !node.querySelectorAll) return false;
-    for (const video of node.querySelectorAll('video.webplayer-internal-video')) {
-      if (!P.isAdDuration(video.duration)) return true;
-    }
-    return false;
+  const CONCEAL_PROPS = ['opacity', 'visibility', 'pointer-events', 'background', 'background-color'];
+  function classNameOf(el) {
+    if (!el) return '';
+    if (typeof el.className === 'string') return el.className;
+    return (el.getAttribute && el.getAttribute('class')) || '';
   }
-  function concealChain(el, player) {
-    const chain = [];
-    let node = el;
+  function walkPlayer(player, visit) {
     const seen = new Set();
-    while (node && !seen.has(node)) {
-      seen.add(node);
-      chain.push({
-        el: node,
-        hasChat: node.id === 'aside-chatting' || !!(node.querySelector && node.querySelector('#aside-chatting')),
-        hasLiveVideo: liveVideoInside(node),
-        isPlayer: node === player
-      });
-      if (node === player || node === document.body) break;
-      node = node.parentElement || (node.getRootNode && node.getRootNode().host) || null;
-    }
-    return chain;
-  }
-  function markAdChrome(scope, player, bucket) {
-    if (!scope || !scope.querySelectorAll) return;
-    for (const el of scope.querySelectorAll('*')) {
-      if (el.id?.startsWith('bex') || el.closest && el.closest('#aside-chatting')) continue;
-      const text = (el.textContent || '').replace(/\s+/g, ' ').trim();
-      const info = {
-        text: text.length < 40 ? text : '',
-        dataRole: el.getAttribute ? (el.getAttribute('data-role') || '') : '',
-        className: String(el.className || ''),
-        inChat: false
-      };
-      if (!P.isAdChrome(info)) {
-        const shadow = shadowOf(el);
-        if (shadow) markAdChrome(shadow, player, bucket);
-        continue;
-      }
-      bucket.push(el);
+    const walk = (el, parent, shadowHost) => {
+      if (!el || el.nodeType !== 1 || seen.has(el)) return;
+      seen.add(el);
+      visit(el, parent, shadowHost);
       const shadow = shadowOf(el);
-      if (shadow) markAdChrome(shadow, player, bucket);
-    }
+      if (shadow) {
+        const kids = shadow.children ? [...shadow.children] : [];
+        for (const child of kids) walk(child, null, el);
+      }
+      for (const child of el.children || []) walk(child, el, shadowHost);
+    };
+    walk(player, null, null);
+  }
+  function snapshotPlayer(player) {
+    const nodes = [];
+    const elById = new Map();
+    let seq = 0;
+    const idOf = new Map();
+    walkPlayer(player, (el, parent, shadowHost) => {
+      const id = 'n' + (++seq);
+      idOf.set(el, id);
+      elById.set(id, el);
+      nodes.push({
+        id,
+        parent: parent ? idOf.get(parent) || null : null,
+        shadowHost: shadowHost ? idOf.get(shadowHost) || null : null,
+        tag: el.tagName,
+        className: classNameOf(el),
+        dataRole: el.getAttribute ? (el.getAttribute('data-role') || '') : '',
+        duration: el.tagName === 'VIDEO' ? el.duration : undefined,
+        text: ownText(el).slice(0, 80),
+        elementId: el.id || '',
+        isPlayer: el === player
+      });
+    });
+    return { nodes, elById };
+  }
+  function paintConceal(el) {
+    if (!el || !el.classList) return;
+    el.classList.add('bex-adhide');
+    if (el.dataset) el.dataset.bexConceal = '1';
+    if (!el.style || !el.style.setProperty) return;
+    el.style.setProperty('opacity', '0', 'important');
+    el.style.setProperty('visibility', 'hidden', 'important');
+    el.style.setProperty('pointer-events', 'none', 'important');
+    el.style.setProperty('background', 'transparent', 'important');
+    el.style.setProperty('background-color', 'transparent', 'important');
+  }
+  function clearConceal(el) {
+    if (!el || !el.classList) return;
+    el.classList.remove('bex-adhide', 'bex-advideo');
+    if (el.dataset && el.dataset.bexConceal) delete el.dataset.bexConceal;
+    if (!el.style || !el.style.removeProperty) return;
+    for (const prop of CONCEAL_PROPS) el.style.removeProperty(prop);
+  }
+  const SHADOW_STYLE_ID = 'bex-adconceal-shadow';
+  function injectShadowStyles(player) {
+    const css = P.AD_CONCEAL_SHADOW_CSS;
+    if (!css || !player) return;
+    walkPlayer(player, el => {
+      const shadow = shadowOf(el);
+      if (!shadow || !shadow.appendChild) return;
+      let style = shadow.querySelector && shadow.querySelector('#' + SHADOW_STYLE_ID);
+      if (!style) {
+        style = document.createElement('style');
+        style.id = SHADOW_STYLE_ID;
+        shadow.appendChild(style);
+      }
+      if (style.textContent !== css) style.textContent = css;
+    });
   }
   function concealAds(player) {
     if (!player || cfg.adBlock === false) return;
-    const chrome = [];
-    markAdChrome(player, player, chrome);
-    const top = shadowOf(player);
-    if (top) markAdChrome(top, player, chrome);
-    for (const el of chrome) {
-      const picked = P.pickAdConcealNode(concealChain(el, player));
-      if (picked && picked.el && picked.el.classList && picked.el !== player) picked.el.classList.add('bex-adhide');
-    }
-    const videos = [...player.querySelectorAll('video')];
-    if (top && top.querySelectorAll) videos.push(...top.querySelectorAll('video'));
-    for (const video of videos) {
-      const ad = P.isAdVideo({
-        inChat: !!(video.closest && video.closest('#aside-chatting')),
-        inAdBox: !!(video.closest && (video.closest(P.AD_CONTAINER_SEL) || video.closest('.bex-adhide') || video.closest('.webplayer-internal-core-ad-ui'))),
-        duration: video.duration,
-        isMain: video.classList.contains('webplayer-internal-video')
-      });
-      if (!ad) continue;
-      video.classList.add('bex-advideo');
-      try { video.muted = true; } catch (e) {}
-      try { video.volume = 0; } catch (e) {}
-      boostAdVideo(video);
+    injectShadowStyles(player);
+    const { nodes, elById } = snapshotPlayer(player);
+    const plan = P.resolveAdConceal(nodes);
+    const hide = new Set(plan.hideIds);
+    const ads = new Set(plan.adVideoIds);
+    for (const [id, el] of elById) {
+      if (hide.has(id)) paintConceal(el);
+      else if (el.dataset && el.dataset.bexConceal === '1') clearConceal(el);
+      else if (el.classList.contains('bex-adhide')) el.classList.remove('bex-adhide');
+      if (ads.has(id)) {
+        el.classList.add('bex-advideo');
+        try { el.muted = true; } catch (e) {}
+        try { el.volume = 0; } catch (e) {}
+        boostAdVideo(el);
+      } else if (el.classList.contains('bex-advideo')) el.classList.remove('bex-advideo');
     }
   }
   function releaseConceal() {
-    for (const el of document.querySelectorAll('.bex-adhide, .bex-advideo')) el.classList.remove('bex-adhide', 'bex-advideo');
+    const roots = [document.documentElement, document.body].filter(Boolean);
+    const player = playerBox();
+    if (player) roots.push(player);
+    const seen = new Set();
+    for (const root of roots) {
+      walkPlayer(root, el => {
+        if (seen.has(el)) return;
+        seen.add(el);
+        if (el.classList && (el.classList.contains('bex-adhide') || el.classList.contains('bex-advideo') || (el.dataset && el.dataset.bexConceal))) clearConceal(el);
+        const shadow = shadowOf(el);
+        const style = shadow && shadow.querySelector && shadow.querySelector('#' + SHADOW_STYLE_ID);
+        if (style) style.remove();
+      });
+    }
   }
   function endAd(resumePlayback) {
-    releaseConceal();
+    // 검은 광고 막은 광고가 끝난 뒤에도 투명하게 둔다. 걷어 내면 본영상 위에 다시 깔린다.
     console.info('[BongExtend] 광고 종료');
     for (const v of boosted) {
       if (!v.isConnected) continue;

@@ -123,35 +123,152 @@
     return false;
   }
   // 버튼에서 플레이어까지 올라갈 때, 본영상과 채팅이 없는 가장 바깥 칸을 고른다.
+  // hasContentVideo 는 길이와 상관없이 본영상(video.webplayer-internal-video)이 들어 있는 칸이다.
+  // 그림자 DOM 때문에 hasLiveVideo 가 비어도, 이 칸은 가리면 안 된다.
   function pickAdConcealNode(chain) {
     if (!Array.isArray(chain) || chain.length < 2) return null;
     let chosen = null;
     for (let i = 0; i < chain.length - 1; i += 1) {
       const node = chain[i];
-      if (!node || node.hasChat || node.hasLiveVideo || node.isPlayer) break;
+      if (!node || node.hasChat || node.hasLiveVideo || node.hasContentVideo || node.isPlayer) break;
       chosen = node;
     }
     return chosen;
   }
-  // 광고 영상만. 길이 없는 본방송 영상은 숨기지 않는다.
-  function isAdVideo(info) {
+  const classTokens = cls => String(cls || '').split(/\s+/).filter(Boolean);
+  const hasClass = (cls, name) => classTokens(cls).indexOf(name) !== -1;
+  // 치지직 본영상. 타임머신 때문에 길이가 30~90초여도 광고가 아니다.
+  function isContentVideo(info) {
     if (!info || info.inChat) return false;
-    if (info.inAdBox) return true;
-    if (info.isMain && !isAdDuration(info.duration)) return false;
+    if (info.isMain || hasClass(info.className, 'webplayer-internal-video')) return true;
+    return false;
+  }
+  // 광고 영상만. 본방송 영상은 길이가 짧아도 숨기지 않는다.
+  function isAdVideo(info) {
+    if (!info || info.inChat || isContentVideo(info)) return false;
+    if (info.inAdLayer || info.inAdBox) return true;
+    if (info.isMain) return false;
     return isAdDuration(info.duration);
   }
-  // display:none 은 광고 차단 탐지에 걸린다. 투명하게 가려서 프레임이 안 보이게 한다.
-  const AD_CONCEAL_CSS = [
-    'html[data-bong-adblock="1"] [data-role="adVideoContainerEl"]',
-    'html[data-bong-adblock="1"] [data-role="adControlEl"]',
-    'html[data-bong-adblock="1"] [data-role="skipBtn"]',
-    'html[data-bong-adblock="1"] .webplayer-internal-core-ad-ui',
-    'html[data-bong-adblock="1"] .pzp-ad-break-indicator',
-    'html[data-bong-adblock="1"] .pzp-ad-click-through-button',
-    'html[data-bong-adblock="1"] .btn_skip',
-    'html[data-bong-adblock="1"] .bex-adhide',
-    'html[data-bong-adblock="1"] video.bex-advideo'
-  ].join(',') + '{opacity:0 !important;visibility:hidden !important;pointer-events:none !important}';
+  // 본영상을 16배속·끝으로 보내면 화면만 검게 남고 소리는 계속 난다.
+  function isBoostTarget(info) {
+    if (!info || info.inChat || isContentVideo(info)) return false;
+    if (info.inAdLayer || info.inAdBox) return true;
+    if (info.live) return false;
+    return isAdDuration(info.duration);
+  }
+  const AD_LAYER_ROLES = { adVideoContainerEl: 1, imaAdContainerEl: 1, gvAdContainerEl: 1 };
+  function parentNode(node, byId) {
+    if (!node) return null;
+    if (node.parent && byId[node.parent]) return byId[node.parent];
+    if (node.shadowHost && byId[node.shadowHost]) return byId[node.shadowHost];
+    return null;
+  }
+  function walkUp(node, byId, hit) {
+    const seen = new Set();
+    let cur = node;
+    while (cur && !seen.has(cur.id)) {
+      seen.add(cur.id);
+      if (hit(cur)) return true;
+      cur = parentNode(cur, byId);
+    }
+    return false;
+  }
+  function indexConcealNodes(nodes) {
+    const byId = {};
+    const light = {};
+    const shadow = {};
+    for (const node of nodes || []) {
+      if (!node || node.id == null) continue;
+      byId[node.id] = node;
+    }
+    for (const node of nodes || []) {
+      if (!node || node.id == null || !byId[node.id]) continue;
+      if (node.parent && byId[node.parent]) (light[node.parent] = light[node.parent] || []).push(node);
+      else if (node.shadowHost && byId[node.shadowHost]) (shadow[node.shadowHost] = shadow[node.shadowHost] || []).push(node);
+    }
+    return { byId, light, shadow };
+  }
+  function childNodes(id, idx) {
+    return (idx.light[id] || []).concat(idx.shadow[id] || []);
+  }
+  function subtreeHas(id, idx, hit) {
+    const stack = childNodes(id, idx).map(node => node.id);
+    const seen = new Set();
+    while (stack.length) {
+      const cur = stack.pop();
+      if (seen.has(cur)) continue;
+      seen.add(cur);
+      if (hit[cur]) return true;
+      for (const child of childNodes(cur, idx)) stack.push(child.id);
+    }
+    return false;
+  }
+  // 가짜 플레이어 나무에서, 가릴 칸과 광고 영상을 고른다.
+  // 본영상이 들어 있는 칸(그림자 루트 포함)은 절대 가리지 않는다. 가리면 소리는 나고 화면만 검다.
+  function resolveAdConceal(nodes) {
+    const idx = indexConcealNodes(nodes);
+    const content = {};
+    const adVideos = [];
+    for (const node of Object.keys(idx.byId).map(id => idx.byId[id])) {
+      if (String(node.tag || '').toUpperCase() !== 'VIDEO') continue;
+      const inChat = walkUp(node, idx.byId, item => item.elementId === 'aside-chatting');
+      const inAdLayer = walkUp(node, idx.byId, item => hasClass(item.className, 'webplayer-internal-core-ad-ui') || !!AD_LAYER_ROLES[item.dataRole]);
+      const info = {
+        inChat, inAdLayer,
+        isMain: hasClass(node.className, 'webplayer-internal-video'),
+        className: node.className,
+        duration: node.duration
+      };
+      if (isContentVideo(info)) content[node.id] = true;
+      else if (isAdVideo(info)) adVideos.push(node.id);
+    }
+    const hide = [];
+    for (const node of Object.keys(idx.byId).map(id => idx.byId[id])) {
+      if (node.isPlayer || content[node.id] || subtreeHas(node.id, idx, content)) continue;
+      if (walkUp(node, idx.byId, item => item.elementId === 'aside-chatting')) continue;
+      const sheet = hasClass(node.className, 'webplayer-internal-core-ad-ui');
+      const dimmed = hasClass(node.className, 'webplayer-internal-core-dimmed') && !hasClass(node.className, 'wpc-dis-hid');
+      const roleSheet = !!AD_LAYER_ROLES[node.dataRole] || node.dataRole === 'adControlEl' || node.dataRole === 'skipBtn';
+      const chrome = isAdChrome({ text: node.text || '', dataRole: node.dataRole || '', className: node.className || '', inChat: false });
+      if (sheet || dimmed || roleSheet || chrome) hide.push(node.id);
+    }
+    const sort = list => list.sort((a, b) => String(a).localeCompare(String(b)));
+    return { hideIds: sort(hide), adVideoIds: sort(adVideos), contentVideoIds: sort(Object.keys(content)) };
+  }
+  // display:none 은 광고 차단 탐지에 걸린다.
+  // 광고 칸 자체에 opacity 를 주면, 그 안에 본영상이 있을 때 화면까지 사라진다.
+  // 검은 막은 배경만 걷고, 광고 영상·버튼만 투명하게 가린다.
+  const AD_CONCEAL_MEDIA = [
+    '.webplayer-internal-core-ad-ui > *:not(:has(video.webplayer-internal-video)):not(video.webplayer-internal-video)',
+    '.webplayer-internal-core-ad-ui video:not(.webplayer-internal-video)',
+    '[data-role="imaAdContainerEl"] video:not(.webplayer-internal-video)',
+    '[data-role="gvAdContainerEl"] video:not(.webplayer-internal-video)',
+    '[data-role="adVideoContainerEl"] video:not(.webplayer-internal-video)',
+    '.webplayer-internal-core-ad-ui iframe',
+    '[data-role="adVideoContainerEl"]',
+    '[data-role="adControlEl"]',
+    '[data-role="skipBtn"]',
+    '.pzp-ad-break-indicator',
+    '.pzp-ad-click-through-button',
+    '.btn_skip',
+    '.bex-adhide',
+    'video.bex-advideo'
+  ];
+  const AD_CONCEAL_SHEETS = [
+    '.webplayer-internal-core-ad-ui',
+    '.webplayer-internal-core-dimmed:not(.wpc-dis-hid)'
+  ];
+  const AD_CONCEAL_MEDIA_RULE = '{opacity:0 !important;visibility:hidden !important;pointer-events:none !important}';
+  const AD_CONCEAL_SHEET_RULE = '{background:transparent !important;background-color:transparent !important;pointer-events:none !important}';
+  const AD_CONCEAL_PROTECT = 'video.webplayer-internal-video{opacity:1 !important;visibility:visible !important;pointer-events:auto !important}';
+  const AD_CONCEAL_CSS = 'html[data-bong-adblock="1"] ' + AD_CONCEAL_MEDIA.join(',html[data-bong-adblock="1"] ') + AD_CONCEAL_MEDIA_RULE
+    + 'html[data-bong-adblock="1"] ' + AD_CONCEAL_SHEETS.join(',html[data-bong-adblock="1"] ') + AD_CONCEAL_SHEET_RULE
+    + 'html[data-bong-adblock="1"] ' + AD_CONCEAL_PROTECT;
+  // 광고 막은 플레이어 그림자 루트 안에 있다. 문서 CSS 는 거기까지 닿지 않는다.
+  const AD_CONCEAL_SHADOW_CSS = AD_CONCEAL_MEDIA.join(',') + AD_CONCEAL_MEDIA_RULE
+    + AD_CONCEAL_SHEETS.join(',') + AD_CONCEAL_SHEET_RULE
+    + AD_CONCEAL_PROTECT;
   // 배너로 볼 요소. 광고 차단 탐지가 보는 display:none bait(.banner_ad_wrapper)는 여기 넣지 않는다.
   function isDisplayAdElement(info) {
     if (!info) return false;
@@ -164,5 +281,5 @@
     if (tag === 'IMG') return /\/Banner_/i.test(String(info.src || '')) && /banner_(image|link)_/i.test(String(info.cls || ''));
     return false;
   }
-  root.BongPlayer = { isSkipButtonLabel, isSkipCandidate, hasAdContainer, seekEndTime, AD_CONTAINER_SEL, isAdActive, isGuideText, isPurchaseGuideDialogText, isSkipText, adTextKind, isSafeSkipLabel, isAdDuration, captureAudioState, restoreAudioState, isAudioControlLabel, audioRestoreAction, noteLiveAudio, audioAfterAd, isDisplayAdElement, countdownSeconds, skipAction, pickSkipElement, isAdChrome, pickAdConcealNode, isAdVideo, AD_CONCEAL_CSS };
+  root.BongPlayer = { isSkipButtonLabel, isSkipCandidate, hasAdContainer, seekEndTime, AD_CONTAINER_SEL, isAdActive, isGuideText, isPurchaseGuideDialogText, isSkipText, adTextKind, isSafeSkipLabel, isAdDuration, captureAudioState, restoreAudioState, isAudioControlLabel, audioRestoreAction, noteLiveAudio, audioAfterAd, isDisplayAdElement, countdownSeconds, skipAction, pickSkipElement, isAdChrome, pickAdConcealNode, isContentVideo, isAdVideo, isBoostTarget, resolveAdConceal, AD_CONCEAL_CSS, AD_CONCEAL_SHADOW_CSS };
 })(typeof globalThis !== 'undefined' ? globalThis : this);

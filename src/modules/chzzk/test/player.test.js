@@ -119,15 +119,74 @@ test('광고 화면은 가리고 본방송 영상과 채팅은 남긴다', () =>
     { id: 'player', isPlayer: true }
   ]), null);
   assert.equal(P.pickAdConcealNode([{ id: 'player', isPlayer: true }]), null);
+  // 타임머신 길이가 짧아도, 본영상이 들어 있는 칸은 가리지 않는다.
+  const liveCore = P.pickAdConcealNode([
+    { id: 'ad' },
+    { id: 'core', hasContentVideo: true },
+    { id: 'wrap' },
+    { id: 'player', isPlayer: true }
+  ]);
+  assert.equal(liveCore.id, 'ad');
+  assert.equal(P.isContentVideo({ isMain: true, duration: 32 }), true);
+  assert.equal(P.isContentVideo({ className: 'webplayer-internal-video', inChat: true }), false);
   assert.equal(P.isAdVideo({ isMain: true, duration: Infinity }), false);
-  assert.equal(P.isAdVideo({ isMain: true, duration: 15 }), true);
+  assert.equal(P.isAdVideo({ isMain: true, duration: 15 }), false);
+  assert.equal(P.isAdVideo({ isMain: true, duration: 32, inAdLayer: true }), false);
   assert.equal(P.isAdVideo({ isMain: false, duration: 30, inAdBox: true }), true);
   assert.equal(P.isAdVideo({ inChat: true, duration: 15 }), false);
   assert.equal(P.isAdVideo({ isMain: false, duration: NaN }), false);
+  assert.equal(P.isBoostTarget({ isMain: true, live: true, duration: 32 }), false);
+  assert.equal(P.isBoostTarget({ className: 'webplayer-internal-video', live: true, duration: 15 }), false);
+  assert.equal(P.isBoostTarget({ inAdLayer: true, live: true, duration: 15 }), true);
+  assert.equal(P.isBoostTarget({ live: true, duration: 15 }), false);
   assert.match(P.AD_CONCEAL_CSS, /opacity:0/);
   assert.match(P.AD_CONCEAL_CSS, /bex-adhide/);
+  assert.match(P.AD_CONCEAL_CSS, /background:transparent/);
+  assert.match(P.AD_CONCEAL_CSS, /video\.webplayer-internal-video\{opacity:1/);
+  assert.match(P.AD_CONCEAL_SHADOW_CSS, /webplayer-internal-core-ad-ui/);
+  assert.match(P.AD_CONCEAL_SHADOW_CSS, /video\.webplayer-internal-video\{opacity:1/);
   assert.doesNotMatch(P.AD_CONCEAL_CSS, /display:\s*none/);
+  assert.doesNotMatch(P.AD_CONCEAL_SHADOW_CSS, /display:\s*none/);
   assert.doesNotMatch(P.AD_CONCEAL_CSS, /aside-chatting/);
+  assert.doesNotMatch(P.AD_CONCEAL_SHADOW_CSS, /\.webplayer-internal-core-ad-ui\{opacity:0/);
+  assert.doesNotMatch(P.AD_CONCEAL_SHADOW_CSS, /\.webplayer-internal-core-shadow\{/);
+  assert.doesNotMatch(P.AD_CONCEAL_SHADOW_CSS, /\.pzp-pc__video\{/);
+});
+
+test('라이브 본영상은 짧은 길이와 그림자 루트 안 광고 막 때문에 가려지지 않는다', () => {
+  const nodes = [
+    { id: 'player', className: 'pzp pzp-pc', isPlayer: true },
+    { id: 'videoWrap', parent: 'player', className: 'pzp-pc__video' },
+    { id: 'core', parent: 'videoWrap', className: 'webplayer-internal-core-shadow wpc-full' },
+    { id: 'source', shadowHost: 'core', className: 'webplayer-internal-core-source-container' },
+    { id: 'broadcast', parent: 'source', shadowHost: 'core', tag: 'VIDEO', className: 'webplayer-internal-video', duration: 32 },
+    { id: 'dimHidden', shadowHost: 'core', className: 'webplayer-internal-core-dimmed wpc-pos-abs wpc-dis-hid' },
+    { id: 'dimShown', shadowHost: 'core', className: 'webplayer-internal-core-dimmed wpc-pos-abs' },
+    { id: 'adSheet', shadowHost: 'core', className: 'webplayer-internal-core-ad-ui wpc-full wpc-pos-abs' },
+    { id: 'ima', parent: 'adSheet', shadowHost: 'core', dataRole: 'imaAdContainerEl' },
+    { id: 'adVideo', parent: 'ima', shadowHost: 'core', tag: 'VIDEO', duration: 15 },
+    { id: 'chat', parent: 'player', elementId: 'aside-chatting' },
+    { id: 'chatSkip', parent: 'chat', className: 'btn_skip', text: 'SKIP' }
+  ];
+  const plan = P.resolveAdConceal(nodes);
+  for (const id of ['player', 'videoWrap', 'core', 'source', 'broadcast', 'dimHidden', 'chat', 'chatSkip']) {
+    assert.equal(plan.hideIds.includes(id), false, id);
+  }
+  for (const id of ['adSheet', 'ima', 'dimShown']) assert.equal(plan.hideIds.includes(id), true, id);
+  assert.equal(plan.contentVideoIds.join(','), 'broadcast');
+  assert.equal(plan.adVideoIds.join(','), 'adVideo');
+  assert.equal(plan.adVideoIds.includes('broadcast'), false);
+
+  const wrapped = P.resolveAdConceal([
+    { id: 'player', isPlayer: true, className: 'pzp pzp-pc' },
+    { id: 'sheet', parent: 'player', className: 'webplayer-internal-core-ad-ui' },
+    { id: 'broadcast', parent: 'sheet', tag: 'VIDEO', className: 'webplayer-internal-video', duration: 20 },
+    { id: 'adVideo', parent: 'sheet', tag: 'VIDEO', duration: 15 }
+  ]);
+  assert.equal(wrapped.hideIds.includes('sheet'), false);
+  assert.equal(wrapped.hideIds.includes('broadcast'), false);
+  assert.equal(wrapped.contentVideoIds.join(','), 'broadcast');
+  assert.equal(wrapped.adVideoIds.join(','), 'adVideo');
 });
 
 test('배너 광고 요소만 고른다', () => {
