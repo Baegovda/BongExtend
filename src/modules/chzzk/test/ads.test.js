@@ -9,19 +9,19 @@ const A = ctx.BongAds;
 
 const playback = '{"media":[{"path":"https://cdn.example/live.m3u8"}]}';
 
-test('GFP 일정에서 광고만 비우고 나머지 필드는 둔다', () => {
+test('광고 일정은 비우지 않는다. 빈 일정은 까만 막을 남긴다', () => {
   const schedule = {
     head: { version: '0.0.1', description: 'GFP Video Ad Schedule' },
     requestId: 'keep-me',
     videoAdScheduleId: 'LIVE_CHZZK_NDP_SCH',
     adBreaks: [{ id: 'PREROLL-1', adSources: [{ id: 'PREROLL-1-1' }] }]
   };
-  assert.equal(A.patchAdResponse(schedule), true);
-  assert.equal(JSON.stringify(schedule.adBreaks), '[]');
+  assert.equal(A.patchAdResponse(schedule), false);
+  assert.equal(schedule.adBreaks.length, 1);
   assert.equal(schedule.requestId, 'keep-me');
 });
 
-test('워터폴 광고 목록만 비우고 추적 주소는 둔다', () => {
+test('워터폴 광고 목록과 추적 주소는 그대로 둔다', () => {
   const waterfall = {
     head: { version: '0.0.1', description: 'Naver SSP Waterfall List' },
     adUnit: 'w_live',
@@ -29,8 +29,8 @@ test('워터폴 광고 목록만 비우고 추적 주소는 둔다', () => {
     ads: [{ encrypted: 'x' }],
     eventTracking: { clicks: [{ url: 'https://siape.veta.naver.com/openrtb/nback' }] }
   };
-  assert.equal(A.patchAdResponse(waterfall), true);
-  assert.equal(JSON.stringify(waterfall.ads), '[]');
+  assert.equal(A.patchAdResponse(waterfall), false);
+  assert.equal(waterfall.ads.length, 1);
   assert.equal(waterfall.eventTracking.clicks[0].url, 'https://siape.veta.naver.com/openrtb/nback');
 });
 
@@ -59,6 +59,16 @@ test('재생 주소는 두고 프리롤·미드롤 표시만 끈다', () => {
   assert.equal(flags.livePlaybackJson, playback);
   assert.equal(body.content.chatChannelId, 'chat-1');
   assert.equal(A.patchAdResponse(body), false);
+  const bait = { liveId: 42, livePlaybackJson: playback, chatChannelId: 'c' };
+  assert.equal(A.patchAdPayload(bait), true);
+  assert.equal(JSON.stringify(bait.playerAdDisplayResponse), '{"preRoll":false,"midRoll":false,"postRoll":false}');
+  assert.equal(bait.liveId, 42);
+  assert.equal(bait.livePlaybackJson, playback);
+  const numeric = { livePlaybackJson: playback, playerAdDisplayResponse: { preRoll: 1, midRoll: 'Y', postRoll: false } };
+  assert.equal(A.patchAdPayload(numeric), true);
+  assert.equal(numeric.playerAdDisplayResponse.preRoll, false);
+  assert.equal(numeric.playerAdDisplayResponse.midRoll, false);
+  assert.equal(numeric.playerAdDisplayResponse.postRoll, false);
 });
 
 test('시청자 수·채팅·상품 목록은 바꾸지 않는다', () => {
@@ -82,48 +92,34 @@ test('광고 폴링만 중단으로 바꾸고 재생 객체는 중단하지 않�
   assert.equal(poll.adCount, 0);
   assert.equal(poll.id, 'break-1');
   const media = { liveId: 3, livePlaybackJson: playback, adControlType: 'LIVE', event: 'START', adCount: 1 };
-  assert.equal(A.patchAdPayload(media), false);
+  assert.equal(A.patchAdPayload(media), true);
   assert.equal(media.event, 'START');
+  assert.equal(media.playerAdDisplayResponse.preRoll, false);
+  assert.equal(media.livePlaybackJson, playback);
 });
 
-test('광고 전용 주소만 가로챈다', () => {
-  assert.equal(A.isAdEndpoint('https://nam.veta.naver.com/vas?x=1'), true);
-  assert.equal(A.isAdEndpoint('https://nam.veta.naver.com/gfp/v1'), true);
-  assert.equal(A.isAdEndpoint('https://nam.veta.naver.com/call'), true);
-  assert.equal(A.isAdEndpoint('https://gfp.veta.naver.com/adcall?y=1'), true);
-  assert.equal(A.isAdEndpoint('https://siape.veta.naver.com/openrtb/nback'), true);
+test('광고 일정 주소는 가로채지 않고 미드롤 신호만 끊는다', () => {
+  assert.equal(A.isAdEndpoint('https://nam.veta.naver.com/vas?x=1'), false);
+  assert.equal(A.isAdEndpoint('https://nam.veta.naver.com/gfp/v1'), false);
+  assert.equal(A.isAdEndpoint('https://nam.veta.naver.com/call'), false);
+  assert.equal(A.isAdEndpoint('https://gfp.veta.naver.com/adcall?y=1'), false);
+  assert.equal(A.isAdEndpoint('https://siape.veta.naver.com/openrtb/nback'), false);
   assert.equal(A.isAdEndpoint('https://api.chzzk.naver.com/ad-polling/v1/lives/123/ad'), true);
   assert.equal(A.isAdEndpoint('https://api.chzzk.naver.com/service/v3/lives/abc/ads/current?z=1'), true);
   assert.equal(A.isAdEndpoint('https://nam.veta.naver.com/vas', 'OPTIONS'), false);
-  assert.equal(A.isAdEndpoint('https://nam.veta.naver.com/dfp?x=1'), true);
-  assert.equal(A.isAdEndpoint('https://nam.veta.naver.com/nac/'), false);
   assert.equal(A.isAdEndpoint('https://api.chzzk.naver.com/service/v1/seoraksan'), false);
   assert.equal(A.isAdEndpoint('https://api.chzzk.naver.com/service/v2/channels/abc/live-detail'), false);
   assert.equal(A.isAdEndpoint('https://api.chzzk.naver.com/polling/v3.1/channels/abc/live-status'), false);
   assert.equal(A.emptyBodyFor('https://api.chzzk.naver.com/service/v1/seoraksan'), null);
-  assert.deepEqual(JSON.parse(A.emptyBodyFor('https://nam.veta.naver.com/vas')).adBreaks, []);
-  assert.deepEqual(JSON.parse(A.emptyBodyFor('https://siape.veta.naver.com/openrtb/x')).ads, []);
+  assert.equal(A.emptyBodyFor('https://nam.veta.naver.com/vas'), null);
   assert.equal(JSON.parse(A.emptyBodyFor('https://api.chzzk.naver.com/service/v1/lives/abc/ads/current')).content.event, 'ABORT');
 });
 
-test('동적 규칙은 광고 주소만 바꾸고 재생 API 는 빼 둔다', () => {
+test('동적 규칙은 광고 스크립트와 빈 일정을 넣지 않는다', () => {
   const rules = A.chzzkAdRules();
-  assert.deepEqual(rules.map(rule => rule.id), A.CHZZK_AD_RULE_IDS);
-  const blob = JSON.stringify(rules);
-  assert.equal(/seoraksan|live-detail|live-status|chatChannel/.test(blob), false);
-  assert.match(blob, /gfp-instream/);
-  assert.match(blob, /glad_admute/);
-  assert.match(blob, /ima3\.js/);
-  for (const rule of rules) {
-    assert.equal(rule.action.type, 'redirect');
-    assert.equal(rule.condition.initiatorDomains[0], 'chzzk.naver.com');
-    const rel = rule.action.redirect.extensionPath.replace(/^\/chzzk\//, '');
-    assert.equal(existsSync(new URL('../' + rel, import.meta.url)), true);
-    if (!rule.condition.resourceTypes.includes('script')) assert.equal(JSON.stringify(rule.condition.excludedRequestMethods), '["options"]');
-  }
-  assert.deepEqual(JSON.parse(readFileSync(new URL('../empty-ad-schedule.json', import.meta.url), 'utf8')), JSON.parse(A.emptyBodyFor('https://nam.veta.naver.com/vas')));
-  assert.deepEqual(JSON.parse(readFileSync(new URL('../empty-ad-waterfall.json', import.meta.url), 'utf8')), JSON.parse(A.emptyBodyFor('https://nam.veta.naver.com/gfp')));
-  assert.deepEqual(JSON.parse(readFileSync(new URL('../empty-ad-poll.json', import.meta.url), 'utf8')), JSON.parse(A.emptyBodyFor('https://api.chzzk.naver.com/ad-polling/v1/lives/1/ad')));
+  assert.equal(rules.length, 0);
+  assert.ok(A.CHZZK_AD_RULE_IDS.length > 0);
+  assert.equal(existsSync(new URL('../empty-ad-poll.json', import.meta.url)), true);
 });
 
 function headerMap(obj) {
@@ -166,7 +162,7 @@ function makeWin(fetchImpl) {
   };
 }
 
-test('fetch 는 광고 주소를 네트워크 전에 비우고 재생 JSON 은 주소만 유지한다', async () => {
+test('fetch 는 광고 일정을 막지 않고 재생 JSON 의 광고 표시만 끈다', async () => {
   let calls = 0;
   const win = makeWin(async () => {
     calls += 1;
@@ -181,11 +177,13 @@ test('fetch 는 광고 주소를 네트워크 전에 비우고 재생 JSON 은 �
     }), { headers: { 'content-type': 'application/json' } });
   });
   assert.equal(A.installAdHooks(win, () => true), true);
-  const blocked = await win.fetch('https://nam.veta.naver.com/vas?x=1');
-  assert.equal(calls, 0);
-  assert.deepEqual((await blocked.json()).adBreaks, []);
-  const live = await win.fetch('https://api.chzzk.naver.com/service/v1/seoraksan');
+  const schedule = await win.fetch('https://nam.veta.naver.com/vas?x=1');
   assert.equal(calls, 1);
+  const scheduleData = await schedule.json();
+  assert.equal(scheduleData.content.livePlaybackJson, playback);
+  assert.equal(scheduleData.content.playerAdDisplayResponse.preRoll, false);
+  const live = await win.fetch('https://api.chzzk.naver.com/service/v1/seoraksan');
+  assert.equal(calls, 2);
   const data = await live.json();
   assert.equal(data.content.playerAdDisplayResponse.preRoll, false);
   assert.equal(data.content.livePlaybackJson, playback);
@@ -206,7 +204,7 @@ test('광고 차단이 꺼지면 응답을 바꾸지 않는다', () => {
   assert.equal(win.JSON.parse(JSON.stringify(schedule)).adBreaks.length, 1);
 });
 
-test('XHR 재생 응답은 광고 표시만 끄고 광고 주소는 요청하지 않는다', async () => {
+test('XHR 재생 응답은 광고 표시만 끄고 미드롤 신호만 요청하지 않는다', async () => {
   const win = makeWin(async () => new FakeResponse('{}'));
   A.installAdHooks(win, () => true);
   const live = new win.XMLHttpRequest();
@@ -223,7 +221,10 @@ test('XHR 재생 응답은 광고 표시만 끄고 광고 주소는 요청하지
   const ad = new win.XMLHttpRequest();
   ad.open('POST', 'https://nam.veta.naver.com/gfp');
   ad.send();
-  assert.equal(ad._sent, false);
-  assert.equal(ad.status, 200);
-  assert.deepEqual(JSON.parse(ad.responseText).ads, []);
+  assert.equal(ad._sent, true);
+  const poll = new win.XMLHttpRequest();
+  poll.open('GET', 'https://api.chzzk.naver.com/service/v1/lives/abc/ads/current');
+  poll.send();
+  assert.equal(poll._sent, false);
+  assert.equal(JSON.parse(poll.responseText).content.event, 'ABORT');
 });

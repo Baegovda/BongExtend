@@ -47,7 +47,9 @@ export default defineBackground(() => {
             const modules = await getModules();
             const on = stored["chzzk.adBlock"] !== false && modules.chzzk !== false;
             const update: chrome.declarativeNetRequest.UpdateRuleOptions = {removeRuleIds: api.CHZZK_AD_RULE_IDS};
-            if (on) update.addRules = api.chzzkAdRules();
+            const rules = on ? api.chzzkAdRules() : [];
+            // 빈 목록을 addRules 로 넣으면 크롬이 규칙 갱신을 거절할 수 있다.
+            if (rules.length) update.addRules = rules;
             await dnr.updateDynamicRules(update);
         } catch (error) {
             console.error("치지직 광고 차단 규칙을 적용하지 못했어요.", error);

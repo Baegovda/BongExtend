@@ -1,5 +1,6 @@
-// 치지직 광고 응답을 비우는 순수 로직 (전역 BongAds).
-// 재생 주소(livePlaybackJson 등)는 바꾸지 않는다. 광고 일정·표시 플래그만 끈다.
+// 치지직 광고 표시를 끄는 순수 로직 (전역 BongAds).
+// 재생 주소는 바꾸지 않는다. 광고 일정(adBreaks)은 비우지 않는다.
+// 빈 일정은 플레이어가 오류로 보고, 까만 전광고 막을 걷지 않는다.
 (function (root) {
   'use strict';
   const isObj = v => v !== null && typeof v === 'object' && !Array.isArray(v);
@@ -11,36 +12,44 @@
     return PLAYBACK_KEYS.some(key => key in payload);
   }
 
+  const ROLL_KEYS = ['preRoll', 'midRoll', 'postRoll'];
+  // 새 플레이어는 이 키가 없으면 liveId 를 광고 켜짐으로 본다. 키는 남기고 값만 끈다.
+  function isAdDecision(payload) {
+    if ('playerAdDisplayResponse' in payload || 'skipPreRollAd' in payload) return true;
+    return PLAYBACK_KEYS.some(key => key in payload);
+  }
+  function rollOff(value) {
+    return value === false || value === 0 || value === '0' || value === 'N' || value === 'n' || value == null;
+  }
+  function turnOffRolls(display) {
+    let changed = false;
+    for (const key of ROLL_KEYS) {
+      if (!rollOff(display[key])) {
+        display[key] = false;
+        changed = true;
+      }
+    }
+    for (const key of Object.keys(display)) {
+      if (ROLL_KEYS.indexOf(key) === -1 && /^(pre|mid|post)roll$/i.test(key) && !rollOff(display[key])) {
+        display[key] = false;
+        changed = true;
+      }
+    }
+    return changed;
+  }
+
   function patchAdPayload(payload) {
     if (!isObj(payload)) return false;
     let changed = false;
-    const head = isObj(payload.head) ? payload.head : null;
-    const description = head ? head.description : '';
 
-    if (Array.isArray(payload.adBreaks) && payload.adBreaks.length &&
-        (description === 'GFP Video Ad Schedule' || typeof payload.videoAdScheduleId === 'string')) {
-      payload.adBreaks = [];
-      changed = true;
-    }
-
-    if (Array.isArray(payload.ads) && payload.ads.length &&
-        (description === 'Naver SSP Waterfall List' ||
-          (typeof payload.adUnit === 'string' && payload.adUnit && typeof payload.adDivId === 'string' && payload.adDivId))) {
-      payload.ads = [];
-      changed = true;
-    }
-
-    const display = payload.playerAdDisplayResponse;
-    if (isObj(display)) {
-      for (const key of Object.keys(display)) {
-        if (/^(pre|mid|post)roll$/i.test(key) && display[key] === true) {
-          display[key] = false;
-          changed = true;
-        }
-      }
+    if (isAdDecision(payload)) {
+      if (!isObj(payload.playerAdDisplayResponse)) {
+        payload.playerAdDisplayResponse = { preRoll: false, midRoll: false, postRoll: false };
+        changed = true;
+      } else if (turnOffRolls(payload.playerAdDisplayResponse)) changed = true;
     }
     for (const key of ['showPreroll', 'showMidroll', 'prerollEnabled', 'midrollEnabled']) {
-      if (payload[key] === true) {
+      if (payload[key] === true || payload[key] === 1 || payload[key] === 'Y') {
         payload[key] = false;
         changed = true;
       }
@@ -92,14 +101,12 @@
       || (text.indexOf('"ads"') !== -1 && text.indexOf('adDivId') !== -1);
   }
 
-  // 광고 전용 주소. 재생(seoraksan, live-detail)과 채팅·시청자 조회는 여기 넣지 않는다.
-  // OPTIONS 는 광고 차단 탐지에 쓰이므로 그대로 둔다.
+  // 미드롤 신호만 끊는다. 광고 일정·SDK 주소를 빈 응답으로 바꾸면
+  // 플레이어가 '광고가 막혔다'고 보고 까만 막을 유지한다.
+  // 재생(seoraksan, live-detail)과 채팅·시청자 조회는 여기 넣지 않는다.
   function isAdEndpoint(url, method) {
     if (String(method || 'GET').toUpperCase() === 'OPTIONS') return false;
     const u = String(url || '');
-    if (/^https:\/\/nam\.veta\.naver\.com\/(vas|gfp|call|dfp)(?:\/|\?|$)/.test(u)) return true;
-    if (/^https:\/\/gfp\.veta\.naver\.com\/adcall(?:\/|\?|$)/.test(u)) return true;
-    if (/^https:\/\/siape\.veta\.naver\.com\/openrtb\//.test(u)) return true;
     if (/^https:\/\/api\.chzzk\.naver\.com\/ad-polling\/v\d+\/lives\/[^/?#]+\/ad(?:\/|\?|$)/.test(u)) return true;
     if (/^https:\/\/api\.chzzk\.naver\.com\/service\/v\d+\/lives\/[^/?#]+\/ads\/current(?:\/|\?|$)/.test(u)) return true;
     return false;
@@ -128,9 +135,7 @@
   function emptyBodyFor(url) {
     const u = String(url || '');
     if (!isAdEndpoint(u)) return null;
-    if (/\/(gfp|call)(?:\/|\?|$)/.test(u) || /\/openrtb\//.test(u)) return emptyWaterfall();
-    if (/ad-polling\/|\/ads\/current(?:\/|\?|$)/.test(u)) return emptyAdPoll();
-    return emptySchedule();
+    return emptyAdPoll();
   }
 
   function shouldInspectUrl(url) {
@@ -163,23 +168,10 @@
   // 동적 규칙 id. 켜고 끌 때 이 목록만 지우고 다시 넣는다.
   const CHZZK_AD_RULE_IDS = [4101, 4102, 4103, 4104, 4105, 4106, 4107, 4108, 4109, 4110, 4111, 4112, 4113, 4114];
 
+  // 예전 리다이렉트 규칙 id. 지금은 규칙을 넣지 않고, 켜고 끌 때 이 id 만 지운다.
+  // 광고 스크립트·일정을 확장 파일로 바꾸면 플레이어가 본영상을 시작하지 않는다.
   function chzzkAdRules() {
-    return [
-      redirectRule(4101, '||ssl.pstatic.net/tveta/libs/gfp-instream/', NOOP, ['script']),
-      redirectRule(4102, '||ssl.pstatic.net/tveta/libs/glad/prod/*gfp-display-sdk.js', NOOP, ['script']),
-      redirectRule(4103, '||ssl.pstatic.net/tveta/libs/glad/prod/*gfp-display-nda.js', NOOP, ['script']),
-      redirectRule(4104, '||ssl.pstatic.net/melona/libs/glad_admute/', NOOP, ['script']),
-      redirectRule(4105, '||ssl.pstatic.net/melona/libs/gfp-nac-module/synchronizer.js', NOOP, ['script']),
-      redirectRule(4106, '||s0.2mdn.net/instream/video/client.js', NOOP, ['script']),
-      redirectRule(4107, '||imasdk.googleapis.com/js/sdkloader/ima3.js', IMA, ['script']),
-      redirectRule(4108, '||nam.veta.naver.com/vas', SCHEDULE, ['xmlhttprequest', 'other']),
-      redirectRule(4109, '||nam.veta.naver.com/gfp', WATERFALL, ['xmlhttprequest', 'other']),
-      redirectRule(4110, '||nam.veta.naver.com/call', WATERFALL, ['xmlhttprequest', 'other']),
-      redirectRule(4111, '||gfp.veta.naver.com/adcall', SCHEDULE, ['xmlhttprequest', 'other']),
-      redirectRule(4112, '||siape.veta.naver.com/openrtb/', WATERFALL, ['xmlhttprequest', 'other']),
-      redirectRule(4113, '^https://api\\.chzzk\\.naver\\.com/ad-polling/v\\d+/lives/[^/]+/ad', POLL, ['xmlhttprequest', 'other'], {regex: true}),
-      redirectRule(4114, '^https://api\\.chzzk\\.naver\\.com/service/v\\d+/lives/[^/]+/ads/current', POLL, ['xmlhttprequest', 'other'], {regex: true})
-    ];
+    return [];
   }
 
   function requestUrl(input) {
