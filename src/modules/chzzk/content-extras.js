@@ -428,6 +428,7 @@
     if (!P.isBoostTarget({
       isContent: v.classList.contains('webplayer-internal-video') && !inAdLayer,
       isMain: v.classList.contains('webplayer-internal-video'),
+      id: v.id,
       inAdLayer,
       live: location.pathname.startsWith('/live/'),
       duration: v.duration,
@@ -475,47 +476,23 @@
     };
     walk(player, null, null);
   }
-  function snapshotPlayer(player) {
-    const nodes = [];
-    const elById = new Map();
-    let seq = 0;
-    const idOf = new Map();
-    walkPlayer(player, (el, parent, shadowHost) => {
-      const id = 'n' + (++seq);
-      idOf.set(el, id);
-      elById.set(id, el);
-      nodes.push({
-        id,
-        parent: parent ? idOf.get(parent) || null : null,
-        shadowHost: shadowHost ? idOf.get(shadowHost) || null : null,
-        tag: el.tagName,
-        className: classNameOf(el),
-        dataRole: el.getAttribute ? (el.getAttribute('data-role') || '') : '',
-        duration: el.tagName === 'VIDEO' ? el.duration : undefined,
-        text: ownText(el).slice(0, 80),
-        elementId: el.id || '',
-        isPlayer: el === player
-      });
-    });
-    return { nodes, elById };
-  }
-  function paintConceal(el) {
-    if (!el || !el.classList) return;
-    el.classList.add('bex-adhide');
-    if (el.dataset) el.dataset.bexConceal = '1';
-    if (!el.style || !el.style.setProperty) return;
-    el.style.setProperty('opacity', '0', 'important');
-    el.style.setProperty('visibility', 'hidden', 'important');
+  const RECOVER_PROPS = ['width', 'height', 'overflow', 'pointer-events'];
+  function collapseSheet(el) {
+    if (!el || !el.style || !el.style.setProperty) return;
+    if (el.dataset) el.dataset.bexRecover = '1';
+    el.style.setProperty('width', '0', 'important');
+    el.style.setProperty('height', '0', 'important');
+    el.style.setProperty('overflow', 'hidden', 'important');
     el.style.setProperty('pointer-events', 'none', 'important');
-    el.style.setProperty('background', 'transparent', 'important');
-    el.style.setProperty('background-color', 'transparent', 'important');
   }
   function clearConceal(el) {
     if (!el || !el.classList) return;
     el.classList.remove('bex-adhide', 'bex-advideo');
     if (el.dataset && el.dataset.bexConceal) delete el.dataset.bexConceal;
+    if (el.dataset && el.dataset.bexRecover) delete el.dataset.bexRecover;
     if (!el.style || !el.style.removeProperty) return;
     for (const prop of CONCEAL_PROPS) el.style.removeProperty(prop);
+    for (const prop of RECOVER_PROPS) el.style.removeProperty(prop);
   }
   const SHADOW_STYLE_ID = 'bex-adconceal-shadow';
   function injectShadowStyles(player) {
@@ -533,23 +510,42 @@
       if (style.textContent !== css) style.textContent = css;
     });
   }
+  let wrapperStuckSince = 0;
+  function hasFrames(video) {
+    return !!(video && video.isConnected !== false && video.videoWidth > 0 && video.readyState >= 2);
+  }
   function concealAds(player) {
     if (!player || cfg.adBlock === false) return;
     injectShadowStyles(player);
-    const { nodes, elById } = snapshotPlayer(player);
-    const plan = P.resolveAdConceal(nodes);
-    const hide = new Set(plan.hideIds);
-    const ads = new Set(plan.adVideoIds);
-    for (const [id, el] of elById) {
-      if (hide.has(id)) paintConceal(el);
-      else if (el.dataset && el.dataset.bexConceal === '1') clearConceal(el);
-      else if (el.classList.contains('bex-adhide')) el.classList.remove('bex-adhide');
-      if (ads.has(id)) {
-        el.classList.add('bex-advideo');
-        try { el.muted = true; } catch (e) {}
-        try { el.volume = 0; } catch (e) {}
-        boostAdVideo(el);
-      } else if (el.classList.contains('bex-advideo')) el.classList.remove('bex-advideo');
+    // 예전 버전 이 투명 가리기를 붙였으면 걷어 낸다. opacity 0 은 까만 화면을 만든다.
+    walkPlayer(player, el => {
+      if (el.classList && (el.classList.contains('bex-adhide') || el.classList.contains('bex-advideo') || (el.dataset && el.dataset.bexConceal))) clearConceal(el);
+    });
+    const wrapper = document.getElementById('preAdPlayerWrapper');
+    const slot = document.getElementById('preAdVideoContainer');
+    const pre = document.getElementById('preAdContentPlayer');
+    const main = [...document.querySelectorAll('video.webplayer-internal-video')].find(video => !wrapper || !wrapper.contains(video));
+    const wrapperUp = !!(wrapper && wrapper.isConnected && wrapper.offsetParent !== null);
+    if (!wrapperUp) wrapperStuckSince = 0;
+    else if (!wrapperStuckSince) wrapperStuckSince = Date.now();
+    const plan = P.planBlackRecovery({
+      mainHasFrames: hasFrames(main),
+      preContentHasFrames: hasFrames(pre),
+      wrapperPresent: wrapperUp,
+      adSlotPresent: !!(slot && slot.isConnected),
+      stuck: !!(wrapperStuckSince && Date.now() - wrapperStuckSince > 8000)
+    });
+    if (plan.collapseWrapper && wrapper) collapseSheet(wrapper);
+    else if (wrapper && wrapper.dataset && wrapper.dataset.bexRecover && !plan.collapseWrapper) clearConceal(wrapper);
+    if (plan.collapseAdSlot && slot) collapseSheet(slot);
+    else if (slot && slot.dataset && slot.dataset.bexRecover && !plan.collapseAdSlot) clearConceal(slot);
+    const adRoot = slot || document.querySelector(P.AD_CONTAINER_SEL);
+    if (adRoot && adRoot.querySelectorAll) {
+      for (const video of adRoot.querySelectorAll('video')) {
+        if (P.isContentVideo({ id: video.id, className: classNameOf(video), isMain: video.classList.contains('webplayer-internal-video') })) continue;
+        try { video.muted = true; } catch (e) {}
+        boostAdVideo(video);
+      }
     }
   }
   function releaseConceal() {

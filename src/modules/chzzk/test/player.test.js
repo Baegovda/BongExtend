@@ -128,6 +128,8 @@ test('광고 화면은 가리고 본방송 영상과 채팅은 남긴다', () =>
   ]);
   assert.equal(liveCore.id, 'ad');
   assert.equal(P.isContentVideo({ isMain: true, duration: 32 }), true);
+  assert.equal(P.isContentVideo({ id: 'preAdContentPlayer', duration: 15 }), true);
+  assert.equal(P.isAdVideo({ id: 'preAdContentPlayer', duration: 15 }), false);
   assert.equal(P.isContentVideo({ className: 'webplayer-internal-video', inChat: true }), false);
   assert.equal(P.isAdVideo({ isMain: true, duration: Infinity }), false);
   assert.equal(P.isAdVideo({ isMain: true, duration: 15 }), false);
@@ -139,18 +141,24 @@ test('광고 화면은 가리고 본방송 영상과 채팅은 남긴다', () =>
   assert.equal(P.isBoostTarget({ className: 'webplayer-internal-video', live: true, duration: 15 }), false);
   assert.equal(P.isBoostTarget({ inAdLayer: true, live: true, duration: 15 }), true);
   assert.equal(P.isBoostTarget({ live: true, duration: 15 }), false);
-  assert.match(P.AD_CONCEAL_CSS, /opacity:0/);
-  assert.match(P.AD_CONCEAL_CSS, /bex-adhide/);
-  assert.match(P.AD_CONCEAL_CSS, /background:transparent/);
-  assert.match(P.AD_CONCEAL_CSS, /video\.webplayer-internal-video\{opacity:1/);
-  assert.match(P.AD_CONCEAL_SHADOW_CSS, /webplayer-internal-core-ad-ui/);
-  assert.match(P.AD_CONCEAL_SHADOW_CSS, /video\.webplayer-internal-video\{opacity:1/);
+  assert.match(P.AD_CONCEAL_CSS, /video\.webplayer-internal-video/);
+  assert.match(P.AD_CONCEAL_CSS, /preAdContentPlayer/);
+  assert.match(P.AD_CONCEAL_CSS, /opacity:1/);
+  assert.doesNotMatch(P.AD_CONCEAL_CSS, /opacity:0/);
+  assert.doesNotMatch(P.AD_CONCEAL_SHADOW_CSS, /opacity:0/);
   assert.doesNotMatch(P.AD_CONCEAL_CSS, /display:\s*none/);
   assert.doesNotMatch(P.AD_CONCEAL_SHADOW_CSS, /display:\s*none/);
   assert.doesNotMatch(P.AD_CONCEAL_CSS, /aside-chatting/);
   assert.doesNotMatch(P.AD_CONCEAL_SHADOW_CSS, /\.webplayer-internal-core-ad-ui\{opacity:0/);
-  assert.doesNotMatch(P.AD_CONCEAL_SHADOW_CSS, /\.webplayer-internal-core-shadow\{/);
-  assert.doesNotMatch(P.AD_CONCEAL_SHADOW_CSS, /\.pzp-pc__video\{/);
+  const covered = P.planBlackRecovery({ wrapperPresent: true, mainHasFrames: true, adSlotPresent: true, preContentHasFrames: true });
+  assert.equal(covered.collapseWrapper, true);
+  assert.equal(covered.collapseAdSlot, false);
+  const onlyInside = P.planBlackRecovery({ wrapperPresent: true, adSlotPresent: true, preContentHasFrames: true, stuck: true });
+  assert.equal(onlyInside.collapseWrapper, false);
+  assert.equal(onlyInside.collapseAdSlot, true);
+  const stuck = P.planBlackRecovery({ wrapperPresent: true, stuck: true });
+  assert.equal(stuck.collapseWrapper, true);
+  assert.equal(P.planBlackRecovery({ wrapperPresent: true }).collapseWrapper, false);
 });
 
 test('라이브 본영상은 짧은 길이와 그림자 루트 안 광고 막 때문에 가려지지 않는다', () => {

@@ -140,6 +140,8 @@
   // 치지직 본영상. 타임머신 때문에 길이가 30~90초여도 광고가 아니다.
   function isContentVideo(info) {
     if (!info || info.inChat) return false;
+    // 전광고 칸 안의 이 영상은 광고가 아니라, 광고 매니저가 붙잡는 본영상이다.
+    if (info.id === 'preAdContentPlayer') return true;
     if (info.isMain || hasClass(info.className, 'webplayer-internal-video')) return true;
     return false;
   }
@@ -236,39 +238,23 @@
     const sort = list => list.sort((a, b) => String(a).localeCompare(String(b)));
     return { hideIds: sort(hide), adVideoIds: sort(adVideos), contentVideoIds: sort(Object.keys(content)) };
   }
-  // display:none 은 광고 차단 탐지에 걸린다.
-  // 광고 칸 자체에 opacity 를 주면, 그 안에 본영상이 있을 때 화면까지 사라진다.
-  // 검은 막은 배경만 걷고, 광고 영상·버튼만 투명하게 가린다.
-  const AD_CONCEAL_MEDIA = [
-    '.webplayer-internal-core-ad-ui > *:not(:has(video.webplayer-internal-video)):not(video.webplayer-internal-video)',
-    '.webplayer-internal-core-ad-ui video:not(.webplayer-internal-video)',
-    '[data-role="imaAdContainerEl"] video:not(.webplayer-internal-video)',
-    '[data-role="gvAdContainerEl"] video:not(.webplayer-internal-video)',
-    '[data-role="adVideoContainerEl"] video:not(.webplayer-internal-video)',
-    '.webplayer-internal-core-ad-ui iframe',
-    '[data-role="adVideoContainerEl"]',
-    '[data-role="adControlEl"]',
-    '[data-role="skipBtn"]',
-    '.pzp-ad-break-indicator',
-    '.pzp-ad-click-through-button',
-    '.btn_skip',
-    '.bex-adhide',
-    'video.bex-advideo'
-  ];
-  const AD_CONCEAL_SHEETS = [
-    '.webplayer-internal-core-ad-ui',
-    '.webplayer-internal-core-dimmed:not(.wpc-dis-hid)'
-  ];
-  const AD_CONCEAL_MEDIA_RULE = '{opacity:0 !important;visibility:hidden !important;pointer-events:none !important}';
-  const AD_CONCEAL_SHEET_RULE = '{background:transparent !important;background-color:transparent !important;pointer-events:none !important}';
-  const AD_CONCEAL_PROTECT = 'video.webplayer-internal-video{opacity:1 !important;visibility:visible !important;pointer-events:auto !important}';
-  const AD_CONCEAL_CSS = 'html[data-bong-adblock="1"] ' + AD_CONCEAL_MEDIA.join(',html[data-bong-adblock="1"] ') + AD_CONCEAL_MEDIA_RULE
-    + 'html[data-bong-adblock="1"] ' + AD_CONCEAL_SHEETS.join(',html[data-bong-adblock="1"] ') + AD_CONCEAL_SHEET_RULE
-    + 'html[data-bong-adblock="1"] ' + AD_CONCEAL_PROTECT;
-  // 광고 막은 플레이어 그림자 루트 안에 있다. 문서 CSS 는 거기까지 닿지 않는다.
-  const AD_CONCEAL_SHADOW_CSS = AD_CONCEAL_MEDIA.join(',') + AD_CONCEAL_MEDIA_RULE
-    + AD_CONCEAL_SHEETS.join(',') + AD_CONCEAL_SHEET_RULE
-    + AD_CONCEAL_PROTECT;
+  // 광고 칸을 opacity:0 으로 가리면 플레이어가 '광고가 안 보인다'고 보고 까만 막을 유지한다.
+  // 스타일은 본영상이 숨겨지지 않게만 한다. 막은 그림이 나온 뒤에 스크립트가 접는다.
+  const AD_CONCEAL_PROTECT = 'video.webplayer-internal-video,video#preAdContentPlayer{opacity:1 !important;visibility:visible !important;pointer-events:auto !important}';
+  const AD_CONCEAL_CSS = 'html[data-bong-adblock="1"] ' + AD_CONCEAL_PROTECT;
+  const AD_CONCEAL_SHADOW_CSS = AD_CONCEAL_PROTECT;
+  // 까만 전광고 막을 언제 접을지. opacity 는 쓰지 않는다.
+  function planBlackRecovery(info) {
+    const state = info || {};
+    const outside = !!state.mainHasFrames;
+    const inside = !!state.preContentHasFrames;
+    return {
+      // 본영상이 이미 그림을 그리면 까만 전광고 막을 접는다.
+      // 그림이 막 안에서만 나오면 그 막은 둔다. 접으면 재생 중인 영상까지 사라진다.
+      collapseWrapper: !!(state.wrapperPresent && (outside || (state.stuck && !inside))),
+      collapseAdSlot: !!(state.adSlotPresent && inside && !outside)
+    };
+  }
   // 배너로 볼 요소. 광고 차단 탐지가 보는 display:none bait(.banner_ad_wrapper)는 여기 넣지 않는다.
   function isDisplayAdElement(info) {
     if (!info) return false;
@@ -281,5 +267,5 @@
     if (tag === 'IMG') return /\/Banner_/i.test(String(info.src || '')) && /banner_(image|link)_/i.test(String(info.cls || ''));
     return false;
   }
-  root.BongPlayer = { isSkipButtonLabel, isSkipCandidate, hasAdContainer, seekEndTime, AD_CONTAINER_SEL, isAdActive, isGuideText, isPurchaseGuideDialogText, isSkipText, adTextKind, isSafeSkipLabel, isAdDuration, captureAudioState, restoreAudioState, isAudioControlLabel, audioRestoreAction, noteLiveAudio, audioAfterAd, isDisplayAdElement, countdownSeconds, skipAction, pickSkipElement, isAdChrome, pickAdConcealNode, isContentVideo, isAdVideo, isBoostTarget, resolveAdConceal, AD_CONCEAL_CSS, AD_CONCEAL_SHADOW_CSS };
+  root.BongPlayer = { isSkipButtonLabel, isSkipCandidate, hasAdContainer, seekEndTime, AD_CONTAINER_SEL, isAdActive, isGuideText, isPurchaseGuideDialogText, isSkipText, adTextKind, isSafeSkipLabel, isAdDuration, captureAudioState, restoreAudioState, isAudioControlLabel, audioRestoreAction, noteLiveAudio, audioAfterAd, isDisplayAdElement, countdownSeconds, skipAction, pickSkipElement, isAdChrome, pickAdConcealNode, isContentVideo, isAdVideo, isBoostTarget, resolveAdConceal, planBlackRecovery, AD_CONCEAL_CSS, AD_CONCEAL_SHADOW_CSS };
 })(typeof globalThis !== 'undefined' ? globalThis : this);
