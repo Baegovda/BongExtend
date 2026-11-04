@@ -15,17 +15,24 @@
   const WIPER_MS = 680;
   const SOFT_MS = 220;
   const PRISM_MS = 860;
-  // 번역을 기다리는 글자만 살짝 흐려진다. 배경, 그라데이션, 막대는 쓰지 않는다.
+  // 기다리는 글자는 맥박처럼 살짝 흐려지고, 번역이 오면 짧게 또렷해진다.
   const MOTION_CSS = [
     `.pt-page-translator-dup { visibility: hidden !important; }`,
     `.pt-page-translator-nops::before, .pt-page-translator-nops::after { content: none !important; }`,
-    `.${PENDING_CLASS} { animation: pt-pending-pulse 1.1s ease-in-out infinite; }`,
+    `.${PENDING_CLASS} { animation: pt-pending-pulse .82s ease-in-out infinite !important; }`,
     '@keyframes pt-pending-pulse {',
-    '0%, 100% { opacity: 1; }',
-    '50% { opacity: 0.72; }',
+    '0%, 100% { opacity: 0.96; }',
+    '50% { opacity: 0.48; }',
+    '}',
+    `.${FADE_CLASS} { animation: pt-translation-reveal .46s ease-out both !important; }`,
+    '@keyframes pt-translation-reveal {',
+    '0% { opacity: 0.28; filter: blur(1.2px); }',
+    '65% { opacity: 0.9; filter: blur(0.15px); }',
+    '100% { opacity: 1; filter: none; }',
     '}',
     '@media (prefers-reduced-motion: reduce) {',
-    `.${PENDING_CLASS} { animation: none; opacity: 1; }`,
+    `.${PENDING_CLASS} { animation: none !important; opacity: 0.74 !important; }`,
+    `.${FADE_CLASS} { animation: none !important; opacity: 1 !important; filter: none !important; }`,
     '}',
   ].join('');
   const MAX_ITEMS = 24;
@@ -510,17 +517,25 @@
       }
     }
 
-    function tooLargeToPulse(element) {
-      if (!element || typeof element.getBoundingClientRect !== 'function') return false;
-      const rect = element.getBoundingClientRect();
+    function tooLargeToPulse(element, node) {
+      let rect = null;
+      if (node && typeof document !== 'undefined' && typeof document.createRange === 'function') {
+        try {
+          const range = document.createRange();
+          if (typeof range.selectNodeContents === 'function') range.selectNodeContents(node);
+          rect = typeof range.getBoundingClientRect === 'function' ? range.getBoundingClientRect() : null;
+        } catch { /* Use the parent box below. */ }
+      }
+      if ((!rect || (!rect.width && !rect.height)) && element && typeof element.getBoundingClientRect === 'function') rect = element.getBoundingClientRect();
+      if (!rect) return false;
       const width = Number(rect && rect.width) || 0;
       const height = Number(rect && rect.height) || 0;
       if (width <= 0 || height <= 0) return true;
-      return width > 640 || height > 220;
+      return width > 640 || height > 120;
     }
 
-    function markPending(element) {
-      if (!revealAnimation || !canDecorate(element) || !canHold(element) || tooLargeToPulse(element)) return;
+    function markPending(element, node) {
+      if (!revealAnimation || !canDecorate(element) || !canHold(element) || tooLargeToPulse(element, node)) return;
       ensureMotionStyle();
       const count = pendingCounts.get(element) || 0;
       pendingCounts.set(element, count + 1);
@@ -1776,7 +1791,7 @@
         while (queue.length && started && enabled && !pausedForError) {
           const batch = takeBatch();
           if (!batch.length) break;
-          for (const item of batch) markPending(item.node && item.node.parentElement);
+          for (const item of batch) markPending(item.node && item.node.parentElement, item.node);
           let response;
           try {
             response = await sendBatch(batch.map((item) => item.core));
@@ -1830,7 +1845,7 @@
               translated,
             })) {
               writeNode(item.node, translated);
-              clearPending(parent, false);
+              clearPending(parent, 'fade');
             }
           });
           error = null;

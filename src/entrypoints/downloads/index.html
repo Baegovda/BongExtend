@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BongExtend 다운로드 관리</title>
+    <link rel="stylesheet" href="/theme/theme.css">
+    <link rel="stylesheet" href="./style.css">
+</head>
+<body class="be-page downloads-page">
+<header class="downloads-header">
+    <div>
+        <p class="eyebrow">BONGEXTEND</p>
+        <h1>다운로드 관리</h1>
+        <p id="downloadStats" class="muted">다운로드를 불러오고 있어요…</p>
+    </div>
+    <div class="header-actions">
+        <button id="scanPage" type="button">이 페이지에서 찾기</button>
+        <button id="openChromeDownloads" type="button">Chrome 다운로드</button>
+    </div>
+</header>
+<main>
+    <p id="status" class="status" role="status"></p>
+    <section class="batch-card be-card">
+        <div class="section-head"><div><h2>주소 여러 개 받기</h2><p class="muted">한 줄에 주소 하나씩 넣어요. 숫자 범위는 <code>{1..12}</code>처럼 쓸 수 있어요.</p></div></div>
+        <textarea id="batchInput" rows="3" placeholder="https://example.com/file-{01..12}.jpg&#10;https://example.com/manual.pdf" spellcheck="false"></textarea>
+        <div class="batch-actions"><span id="batchCount" class="muted">최대 100개</span><button id="startBatch" class="primary" type="button">다운로드 시작</button></div>
+    </section>
+    <section id="sniffPanel" class="be-card sniff-panel" hidden>
+        <div class="section-head"><div><h2>페이지에서 찾은 파일</h2><p id="sniffSummary" class="muted"></p></div><button id="downloadSelected" class="primary" type="button">선택한 항목 받기</button></div>
+        <div class="toolbar sniff-toolbar"><select id="sniffType" aria-label="페이지 항목 종류"><option value="all">모든 종류</option><option value="링크">링크</option><option value="이미지">이미지</option><option value="미디어">음성·동영상</option></select><input id="sniffSearch" type="search" placeholder="주소나 /정규식/으로 찾기" aria-label="페이지 항목 검색"></div>
+        <div id="sniffList" class="sniff-list"></div>
+    </section>
+    <section class="downloads-card be-card">
+        <div class="section-head"><div><h2>다운로드 목록</h2><p class="muted">진행 중인 파일과 최근 기록을 관리해요.</p></div><button id="refresh" type="button" aria-label="목록 새로고침">새로고침</button></div>
+        <div class="toolbar">
+            <select id="stateFilter" aria-label="상태로 거르기">
+                <option value="all">모든 상태</option><option value="in_progress">받는 중</option><option value="complete">완료</option><option value="interrupted">중단됨</option>
+            </select>
+            <select id="typeFilter" aria-label="파일 종류로 거르기">
+                <option value="all">모든 종류</option><option value="images">이미지</option><option value="media">음악·동영상</option><option value="documents">문서</option><option value="archives">압축 파일</option><option value="other">기타</option>
+            </select>
+            <select id="ageFilter" aria-label="기간으로 거르기"><option value="all">모든 날짜</option><option value="day">오늘</option><option value="week">최근 7일</option><option value="month">최근 30일</option></select>
+            <input id="search" type="search" placeholder="이름·사이트·정규식 검색" aria-label="다운로드 검색">
+            <button id="viewToggle" type="button">표 보기</button>
+        </div>
+        <div id="downloadList" class="download-list" aria-live="polite"></div>
+        <p id="empty" class="empty" hidden>조건에 맞는 다운로드가 없어요.</p>
+    </section>
+    <details class="settings-card be-card">
+        <summary>다운로드 설정</summary>
+        <label class="setting-row"><span><b>Chrome 다운로드 알림 숨기기</b><small>켜면 완료 알림은 BongExtend가 보여 줘요.</small></span><input id="replaceChromeUi" type="checkbox" role="switch"></label>
+        <label class="setting-row"><span><b>완료 알림</b><small>새 파일을 다 받으면 알림을 보내요.</small></span><input id="notifications" type="checkbox" role="switch" checked></label>
+        <label class="setting-row"><span><b>파일 이름 규칙</b><small>{filename}, {ext}, {host}, {date}, {time}, {path}를 쓸 수 있어요. {ext}에는 점이 포함돼요.</small></span><input id="filenameMask" type="text" maxlength="120" placeholder="기본 이름 사용"></label>
+        <label class="setting-row"><span><b>저장 하위 폴더</b><small>Chrome 다운로드 폴더 안에 만들어져요.</small></span><input id="folder" type="text" maxlength="80" placeholder="예: BongExtend"></label>
+        <label class="setting-row"><span><b>종류별 폴더에 저장</b><small>이미지·미디어·문서·압축 파일을 나눠요.</small></span><input id="routeByType" type="checkbox" role="switch"></label>
+        <label class="setting-row rules-row"><span><b>자동 이름·폴더 규칙 (JSON)</b><small>URL 일부와 파일 종류에 따라 저장 이름이나 하위 폴더를 바꿔요.</small><small>조건: urlContains, category · 결과: folder, filenameMask</small></span><textarea id="filenameRules" rows="4" spellcheck="false" placeholder='[{"urlContains":"cdn.example.com","category":"images","folder":"images","filenameMask":"{host}_{filename}{ext}"}]'></textarea></label>
+        <div class="batch-actions"><span id="rulesStatus" class="muted"></span><button id="saveRules" type="button">규칙 저장</button></div>
+        <p class="muted settings-note">Chrome 제한으로 파일은 기본 다운로드 폴더 안에만 저장할 수 있어요. 큰 파일의 여러 조각 동시 받기도 지원되지 않아요.</p>
+    </details>
+</main>
+<script type="module" src="./main.ts"></script>
+</body>
+</html>

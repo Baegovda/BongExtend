@@ -27,21 +27,25 @@ import {createChromeEffects} from "@/platform/effects.js";
 import {gmailReadAccount, loadJson, openGmailPlace, openUrl, sendExtension} from "@/platform/popup-actions.js";
 // @ts-ignore 순수 JS
 import {gmailComposeUrl, gmailInboxUrl, gmailMessageUrl} from "@/modules/gmail/open.js";
+// @ts-ignore settings helpers are plain JS
+import {DARK_SETTINGS_KEY, darkSiteEnabled, darkSitePattern, normalizeDarkSettings} from "@/modules/dark/settings.js";
+// @ts-ignore download settings helpers are plain JS
+import {DOWNLOAD_SETTINGS_KEY, normalizeDownloadSettings} from "@/modules/downloads/settings.js";
 
 const effects = createChromeEffects();
 
-type TabId = "chzzk" | "trans" | "dc" | "gmail" | "fx" | "update";
+type TabId = "chzzk" | "trans" | "dc" | "gmail" | "fx" | "dark" | "download" | "update";
 
 const FRAMES: Partial<Record<TabId, string>> = {
     chzzk: "/chzzk/popup.html",
     trans: "/trans/popup/popup.html",
     dc: "/dc.html"
 };
-const NAMES: Partial<Record<TabId, string>> = {chzzk: "치지직", trans: "번역", dc: "디시", gmail: "메일", fx: "환율"};
+const NAMES: Partial<Record<TabId, string>> = {chzzk: "치지직", trans: "번역", dc: "디시", gmail: "메일", fx: "환율", dark: "다크 모드", download: "다운로드"};
 const TAB_KEY = "core.popupTab";
 // 탭 순서. core.* 이라 전체 백업·복원에 포함되고, 디시 초기화(refresher:*)와는 무관.
 const ORDER_KEY = "core.popupTabOrder";
-const DEFAULT_ORDER: TabId[] = ["chzzk", "trans", "dc", "gmail", "fx"];
+const DEFAULT_ORDER: TabId[] = ["chzzk", "trans", "dc", "gmail", "fx", "dark", "download"];
 const TAB_IDS: TabId[] = [...DEFAULT_ORDER, "update"];
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -455,6 +459,198 @@ if (embedded) {
     void showTab(saved && TAB_IDS.includes(saved) ? saved : "chzzk");
 });
 
+// ===== 다크 모드 설정 =====
+type DarkConfig = Record<string, any>;
+let darkConfig: DarkConfig = normalizeDarkSettings(null) as DarkConfig;
+let darkTabId: number | null = null;
+let darkHost = "";
+let darkSiteOrigin = "";
+const darkStatus = $("darkStatus");
+const darkInputs = {
+    everywhere: $<HTMLInputElement>("darkEverywhere"),
+    currentSite: $<HTMLInputElement>("darkCurrentSite"),
+    followSystem: $<HTMLInputElement>("darkFollowSystem"),
+    detectDarkTheme: $<HTMLInputElement>("darkDetectTheme"),
+    customSite: $<HTMLInputElement>("darkCustomSite"),
+    mode: $<HTMLSelectElement>("darkMode"),
+    brightness: $<HTMLInputElement>("darkBrightness"),
+    contrast: $<HTMLInputElement>("darkContrast"),
+    sepia: $<HTMLInputElement>("darkSepia"),
+    grayscale: $<HTMLInputElement>("darkGrayscale"),
+    font: $<HTMLInputElement>("darkFont"),
+    background: $<HTMLInputElement>("darkBackground"),
+    text: $<HTMLInputElement>("darkText")
+};
+const paintDarkValues = (config: DarkConfig) => {
+    const siteTheme = darkHost && config.siteThemes?.[darkHost] ? config.siteThemes[darkHost] : null;
+    const theme = {...config, ...(siteTheme || {})};
+    darkInputs.everywhere.checked = Boolean(config.enabledByDefault);
+    darkInputs.currentSite.checked = Boolean(darkHost && darkSiteEnabled(config, darkHost));
+    darkInputs.currentSite.disabled = !darkHost;
+    darkInputs.followSystem.checked = Boolean(config.followSystem);
+    darkInputs.detectDarkTheme.checked = config.detectDarkTheme !== false;
+    darkInputs.customSite.checked = Boolean(siteTheme);
+    darkInputs.customSite.disabled = !darkHost;
+    darkInputs.mode.value = String(theme.mode ?? 1);
+    for (const key of ["brightness", "contrast", "sepia", "grayscale"] as const) {
+        darkInputs[key].value = String(theme[key]);
+        $(`dark${key[0].toUpperCase()}${key.slice(1)}Value`).textContent = `${theme[key]}%`;
+    }
+    darkInputs.font.value = theme.fontFamily || "";
+    darkInputs.background.value = theme.darkSchemeBackgroundColor || "#181a1b";
+    darkInputs.text.value = theme.darkSchemeTextColor || "#e8e6e3";
+    $("darkSiteLabel").textContent = darkHost || "이 페이지에서는 사용할 수 없어요";
+    $("darkSiteNote").textContent = darkHost ? `${darkSiteOrigin}에 적용해요.` : "브라우저 내부 페이지에는 적용할 수 없어요.";
+    $<HTMLSelectElement>("darkSiteListMode").value = config.siteListMode;
+    $<HTMLTextAreaElement>("darkSiteList").value = config.siteList.join("\n");
+};
+const loadDarkConfig = async () => {
+    const [tabs, stored] = await Promise.all([
+        effects.tabsQuery({active: true, lastFocusedWindow: true}),
+        effects.storageGet(DARK_SETTINGS_KEY)
+    ]);
+    const tab = tabs[0];
+    darkTabId = typeof tab?.id === "number" ? tab.id : null;
+    darkHost = "";
+    darkSiteOrigin = "";
+    try {
+        const url = new URL(tab?.url || "");
+        if (url.protocol === "http:" || url.protocol === "https:") {
+            darkHost = url.hostname.toLowerCase();
+            darkSiteOrigin = url.origin;
+        }
+    } catch { /* 주소 표시줄이나 브라우저 내부 페이지 */ }
+    darkConfig = normalizeDarkSettings(stored[DARK_SETTINGS_KEY]) as DarkConfig;
+    paintDarkValues(darkConfig);
+};
+const setDarkStatus = (message: string, error = false) => {
+    darkStatus.textContent = message;
+    darkStatus.classList.toggle("error", error);
+};
+const saveDarkConfig = async (next: DarkConfig, applyToCurrent = true) => {
+    darkConfig = normalizeDarkSettings(next) as DarkConfig;
+    await effects.storageSet({[DARK_SETTINGS_KEY]: darkConfig});
+    paintDarkValues(darkConfig);
+    if (applyToCurrent && darkTabId != null && darkHost) {
+        try {
+            await chrome.scripting.executeScript({target: {tabId: darkTabId}, files: ["content-scripts/dark.js"]});
+            setDarkStatus(darkSiteEnabled(darkConfig, darkHost) ? "현재 사이트에 적용했어요." : "현재 사이트에서 껐어요.");
+        } catch {
+            setDarkStatus("권한을 확인하고 페이지를 새로고침해 주세요.", true);
+        }
+    } else setDarkStatus("설정을 저장했어요.");
+};
+const requestDarkOrigin = async (patterns: string[]) => {
+    try { return await chrome.permissions.request({origins: patterns}); }
+    catch { return false; }
+};
+
+darkInputs.currentSite.addEventListener("change", async () => {
+    if (!darkHost) return;
+    const enabling = darkInputs.currentSite.checked;
+    if (enabling && !darkConfig.enabledByDefault) {
+        const granted = await requestDarkOrigin(darkSitePattern(darkHost));
+        if (!granted) {
+            darkInputs.currentSite.checked = false;
+            setDarkStatus("사이트 권한을 허용하지 않아 켜지 않았어요.", true);
+            return;
+        }
+    }
+    const enabledSites = new Set<string>(darkConfig.enabledSites);
+    const disabledSites = new Set<string>(darkConfig.disabledSites);
+    if (enabling) { enabledSites.add(darkHost); disabledSites.delete(darkHost); }
+    else { enabledSites.delete(darkHost); if (darkConfig.enabledByDefault) disabledSites.add(darkHost); else disabledSites.delete(darkHost); }
+    await saveDarkConfig({...darkConfig, enabledSites: [...enabledSites], disabledSites: [...disabledSites]});
+});
+darkInputs.everywhere.addEventListener("change", async () => {
+    const enabling = darkInputs.everywhere.checked;
+    if (enabling) {
+        const granted = await requestDarkOrigin(["https://*/*", "http://*/*"]);
+        if (!granted) {
+            darkInputs.everywhere.checked = false;
+            setDarkStatus("모든 사이트 권한을 허용하지 않아 전체 적용을 켜지 않았어요.", true);
+            return;
+        }
+    }
+    await saveDarkConfig({...darkConfig, enabledByDefault: enabling});
+});
+darkInputs.followSystem.addEventListener("change", () => void saveDarkConfig({...darkConfig, followSystem: darkInputs.followSystem.checked}));
+darkInputs.detectDarkTheme.addEventListener("change", () => void saveDarkConfig({...darkConfig, detectDarkTheme: darkInputs.detectDarkTheme.checked}));
+darkInputs.customSite.addEventListener("change", async () => {
+    if (!darkHost) return;
+    const siteThemes = {...darkConfig.siteThemes};
+    if (darkInputs.customSite.checked) {
+        const {enabledByDefault, enabledSites, disabledSites, siteThemes: _siteThemes, followSystem, ...theme} = darkConfig;
+        siteThemes[darkHost] = theme;
+    } else delete siteThemes[darkHost];
+    await saveDarkConfig({...darkConfig, siteThemes});
+});
+const updateDarkTheme = (key: string, value: unknown) => {
+    let next = {...darkConfig};
+    if (darkInputs.customSite.checked && darkHost) {
+        next.siteThemes = {...darkConfig.siteThemes, [darkHost]: {...(darkConfig.siteThemes[darkHost] || {}), [key]: value}};
+    } else next[key] = value;
+    void saveDarkConfig(next);
+};
+darkInputs.mode.addEventListener("change", () => updateDarkTheme("mode", Number(darkInputs.mode.value) === 0 ? 0 : 1));
+for (const key of ["brightness", "contrast", "sepia", "grayscale"] as const) {
+    darkInputs[key].addEventListener("input", () => { $(`dark${key[0].toUpperCase()}${key.slice(1)}Value`).textContent = `${darkInputs[key].value}%`; });
+    darkInputs[key].addEventListener("change", () => updateDarkTheme(key, Number(darkInputs[key].value)));
+}
+darkInputs.font.addEventListener("change", () => updateDarkTheme("fontFamily", darkInputs.font.value.trim()));
+darkInputs.background.addEventListener("change", () => updateDarkTheme("darkSchemeBackgroundColor", darkInputs.background.value));
+darkInputs.text.addEventListener("change", () => updateDarkTheme("darkSchemeTextColor", darkInputs.text.value));
+$("saveDarkSiteList").addEventListener("click", async () => {
+    const mode = $<HTMLSelectElement>("darkSiteListMode").value === "only" ? "only" : "exclude";
+    const hosts = [...new Set($<HTMLTextAreaElement>("darkSiteList").value.split(/\r?\n/).map((host) => host.trim().toLowerCase().replace(/^\*\./, "")).filter((host) => /^[a-z0-9.-]+$/.test(host) && !host.includes("..")))].slice(0, 100);
+    if (mode === "only" && !darkConfig.enabledByDefault && hosts.length) {
+        const patterns = [...new Set(hosts.flatMap((host) => darkSitePattern(host)))];
+        const granted = await requestDarkOrigin(patterns);
+        if (!granted) {
+            setDarkStatus("목록 사이트 권한을 허용하지 않아 저장하지 않았어요.", true);
+            return;
+        }
+    }
+    await saveDarkConfig({...darkConfig, siteListMode: mode, siteList: hosts});
+});
+effects.storageOnChanged((changes, area) => {
+    if (area === "local" && changes[DARK_SETTINGS_KEY] && current === "dark") void loadDarkConfig();
+});
+void loadDarkConfig();
+
+// ===== 다운로드 관리 창 미리보기 =====
+const refreshDownloadSummary = async () => {
+    try {
+        const items = await chrome.downloads.search({orderBy: ["-startTime"], limit: 3});
+        const active = items.filter((item) => item.state === "in_progress").length;
+        $("downloadSummary").textContent = active ? `${active}개 받고 있어요 · 최근 ${items.length}개` : `최근 다운로드 ${items.length}개`;
+        const list = $("downloadRecent");
+        list.replaceChildren();
+        for (const item of items) {
+            const row = document.createElement("div");
+            row.className = "download-recent-row";
+            const name = document.createElement("strong");
+            name.textContent = item.filename?.replace(/\\/g, "/").split("/").pop() || item.url;
+            const state = document.createElement("span");
+            state.textContent = item.state === "in_progress" ? "받는 중" : item.state === "complete" ? "완료" : item.error || "중단됨";
+            row.append(name, state);
+            list.appendChild(row);
+        }
+    } catch {
+        $("downloadSummary").textContent = "다운로드 권한을 확인해 주세요.";
+    }
+};
+$("openDownloads").addEventListener("click", async () => {
+    const tabs = await effects.tabsQuery({active: true, lastFocusedWindow: true});
+    const sourceTabId = typeof tabs[0]?.id === "number" ? tabs[0].id : "";
+    const url = new URL(effects.getURL("/downloads.html"));
+    if (sourceTabId !== "") url.searchParams.set("sourceTabId", String(sourceTabId));
+    await effects.tabsCreate({url: url.href});
+});
+chrome.downloads.onCreated.addListener(() => void refreshDownloadSummary());
+chrome.downloads.onChanged.addListener(() => void refreshDownloadSummary());
+void refreshDownloadSummary();
+
 type GmailMessage = {
     id: string; thread: string; subject: string; snippet: string;
     fromName: string; fromEmail: string; issued: string; link: string;
@@ -486,6 +682,8 @@ let gmailView: GmailSnapshot | null = null;
 let gmailPhotos: Record<string, string> = {};
 let gmailColors: Record<string, string> = {};
 let mailOrder: string[] = [];
+let mailAccountFilter = "";
+let renderedMailAccounts: GmailAccount[] = [];
 const ACCOUNT_ORDER_KEY = "gmail.accountOrder";
 const MAIL_EASE = "cubic-bezier(0.25, 0.1, 0.25, 1)";
 
@@ -506,9 +704,12 @@ const bindMailDrag = (section: HTMLElement, head: HTMLElement, account: GmailAcc
         handle: head,
         item: section,
         list: gmailAccounts,
-        axis: "y",
+        axis: "x",
         ignore: (target) => Boolean((target as Element | null)?.closest?.("button, a")),
-        onClick: () => openMailPlace(account, gmailInboxUrl(account.index, account.email)),
+        onClick: () => {
+            mailAccountFilter = account.email.trim().toLowerCase();
+            renderGmail(gmailView);
+        },
         onDrop: () => saveMailOrder()
     });
 };
@@ -534,19 +735,26 @@ const renderGmail = (snapshot: GmailSnapshot | null | undefined, error = "") => 
     const view = preferInbox(snapshot, gmailView) as GmailSnapshot | null;
     if (view) gmailView = view;
     const accounts = orderAccounts(dedupeAccounts(view?.accounts || []), mailOrder) as GmailAccount[];
+    renderedMailAccounts = accounts;
+    if (mailAccountFilter && !accounts.some((item) => item.email.trim().toLowerCase() === mailAccountFilter)) mailAccountFilter = "";
     const unread = accounts.filter((item) => item.enabled !== false).reduce((sum, item) => sum + (Number(item.unread) || 0), 0);
     gmailAccounts.replaceChildren();
     gmailList.replaceChildren();
+    const allCount = accounts.reduce((sum, item) => sum + (item.messages || []).length, 0);
+    const allButton = $<HTMLButtonElement>("mailAllAccounts");
+    allButton.textContent = `전체 계정 · ${allCount}`;
+    allButton.classList.toggle("active", !mailAccountFilter);
     for (const item of accounts) {
         const email = item.email || `계정 ${item.index + 1}`;
         const color = accountColor(email, gmailColors) as string;
         const section = document.createElement("section");
         section.className = "mail-section";
         section.dataset.email = (item.email || "").trim().toLowerCase();
+        section.classList.toggle("selected", section.dataset.email === mailAccountFilter);
         section.style.setProperty("--account-accent", color);
         const head = document.createElement("div");
         head.className = "mail-head";
-        head.title = "누르면 받은편지함, 끌면 순서";
+        head.title = "누르면 이 계정 메일만 보기, 끌면 순서 바꾸기";
         const avatar = document.createElement("span");
         avatar.className = "mail-avatar";
         const photo = gmailPhotos[email.toLowerCase()];
@@ -584,83 +792,112 @@ const renderGmail = (snapshot: GmailSnapshot | null | undefined, error = "") => 
             return button;
         };
         quickButton("새 메일", lineIcon("M4 20h4L18.5 9.5a2.1 2.1 0 0 0-3-3L5 17z"), () => openMailPlace(item, gmailComposeUrl(item.index, item.email)));
-        quickButton("받은편지함", lineIcon("M4 13h4l2 3h4l2-3h4v5H4zM4 13l2-7h12l2 7"), () => openMailPlace(item, gmailInboxUrl(item.index, item.email)));
+        quickButton("받은편지함 열기", lineIcon("M4 13h4l2 3h4l2-3h4v5H4zM4 13l2-7h12l2 7"), () => openMailPlace(item, gmailInboxUrl(item.index, item.email)));
         const markAll = quickButton("모두 읽음", lineIcon("M5 12.5 9.2 17 19 7"), () => void readAccount(item.index));
         markAll.disabled = !(item.messages || []).length;
-        quickButton("새로고침", lineIcon("M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5"), () => void refreshGmail(true));
         head.append(avatar, who, count, quick);
-        const list = document.createElement("ul");
-        list.className = "mail-list";
-        for (const message of item.messages || []) {
-            const li = document.createElement("li");
-            li.className = "mail-item";
-            const line = document.createElement("div");
-            line.className = "mail-line";
-            const subject = document.createElement("strong");
-            subject.className = "mail-subject";
-            subject.textContent = message.subject;
-            const time = document.createElement("time");
-            if (message.issued) time.dateTime = message.issued;
-            time.textContent = formatMailTime(message.issued) as string;
-            line.append(subject, time);
-            const who = mailSenderLines(message) as {name: string; email: string};
-            const from = document.createElement("div");
-            from.className = "mail-from";
-            from.textContent = who.name;
-            const email = document.createElement("div");
-            email.className = "mail-email";
-            email.textContent = who.email;
-            email.hidden = !who.email;
-            const snippet = document.createElement("p");
-            snippet.className = "mail-snippet";
-            snippet.textContent = message.snippet;
-            const actions = document.createElement("div");
-            actions.className = "mail-actions";
-            const add = (label: string, run: () => void) => {
-                const button = document.createElement("button");
-                button.type = "button";
-                button.textContent = label;
-                button.addEventListener("click", run);
-                actions.appendChild(button);
-            };
-            add("읽음", () => void runGmailAct(item.index, message, "read"));
-            add("보관", () => void runGmailAct(item.index, message, "archive"));
-            add("삭제", () => void runGmailAct(item.index, message, "trash"));
-            add("답장", () => {
-                const url = new URL("https://mail.google.com/mail/");
-                url.searchParams.set("view", "cm");
-                url.searchParams.set("fs", "1");
-                url.searchParams.set("tf", "1");
-                if (message.fromEmail) url.searchParams.set("to", message.fromEmail);
-                url.searchParams.set("su", message.subject.startsWith("Re:") ? message.subject : `Re: ${message.subject}`);
-                openMailPlace(item, `https://mail.google.com/mail/u/${item.index}/${url.search}${item.email ? `${url.search ? "&" : "?"}authuser=${encodeURIComponent(item.email)}` : ""}`);
-            });
-            const openMessage = () => openMailPlace(item, gmailMessageUrl(item.index, item.email, message.link, message.thread));
-            add("열기", openMessage);
-            li.addEventListener("click", (event) => {
-                if ((event.target as Element).closest("button")) return;
-                openMessage();
-            });
-            li.append(line, from, email, snippet, actions);
-            list.append(li);
-        }
         section.append(head);
-        if ((item.messages || []).length) section.append(list);
         bindMailDrag(section, head, item);
         gmailAccounts.appendChild(section);
     }
     const messages = accounts.reduce((sum, item) => sum + (item.messages || []).length, 0);
+    const query = $<HTMLInputElement>("mailSearch").value.trim().toLocaleLowerCase();
+    const sort = $<HTMLSelectElement>("mailSort").value;
+    const rows = accounts.flatMap((account) => (account.messages || []).map((message) => ({account, message})))
+        .filter(({account}) => !mailAccountFilter || account.email.trim().toLowerCase() === mailAccountFilter)
+        .filter(({account, message}) => !query || `${account.email} ${message.subject} ${message.snippet} ${message.fromName} ${message.fromEmail}`.toLocaleLowerCase().includes(query))
+        .sort((a, b) => {
+            if (sort === "sender") return String(a.message.fromName || a.message.fromEmail).localeCompare(String(b.message.fromName || b.message.fromEmail));
+            const diff = (Date.parse(a.message.issued || "") || 0) - (Date.parse(b.message.issued || "") || 0);
+            return sort === "oldest" ? diff : -diff;
+        });
+    for (const {account, message} of rows) {
+        const email = account.email || `계정 ${account.index + 1}`;
+        const row = document.createElement("li");
+        row.className = "mail-item";
+        row.tabIndex = 0;
+        row.setAttribute("role", "group");
+        row.setAttribute("aria-label", `${message.subject || "제목 없음"} · ${message.fromName || message.fromEmail || "보낸 사람 확인 불가"} · ${email} · Enter 키로 열기`);
+        row.style.setProperty("--account-accent", accountColor(email, gmailColors) as string);
+        const accountAvatar = document.createElement("span");
+        accountAvatar.className = "mail-row-avatar";
+        const photo = gmailPhotos[email.toLowerCase()];
+        if (photo) {
+            const img = document.createElement("img");
+            img.alt = "";
+            img.src = photo;
+            accountAvatar.append(img);
+        } else accountAvatar.textContent = accountInitial(email) as string;
+        const body = document.createElement("div");
+        body.className = "mail-body";
+        const firstLine = document.createElement("div");
+        firstLine.className = "mail-sender-line";
+        const sender = mailSenderLines(message) as {name: string; email: string};
+        const from = document.createElement("strong");
+        from.className = "mail-from";
+        from.textContent = sender.name || sender.email || "보낸 사람 확인 불가";
+        const accountTag = document.createElement("span");
+        accountTag.className = "mail-account-tag";
+        accountTag.textContent = email;
+        firstLine.append(from, accountTag);
+        const subject = document.createElement("strong");
+        subject.className = "mail-subject";
+        subject.textContent = message.subject || "(제목 없음)";
+        const snippet = document.createElement("p");
+        snippet.className = "mail-snippet";
+        snippet.textContent = message.snippet || "내용 미리보기가 없어요.";
+        const time = document.createElement("time");
+        if (message.issued) time.dateTime = message.issued;
+        time.textContent = formatMailTime(message.issued) as string;
+        const actions = document.createElement("div");
+        actions.className = "mail-actions";
+        const add = (label: string, run: () => void) => {
+            const button = document.createElement("button");
+            button.type = "button";
+            button.textContent = label;
+            button.title = label;
+            button.addEventListener("click", (event) => { event.stopPropagation(); run(); });
+            actions.appendChild(button);
+        };
+        add("읽음", () => void runGmailAct(account.index, message, "read"));
+        add("보관", () => void runGmailAct(account.index, message, "archive"));
+        add("삭제", () => void runGmailAct(account.index, message, "trash"));
+        add("답장", () => {
+            const url = new URL("https://mail.google.com/mail/");
+            url.searchParams.set("view", "cm");
+            url.searchParams.set("fs", "1");
+            url.searchParams.set("tf", "1");
+            if (message.fromEmail) url.searchParams.set("to", message.fromEmail);
+            url.searchParams.set("su", message.subject.startsWith("Re:") ? message.subject : `Re: ${message.subject}`);
+            openMailPlace(account, `https://mail.google.com/mail/u/${account.index}/${url.search}${account.email ? `${url.search ? "&" : "?"}authuser=${encodeURIComponent(account.email)}` : ""}`);
+        });
+        const openMessage = () => openMailPlace(account, gmailMessageUrl(account.index, account.email, message.link, message.thread));
+        row.addEventListener("click", (event) => { if (!(event.target as Element).closest("button")) openMessage(); });
+        row.addEventListener("keydown", (event) => {
+            if ((event.key === "Enter" || event.key === " ") && !(event.target as Element).closest("button")) {
+                event.preventDefault();
+                openMessage();
+            }
+        });
+        body.append(firstLine, subject, snippet);
+        row.append(accountAvatar, body, time, actions);
+        gmailList.appendChild(row);
+    }
     const loggedOut = Boolean(view?.loggedOut);
     const showAccounts = accounts.length > 0 && !loggedOut;
-    const showMail = messages > 0 && showAccounts;
+    const showMail = rows.length > 0 && showAccounts;
     const gmailQuiet = $("gmailQuiet");
     if (mailPanel) {
         mailPanel.classList.toggle("is-empty", !showMail && !showAccounts && !error);
         mailPanel.classList.toggle("has-accounts", showAccounts);
     }
     gmailAccounts.hidden = !showAccounts;
-    gmailEmpty.hidden = showAccounts || showMail || Boolean(error);
+    gmailList.hidden = !showMail;
+    document.querySelector<HTMLElement>(".mail-account-toolbar")!.hidden = !showAccounts;
+    document.querySelector<HTMLElement>(".mail-list-toolbar")!.hidden = !showAccounts;
+    gmailEmpty.hidden = showAccounts || Boolean(error);
     gmailQuiet.hidden = !showAccounts || showMail || Boolean(error);
+    if (showAccounts && !showMail) gmailQuiet.textContent = query ? "검색 결과가 없어요." : mailAccountFilter ? "선택한 계정에 읽지 않은 메일이 없어요." : "읽지 않은 메일이 없어요. 계정은 위에 그대로 있어요.";
     gmailStatus.hidden = !error;
     if (error) gmailStatus.textContent = error;
     else if (loggedOut) {
@@ -672,10 +909,9 @@ const renderGmail = (snapshot: GmailSnapshot | null | undefined, error = "") => 
         gmailEmptyTitle.textContent = "읽지 않은 메일이 없어요";
         gmailEmptyNote.textContent = "새 메일이 오면 여기에 나와요.";
     } else gmailStatus.textContent = "";
+    const selected = accounts.find((item) => item.email.trim().toLowerCase() === mailAccountFilter);
     gmailAccount.textContent = showAccounts
-        ? (unread > 0
-            ? (accounts.length > 1 ? `계정 ${accounts.length}개 · ${unread}통` : `${unread}통`)
-            : (accounts.length > 1 ? `계정 ${accounts.length}개` : "읽지 않은 메일 없음"))
+        ? (selected ? `${selected.email} · ${Number(selected.unread) || 0}통` : `${accounts.length}개 계정 · ${unread}통`)
         : "";
     paintMailBadge(accounts, accounts.filter((item) => item.enabled === false).map((item) => item.index));
     paintSoundAccounts(accounts);
@@ -721,8 +957,32 @@ const runGmailAct = async (account: number, message: GmailMessage, action: strin
 
 $("gmailRefresh").addEventListener("click", () => void refreshGmail(true));
 $("gmailRecheck").addEventListener("click", () => void refreshGmail(true));
-
+$("mailAllAccounts").addEventListener("click", () => {
+    mailAccountFilter = "";
+    renderGmail(gmailView);
+});
+$<HTMLInputElement>("mailSearch").addEventListener("input", () => renderGmail(gmailView));
+$<HTMLSelectElement>("mailSort").addEventListener("change", () => renderGmail(gmailView));
+$("mailClearSearch").addEventListener("click", () => {
+    $<HTMLInputElement>("mailSearch").value = "";
+    renderGmail(gmailView);
+});
 const gmailSound = $("gmailSound");
+const mailSettings = $("mailSettings");
+const gmailSettingsToggle = $<HTMLButtonElement>("gmailSettingsToggle");
+const setMailSettingsOpen = (open: boolean) => {
+    mailSettings.hidden = !open;
+    gmailSound.hidden = !open;
+    gmailSettingsToggle.setAttribute("aria-expanded", String(open));
+};
+gmailSettingsToggle.addEventListener("click", () => setMailSettingsOpen(mailSettings.hidden));
+if (embed === "gmail") setMailSettingsOpen(true);
+$("gmailCompose").addEventListener("click", () => {
+    const account = renderedMailAccounts.find((item) => item.email.trim().toLowerCase() === mailAccountFilter) || renderedMailAccounts[0];
+    if (account) openMailPlace(account, gmailComposeUrl(account.index, account.email));
+    else void effects.tabsCreate({url: "https://mail.google.com/mail/"});
+});
+
 const soundState = {...defaultSound()};
 const paintSoundAccounts = (accounts: GmailAccount[]) => {
     const colors = gmailSound.querySelector(".mail-account-colors");
@@ -766,9 +1026,7 @@ const paintSoundAccounts = (accounts: GmailAccount[]) => {
         colors.append(row);
     }
 };
-if (embed === "gmail") {
-    $("mailSettings").hidden = false;
-    gmailSound.hidden = false;
+{
     const title = document.createElement("h4");
     title.textContent = "새 메일 소리";
     const onRow = document.createElement("label");
@@ -887,7 +1145,7 @@ effects.storageOnChanged((changes: Record<string, {newValue?: unknown}>, area: s
     if (area !== "local") return;
     if (changes["gmail.photos"]) gmailPhotos = (changes["gmail.photos"].newValue || {}) as Record<string, string>;
     if (changes["gmail.accountColors"]) gmailColors = (changes["gmail.accountColors"].newValue || {}) as Record<string, string>;
-    if (changes[GMAIL_SOUND_KEY] && embed === "gmail") {
+    if (changes[GMAIL_SOUND_KEY]) {
         const sound = normalizeSound(changes[GMAIL_SOUND_KEY].newValue) as {on: boolean; name: string; volume: number};
         const box = $("gmailSound");
         const toggle = box.querySelector<HTMLInputElement>("input[type=checkbox]");

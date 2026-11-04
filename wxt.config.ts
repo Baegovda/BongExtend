@@ -44,7 +44,7 @@ export default defineConfig({
     ],
     manifest: {
         name: "BongExtend",
-        description: "치지직·디시인사이드 개선과 Gemini 페이지 번역을 하나로 합친 확장 프로그램",
+        description: "치지직·디시인사이드 개선, Gemini 번역, 다크 모드, 다운로드 관리 기능을 담은 확장 프로그램",
         minimum_chrome_version: "109",
         action: {
             default_title: "BongExtend"

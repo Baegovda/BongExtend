@@ -21,6 +21,8 @@
         <button data-tab="dc" role="tab" title="끌어서 순서 바꾸기 (Alt+←/→)" type="button">디시</button>
         <button data-tab="gmail" role="tab" title="끌어서 순서 바꾸기 (Alt+←/→)" type="button">메일<span id="mailBadge" class="tab-badge" hidden></span></button>
         <button data-tab="fx" role="tab" title="끌어서 순서 바꾸기 (Alt+←/→)" type="button">환율<span id="fxBadge" class="tab-badge fx" hidden></span></button>
+        <button data-tab="dark" role="tab" title="끌어서 순서 바꾸기 (Alt+←/→)" type="button">다크</button>
+        <button data-tab="download" role="tab" title="끌어서 순서 바꾸기 (Alt+←/→)" type="button">다운로드</button>
     </div>
     <button id="rightClick" class="mouse-toggle" type="button" title="이 사이트에서 오른쪽 클릭, 복사, 글자 선택을 되살려요" aria-label="오른쪽 클릭" aria-pressed="false">
         <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
@@ -38,11 +40,51 @@
     <iframe data-frame="chzzk" title="치지직 설정"></iframe>
     <iframe data-frame="trans" title="번역"></iframe>
     <iframe data-frame="dc" title="디시 설정"></iframe>
+    <section class="panel be-shell dark-panel" data-frame="dark" hidden>
+        <div class="be-title"><h3>다크 모드</h3><span id="darkSiteLabel" class="be-sub">현재 사이트 확인 중…</span></div>
+        <div class="be-card be-sec dark-top">
+            <label class="be-row"><span class="be-row-text"><span>모든 사이트에서 사용</span><small>처음 켤 때 모든 웹사이트 접근 권한을 요청해요.</small></span><input id="darkEverywhere" type="checkbox" role="switch"></label>
+            <label class="be-row"><span class="be-row-text"><span>현재 사이트에서 사용</span><small id="darkSiteNote">사이트별로 켜고 끌 수 있어요.</small></span><input id="darkCurrentSite" type="checkbox" role="switch"></label>
+            <label class="be-row"><span>시스템 다크 모드 따라가기</span><input id="darkFollowSystem" type="checkbox" role="switch"></label>
+            <label class="be-row"><span>이미 어두운 사이트는 그대로 두기</span><input id="darkDetectTheme" type="checkbox" role="switch" checked></label>
+            <label class="be-row"><span>현재 사이트만 따로 꾸미기</span><input id="darkCustomSite" type="checkbox" role="switch"></label>
+        </div>
+        <div class="be-card be-sec dark-options">
+            <label class="be-row dark-select"><span>화면 처리</span><select id="darkMode"><option value="1">다크 테마 (권장)</option><option value="0">차분한 다크</option></select></label>
+            <label class="dark-slider"><span>밝기 <b id="darkBrightnessValue">100%</b></span><input id="darkBrightness" type="range" min="50" max="120" value="100"></label>
+            <label class="dark-slider"><span>대비 <b id="darkContrastValue">100%</b></span><input id="darkContrast" type="range" min="50" max="120" value="100"></label>
+            <label class="dark-slider"><span>세피아 <b id="darkSepiaValue">0%</b></span><input id="darkSepia" type="range" min="0" max="100" value="0"></label>
+            <label class="dark-slider"><span>회색조 <b id="darkGrayscaleValue">0%</b></span><input id="darkGrayscale" type="range" min="0" max="100" value="0"></label>
+            <label class="be-row dark-select"><span>글꼴</span><input id="darkFont" type="text" maxlength="60" placeholder="기본 글꼴"></label>
+            <label class="be-row dark-color"><span>배경색</span><input id="darkBackground" type="color" value="#181a1b"></label>
+            <label class="be-row dark-color"><span>글자색</span><input id="darkText" type="color" value="#e8e6e3"></label>
+            <p id="darkStatus" class="be-hint" role="status">사이트에 다크 모드를 적용할 수 있어요.</p>
+        </div>
+        <details class="be-card be-sec dark-sites">
+            <summary>사이트 목록</summary>
+            <label class="be-row"><span>목록 적용 방식</span><select id="darkSiteListMode"><option value="exclude">목록 사이트에서는 끄기</option><option value="only">목록 사이트에서만 켜기</option></select></label>
+            <textarea id="darkSiteList" rows="3" placeholder="example.com&#10;news.example.org"></textarea>
+            <div class="be-actions"><button id="saveDarkSiteList" type="button">사이트 목록 저장</button></div>
+            <p class="be-hint">한 줄에 도메인 하나씩 적어요. 하위 도메인에도 적용돼요.</p>
+        </details>
+        <p class="be-hint dark-credit">색상 변환 엔진은 MIT 라이선스의 <a href="https://github.com/darkreader/darkreader" target="_blank" rel="noopener">Dark Reader</a>를 사용해요. <a href="/licenses/DarkReader-MIT.txt" target="_blank" rel="noopener">Dark Reader 라이선스</a> · <a href="/licenses/Malevic-MIT.txt" target="_blank" rel="noopener">Malevic 라이선스</a></p>
+    </section>
+    <section class="panel be-shell download-panel" data-frame="download" hidden>
+        <div class="be-title"><h3>다운로드</h3><span id="downloadSummary" class="be-sub">다운로드를 확인 중…</span></div>
+        <div class="be-card be-sec download-summary">
+            <p>파일을 모아 보고, 이어받기·취소·다시 열기를 할 수 있어요.</p>
+            <div class="be-actions"><button id="openDownloads" class="primary" type="button">다운로드 관리 창 열기</button></div>
+            <p class="be-hint">관리 창에서 주소 여러 개 받기와 현재 페이지의 링크·이미지·동영상 찾기도 할 수 있어요.</p>
+        </div>
+        <div id="downloadRecent" class="download-recent"></div>
+    </section>
     <section class="panel be-shell mail-panel" data-frame="gmail" hidden>
         <div class="be-title mail-title">
             <h3>메일</h3>
             <span class="be-sub" id="gmailAccount"></span>
             <span class="be-spacer"></span>
+            <button id="gmailCompose" class="mail-header-btn" type="button" title="새 메일 쓰기">작성</button>
+            <button id="gmailSettingsToggle" class="mail-header-btn" type="button" title="메일 설정 보기" aria-expanded="false">설정</button>
             <button id="gmailRefresh" class="mail-icon" type="button" title="다시 확인" aria-label="다시 확인">
                 <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
                     <path d="M20 12a8 8 0 1 1-2.2-5.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
@@ -76,8 +118,16 @@
             <strong id="gmailEmptyTitle">읽지 않은 메일이 없어요</strong>
             <span id="gmailEmptyNote">새 메일이 오면 여기에 나와요.</span>
         </div>
-        <div id="gmailAccounts" class="mail-accounts"></div>
-        <ul id="gmailList" class="mail-list" hidden></ul>
+        <div class="mail-account-toolbar">
+            <button id="mailAllAccounts" class="mail-account-all active" type="button">전체 계정</button>
+            <div id="gmailAccounts" class="mail-accounts"></div>
+        </div>
+        <div class="mail-list-toolbar">
+            <input id="mailSearch" type="search" placeholder="보낸 사람, 제목, 내용 검색" aria-label="메일 검색">
+            <select id="mailSort" aria-label="메일 정렬"><option value="newest">최신순</option><option value="oldest">오래된순</option><option value="sender">보낸 사람순</option></select>
+            <button id="mailClearSearch" type="button" title="검색 지우기" aria-label="검색 지우기">지우기</button>
+        </div>
+        <ul id="gmailList" class="mail-list"></ul>
     </section>
     <section class="panel be-shell fx-panel" data-frame="fx" hidden>
         <div class="be-title"><h3>환율</h3><span class="be-sub">자주 확인</span></div>
@@ -138,6 +188,7 @@
                     <div class="be-row"><span>라이선스</span><span>GPL-3.0</span></div>
                     <div class="be-row"><span>링크</span><span class="be-links"><a href="https://github.com/Baegovda/BongExtend" target="_blank" rel="noopener">GitHub</a><a href="https://github.com/Baegovda/BongExtend/releases" target="_blank" rel="noopener">릴리스</a><a href="https://dcrefresher.green1052.com" target="_blank" rel="noopener">디시 도움말</a></span></div>
                     <p class="be-hint">디시 기능은 green1052님의 DCRefresher-Reborn 기반이에요.</p>
+                    <p class="be-hint">다크 모드는 Dark Reader의 MIT 라이선스 엔진을 사용해요. <a href="/licenses/DarkReader-MIT.txt" target="_blank" rel="noopener">라이선스 보기</a></p>
                 </section>
             </div>
         </div>
