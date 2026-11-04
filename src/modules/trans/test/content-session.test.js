@@ -1441,9 +1441,45 @@ test('a clipped chat bubble wraps the longer translation', async () => {
   await session.whenIdle();
   assert.equal(bubble.childNodes[0].nodeValue, '물건 품질도 좋고 사장님 인품도 좋아요');
   assert.equal(bubble.locks['white-space'], 'normal');
-  assert.equal(bubble.locks.overflow, 'visible');
+  assert.equal(bubble.locks['overflow-x'], 'hidden');
+  assert.equal(bubble.locks['overflow-wrap'], 'anywhere');
   assert.equal(bubble.locks.height, 'auto');
   assert.equal(bubble.locks['max-height'], 'none');
+});
+
+test('a sidebar ghost layer is hidden so only the translation shows', async () => {
+  const api = loadContent({
+    getComputedStyle(node, pseudo) {
+      if (pseudo) return { content: node.pseudoContent || 'none' };
+      return { position: node.position || 'static', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', height: '32px', maxWidth: 'none', textOverflow: 'clip' };
+    },
+  });
+  const root = element('div');
+  const row = element('a');
+  const label = trackStyle(element('span', {}, ['计算机/文具']));
+  const ghost = element('span', {}, ['计算机/文具']);
+  ghost.position = 'absolute';
+  const fly = element('i');
+  fly.pseudoContent = '"计算机/文具"';
+  row.append(label);
+  row.append(ghost);
+  row.append(fly);
+  root.append(row);
+  const session = api.createSession({
+    root,
+    walkRoot: root,
+    enableBanner: false,
+    revealAnimation: false,
+    IntersectionObserver: class { observe() {} disconnect() {} },
+    MutationObserver: class { observe() {} disconnect() {} },
+    sendBatch: async (texts) => ({ ok: true, translations: texts.map(() => '컴퓨터/문구') }),
+  });
+  session.start();
+  await session.whenIdle();
+  assert.equal(label.childNodes[0].nodeValue, '컴퓨터/문구');
+  assert.equal(ghost.classList.contains('pt-page-translator-dup'), true);
+  assert.equal(fly.classList.contains('pt-page-translator-nops'), true);
+  assert.equal(label.locks['overflow-x'], 'hidden');
 });
 
 test('switching chats retranslates a reused text node and a replaced pane', async () => {

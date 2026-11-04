@@ -1,6 +1,6 @@
 # BongExtend 인수인계
 
-코드 버전은 `package.json`의 **1.2.9**예요. 설치 파일은 [Releases](https://github.com/Baegovda/BongExtend/releases/tag/v1.2.9)의 `bongextend-1.2.9-chrome.zip`이에요. 숫자가 다르면 `package.json`과 Releases를 다시 보세요.
+코드 버전은 `package.json`의 **1.2.10**예요. 설치 파일은 [Releases](https://github.com/Baegovda/BongExtend/releases/tag/v1.2.10)의 `bongextend-1.2.10-chrome.zip`이에요. 숫자가 다르면 `package.json`과 Releases를 다시 보세요.
 
 오너(Guilliman / GitHub Baegovda)는 개발자가 아니에요. 화면 글, README, CHANGELOG, 보고는 한국어로 쉽게 써요.
 
@@ -56,7 +56,7 @@ BongExtend는 크롬 확장(MV3) 하나예요. 예전에 따로 쓰던 기능을
 권한을 늘리지 마세요. manifest `key`도 넣지 마세요. `webNavigation`도 넣지 마세요. `host_permissions`에 `<all_urls>`도 넣지 마세요.
 
 - `permissions`: `activeTab`, `alarms`, `contextMenus`, `declarativeNetRequest`, `downloads`, `notifications`, `offscreen`, `idle`, `storage`, `scripting`, `tabs`, `windows`, `unlimitedStorage`, `clipboardWrite`
-- `host_permissions`: `https://*.dcinside.com/*`, `https://chzzk.naver.com/*`, `https://api.chzzk.naver.com/*`, `https://generativelanguage.googleapis.com/*`, `https://api.github.com/*`, `https://github.com/*`, `https://objects.githubusercontent.com/*`, `https://release-assets.githubusercontent.com/*`, `https://mail.google.com/*`, `https://latest.currency-api.pages.dev/*`
+- `host_permissions`: `https://*.dcinside.com/*`, `https://chzzk.naver.com/*`, `https://api.chzzk.naver.com/*`, `https://generativelanguage.googleapis.com/*`, `https://api.github.com/*`, `https://github.com/*`, `https://objects.githubusercontent.com/*`, `https://release-assets.githubusercontent.com/*`, `https://mail.google.com/*`, `https://latest.currency-api.pages.dev/*`, `https://scanner.tradingview.com/*`, `wss://data.tradingview.com/*`
 - 번역이 사이트를 항상 켤 때만 그 주소의 `optional_host_permissions`(`https://*/*`, `http://*/*`)를 물어봐요.
 - 단축키는 번역 켜기/끄기(`toggle-translation`) 하나만 두세요.
 - Gemini API 키는 서비스 워커와 확장 페이지에만 두세요. 콘텐츠 스크립트로 보내지 마세요.
@@ -118,6 +118,7 @@ main 푸시와 PR의 CI(`.github/workflows/ci.yml`)는 시험과 빌드와 eval 
 - **1.2.7**: 환율 칸 순서를 끌 수 있어요. 메일이 없어도 계정이 보여요. 톱니와 단축키 버튼을 다듬고, 새 메일 소리에 Checker Plus 소리를 넣었어요. 즐겨찾기 저장값은 그대로예요.
 - **1.2.8**: 툴바 배지는 읽지 않은 메일만 보여요. 탭·메일·환율 끌기를 다듬고, 환율 금액과 통화 그림을 기억해요. 시세는 지금 출처를 더 자주 받아요. 번역은 안내 글과 짧은 글, 나중에 생긴 말도 바꾸고 말풍선이 잘리지 않아요.
 - **1.2.9**: 번역 중 무지개 막대를 없애고, 채팅방을 바꿔도 새 글을 다시 번역해요.
+- **1.2.10**: 분류 칸의 겹친 중국어를 가리고, 환율은 트레이딩뷰 실시간 시세를 받아요. 칸 끌기는 빈 자리로 보여 준 곳에 들어가요.
 
 ## 알려진 문제와 남은 일
 

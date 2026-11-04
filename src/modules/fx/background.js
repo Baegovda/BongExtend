@@ -1,4 +1,4 @@
-// 환율 탭 배지용 시세. 이미 허용된 주소만 쓰고, 실패하면 저장값을 유지한다.
+// 환율 탭 배지용 시세. 트레이딩뷰 표를 먼저 받고, 실패하면 기존 환율표로 돌아간다.
 
 import {isModuleEnabled} from "../core-modules.js";
 import {FX_BADGE_REFRESH_MS} from "./convert.js";
