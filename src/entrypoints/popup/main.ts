@@ -613,7 +613,7 @@ $("saveDarkSiteList").addEventListener("click", async () => {
     }
     await saveDarkConfig({...darkConfig, siteListMode: mode, siteList: hosts});
 });
-effects.storageOnChanged((changes, area) => {
+effects.storageOnChanged((changes: Record<string, {newValue?: unknown}>, area: string) => {
     if (area === "local" && changes[DARK_SETTINGS_KEY] && current === "dark") void loadDarkConfig();
 });
 void loadDarkConfig();
@@ -975,7 +975,7 @@ const setMailSettingsOpen = (open: boolean) => {
     gmailSound.hidden = !open;
     gmailSettingsToggle.setAttribute("aria-expanded", String(open));
 };
-gmailSettingsToggle.addEventListener("click", () => setMailSettingsOpen(mailSettings.hidden));
+gmailSettingsToggle.addEventListener("click", () => setMailSettingsOpen(Boolean(mailSettings.hidden)));
 if (embed === "gmail") setMailSettingsOpen(true);
 $("gmailCompose").addEventListener("click", () => {
     const account = renderedMailAccounts.find((item) => item.email.trim().toLowerCase() === mailAccountFilter) || renderedMailAccounts[0];

@@ -238,9 +238,17 @@ const scanPage = async () => {
                 document.querySelectorAll('img[src],img[data-src],source[src],video[src],audio[src]').forEach((node) => {
                     const tag = node.tagName.toLowerCase();
                     const kind = tag === 'img' ? '이미지' : tag === 'audio' ? '음성' : tag === 'video' ? '동영상' : '미디어';
-                    add(node.currentSrc || node.src || node.getAttribute('data-src'), node.alt || node.title || node.getAttribute('aria-label'), kind);
+                    let raw = node.getAttribute('src') || node.getAttribute('data-src');
+                    if (tag === 'img') {
+                        const image = node as HTMLImageElement;
+                        raw = image.currentSrc || image.src || raw;
+                    } else if (tag === 'video' || tag === 'audio') {
+                        const media = node as HTMLMediaElement;
+                        raw = media.currentSrc || media.src || raw;
+                    }
+                    add(raw, node.getAttribute('alt') || node.getAttribute('title') || node.getAttribute('aria-label'), kind);
                 });
-                document.querySelectorAll('video[poster]').forEach((node) => add(node.poster, '동영상 썸네일', '이미지'));
+                document.querySelectorAll<HTMLVideoElement>('video[poster]').forEach((node) => add(node.poster, '동영상 썸네일', '이미지'));
                 return [...found.values()].slice(0, 1000);
             }
         });
