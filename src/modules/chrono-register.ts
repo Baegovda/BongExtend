@@ -29,11 +29,11 @@ const upsert = async (script: chrome.scripting.RegisteredContentScript) => {
 export const syncChronoContentScripts = async (enabled: boolean) => {
     try {
         const current = await chrome.scripting.getRegisteredContentScripts({ids: CHRONO_SCRIPT_IDS});
-        if (!enabled) {
+        const hasPermission = await chrome.permissions.contains({permissions: ["webRequest"], origins: CHRONO_MATCHES});
+        if (!enabled || !hasPermission) {
             if (current.length) await chrome.scripting.unregisterContentScripts({ids: current.map(script => script.id)});
             return;
         }
-        if (!await chrome.permissions.contains({permissions: ["webRequest"], origins: CHRONO_MATCHES})) return;
         for (const script of scripts) await upsert(script);
     } catch (error) {
         console.warn("Chrono 페이지 연결을 등록하지 못했어요.", error);

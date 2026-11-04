@@ -7,6 +7,13 @@ BongExtend 변경 이력. GitHub **[Releases](https://github.com/Baegovda/BongEx
 
 ## [Unreleased]
 
+## [1.2.14] - 2026-11-05
+
+- Fab 페이지에서 Dark Reader가 CSP에 막히는 인라인 프록시 코드를 건너뛰어요. 다크 테마는 적용하고 동적 스타일 추적만 줄여요
+- 다운로드 탭을 누르면 BongExtend 안에서 Chrono 다운로드 목록이 바로 열려요
+- Chrono 사이트 권한을 끄거나 Chrome에서 회수하면 페이지 감지 스크립트도 등록 해제해요
+- 번역 결과에 오로라 빛의 와이퍼가 더 천천히 지나가고, 빛이 걷히며 글자가 또렷해져요
+
 ## [1.2.13] - 2026-11-05
 
 - BongExtend의 기존 팝업과 툴바 아이콘을 복구해요. Checker Plus 메일 화면은 BongExtend의 메일 탭 안에서만 열려요

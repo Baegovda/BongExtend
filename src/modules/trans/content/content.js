@@ -12,27 +12,44 @@
   const EDGE_CLASS = 'pt-sweep-edge';
   const PRISM_CLASS = 'pt-page-translator-prism';
   const MAX_LIVE_PENDING = 8;
-  const WIPER_MS = 680;
-  const SOFT_MS = 220;
-  const PRISM_MS = 860;
-  // 기다리는 글자는 맥박처럼 살짝 흐려지고, 번역이 오면 짧게 또렷해진다.
+  const FADE_MS = 880;
+  const WIPER_MS = 1380;
+  const SOFT_MS = 460;
+  const PRISM_MS = 1340;
+  // 번역 대기 중에는 얕게 숨 쉬고, 결과는 오로라 와이퍼가 쓸고 지나가요.
   const MOTION_CSS = [
     `.pt-page-translator-dup { visibility: hidden !important; }`,
     `.pt-page-translator-nops::before, .pt-page-translator-nops::after { content: none !important; }`,
-    `.${PENDING_CLASS} { animation: pt-pending-pulse .82s ease-in-out infinite !important; }`,
+    `.${PENDING_CLASS} { animation: pt-pending-pulse 1.12s ease-in-out infinite !important; }`,
     '@keyframes pt-pending-pulse {',
-    '0%, 100% { opacity: 0.96; }',
-    '50% { opacity: 0.48; }',
+    '0%, 100% { opacity: 0.94; filter: drop-shadow(0 0 0 rgba(94, 242, 255, 0)); }',
+    '50% { opacity: 0.72; filter: drop-shadow(0 0 3px rgba(94, 242, 255, 0.28)); }',
     '}',
-    `.${FADE_CLASS} { animation: pt-translation-reveal .46s ease-out both !important; }`,
+    `.${FADE_CLASS} { animation: pt-translation-reveal ${FADE_MS}ms cubic-bezier(.18, .78, .16, 1) both !important; }`,
     '@keyframes pt-translation-reveal {',
-    '0% { opacity: 0.28; filter: blur(1.2px); }',
-    '65% { opacity: 0.9; filter: blur(0.15px); }',
-    '100% { opacity: 1; filter: none; }',
+    '0% { opacity: 0.18; filter: blur(2px) drop-shadow(0 0 8px rgba(89, 236, 255, 0.78)); transform: translateY(2px); }',
+    '42% { opacity: 0.92; filter: blur(0.35px) drop-shadow(0 0 5px rgba(181, 128, 255, 0.48)); transform: translateY(0); }',
+    '100% { opacity: 1; filter: none; transform: none; }',
+    '}',
+    `.${SWEEP_CLASS} { --pt-p: 0; --pt-progress: 0%; z-index: 2147483646 !important; pointer-events: none !important; isolation: isolate !important; }`,
+    `.${SWEEP_CLASS} .pt-prev, .${SWEEP_CLASS} .pt-next { position: absolute !important; z-index: 1 !important; inset: 0 !important; display: block !important; box-sizing: border-box !important; width: 100% !important; height: 100% !important; margin: 0 !important; padding: 0 !important; border: 0 !important; }`,
+    `.${SWEEP_CLASS} .pt-prev { z-index: 0 !important; opacity: calc(1 - var(--pt-p)) !important; filter: blur(.35px) !important; }`,
+    `.${SWEEP_CLASS} .pt-next { color: transparent !important; -webkit-text-fill-color: transparent !important; background-color: transparent !important; background-image: linear-gradient(108deg, #46eaff 0%, #8f86ff 22%, #ff89d8 43%, #70ffd4 64%, #f9f39c 82%, #51dfff 100%) !important; background-size: 220% 100% !important; background-position: calc(100% - var(--pt-progress)) 50% !important; background-repeat: no-repeat !important; background-clip: text !important; -webkit-background-clip: text !important; clip-path: inset(0 calc(100% - var(--pt-progress)) 0 0) !important; filter: drop-shadow(0 0 5px rgba(89, 239, 255, .62)) !important; }`,
+    `.${SWEEP_CLASS}.pt-sweep-rtl .pt-next { background-position: var(--pt-progress) 50% !important; clip-path: inset(0 0 0 calc(100% - var(--pt-progress))) !important; }`,
+    `.${SWEEP_CLASS} .${EDGE_CLASS} { position: absolute !important; z-index: 3 !important; top: -34% !important; bottom: -34% !important; left: var(--pt-progress) !important; width: 14px !important; margin-left: -7px !important; pointer-events: none !important; background: linear-gradient(90deg, transparent 0%, rgba(64, 229, 255, .2) 24%, rgba(245, 255, 255, .98) 50%, rgba(196, 128, 255, .72) 74%, transparent 100%) !important; filter: drop-shadow(0 0 7px rgba(79, 241, 255, .9)) blur(.25px) !important; opacity: .98 !important; }`,
+    `.${SWEEP_CLASS} .${EDGE_CLASS}::before { content: "" !important; position: absolute !important; inset: -18px -26px !important; border-radius: 50% !important; background: radial-gradient(ellipse, rgba(115, 255, 239, .62), rgba(186, 125, 255, .3) 46%, transparent 76%) !important; filter: blur(8px) !important; }`,
+    `.${SWEEP_CLASS}.pt-sweep-rtl .${EDGE_CLASS} { left: auto !important; right: var(--pt-progress) !important; margin-left: 0 !important; margin-right: -7px !important; }`,
+    `.${PRISM_CLASS} { color: transparent !important; -webkit-text-fill-color: transparent !important; background-image: linear-gradient(102deg, var(--pt-ink) 0%, var(--pt-ink) 30%, #52e8ff 40%, #a789ff 48%, #ff91d4 55%, #74ffd4 63%, var(--pt-ink) 75%, var(--pt-ink) 100%) !important; background-size: 320% 100% !important; background-position: 100% 50% !important; background-repeat: no-repeat !important; background-clip: text !important; -webkit-background-clip: text !important; animation: pt-aurora-polish ${PRISM_MS}ms cubic-bezier(.18, .78, .15, 1) both !important; filter: drop-shadow(0 0 4px rgba(121, 244, 255, .62)) !important; }`,
+    '@keyframes pt-aurora-polish {',
+    '0% { background-position: 100% 50%; filter: drop-shadow(0 0 5px rgba(90, 239, 255, .86)); }',
+    '38% { background-position: 53% 50%; filter: drop-shadow(0 0 8px rgba(172, 133, 255, .58)); }',
+    '100% { background-position: 0% 50%; filter: none; }',
     '}',
     '@media (prefers-reduced-motion: reduce) {',
     `.${PENDING_CLASS} { animation: none !important; opacity: 0.74 !important; }`,
     `.${FADE_CLASS} { animation: none !important; opacity: 1 !important; filter: none !important; }`,
+    `.${SWEEP_CLASS} { display: none !important; }`,
+    `.${PRISM_CLASS} { animation: none !important; color: var(--pt-ink) !important; -webkit-text-fill-color: currentColor !important; background: none !important; filter: none !important; }`,
     '}',
   ].join('');
   const MAX_ITEMS = 24;
@@ -572,7 +589,7 @@
           element.classList.remove(REVEAL_CLASS);
         }
         decorated.delete(element);
-      }, 700);
+      }, FADE_MS + 160);
     }
 
     function clearPending(element, effect) {
@@ -975,6 +992,7 @@
       if (job.shown === next) return;
       job.shown = next;
       setCssVar(job.box, '--pt-p', String(next));
+      setCssVar(job.box, '--pt-progress', `${next * 100}%`);
       if (!job.box || !job.box.style) return;
       job.box.style.willChange = next > 0 && next < 1 ? 'clip-path' : '';
     }

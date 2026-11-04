@@ -343,6 +343,8 @@ chronoAccessButton.addEventListener("click", async () => {
     }
 });
 void syncChronoAccessButton();
+chrome.permissions.onAdded.addListener(() => void syncChronoAccessButton());
+chrome.permissions.onRemoved.addListener(() => void syncChronoAccessButton());
 stateFilter.addEventListener("change", render);
 typeFilter.addEventListener("change", render);
 ageFilter.addEventListener("change", render);

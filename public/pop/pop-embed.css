@@ -1,0 +1,34 @@
+html.bongextend-chrono-embedded,
+html.bongextend-chrono-embedded body {
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  overflow: hidden !important;
+}
+
+html.bongextend-chrono-embedded body {
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+html.bongextend-chrono-embedded #tot_wrap {
+  display: flex !important;
+  flex: 1 1 auto !important;
+  flex-direction: column !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+}
+
+html.bongextend-chrono-embedded #dlist_container {
+  flex: 1 1 auto !important;
+  width: 100% !important;
+  height: auto !important;
+  min-height: 0 !important;
+}
+
+html.bongextend-chrono-embedded #dlist_scrollable {
+  height: 100% !important;
+  max-height: none !important;
+}
