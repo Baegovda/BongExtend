@@ -267,40 +267,18 @@ async function until(check) {
   assert.equal(check(), true);
 }
 
-test('in-flight text glows, then a prism sweep reveals the translation', async () => {
+test('pending text only fades slightly and never paints a gradient', async () => {
   const source = readFileSync(new URL('../content/content.js', import.meta.url), 'utf8');
   assert.match(source, /prefers-reduced-motion:\s*reduce/);
   assert.match(source, /pt-page-translator-pending/);
-  assert.match(source, /pt-prism-glow/);
-  assert.match(source, /@property --pt-p/);
-  assert.match(source, /clip-path: inset\(0 calc\(\(1 - var\(--pt-p\)\) \* 100%\) 0 0\)/);
-  assert.match(source, /pt-sweep-rtl/);
-  assert.doesNotMatch(source, /pt-wiper-line/);
-  assert.doesNotMatch(source, /pt-page-translator-wiper/);
-  assert.doesNotMatch(source, /width: 100vw/);
-  assert.match(source, /pt-sweep-edge/);
-  assert.match(source, /width: 16px/);
-  assert.match(source, /left: calc\(var\(--pt-p\) \* 100%\)/);
-  assert.match(source, /right: calc\(var\(--pt-p\) \* 100%\)/);
-  assert.match(source, /#2a6e7a, #5568b0, #705a9e, #8f5a72, #7d6836/);
-  assert.match(source, /#9ad7e4, #c5d0f7, #e0d0f6, #f6d0e0, #f6e6c4/);
-  assert.match(source, /prefers-color-scheme:\s*dark/);
-  assert.match(source, /rgba\(85, 104, 176, 0\.62\)/);
-  assert.match(source, /rgba\(154, 215, 228, 0\.7\)/);
-  assert.doesNotMatch(source, /#0891b2|#7c3aed|#db2777/);
-  assert.match(source, /background-clip: text/);
-  assert.match(source, /pt-page-translator-prism/);
-  assert.match(source, /pt-prism-settle/);
-  assert.match(source, /PRISM_MS = 860/);
-  assert.match(source, /::selection/);
-  assert.match(source, /MAX_LIVE_PENDING = 8/);
-  assert.match(source, /pt-page-translator-pending-live/);
-  assert.match(source, /pt-page-translator-hold/);
+  assert.match(source, /pt-pending-pulse/);
+  assert.match(source, /opacity: 0\.72/);
+  assert.doesNotMatch(source, /linear-gradient/);
+  assert.doesNotMatch(source, /background-image/);
+  assert.doesNotMatch(source, /background-clip:\s*text/);
+  assert.doesNotMatch(source, /pt-prism-glow/);
   assert.doesNotMatch(source, /color:\s*transparent\s*!important/);
-  assert.doesNotMatch(source, /display:\s*none/);
-  assert.doesNotMatch(source, /visibility:\s*hidden/);
-  assert.doesNotMatch(source, /pt-scan-ltr/);
-  assert.doesNotMatch(source, /background-size: 45% 2px/);
+  assert.doesNotMatch(source, /#2a6e7a|#9ad7e4|#5568b0/);
 
   const root = element('div');
   const visible = element('a', {}, ['包邮']);
@@ -325,6 +303,7 @@ test('in-flight text glows, then a prism sweep reveals the translation', async (
   reducedSession.release();
   await reducedSession.session.whenIdle();
   assert.equal(reduced.classList.contains('pt-page-translator-fade'), true);
+  assert.equal(reduced.classList.contains('pt-page-translator-pending'), false);
   assert.equal(reduced.classList.contains('pt-page-translator-reveal'), false);
   assert.equal(reduced.classList.contains('pt-page-translator-prism'), false);
   assert.equal(reduced.childNodes[0].nodeValue, 'T:包邮');
@@ -464,62 +443,18 @@ test('each text box wipes horizontally without a page-wide scan line', async () 
     sendBatch: async (texts) => ({ ok: true, translations: texts.map((text) => `더긴번역${text}`) }),
   });
   session.start();
-  await until(() => frames.length === 1);
-  for (const node of nodes) assert.match(node.childNodes[0].nodeValue, /^글/);
-  assert.equal(nodes[0].classList.contains('pt-page-translator-pending'), true);
-  const live = nodes.filter((node) => node.classList.contains('pt-page-translator-pending-live'));
-  assert.equal(live.length, 8);
-
-  frames.shift()(clock);
-  assert.equal(reads.length, 10);
-  assert.ok(created.some((node) => String(node.className).includes('pt-page-translator-sweep')));
-  const sweeps = created.filter((node) => String(node.className).includes('pt-page-translator-sweep'));
-  assert.equal(sweeps.length, 10);
-  assert.match(sweeps[0].className, /pt-sweep-rtl/);
-  assert.equal(sweeps[0].children.length, 3);
-  assert.equal(sweeps[0].children[2].className, 'pt-sweep-edge');
-  assert.equal(sweeps[0].children[0].children[0].nodeValue, '글0');
-  assert.match(sweeps[0].children[1].children[0].nodeValue, /더긴번역/);
-  assert.equal(sweeps[0].style.top, '0px');
-  assert.equal(sweeps[0].style.width, '36px');
-  assert.equal(nodes[0].classList.contains('pt-page-translator-hold'), true);
-  assert.equal(nodes[0].classList.contains('pt-page-translator-pending'), false);
-  for (const node of nodes) assert.match(node.childNodes[0].nodeValue, /^글/);
-  assert.equal(created.some((node) => String(node.className).includes('pt-wiper-line')), false);
-
-  clock = api.WIPER_MS / 2;
-  frames.shift()(clock);
-  const topP = Number(sweeps[0].style['--pt-p']);
-  const bottomP = Number(sweeps[9].style['--pt-p']);
-  assert.equal(topP, bottomP);
-  assert.equal(topP > 0 && topP < 1, true);
-  for (const node of nodes) assert.match(node.childNodes[0].nodeValue, /^글/);
-
-  const sweepNode = sweeps[0];
-  session.emitMutations([{ type: 'childList', addedNodes: [sweepNode] }]);
-  session.emitMutations([{ type: 'characterData', target: sweepNode.children[0].children[0] }]);
-  assert.equal(nodes.filter((node) => node.childNodes[0].nodeValue.startsWith('글')).length, 10);
-
-  clock = api.WIPER_MS;
-  frames.shift()(clock);
-  for (const node of nodes) assert.match(node.childNodes[0].nodeValue, /^더긴번역글/);
-  assert.equal(nodes[0].classList.contains('pt-page-translator-hold'), false);
+  await session.whenIdle();
+  for (const node of nodes) {
+    assert.match(node.childNodes[0].nodeValue, /^더긴번역글/);
+    assert.equal(node.classList.contains('pt-page-translator-pending'), false);
+    assert.equal(node.classList.contains('pt-page-translator-hold'), false);
+  }
+  assert.equal(created.some((node) => String(node.className).includes('pt-page-translator-sweep')), false);
 
   session.toggleOriginal();
-  assert.match(nodes[0].childNodes[0].nodeValue, /^더긴번역/);
-  frames.shift()(clock);
-  const reverse = created.filter((node) => String(node.className).includes('pt-page-translator-sweep')).at(-1);
-  assert.equal(Number(reverse.style['--pt-p']), 1);
-  clock += api.WIPER_MS;
-  timers.filter((timer) => timer.ms === api.WIPER_MS).at(-1).fn();
-  while (frames.length) frames.shift()(clock);
   assert.equal(nodes[0].childNodes[0].nodeValue, '글0');
-
   session.setEnabled(true);
-  frames.shift()(clock);
-  assert.match(nodes[0].childNodes[0].nodeValue, /^글/);
-  clock += api.WIPER_MS;
-  timers.filter((timer) => timer.ms === api.WIPER_MS).at(-1).fn();
+  await session.whenIdle();
   assert.match(nodes[0].childNodes[0].nodeValue, /^더긴번역글/);
 });
 
@@ -594,40 +529,15 @@ test('the sweep edge stays inside the sentence and the new text settles to its o
     }),
   });
   session.start();
-  await until(() => frames.length === 1);
-  frames.shift()(clock);
-  const sweeps = created.filter((node) => String(node.className).includes('pt-page-translator-sweep'));
-  assert.equal(sweeps.length, 7);
-  const rtlSweep = sweeps.find((node) => String(node.className).includes('pt-sweep-rtl'));
-  assert.ok(rtlSweep);
-  assert.equal(rtlSweep.children.at(-1).className, 'pt-sweep-edge');
-  assert.equal(created.some((node) => String(node.className).includes('pt-wiper-line')), false);
-  assert.equal(link.classList.contains('pt-page-translator-prism'), false);
-  assert.equal(link.childNodes[0].nodeValue, 'Free shipping');
-
-  clock = api.WIPER_MS;
-  frames.shift()(clock);
+  await session.whenIdle();
+  assert.equal(created.some((node) => String(node.className).includes('pt-page-translator-sweep')), false);
   assert.equal(link.childNodes[0].nodeValue, '번역:Free shipping');
-  assert.equal(link.classList.contains('pt-page-translator-prism'), true);
-  assert.equal(link.classList.contains('pt-page-translator-hold'), false);
-  assert.equal(link.ink['--pt-ink'], 'rgb(29, 78, 216)');
-  assert.equal(plain.classList.contains('pt-page-translator-prism'), true);
-  assert.equal(plain.ink['--pt-ink'], 'rgb(17, 24, 39)');
-  assert.equal(painted.classList.contains('pt-page-translator-prism'), false);
-  assert.equal(painted.ink['--pt-ink'], undefined);
-  assert.equal(photo.classList.contains('pt-page-translator-prism'), false);
-  assert.equal(paragraph.classList.contains('pt-page-translator-prism'), false);
-  assert.equal(bold.classList.contains('pt-page-translator-prism'), true);
-  assert.equal(rtl.classList.contains('pt-page-translator-prism'), true);
-  assert.equal(Object.hasOwn(link.ink, 'color'), false);
-
-  session.setEnabled(false);
+  assert.equal(link.classList.contains('pt-page-translator-pending'), false);
   assert.equal(link.classList.contains('pt-page-translator-prism'), false);
-  assert.equal(plain.classList.contains('pt-page-translator-prism'), false);
-  assert.equal(bold.classList.contains('pt-page-translator-prism'), false);
-  assert.equal(link.ink['--pt-ink'], undefined);
-  assert.equal(plain.ink['--pt-ink'], undefined);
-  assert.equal(bold.ink['--pt-ink'], undefined);
+  assert.equal(painted.classList.contains('pt-page-translator-prism'), false);
+  assert.equal(bold.childNodes[0].nodeValue, '번역:world');
+  session.setEnabled(false);
+  assert.equal(link.childNodes[0].nodeValue, 'Free shipping');
 
   const quiet = [];
   const quietTimers = [];
@@ -662,7 +572,8 @@ test('the sweep edge stays inside the sentence and the new text settles to its o
   assert.equal(reduced.childNodes[0].nodeValue, '번역:Welcome');
   assert.equal(reduced.classList.contains('pt-page-translator-prism'), false);
   assert.equal(reduced.classList.contains('pt-page-translator-fade'), true);
-  assert.equal(quiet.some((node) => String(node.className).includes('pt-sweep-edge')), false);
+  assert.equal(reduced.classList.contains('pt-page-translator-pending'), false);
+  assert.equal(quiet.some((node) => String(node.className).includes('pt-page-translator-sweep')), false);
   assert.equal(reduced.ink['--pt-ink'], undefined);
 
   const offCreated = [];
@@ -727,17 +638,11 @@ test('the sweep edge stays inside the sentence and the new text settles to its o
     sendBatch: async (texts) => ({ ok: true, translations: texts.map((text) => `번역:${text}`) }),
   });
   settleSession.start();
-  await until(() => settleFrames.length === 1);
-  settleFrames.shift()(settleClock);
-  settleClock = settleApi.WIPER_MS;
-  settleFrames.shift()(settleClock);
-  assert.equal(settle.classList.contains('pt-page-translator-prism'), true);
-  const settleTimer = settleTimers.find((timer) => timer.ms === settleApi.PRISM_MS);
-  assert.ok(settleTimer);
-  settleTimer.fn();
+  await settleSession.whenIdle();
   assert.equal(settle.classList.contains('pt-page-translator-prism'), false);
-  assert.equal(settle.ink['--pt-ink'], undefined);
+  assert.equal(settle.classList.contains('pt-page-translator-pending'), false);
   assert.equal(settle.childNodes[0].nodeValue, '번역:Welcome');
+  assert.equal(settleCreated.some((node) => String(node.className).includes('pt-page-translator-sweep')), false);
 });
 
 test('a later chunk uses the same clip instead of popping into place', async () => {
@@ -770,8 +675,7 @@ test('a later chunk uses the same clip instead of popping into place', async () 
   });
   session.start();
   await session.whenIdle();
-  assert.equal(first.childNodes[0].nodeValue, '包邮');
-  assert.equal(timers.some((timer) => timer.ms === api.WIPER_MS), true);
+  assert.equal(first.childNodes[0].nodeValue, '번역包邮');
   const added = element('span', {
     rect: { top: 400, bottom: 418, left: 0, right: 40, width: 40, height: 18 },
   }, ['新款']);
@@ -780,15 +684,9 @@ test('a later chunk uses the same clip instead of popping into place', async () 
   await Promise.resolve();
   release();
   await session.whenIdle();
-  assert.equal(added.childNodes[0].nodeValue, '新款');
-  assert.equal(first.childNodes[0].nodeValue, '包邮');
-  const joined = created.filter((node) => String(node.className).includes('pt-page-translator-sweep'));
-  assert.equal(joined.length >= 2, true);
-  assert.match(joined.at(-1).children[1].children[0].nodeValue, /번역新款/);
-  clock = api.WIPER_MS;
-  timers.find((timer) => timer.ms === api.WIPER_MS).fn();
   assert.equal(added.childNodes[0].nodeValue, '번역新款');
   assert.equal(first.childNodes[0].nodeValue, '번역包邮');
+  assert.equal(created.some((node) => String(node.className).includes('pt-page-translator-sweep')), false);
 });
 
 test('one text rect is measured once and the overlay does not follow the parent box', async () => {
@@ -825,19 +723,10 @@ test('one text rect is measured once and the overlay does not follow the parent 
   });
   session.start();
   await session.whenIdle();
-  assert.equal(block.childNodes[0].nodeValue, '包邮AB');
-  assert.equal(rangeReads, 1);
-  const sweeps = created.filter((node) => String(node.className) === 'pt-page-translator-sweep');
-  assert.equal(sweeps.length, 1);
-  assert.equal(sweeps[0].style.top, '44px');
-  assert.equal(sweeps[0].style.left, '8px');
-  assert.equal(sweeps[0].style.width, '20px');
-  assert.equal(sweeps[0].children[0].children[0].nodeValue, '包邮AB');
-  assert.equal(sweeps[0].children[1].children[0].nodeValue, '번역包邮AB');
-  assert.equal(block.classList.contains('pt-page-translator-pending'), false);
-  timers.find((timer) => timer.ms === 680).fn();
   assert.equal(block.childNodes[0].nodeValue, '번역包邮AB');
-  assert.equal(rangeReads, 1);
+  assert.equal(block.classList.contains('pt-page-translator-pending'), false);
+  assert.equal(created.some((node) => String(node.className).includes('pt-page-translator-sweep')), false);
+  assert.equal(rangeReads, 0);
 });
 
 test('turning translation off restores originals and stops new batches', async () => {
@@ -1228,61 +1117,21 @@ test('the prism sweep keeps single-line slots and does not open a clamped title'
     }),
   });
   session.start();
-  await until(() => frames.length === 1);
-  frames.shift()(clock);
-  assert.equal(shop.childNodes[0].nodeValue, '旗舰店');
-  assert.equal(Object.keys(shop.locks).length, 0);
-  assert.equal(shop.classList.contains('pt-page-translator-hold'), true);
-  const sweeps = created.filter((node) => String(node.className).includes('pt-page-translator-sweep'));
-  assert.equal(sweeps.length, 4);
-  const shopSweep = sweeps.find((node) => node.children[1].children[0].nodeValue === '플래그십 스토어');
-  const titleSweep = sweeps.find((node) => node.children[1].children[0].nodeValue === '여름 신상 원피스');
-  const rtlSweep = sweeps.find((node) => String(node.className).includes('pt-sweep-rtl'));
-  const paragraphSweep = sweeps.find((node) => node.children[0].children[0].nodeValue === 'Hello');
-  assert.ok(shopSweep);
-  assert.equal(shopSweep.style.width, '160px');
-  assert.equal(shopSweep.style.height, '16px');
-  assert.equal(shopSweep.children[1].style.whiteSpace, 'nowrap');
-  assert.equal(shopSweep.children[1].style.textOverflow, 'ellipsis');
-  assert.ok(titleSweep);
-  assert.equal(titleSweep.style.width, '200px');
-  assert.equal(titleSweep.style.height, '44px');
-  assert.equal(titleSweep.children[1].style.whiteSpace, 'normal');
-  assert.ok(rtlSweep);
-  assert.equal(rtlSweep.children[1].style.direction, 'rtl');
-  assert.equal(rtlSweep.children[1].style.whiteSpace, 'nowrap');
-  assert.equal(rtlSweep.style.width, '120px');
-  assert.equal(paragraphSweep.style.width, '40px');
-  assert.equal(paragraphSweep.style.height, '16px');
-  assert.equal(paragraphSweep.children[1].style.whiteSpace, undefined);
-
-  clock = api.WIPER_MS;
-  frames.shift()(clock);
+  await session.whenIdle();
+  assert.equal(created.some((node) => String(node.className).includes('pt-page-translator-sweep')), false);
   assert.equal(shop.childNodes[0].nodeValue, '플래그십 스토어');
   assert.equal(shop.locks['white-space'], 'nowrap');
   assert.equal(shop.locks['min-width'], '0');
-  assert.equal(shop.classList.contains('pt-page-translator-prism'), true);
-  assert.equal(shop.classList.contains('pt-page-translator-hold'), false);
+  assert.equal(shop.classList.contains('pt-page-translator-pending'), false);
   assert.equal(title.childNodes[0].nodeValue, '여름 신상 원피스');
   assert.equal(title.locks['white-space'], undefined);
   assert.equal(title.locks['min-width'], '0');
-  assert.equal(title.classList.contains('pt-page-translator-prism'), false);
   assert.equal(rtl.childNodes[0].nodeValue, '안녕 하세요');
   assert.equal(rtl.locks['white-space'], 'nowrap');
-  assert.equal(rtl.classList.contains('pt-page-translator-prism'), true);
   assert.equal(paragraph.childNodes[0].nodeValue, '안녕 하세요');
   assert.equal(paragraph.locks['white-space'], undefined);
-  assert.equal(paragraph.locks['min-width'], undefined);
-  assert.equal(paragraph.locks['max-width'], undefined);
-  assert.equal(paragraph.classList.contains('pt-page-translator-prism'), true);
 
   session.setEnabled(false);
-  assert.equal(shop.childNodes[0].nodeValue, '플래그십 스토어');
-  assert.equal(shop.locks['white-space'], 'nowrap');
-  frames.shift()(clock);
-  clock += api.WIPER_MS;
-  timers.filter((timer) => timer.ms === api.WIPER_MS).at(-1).fn();
-  while (frames.length) frames.shift()(clock);
   assert.equal(shop.childNodes[0].nodeValue, '旗舰店');
   assert.equal(Object.keys(shop.locks).length, 0);
   assert.equal(rtl.childNodes[0].nodeValue, 'שלום');
@@ -1595,4 +1444,76 @@ test('a clipped chat bubble wraps the longer translation', async () => {
   assert.equal(bubble.locks.overflow, 'visible');
   assert.equal(bubble.locks.height, 'auto');
   assert.equal(bubble.locks['max-height'], 'none');
+});
+
+test('switching chats retranslates a reused text node and a replaced pane', async () => {
+  const api = loadContent();
+  const root = element('div');
+  const pane = element('div');
+  const hello = element('div', {}, ['您好']);
+  pane.append(hello);
+  root.append(pane);
+  let saw = false;
+  const session = api.createSession({
+    root,
+    walkRoot: root,
+    enableBanner: false,
+    revealAnimation: false,
+    IntersectionObserver: class {
+      constructor(callback) { this.callback = callback; }
+      observe(target) { this.target = target; }
+      disconnect() {}
+    },
+    MutationObserver: class { observe() {} disconnect() {} },
+    sendBatch: async (texts) => ({
+      ok: true,
+      translations: texts.map((text) => ({
+        您好: '안녕하세요',
+        '这边看下您已经支付订单了，会尽快给您安排下哈': '결제하신 주문을 확인했고, 곧 준비해 드릴게요',
+      }[text] || `번역:${text}`)),
+    }),
+  });
+  session.start();
+  await session.whenIdle();
+  assert.equal(hello.childNodes[0].nodeValue, '안녕하세요');
+
+  hello.childNodes[0].nodeValue = '这边看下您已经支付订单了，会尽快给您安排下哈';
+  session.emitMutations([{ type: 'characterData', target: hello.childNodes[0] }]);
+  await session.whenIdle();
+  assert.equal(hello.childNodes[0].nodeValue, '결제하신 주문을 확인했고, 곧 준비해 드릴게요');
+
+  pane.childNodes.length = 0;
+  const again = element('div', {}, ['您好']);
+  pane.append(again);
+  session.emitMutations([{ type: 'childList', target: pane, addedNodes: [again], removedNodes: [hello] }]);
+  await session.whenIdle();
+  assert.equal(again.childNodes[0].nodeValue, '안녕하세요');
+
+  const hidden = element('span', { rect: { top: 20, bottom: 40, left: 0, right: 80, width: 80, height: 20 } }, ['您好']);
+  root.append(hidden);
+  let observer;
+  const watched = api.createSession({
+    root,
+    walkRoot: root,
+    enableBanner: false,
+    revealAnimation: false,
+    IntersectionObserver: class {
+      constructor(callback) { observer = callback; }
+      observe() {}
+      disconnect() {}
+    },
+    MutationObserver: class { observe() {} disconnect() {} },
+    sendBatch: async (texts) => {
+      saw = texts.includes('新对话');
+      return { ok: true, translations: texts.map((text) => (text === '新对话' ? '새 대화' : text)) };
+    },
+  });
+  watched.start();
+  await watched.whenIdle();
+  if (observer) observer([{ target: hidden, isIntersecting: false }]);
+  hidden.childNodes[0].nodeValue = '新对话';
+  watched.emitMutations([{ type: 'characterData', target: hidden.childNodes[0] }]);
+  await watched.whenIdle();
+  assert.equal(saw, true);
+  assert.equal(hidden.childNodes[0].nodeValue, '새 대화');
 });
