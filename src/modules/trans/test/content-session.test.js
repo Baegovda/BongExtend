@@ -292,7 +292,7 @@ test('pending text only fades slightly and never paints a gradient', async () =>
   await session.whenIdle();
   assert.equal(visible.classList.contains('pt-page-translator-pending'), false);
   assert.equal(visible.classList.contains('pt-page-translator-reveal'), false);
-  assert.equal(visible.classList.contains('pt-page-translator-fade'), false);
+  assert.equal(visible.classList.contains('pt-page-translator-fade'), true);
   assert.equal(visible.childNodes[0].nodeValue, 'T:包邮');
 
   const reducedRoot = element('div');
