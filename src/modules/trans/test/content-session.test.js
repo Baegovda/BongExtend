@@ -267,18 +267,21 @@ async function until(check) {
   assert.equal(check(), true);
 }
 
-test('pending text only fades slightly and never paints a gradient', async () => {
+test('pending text breathes gently and aurora gradients are reserved for the reveal', async () => {
   const source = readFileSync(new URL('../content/content.js', import.meta.url), 'utf8');
   assert.match(source, /prefers-reduced-motion:\s*reduce/);
   assert.match(source, /pt-page-translator-pending/);
   assert.match(source, /pt-pending-pulse/);
-  assert.match(source, /opacity: 0\.48/);
-  assert.match(source, /opacity: 0\.96/);
-  assert.doesNotMatch(source, /linear-gradient/);
-  assert.doesNotMatch(source, /background-image/);
-  assert.doesNotMatch(source, /background-clip:\s*text/);
+  assert.match(source, /WIPER_MS = 1380/);
+  assert.match(source, /PRISM_MS = 1340/);
+  assert.match(source, /50% \{ opacity: 0\.72;/);
+  assert.match(source, /0%, 100% \{ opacity: 0\.94;/);
+  const pendingRule = source.match(/`\.\$\{PENDING_CLASS\} \{[^`]+`/)?.[0] || '';
+  assert.notEqual(pendingRule, '');
+  assert.doesNotMatch(pendingRule, /linear-gradient|background-image|background-clip/);
+  assert.match(source, /linear-gradient\(108deg, #46eaff/);
+  assert.match(source, /pt-aurora-polish/);
   assert.doesNotMatch(source, /pt-prism-glow/);
-  assert.doesNotMatch(source, /color:\s*transparent\s*!important/);
   assert.doesNotMatch(source, /#2a6e7a|#9ad7e4|#5568b0/);
 
   const root = element('div');
