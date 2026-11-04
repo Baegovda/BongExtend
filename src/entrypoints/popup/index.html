@@ -80,11 +80,13 @@
         <ul id="gmailList" class="mail-list" hidden></ul>
     </section>
     <section class="panel be-shell fx-panel" data-frame="fx" hidden>
-        <div class="be-title"><h3>환율</h3><span class="be-sub">하루 한 번 갱신</span></div>
+        <div class="be-title"><h3>환율</h3><span class="be-sub">자주 확인</span></div>
         <div class="fx-row">
             <input id="fxAmount" inputmode="decimal" type="number" value="10000" min="0" step="any" aria-label="금액">
+            <img id="fxFromIcon" class="fx-flag" alt="" width="22" height="22">
             <select id="fxFrom" aria-label="시작 통화"></select>
             <button id="fxSwap" type="button">바꾸기</button>
+            <img id="fxToIcon" class="fx-flag" alt="" width="22" height="22">
             <select id="fxTo" aria-label="바꿀 통화"></select>
         </div>
         <p id="fxResult" class="fx-result">계산 중…</p>

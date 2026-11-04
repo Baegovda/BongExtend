@@ -6,9 +6,11 @@ import {describeUpdateError, promiseWithTimeout, UPDATE_TIMEOUT_MESSAGE, UPDATE_
 // @ts-ignore 순수 JS
 import {getModules, setModuleEnabled} from "@/modules/core-modules.js";
 import {moveItem, normalizeTabOrder} from "@/core/popup/tabOrder";
+import {createPointerDrag, nearestSlot} from "@/core/popup/pointerDrag";
+import type {DragEnd} from "@/core/popup/pointerDrag";
 import {exportAllSettings, importSettingsText} from "@/modules/settings-io";
 // @ts-ignore 순수 JS
-import {COMMON_CODES, CURRENCY_TINT, FX_ORDER_KEY, FX_URL, convertAmount, currencyColor, currencyLabel, currencyName, formatMoney, fxTabBadge, isCacheFresh, orderCurrencyCards, parseRatePayload} from "@/modules/fx/convert.js";
+import {COMMON_CODES, CURRENCY_TINT, FX_FORM_KEY, FX_ORDER_KEY, FX_POPUP_REFRESH_MS, FX_URL, convertAmount, currencyCode, currencyColor, currencyIconPath, currencyLabel, currencyName, formatMoney, fxTabBadge, normalizeFxForm, orderCurrencyCards, parseRatePayload, shouldRefreshRates} from "@/modules/fx/convert.js";
 // @ts-ignore 순수 JS
 import {composite} from "@/modules/theme/contrast.js";
 // @ts-ignore 순수 JS
@@ -20,7 +22,9 @@ import {GMAIL_SOUND_KEY, SOUND_LABELS, SOUND_NAMES, defaultSound, normalizeSound
 // @ts-ignore 순수 JS
 import {createChromeEffects} from "@/platform/effects.js";
 // @ts-ignore 순수 JS
-import {gmailReadAccount, loadJson, openUrl, sendExtension} from "@/platform/popup-actions.js";
+import {gmailReadAccount, loadJson, openGmailPlace, openUrl, sendExtension} from "@/platform/popup-actions.js";
+// @ts-ignore 순수 JS
+import {gmailComposeUrl, gmailInboxUrl, gmailMessageUrl} from "@/modules/gmail/open.js";
 
 const effects = createChromeEffects();
 
@@ -93,6 +97,137 @@ const applyOrder = (order: TabId[]) => {
 const saveOrder = () => void effects.storageSet({[ORDER_KEY]: currentOrder()});
 
 let suppressClick = false;
+
+const bindPointerReorder = (opts: {
+    handle: HTMLElement;
+    item: HTMLElement;
+    list: HTMLElement;
+    live?: HTMLElement;
+    axis: "x" | "y";
+    ignore?: (target: EventTarget | null) => boolean;
+    onClick?: () => void;
+    onDrop?: () => void;
+}) => {
+    const drag = createPointerDrag({axis: opts.axis, threshold: 5});
+    const live = opts.live || opts.list;
+    let slot: HTMLElement | null = null;
+    let activeId: number | null = null;
+    let originLeft = 0;
+    let originTop = 0;
+    let listening = false;
+
+    const clearVisual = () => {
+        opts.item.classList.remove("dragging");
+        live.classList.remove("reordering");
+        opts.item.style.position = "";
+        opts.item.style.left = "";
+        opts.item.style.top = "";
+        opts.item.style.width = "";
+        opts.item.style.height = "";
+        opts.item.style.transform = "";
+        opts.item.style.zIndex = "";
+        opts.item.style.margin = "";
+        if (slot?.parentElement) slot.replaceWith(opts.item);
+        slot = null;
+    };
+    const moveSlot = (client: number) => {
+        if (!slot) return;
+        const others = [...opts.list.children].filter((el) => el !== opts.item && el !== slot) as HTMLElement[];
+        const mids = others.map((el) => {
+            const box = el.getBoundingClientRect();
+            return opts.axis === "x" ? box.left + box.width / 2 : box.top + box.height / 2;
+        });
+        const before = others[nearestSlot(mids, client)] || null;
+        const tops = new Map(others.map((el) => [el, opts.axis === "x" ? el.getBoundingClientRect().left : el.getBoundingClientRect().top]));
+        let moved = false;
+        if (before) {
+            if (slot.nextElementSibling !== before) { opts.list.insertBefore(slot, before); moved = true; }
+        } else if (opts.list.lastElementChild !== slot) {
+            opts.list.appendChild(slot);
+            moved = true;
+        }
+        if (!moved || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+        for (const [el, prev] of tops) {
+            const now = opts.axis === "x" ? el.getBoundingClientRect().left : el.getBoundingClientRect().top;
+            const delta = prev - now;
+            if (!delta) continue;
+            const prop = opts.axis === "x" ? "translateX" : "translateY";
+            el.animate([{transform: `${prop}(${delta}px)`}, {transform: "none"}], {duration: 180, easing: "cubic-bezier(0.25, 0.1, 0.25, 1)"});
+        }
+    };
+    const detach = () => {
+        if (!listening) return;
+        listening = false;
+        window.removeEventListener("pointermove", onMove);
+        window.removeEventListener("pointerup", onUp);
+        window.removeEventListener("pointercancel", onCancel);
+        window.removeEventListener("blur", onBlur);
+        document.removeEventListener("pointerleave", onLeave, true);
+    };
+    const finish = (result: DragEnd | null) => {
+        if (!result) return;
+        const id = activeId;
+        activeId = null;
+        try { if (id != null) opts.handle.releasePointerCapture(id); } catch { /* 이미 풀린 포인터 */ }
+        detach();
+        clearVisual();
+        if (result === "drop") opts.onDrop?.();
+        else if (result === "click") opts.onClick?.();
+    };
+    const onMove = (ev: PointerEvent) => {
+        const step = drag.move(ev);
+        if (step === "ignore" || step === "pending") return;
+        ev.preventDefault();
+        if (step === "start") {
+            const rect = opts.item.getBoundingClientRect();
+            originLeft = rect.left;
+            originTop = rect.top;
+            slot = document.createElement("div");
+            slot.className = "drag-slot";
+            slot.style.width = `${rect.width}px`;
+            slot.style.height = `${rect.height}px`;
+            opts.item.before(slot);
+            opts.item.classList.add("dragging");
+            live.classList.add("reordering");
+            opts.item.style.position = "fixed";
+            opts.item.style.margin = "0";
+            opts.item.style.zIndex = "40";
+            opts.item.style.width = `${rect.width}px`;
+            opts.item.style.height = `${rect.height}px`;
+            opts.item.style.transform = "none";
+            opts.item.style.left = `${rect.left}px`;
+            opts.item.style.top = `${rect.top}px`;
+        }
+        opts.item.style.left = `${originLeft + (ev.clientX - drag.originX)}px`;
+        opts.item.style.top = `${originTop + (ev.clientY - drag.originY)}px`;
+        moveSlot(opts.axis === "x" ? ev.clientX : ev.clientY);
+    };
+    const onUp = (ev: PointerEvent) => finish(drag.up(ev));
+    const onCancel = (ev?: Event) => {
+        const pointerId = ev && "pointerId" in ev ? (ev as PointerEvent).pointerId : undefined;
+        finish(drag.cancel(pointerId == null ? undefined : {pointerId}));
+    };
+    const onBlur = () => finish(drag.cancel());
+    const onLeave = (ev: PointerEvent) => {
+        if (ev.relatedTarget != null) return;
+        finish(drag.cancel());
+    };
+    opts.handle.addEventListener("pointerdown", (ev) => {
+        if (opts.ignore?.(ev.target)) return;
+        if (!drag.down(ev)) return;
+        ev.preventDefault();
+        activeId = ev.pointerId;
+        try { opts.handle.setPointerCapture(ev.pointerId); } catch { /* 포인터가 이미 떠남 */ }
+        if (listening) return;
+        listening = true;
+        window.addEventListener("pointermove", onMove);
+        window.addEventListener("pointerup", onUp);
+        window.addEventListener("pointercancel", onCancel);
+        window.addEventListener("blur", onBlur);
+        document.addEventListener("pointerleave", onLeave, true);
+    });
+};
+
 tabButtons().forEach((b) => {
     b.addEventListener("click", (e) => {
         if (suppressClick) { e.preventDefault(); e.stopImmediatePropagation(); suppressClick = false; return; }
@@ -107,52 +242,18 @@ tabButtons().forEach((b) => {
         b.focus();
         saveOrder();
     });
-    b.addEventListener("pointerdown", (e) => {
-        if (e.button !== 0) return;
-        const startX = e.clientX;
-        let dragging = false;
-        const onMove = (ev: PointerEvent) => {
-            const dx = ev.clientX - startX;
-            if (!dragging) {
-                if (Math.abs(dx) < 5) return;
-                dragging = true;
-                b.setPointerCapture(ev.pointerId);
-                b.classList.add("dragging");
-                tabsNav.classList.add("reordering");
-            }
-            // 위치가 바뀌면 끌던 탭이 손가락을 따라오도록 transform 기준점을 다시 잡는다.
-            b.style.transform = "";
-            const others = tabButtons().filter((x) => x !== b);
-            const before = others.find((x) => { const r = x.getBoundingClientRect(); return ev.clientX < r.left + r.width / 2; });
-            const prevLeft = b.getBoundingClientRect().left;
-            const first = new Map(others.map((x) => [x, x.getBoundingClientRect().left]));
-            if (before) { if (b.nextElementSibling !== before) tabGroup.insertBefore(b, before); }
-            else if (tabGroup.lastElementChild !== b) tabGroup.appendChild(b);
-            // 이웃 탭이 부드럽게 밀려나는 애니메이션 (FLIP)
-            for (const [x, left] of first) {
-                const d = left - x.getBoundingClientRect().left;
-                if (d) x.animate([{transform: `translateX(${d}px)`}, {transform: "none"}], {duration: 150, easing: "ease-out"});
-            }
-            const shift = b.getBoundingClientRect().left - prevLeft;
-            (b as any)._base = ((b as any)._base ?? startX) + shift;
-            b.style.transform = `translateX(${ev.clientX - (b as any)._base}px)`;
-        };
-        const onUp = () => {
-            b.removeEventListener("pointermove", onMove);
-            b.removeEventListener("pointerup", onUp);
-            b.removeEventListener("pointercancel", onUp);
-            delete (b as any)._base;
-            if (!dragging) return;
-            b.classList.remove("dragging");
-            tabsNav.classList.remove("reordering");
-            b.style.transform = "";
+    bindPointerReorder({
+        handle: b,
+        item: b,
+        list: tabGroup,
+        live: tabsNav,
+        axis: "x",
+        onClick: () => { void showTab(b.dataset.tab as TabId); },
+        onDrop: () => {
             suppressClick = true;
             setTimeout(() => { suppressClick = false; }, 0);
             saveOrder();
-        };
-        b.addEventListener("pointermove", onMove);
-        b.addEventListener("pointerup", onUp);
-        b.addEventListener("pointercancel", onUp);
+        }
     });
 });
 // 로고 더블클릭 = 기본 순서로 되돌리기
@@ -369,71 +470,30 @@ const saveMailOrder = () => {
     void effects.storageSet({[ACCOUNT_ORDER_KEY]: order});
 };
 
-const bindMailDrag = (section: HTMLElement, head: HTMLElement) => {
-    head.addEventListener("pointerdown", (event) => {
-        if (event.button !== 0 || (event.target as Element).closest("button")) return;
-        const startY = event.clientY;
-        let dragging = false;
-        const onMove = (ev: PointerEvent) => {
-            if (!dragging) {
-                if (Math.abs(ev.clientY - startY) < 6) return;
-                dragging = true;
-                head.setPointerCapture(ev.pointerId);
-                section.classList.add("dragging");
-                gmailAccounts.classList.add("reordering");
-            }
-            section.style.transform = "";
-            const others = [...gmailAccounts.querySelectorAll<HTMLElement>(".mail-section")].filter((item) => item !== section);
-            const before = others.find((item) => {
-                const box = item.getBoundingClientRect();
-                return ev.clientY < box.top + box.height / 2;
-            });
-            const prevTop = section.getBoundingClientRect().top;
-            const first = new Map(others.map((item) => [item, item.getBoundingClientRect().top]));
-            if (before) {
-                if (section.nextElementSibling !== before) gmailAccounts.insertBefore(section, before);
-            } else if (gmailAccounts.lastElementChild !== section) gmailAccounts.appendChild(section);
-            const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-            if (!reduce) {
-                for (const [item, top] of first) {
-                    const delta = top - item.getBoundingClientRect().top;
-                    if (delta) item.animate([{transform: `translateY(${delta}px)`}, {transform: "none"}], {duration: 250, easing: MAIL_EASE});
-                }
-            }
-            const shift = section.getBoundingClientRect().top - prevTop;
-            const base = ((section as HTMLElement & {_base?: number})._base ?? startY) + shift;
-            (section as HTMLElement & {_base?: number})._base = base;
-            section.style.transform = `translateY(${ev.clientY - base}px)`;
-        };
-        const onUp = () => {
-            head.removeEventListener("pointermove", onMove);
-            head.removeEventListener("pointerup", onUp);
-            head.removeEventListener("pointercancel", onUp);
-            delete (section as HTMLElement & {_base?: number})._base;
-            if (!dragging) return;
-            const from = section.style.transform;
-            section.classList.remove("dragging");
-            gmailAccounts.classList.remove("reordering");
-            section.style.transform = "";
-            if (from && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-                section.animate([{transform: from}, {transform: "none"}], {duration: 250, easing: MAIL_EASE});
-            }
-            saveMailOrder();
-        };
-        head.addEventListener("pointermove", onMove);
-        head.addEventListener("pointerup", onUp);
-        head.addEventListener("pointercancel", onUp);
+const openMailPlace = (account: GmailAccount, url?: string) => {
+    void openGmailPlace(effects, {index: account.index, email: account.email, url});
+};
+
+const bindMailDrag = (section: HTMLElement, head: HTMLElement, account: GmailAccount) => {
+    bindPointerReorder({
+        handle: head,
+        item: section,
+        list: gmailAccounts,
+        axis: "y",
+        ignore: (target) => Boolean((target as Element | null)?.closest?.("button, a")),
+        onClick: () => openMailPlace(account, gmailInboxUrl(account.index, account.email)),
+        onDrop: () => saveMailOrder()
     });
 };
 
-const readMark = () => {
+const lineIcon = (d: string) => {
     const icon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     icon.setAttribute("viewBox", "0 0 24 24");
     icon.setAttribute("width", "16");
     icon.setAttribute("height", "16");
     icon.setAttribute("aria-hidden", "true");
     const mark = document.createElementNS("http://www.w3.org/2000/svg", "path");
-    mark.setAttribute("d", "M5 12.5 9.2 17 19 7");
+    mark.setAttribute("d", d);
     mark.setAttribute("fill", "none");
     mark.setAttribute("stroke", "currentColor");
     mark.setAttribute("stroke-width", "2.2");
@@ -459,7 +519,7 @@ const renderGmail = (snapshot: GmailSnapshot | null | undefined, error = "") => 
         section.style.setProperty("--account-accent", color);
         const head = document.createElement("div");
         head.className = "mail-head";
-        head.title = "끌어서 순서 바꾸기";
+        head.title = "누르면 받은편지함, 끌면 순서";
         const avatar = document.createElement("span");
         avatar.className = "mail-avatar";
         const photo = gmailPhotos[email.toLowerCase()];
@@ -480,15 +540,28 @@ const renderGmail = (snapshot: GmailSnapshot | null | undefined, error = "") => 
         count.textContent = unreadCount > 99 ? "99+" : String(unreadCount);
         count.hidden = unreadCount <= 0;
         count.setAttribute("aria-label", `읽지 않은 메일 ${unreadCount}통`);
-        const readAll = document.createElement("button");
-        readAll.type = "button";
-        readAll.className = "mail-read";
-        readAll.title = "모두 읽음";
-        readAll.setAttribute("aria-label", "모두 읽음");
-        readAll.disabled = !(item.messages || []).length;
-        readAll.append(readMark());
-        readAll.addEventListener("click", () => void readAccount(item.index));
-        head.append(avatar, who, count, readAll);
+        const quick = document.createElement("div");
+        quick.className = "mail-quick";
+        const quickButton = (label: string, icon: Node, run: () => void) => {
+            const button = document.createElement("button");
+            button.type = "button";
+            button.className = "mail-quick-btn";
+            button.title = label;
+            button.setAttribute("aria-label", label);
+            button.append(icon);
+            button.addEventListener("click", (event) => {
+                event.stopPropagation();
+                run();
+            });
+            quick.append(button);
+            return button;
+        };
+        quickButton("새 메일", lineIcon("M4 20h4L18.5 9.5a2.1 2.1 0 0 0-3-3L5 17z"), () => openMailPlace(item, gmailComposeUrl(item.index, item.email)));
+        quickButton("받은편지함", lineIcon("M4 13h4l2 3h4l2-3h4v5H4zM4 13l2-7h12l2 7"), () => openMailPlace(item, gmailInboxUrl(item.index, item.email)));
+        const markAll = quickButton("모두 읽음", lineIcon("M5 12.5 9.2 17 19 7"), () => void readAccount(item.index));
+        markAll.disabled = !(item.messages || []).length;
+        quickButton("새로고침", lineIcon("M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5"), () => void refreshGmail(true));
+        head.append(avatar, who, count, quick);
         const list = document.createElement("ul");
         list.className = "mail-list";
         for (const message of item.messages || []) {
@@ -533,15 +606,20 @@ const renderGmail = (snapshot: GmailSnapshot | null | undefined, error = "") => 
                 url.searchParams.set("tf", "1");
                 if (message.fromEmail) url.searchParams.set("to", message.fromEmail);
                 url.searchParams.set("su", message.subject.startsWith("Re:") ? message.subject : `Re: ${message.subject}`);
-                void openUrl(effects, `https://mail.google.com/mail/u/${item.index}/${url.search}`);
+                openMailPlace(item, `https://mail.google.com/mail/u/${item.index}/${url.search}${item.email ? `${url.search ? "&" : "?"}authuser=${encodeURIComponent(item.email)}` : ""}`);
             });
-            add("열기", () => { if (message.link) void openUrl(effects, message.link); });
+            const openMessage = () => openMailPlace(item, gmailMessageUrl(item.index, item.email, message.link, message.thread));
+            add("열기", openMessage);
+            li.addEventListener("click", (event) => {
+                if ((event.target as Element).closest("button")) return;
+                openMessage();
+            });
             li.append(line, from, email, snippet, actions);
             list.append(li);
         }
         section.append(head);
         if ((item.messages || []).length) section.append(list);
-        bindMailDrag(section, head);
+        bindMailDrag(section, head, item);
         gmailAccounts.appendChild(section);
     }
     const messages = accounts.reduce((sum, item) => sum + (item.messages || []).length, 0);
@@ -831,6 +909,31 @@ const fxStatus = $("fxStatus");
 let fxTable: FxTable | null = null;
 let fxCardOrder: string[] = [];
 let fxDragged = false;
+let fxFormReady = false;
+let savedForm = normalizeFxForm(null) as {amount: string; from: string; to: string};
+
+const rememberFxForm = () => {
+    savedForm = normalizeFxForm({amount: fxAmount.value, from: fxFrom.value, to: fxTo.value}) as {amount: string; from: string; to: string};
+    if (!fxFormReady) return;
+    void effects.storageSet({[FX_FORM_KEY]: savedForm});
+};
+
+const paintUnitIcons = () => {
+    const paint = (id: string, code: string) => {
+        const img = $<HTMLImageElement>(id);
+        if (!img) return;
+        const path = currencyIconPath(code) as string;
+        if (!path) {
+            img.hidden = true;
+            img.removeAttribute("src");
+            return;
+        }
+        img.hidden = false;
+        img.src = effects.getURL(path);
+    };
+    paint("fxFromIcon", fxFrom.value);
+    paint("fxToIcon", fxTo.value);
+};
 
 const paintFxBadge = (rates: Record<string, number> | undefined) => {
     const badge = $("fxBadge");
@@ -845,7 +948,7 @@ const fxSurface = () => window.matchMedia("(prefers-color-scheme: light)").match
 const fillFxSelects = (codes: string[]) => {
     const have = new Set(codes);
     const ordered = [...(COMMON_CODES as string[]).filter((code) => have.has(code)), ...codes.filter((code) => !(COMMON_CODES as string[]).includes(code)).sort()];
-    const selected = {from: fxFrom.value || "krw", to: fxTo.value || "usd"};
+    const form = normalizeFxForm({amount: savedForm.amount, from: savedForm.from, to: savedForm.to}, ordered) as {amount: string; from: string; to: string};
     for (const select of [fxFrom, fxTo]) {
         select.replaceChildren();
         for (const code of ordered) {
@@ -855,8 +958,11 @@ const fillFxSelects = (codes: string[]) => {
             select.appendChild(option);
         }
     }
-    fxFrom.value = ordered.includes(selected.from) ? selected.from : ordered[0] || "";
-    fxTo.value = ordered.includes(selected.to) ? selected.to : (ordered.find((code) => code !== fxFrom.value) || ordered[0] || "");
+    fxAmount.value = form.amount;
+    fxFrom.value = ordered.includes(form.from) ? form.from : ordered[0] || "";
+    fxTo.value = ordered.includes(form.to) ? form.to : (ordered.find((code) => code !== fxFrom.value) || ordered[0] || "");
+    savedForm = {amount: fxAmount.value, from: fxFrom.value, to: fxTo.value};
+    paintUnitIcons();
 };
 
 const renderFx = () => {
@@ -882,71 +988,65 @@ const renderFx = () => {
         const flag = currencyColor(code) as string;
         button.style.setProperty("--fx-flag", flag);
         button.style.background = composite(flag, surface, CURRENCY_TINT) as string;
+        const top = document.createElement("span");
+        top.className = "fx-chip-top";
+        const icon = document.createElement("img");
+        icon.className = "fx-flag";
+        icon.alt = "";
+        const iconPath = currencyIconPath(code) as string;
+        if (iconPath) icon.src = effects.getURL(iconPath);
+        else icon.hidden = true;
+        const names = document.createElement("span");
+        names.className = "fx-chip-names";
         const name = document.createElement("small");
         name.textContent = currencyName(code) as string;
+        const iso = document.createElement("em");
+        iso.className = "fx-code";
+        iso.textContent = currencyCode(code) as string;
+        names.append(name, iso);
+        top.append(icon, names);
         const money = document.createElement("b");
         money.textContent = formatMoney(other, code);
-        button.append(name, money);
-        button.addEventListener("click", () => {
-            if (fxDragged) return;
-            if ([...fxTo.options].some((option) => option.value === code)) fxTo.value = code;
-            renderFx();
+        button.append(top, money);
+        bindPointerReorder({
+            handle: button,
+            item: button,
+            list: fxMore,
+            axis: "y",
+            onClick: () => {
+                if ([...fxTo.options].some((option) => option.value === code)) fxTo.value = code;
+                rememberFxForm();
+                renderFx();
+            },
+            onDrop: () => {
+                fxDragged = true;
+                setTimeout(() => { fxDragged = false; }, 0);
+                fxCardOrder = [...fxMore.querySelectorAll<HTMLElement>("[data-code]")].map((el) => el.dataset.code || "").filter(Boolean);
+                void effects.storageSet({[FX_ORDER_KEY]: fxCardOrder});
+            }
         });
-        bindFxDrag(button);
         fxMore.appendChild(button);
     }
-    fxStatus.textContent = fxTable.date ? `${fxTable.date} 시세 · 실시간은 아니에요` : "하루 한 번 바뀌는 시세예요";
-};
-
-const bindFxDrag = (button: HTMLButtonElement) => {
-    button.addEventListener("pointerdown", (event) => {
-        if (event.button !== 0) return;
-        const startY = event.clientY;
-        let dragging = false;
-        const onMove = (ev: PointerEvent) => {
-            if (!dragging) {
-                if (Math.abs(ev.clientY - startY) < 6) return;
-                dragging = true;
-                button.setPointerCapture(ev.pointerId);
-                fxMore.classList.add("reordering");
-                button.classList.add("dragging");
-            }
-            const others = [...fxMore.children].filter((el) => el !== button) as HTMLElement[];
-            const before = others.find((el) => {
-                const rect = el.getBoundingClientRect();
-                return ev.clientY < rect.top + rect.height / 2;
-            });
-            if (before) fxMore.insertBefore(button, before);
-            else fxMore.appendChild(button);
-        };
-        const onUp = () => {
-            button.removeEventListener("pointermove", onMove);
-            button.removeEventListener("pointerup", onUp);
-            button.removeEventListener("pointercancel", onUp);
-            if (!dragging) return;
-            fxDragged = true;
-            setTimeout(() => { fxDragged = false; }, 0);
-            button.classList.remove("dragging");
-            fxMore.classList.remove("reordering");
-            fxCardOrder = [...fxMore.querySelectorAll<HTMLElement>("[data-code]")].map((el) => el.dataset.code || "").filter(Boolean);
-            void effects.storageSet({[FX_ORDER_KEY]: fxCardOrder});
-        };
-        button.addEventListener("pointermove", onMove);
-        button.addEventListener("pointerup", onUp);
-        button.addEventListener("pointercancel", onUp);
-    });
+    paintUnitIcons();
+    fxStatus.textContent = fxTable.date ? `${fxTable.date} 시세 · 팝업이 열려 있는 동안 자주 다시 받아요` : "팝업이 열려 있는 동안 자주 다시 받아요";
 };
 
 const refreshFx = async () => {
     const stored = await effects.storageGet(FX_KEY);
     const cached = stored[FX_KEY] as FxTable | undefined;
-    if (cached?.rates && isCacheFresh(cached.fetchedAt)) {
+    const showCached = (note = "") => {
+        if (!cached?.rates) return false;
         fxTable = cached;
         fillFxSelects(Object.keys(cached.rates).sort());
         renderFx();
+        if (note) fxStatus.textContent = note;
+        return true;
+    };
+    if (cached?.rates && !shouldRefreshRates(cached.fetchedAt, Date.now(), FX_POPUP_REFRESH_MS)) {
+        showCached();
         return;
     }
-    fxStatus.textContent = "환율표를 받는 중…";
+    if (!fxTable) fxStatus.textContent = "환율표를 받는 중…";
     try {
         const parsed = parseRatePayload(await loadJson(effects, FX_URL)) as FxTable | null;
         if (!parsed) throw new Error("표 형식");
@@ -956,13 +1056,7 @@ const refreshFx = async () => {
         renderFx();
         paintFxBadge(parsed.rates);
     } catch (error) {
-        if (cached?.rates) {
-            fxTable = cached;
-            fillFxSelects(Object.keys(cached.rates).sort());
-            renderFx();
-            fxStatus.textContent = "새 시세를 받지 못해 저장해 둔 표를 보여 줘요.";
-            return;
-        }
+        if (showCached("새 시세를 받지 못해 저장해 둔 표를 보여 줘요.")) return;
         fxResult.textContent = "환율표를 받지 못했어요.";
         fxStatus.textContent = (error as Error)?.message || "";
     }
@@ -1015,19 +1109,31 @@ rightClick.addEventListener("click", async () => {
 });
 void syncRightClick();
 
-fxAmount.addEventListener("input", renderFx);
-fxFrom.addEventListener("change", renderFx);
-fxTo.addEventListener("change", renderFx);
+fxAmount.addEventListener("input", () => { rememberFxForm(); renderFx(); });
+fxFrom.addEventListener("change", () => { rememberFxForm(); renderFx(); });
+fxTo.addEventListener("change", () => { rememberFxForm(); renderFx(); });
 $("fxSwap").addEventListener("click", () => {
     const next = fxFrom.value;
     fxFrom.value = fxTo.value;
     fxTo.value = next;
+    rememberFxForm();
     renderFx();
 });
+window.setInterval(() => {
+    if (document.visibilityState === "hidden") return;
+    void refreshFx();
+}, FX_POPUP_REFRESH_MS);
 window.matchMedia("(prefers-color-scheme: light)").addEventListener("change", () => { if (fxTable) renderFx(); });
-effects.storageGet([FX_KEY, FX_ORDER_KEY]).then((stored: Record<string, unknown>) => {
+effects.storageGet([FX_KEY, FX_ORDER_KEY, FX_FORM_KEY]).then((stored: Record<string, unknown>) => {
     const cached = stored[FX_KEY] as FxTable | undefined;
     fxCardOrder = Array.isArray(stored[FX_ORDER_KEY]) ? stored[FX_ORDER_KEY] as string[] : [];
+    savedForm = normalizeFxForm(stored[FX_FORM_KEY]) as {amount: string; from: string; to: string};
+    fxAmount.value = savedForm.amount;
+    fxFormReady = true;
     paintFxBadge(cached?.rates);
-    if (fxTable) renderFx();
+    if (cached?.rates) {
+        fxTable = fxTable || cached;
+        fillFxSelects(Object.keys(fxTable.rates).sort());
+        renderFx();
+    }
 });

@@ -31,9 +31,15 @@ html.embed, html.embed body { width: 100%; height: 100%; overflow: auto; }
 .fx-panel .fx-row input { width: 112px; flex: 0 0 auto; }
 .fx-panel .fx-result { margin: 8px 0; font-size: 26px; }
 .fx-board { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.fx-flag { width: 22px; height: 22px; border-radius: 50%; object-fit: cover; flex: 0 0 auto; background: var(--be-surface-3); box-shadow: 0 0 0 1px color-mix(in srgb, var(--be-text) 14%, transparent); }
+.fx-flag[hidden] { display: none; }
+.fx-chip-top { display: flex; align-items: center; gap: 8px; width: 100%; min-width: 0; }
+.fx-chip-top .fx-flag { width: 28px; height: 28px; }
+.fx-chip-names { display: flex; flex-direction: column; min-width: 0; }
+.fx-code { font-style: normal; font-size: 11px; font-weight: 700; letter-spacing: 0.04em; color: var(--be-muted); }
 .be-page .fx-chip { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; width: 100%; min-height: 58px; padding: 8px 10px; border-radius: 14px; text-align: left; cursor: grab; touch-action: none; box-shadow: inset 3px 0 0 var(--fx-flag, var(--be-accent)); }
 .fx-board.reordering .fx-chip { cursor: grabbing; }
-.fx-chip.dragging { position: relative; z-index: 2; }
+.fx-chip.dragging { z-index: 40; box-shadow: 0 10px 24px rgba(0,0,0,.28); }
 .be-page .fx-chip.on { box-shadow: inset 3px 0 0 var(--fx-flag, var(--be-accent)), inset 0 0 0 1.5px var(--be-text); }
 .fx-chip small { color: var(--be-text-2); font-size: 12px; font-weight: 600; }
 .fx-chip b { font-size: 15px; font-weight: 700; letter-spacing: -0.02em; }
@@ -68,10 +74,16 @@ html.embed, html.embed body { width: 100%; height: 100%; overflow: auto; }
 .mail-accounts { display: flex; flex-direction: column; gap: 14px; margin-top: 2px; }
 .mail-accounts[hidden] { display: none; }
 .mail-section { --account-accent: var(--be-accent); }
-.mail-head { display: flex; align-items: center; gap: 10px; margin: 0; padding: 8px 10px; border-radius: 14px; background: var(--be-surface); cursor: grab; touch-action: none; }
+.mail-head, .mail-who, .mail-who strong { user-select: none; -webkit-user-select: none; }
+.mail-head { display: flex; align-items: center; gap: 10px; margin: 0; padding: 8px 10px; border-radius: 14px; background: var(--be-surface); cursor: pointer; touch-action: none; }
 .mail-section:not(:has(.mail-list)) .mail-head { box-shadow: inset 3px 0 0 var(--account-accent, var(--be-accent)); }
-.mail-accounts.reordering .mail-head { cursor: grabbing; }
-.mail-section.dragging { position: relative; z-index: 3; opacity: .96; }
+.mail-accounts.reordering, .mail-accounts.reordering * { user-select: none; -webkit-user-select: none; cursor: grabbing; }
+.mail-section.dragging { z-index: 40; opacity: .98; box-shadow: 0 10px 24px rgba(0,0,0,.28); }
+.mail-quick { display: flex; gap: 2px; opacity: 0; }
+.mail-head:hover .mail-quick, .mail-head:focus-within .mail-quick { opacity: 1; }
+.be-page .mail-quick button { width: 28px; height: 28px; padding: 0; border-radius: 8px; display: grid; place-items: center; background: var(--be-bg); color: var(--be-text-2); }
+.mail-item { cursor: pointer; }
+.drag-slot { border-radius: 12px; background: color-mix(in srgb, var(--be-accent) 16%, transparent); pointer-events: none; }
 .mail-avatar { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; overflow: hidden; flex: 0 0 auto; color: #fff; font-size: 15px; font-weight: 700; background: var(--account-accent); box-shadow: 0 0 0 2px var(--be-bg), 0 0 0 4px var(--account-accent); }
 .mail-head .mail-avatar { color: #fff; }
 .mail-avatar img { width: 100%; height: 100%; object-fit: cover; }
@@ -125,4 +137,4 @@ iframe.active { display: block; }
 .tabs.order-pending button[data-tab] { visibility: hidden; }
 .be-page .tabs button[data-tab] { cursor: grab; user-select: none; touch-action: none; }
 .tabs.reordering, .tabs.reordering button { cursor: grabbing !important; }
-.be-page .tabs button.dragging { z-index: 2; opacity: .95; color: var(--be-text); background: var(--be-surface-2); border-radius: var(--be-radius-sm); box-shadow: 0 6px 16px rgba(0,0,0,.45), inset 0 0 0 1px var(--be-accent); }
+.be-page .tabs button.dragging { z-index: 40; opacity: .98; color: var(--be-text); background: var(--be-surface-2); border-radius: var(--be-radius-sm); box-shadow: 0 10px 24px rgba(0,0,0,.28), inset 0 0 0 1px var(--be-accent); }

@@ -2,6 +2,10 @@
 
 export const FX_URL = "https://latest.currency-api.pages.dev/v1/currencies/krw.min.json";
 export const FX_CACHE_MS = 12 * 60 * 60 * 1000;
+// 팝업이 열려 있는 동안의 다시 받기. 배경 배지는 알람으로, 크롬 알람은 1분보다 짧게 못 돌린다.
+export const FX_POPUP_REFRESH_MS = 30 * 1000;
+export const FX_BADGE_REFRESH_MS = 60 * 1000;
+export const FX_ICON_CODES = ["krw", "usd", "eur", "jpy", "cny", "gbp", "aud", "cad", "chf", "hkd", "sgd", "twd", "thb", "vnd", "inr", "btc", "eth"];
 
 export const FX_NAMES = {
     krw: "대한민국 원",
@@ -25,6 +29,30 @@ export const FX_NAMES = {
 
 export const COMMON_CODES = ["krw", "usd", "eur", "jpy", "cny", "gbp", "btc", "eth"];
 export const FX_ORDER_KEY = "fx.cardOrder";
+export const FX_FORM_KEY = "fx.form";
+
+const defaultFxForm = () => ({amount: "10000", from: "krw", to: "usd"});
+
+// 금액과 고른 통화만 담는다. fx.favorites 와 fx.table, fx.cardOrder 는 여기서 읽거나 쓰지 않는다.
+export const normalizeFxForm = (raw, codes) => {
+    const base = defaultFxForm();
+    const source = raw && typeof raw === "object" ? raw : {};
+    const amountText = String(source.amount ?? "").trim();
+    const amount = /^(?:\d+)(?:\.\d+)?$/.test(amountText) ? amountText : base.amount;
+    const known = new Set((codes || []).map((code) => String(code || "").toLowerCase()).filter(Boolean));
+    const pick = (value, fallback) => {
+        const id = String(value || "").toLowerCase();
+        if (!id) return fallback;
+        if (known.size && !known.has(id)) return fallback;
+        return id;
+    };
+    let from = pick(source.from, base.from);
+    let to = pick(source.to, base.to);
+    if (known.size && !known.has(from)) from = [...known][0] || base.from;
+    if (from === to && known.size > 1) to = [...known].find((code) => code !== from) || to;
+    if (known.size && !known.has(to)) to = [...known].find((code) => code !== from) || from;
+    return {amount, from, to};
+};
 
 // 저장된 카드 순서를 앞에 두고, 없는 나라는 기본 순서대로 뒤에 붙인다.
 // fx.favorites 는 읽지도 쓰지도 않는다.
@@ -52,10 +80,26 @@ export const currencyName = (code) => {
     return FX_NAMES[id] || id.toUpperCase();
 };
 
+export const CURRENCY_SYMBOLS = {
+    krw: "₩", usd: "$", eur: "€", jpy: "¥", cny: "元", gbp: "£",
+    aud: "A$", cad: "C$", chf: "Fr", hkd: "HK$", sgd: "S$", twd: "NT$",
+    thb: "฿", vnd: "₫", inr: "₹", btc: "₿", eth: "Ξ"
+};
+
+export const currencySymbol = (code) => CURRENCY_SYMBOLS[String(code || "").toLowerCase()] || "";
+
+export const currencyCode = (code) => {
+    const id = String(code || "").trim().toLowerCase();
+    return id ? id.toUpperCase() : "";
+};
+
 export const currencyLabel = (code) => {
     const id = String(code || "").toLowerCase();
     const name = FX_NAMES[id];
-    return name ? `${name} (${id.toUpperCase()})` : id.toUpperCase();
+    const iso = currencyCode(id);
+    if (!name) return iso;
+    const symbol = currencySymbol(id);
+    return symbol ? `${symbol} ${name} (${iso})` : `${name} (${iso})`;
 };
 
 export const withBase = (base, rates) => {
@@ -106,6 +150,15 @@ export const CURRENCY_TINT = 0.14;
 
 export const currencyColor = (code) => CURRENCY_COLORS[String(code || "").toLowerCase()] || "#6e6e73";
 
+// 기호 칸의 글자색. 밝은 상징색에는 어두운 글자, 어두운 상징색에는 흰 글자.
+export const currencySymbolInk = (code) => {
+    const hex = currencyColor(code).replace("#", "");
+    const r = Number.parseInt(hex.slice(0, 2), 16) || 0;
+    const g = Number.parseInt(hex.slice(2, 4), 16) || 0;
+    const b = Number.parseInt(hex.slice(4, 6), 16) || 0;
+    return (r * 299 + g * 587 + b * 114) / 1000 > 150 ? "#1c1c1e" : "#ffffff";
+};
+
 // 1달러가 몇 원인지. 표가 없으면 빈 글자.
 export const fxTabBadge = (rates) => {
     const value = convertAmount(1, "usd", "krw", rates);
@@ -116,6 +169,13 @@ export const fxTabBadge = (rates) => {
 export const isCacheFresh = (savedAt, now = Date.now(), maxAge = FX_CACHE_MS) => {
     const time = Number(savedAt) || 0;
     return time > 0 && now - time < maxAge;
+};
+
+export const shouldRefreshRates = (savedAt, now = Date.now(), interval = FX_POPUP_REFRESH_MS) => !isCacheFresh(savedAt, now, interval);
+
+export const currencyIconPath = (code) => {
+    const id = String(code || "").toLowerCase();
+    return FX_ICON_CODES.includes(id) ? `/fx-icons/${id}.svg` : "";
 };
 
 export const parseRatePayload = (payload) => {
