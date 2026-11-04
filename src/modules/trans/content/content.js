@@ -61,9 +61,6 @@
     `.${SWEEP_CLASS}.pt-sweep-rtl .${EDGE_CLASS} { left: auto; right: calc(var(--pt-p) * 100%); transform: translateX(50%); }`,
     '@keyframes pt-edge-shimmer { 0%, 100% { filter: hue-rotate(0deg); } 50% { filter: hue-rotate(24deg); } }',
     `.${PRISM_CLASS} {`,
-    `background-image: ${PRISM_INK}; background-size: 220% 100%;`,
-    '-webkit-background-clip: text; background-clip: text;',
-    '-webkit-box-decoration-break: clone; box-decoration-break: clone;',
     'text-decoration-color: var(--pt-ink, currentColor); caret-color: var(--pt-ink, auto);',
     `animation: pt-prism-settle ${PRISM_MS}ms ease forwards;`,
     '}',
@@ -72,9 +69,8 @@
     `.${SWEEP_CLASS} .${EDGE_CLASS} { background-image: ${PRISM_EDGE_DARK}; box-shadow: 0 0 8px rgba(224, 208, 246, 0.35), 0 0 2px rgba(154, 215, 228, 0.4); }`,
     '}',
     '@keyframes pt-prism-settle {',
-    '0% { background-position: 0% 50%; -webkit-text-fill-color: transparent; }',
-    '58% { background-position: 72% 50%; -webkit-text-fill-color: transparent; }',
-    '100% { background-position: 100% 50%; -webkit-text-fill-color: var(--pt-ink, currentColor); }',
+    '0% { text-shadow: 0 0 0.45em rgba(120, 160, 255, 0.55); }',
+    '100% { text-shadow: 0 0 0 transparent; }',
     '}',
     `.${PRISM_CLASS}::selection { -webkit-text-fill-color: HighlightText; color: HighlightText; background-color: Highlight; }`,
     '@media (prefers-reduced-motion: reduce) {',
@@ -124,22 +120,31 @@
     return [style.overflow, style.overflowX, style.overflowY].some((value) => value === 'hidden' || value === 'clip');
   }
 
-  // single: 한 줄(nowrap, pre, 말줄임, 1줄 클램프). clamp: 2줄 이상. flow: 문단.
+  function pixelLength(value) {
+    const match = /^(\d+(?:\.\d+)?)px$/.exec(String(value || '').trim());
+    return match ? Number(match[1]) : 0;
+  }
+
+  // single: 말줄임 한 줄. grow: 고정 높이·줄바꿈 금지로 번역이 잘리는 말풍선. clamp: 2줄 이상. flow: 문단.
   function textLineMode(style) {
     if (!style) return 'flow';
     const clamp = lineClampOf(style);
     if (clamp === 1) return 'single';
     if (clamp > 1) return 'clamp';
+    const clips = overflowClips(style);
+    const ellipsis = style.textOverflow === 'ellipsis';
     const whiteSpace = String(style.whiteSpace || '');
+    const fixed = pixelLength(style.height) >= 16 || (pixelLength(style.maxHeight) >= 16 && pixelLength(style.maxHeight) <= 800);
+    if (clips && !ellipsis && (fixed || whiteSpace === 'nowrap' || whiteSpace === 'pre')) return 'grow';
     if (whiteSpace === 'nowrap' || whiteSpace === 'pre') return 'single';
-    if (style.textOverflow === 'ellipsis' && overflowClips(style)) return 'single';
+    if (ellipsis && clips) return 'single';
     return 'flow';
   }
 
-  // 한 줄 칸은 항상 줄바꿈을 없앤다. 문단은 원문에 줄바꿈이 없을 때만 없앤다.
+  // 한 줄·말풍선은 줄바꿈을 없애 칸 안에서 흐르게 한다. 문단은 원문에 줄바꿈이 없을 때만 없앤다.
   function fitTranslation(sourceCore, translated, mode) {
     const text = String(translated ?? '');
-    if (mode === 'single' || !hasHardBreak(sourceCore)) return flattenHardBreaks(text);
+    if (mode === 'single' || mode === 'grow' || !hasHardBreak(sourceCore)) return flattenHardBreaks(text);
     return text;
   }
 
@@ -199,15 +204,36 @@
     if (classHas(element, SWEEP_CLASS) || classHas(element, 'pt-page-translator-probe')) return true;
     const tag = String(element.tagName || '').toUpperCase();
     if (SKIP_TAGS.has(tag)) return true;
-    const editable = element.contentEditable;
-    if (editable === 'true' || editable === 'plaintext-only') return true;
-    if ((editable == null || editable === '') && element.isContentEditable) return true;
     if (typeof element.getAttribute === 'function' && element.getAttribute('translate') === 'no') return true;
     return false;
   }
 
+  // 입력 중인 칸의 글만 건너뛴다. contenteditable=false 로 박아 둔 보낸 메시지는 번역한다.
+  function editableState(element) {
+    if (!element || element.nodeType !== 1) return 'inherit';
+    const value = element.contentEditable;
+    if (value === 'false') return 'off';
+    if (value === 'true' || value === 'plaintext-only') return 'on';
+    if ((value == null || value === '') && element.isContentEditable) return 'on';
+    return 'inherit';
+  }
+
+  function inLiveEditor(element) {
+    let node = element;
+    while (node && node.nodeType === 1) {
+      const state = editableState(node);
+      if (state === 'off') return false;
+      if (state === 'on') return true;
+      node = node.parentElement;
+    }
+    return false;
+  }
+
   function shouldSkipText(node) {
-    let element = node.parentElement;
+    const parent = node && node.parentElement;
+    if (!parent) return true;
+    if (inLiveEditor(parent)) return true;
+    let element = parent;
     while (element) {
       if (isSkipElement(element)) return true;
       element = element.parentElement;
@@ -397,11 +423,13 @@
     const livePending = new Set();
     const activeJobs = new Set();
     const lineLocks = new WeakMap();
-    const titleRecords = new Map();
-    const titleInflight = new WeakSet();
-    const titleQueued = new WeakSet();
-    const titleWait = [];
-    let titleTimer = null;
+    const ATTR_NAMES = ['placeholder', 'title', 'aria-label'];
+    const watchOptions = { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ATTR_NAMES };
+    const attrRecords = new Map();
+    const attrInflight = new Map();
+    const attrQueued = new Map();
+    const attrWait = [];
+    let attrTimer = null;
     const revealWait = [];
     let wiper = null;
     let soft = null;
@@ -676,6 +704,7 @@
       if (!style || mode === 'flow') return 'flow';
       const display = String(style.display || '');
       if (mode === 'clamp' || lineClampOf(style) > 0 || display.includes('webkit-box')) return 'clamp';
+      if (mode === 'grow') return 'grow';
       if (mode === 'single') return 'single';
       return 'flow';
     }
@@ -688,7 +717,9 @@
       const desired = [['min-width', '0']];
       const maxWidth = style && style.maxWidth;
       if (!maxWidth || maxWidth === 'none') desired.push(['max-width', '100%']);
-      if (kind === 'single') {
+      if (kind === 'grow') {
+        desired.push(['white-space', 'normal'], ['overflow', 'visible'], ['height', 'auto'], ['max-height', 'none'], ['text-overflow', 'clip']);
+      } else if (kind === 'single') {
         desired.push(['white-space', 'nowrap'], ['overflow', 'hidden'], ['text-overflow', 'ellipsis']);
         if (isInlineBox(style, element) && !inlineStyleValue(element.style, 'display')) {
           desired.push(['display', 'inline-block']);
@@ -1328,10 +1359,45 @@
       }
     }
 
+    function attrHas(map, element, name) {
+      return Boolean(map.get(element)?.has(name));
+    }
+
+    function attrAdd(map, element, name) {
+      let names = map.get(element);
+      if (!names) {
+        names = new Set();
+        map.set(element, names);
+      }
+      names.add(name);
+    }
+
+    function attrDelete(map, element, name) {
+      const names = map.get(element);
+      if (!names) return;
+      names.delete(name);
+      if (!names.size) map.delete(element);
+    }
+
+    function knownAttr(element, name) {
+      return attrRecords.get(element)?.get(name) || null;
+    }
+
+    function saveAttr(element, name, record) {
+      let bag = attrRecords.get(element);
+      if (!bag) {
+        bag = new Map();
+        attrRecords.set(element, bag);
+      }
+      bag.set(name, record);
+    }
+
     function applyTitleRecords() {
-      for (const [element, record] of titleRecords) {
+      for (const [element, bag] of attrRecords) {
         if (!element || element.isConnected === false || typeof element.setAttribute !== 'function') continue;
-        element.setAttribute('title', enabled && !showOriginal ? record.translated : record.original);
+        for (const [name, record] of bag) {
+          element.setAttribute(name, enabled && !showOriginal ? record.translated : record.original);
+        }
       }
     }
 
@@ -1340,20 +1406,20 @@
     }
 
     function flushTitles() {
-      titleTimer = null;
-      const batch = titleWait.splice(0);
+      attrTimer = null;
+      const batch = attrWait.splice(0);
       const pending = [];
       for (const item of batch) {
-        titleQueued.delete(item.element);
+        attrDelete(attrQueued, item.element, item.name);
         if (!started || !enabled || item.element.isConnected === false) {
           finishTitle(item, false);
           continue;
         }
-        if (item.element.getAttribute('title') !== item.current) {
+        if (item.element.getAttribute(item.name) !== item.current) {
           finishTitle(item, false);
           continue;
         }
-        titleInflight.add(item.element);
+        attrAdd(attrInflight, item.element, item.name);
         pending.push(item);
       }
       if (!pending.length) return;
@@ -1368,46 +1434,49 @@
               return;
             }
             const translated = `${item.lead}${fitTranslation(item.core, translations[index], 'single')}${item.trail}`;
-            titleRecords.set(item.element, { original: item.current, translated });
-            if (enabled && !showOriginal && item.element.getAttribute('title') === item.current) {
-              item.element.setAttribute('title', translated);
+            saveAttr(item.element, item.name, { original: item.current, translated });
+            if (enabled && !showOriginal && item.element.getAttribute(item.name) === item.current) {
+              item.element.setAttribute(item.name, translated);
             }
             finishTitle(item, true);
           } finally {
-            titleInflight.delete(item.element);
+            attrDelete(attrInflight, item.element, item.name);
           }
         });
       }, () => {
         for (const item of pending) {
-          titleInflight.delete(item.element);
+          attrDelete(attrInflight, item.element, item.name);
           finishTitle(item, false);
         }
       });
     }
 
     function scheduleTitleFlush() {
-      if (titleTimer != null) return;
+      if (attrTimer != null) return;
       const delay = Number.isFinite(options.titleFlushMs) ? options.titleFlushMs : 50;
-      titleTimer = setTimer(flushTitles, Math.max(0, delay));
+      attrTimer = setTimer(flushTitles, Math.max(0, delay));
     }
 
-    function translateTitle(element) {
-      if (!started || !enabled || !element || titleInflight.has(element) || titleQueued.has(element) || typeof element.getAttribute !== 'function') {
+    function queueAttribute(element, name) {
+      if (!started || !enabled || !element || !ATTR_NAMES.includes(name) || typeof element.getAttribute !== 'function') {
         return Promise.resolve(false);
       }
-      const current = element.getAttribute('title');
-      const known = titleRecords.get(element);
+      if (attrHas(attrInflight, element, name) || attrHas(attrQueued, element, name)) return Promise.resolve(false);
+      const current = element.getAttribute(name);
+      const known = knownAttr(element, name);
       if (known && (current === known.original || current === known.translated)) {
-        element.setAttribute('title', showOriginal ? known.original : known.translated);
+        const next = showOriginal ? known.original : known.translated;
+        if (current !== next) element.setAttribute(name, next);
         return Promise.resolve(true);
       }
       const parts = splitWhitespace(current || '');
       if (!isTranslatable(parts.core)) return Promise.resolve(false);
       if (isAlreadyTargetLanguage(parts.core, targetLanguage)) return Promise.resolve(true);
       return new Promise((resolve) => {
-        titleQueued.add(element);
-        titleWait.push({
+        attrAdd(attrQueued, element, name);
+        attrWait.push({
           element,
+          name,
           current,
           core: parts.core,
           lead: parts.lead,
@@ -1416,6 +1485,17 @@
         });
         scheduleTitleFlush();
       });
+    }
+
+    function considerAttrs(element) {
+      if (!element || element.nodeType !== 1 || element.id === HOST_ID || element.id === STYLE_ID) return;
+      for (const name of ATTR_NAMES) {
+        if (element.getAttribute && element.getAttribute(name)) queueAttribute(element, name);
+      }
+    }
+
+    function translateTitle(element) {
+      return queueAttribute(element, 'title');
     }
 
     function enqueue(node) {
@@ -1465,7 +1545,7 @@
       if (!mutationObserver || !rootNode || rootNode.nodeType !== 11 || watchedShadows.has(rootNode)) return;
       watchedShadows.add(rootNode);
       try {
-        mutationObserver.observe(rootNode, { childList: true, subtree: true, characterData: true });
+        mutationObserver.observe(rootNode, watchOptions);
       } catch {
         // 페이지가 닫아 둔 칸은 못 보면 그대로 둔다.
       }
@@ -1504,6 +1584,7 @@
       for (const child of children) {
         if (child.nodeType === 3) considerText(child);
         else if (child.nodeType === 1) {
+          considerAttrs(child);
           if (isSkipElement(child)) continue;
           walk(child);
         } else if (child.nodeType === 11) {
@@ -1549,6 +1630,11 @@
       // own. Overlay nodes are skipped by class; our nodeValue writes match expectedWrite.
       if (!started || mutationLock > 0) return;
       for (const mutation of mutations) {
+        if (mutation.type === 'attributes') {
+          const element = mutation.target;
+          if (element && element.nodeType === 1 && ATTR_NAMES.includes(mutation.attributeName)) queueAttribute(element, mutation.attributeName);
+          continue;
+        }
         if (mutation.type === 'characterData') {
           if (isOwnNode(mutation.target && mutation.target.parentElement)) continue;
           onCharacterData(mutation.target);
@@ -1560,6 +1646,7 @@
           if (node.nodeType === 3) considerText(node);
           else if (node.nodeType === 1) {
             noteFrames(node);
+            considerAttrs(node);
             if (!isSkipElement(node)) walk(node);
           } else if (node.nodeType === 11) walk(node);
         }
@@ -1715,7 +1802,7 @@
       showOriginal = false;
       dismissedError = '';
       if (first && mutationObserver && root) {
-        mutationObserver.observe(root, { childList: true, subtree: true, characterData: true });
+        mutationObserver.observe(root, watchOptions);
         if (typeof options.onBindScroll === 'function') options.onBindScroll(onScroll);
       }
       if (walkRoot) walk(walkRoot);

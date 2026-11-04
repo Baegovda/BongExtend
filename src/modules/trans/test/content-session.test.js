@@ -21,7 +21,8 @@ function element(tag, props = {}, children = []) {
     nodeType: 1,
     tagName: String(tag).toUpperCase(),
     id: props.id || '',
-    isContentEditable: Boolean(props.editable),
+    isContentEditable: Boolean(props.editable) || props.contentEditable === 'true' || props.contentEditable === true,
+    contentEditable: props.contentEditable != null ? String(props.contentEditable) : '',
     parentElement: null,
     childNodes: [],
     shadowRoot: null,
@@ -295,6 +296,7 @@ test('in-flight text glows, then a prism sweep reveals the translation', async (
   assert.match(source, /MAX_LIVE_PENDING = 8/);
   assert.match(source, /pt-page-translator-pending-live/);
   assert.match(source, /pt-page-translator-hold/);
+  assert.doesNotMatch(source, /color:\s*transparent\s*!important/);
   assert.doesNotMatch(source, /display:\s*none/);
   assert.doesNotMatch(source, /visibility:\s*hidden/);
   assert.doesNotMatch(source, /pt-scan-ltr/);
@@ -1518,4 +1520,79 @@ test('hover title tooltips are translated once and restored with the page', asyn
   assert.equal(button.getAttribute('title'), '购买商品');
   session.setEnabled(true);
   assert.equal(button.getAttribute('title'), '번역:购买商品');
+});
+
+test('placeholder, aria-label, short status, and a sent message added later are translated', async () => {
+  const api = loadContent();
+  const root = element('div');
+  const input = element('input', { attrs: { placeholder: '搜索最近联系人', 'aria-label': '搜索联系人' } });
+  const tip = element('span', { attrs: { title: '已读' } });
+  root.append(input);
+  root.append(tip);
+  const dictionary = {
+    搜索最近联系人: '최근 연락처 검색',
+    搜索联系人: '연락처 검색',
+    已读: '읽음',
+    '东西质量好，老板人品也好': '물건 품질도 좋고 사장님 인품도 좋아요',
+  };
+  const session = api.createSession({
+    root,
+    walkRoot: root,
+    enableBanner: false,
+    revealAnimation: false,
+    titleFlushMs: 0,
+    IntersectionObserver: class { observe() {} disconnect() {} },
+    MutationObserver: class { observe() {} disconnect() {} },
+    sendBatch: async (texts) => ({
+      ok: true,
+      translations: texts.map((text) => dictionary[text] || `번역:${text}`),
+    }),
+  });
+  session.start();
+  await new Promise((resolve) => setTimeout(resolve, 40));
+  await session.whenIdle();
+  assert.equal(input.getAttribute('placeholder'), '최근 연락처 검색');
+  assert.equal(input.getAttribute('aria-label'), '연락처 검색');
+  assert.equal(tip.getAttribute('title'), '읽음');
+
+  const editor = element('div', { editable: true, contentEditable: 'true' }, ['正在输入']);
+  const sent = element('div', { contentEditable: 'false' }, ['东西质量好，老板人品也好']);
+  editor.append(sent);
+  const status = element('span', {}, ['已读']);
+  root.append(editor);
+  root.append(status);
+  session.emitMutations([{ type: 'childList', addedNodes: [editor, status] }]);
+  await session.whenIdle();
+  assert.equal(editor.childNodes[0].nodeValue, '正在输入');
+  assert.equal(sent.childNodes[0].nodeValue, '물건 품질도 좋고 사장님 인품도 좋아요');
+  assert.equal(status.childNodes[0].nodeValue, '읽음');
+});
+
+test('a clipped chat bubble wraps the longer translation', async () => {
+  const api = loadContent({ getComputedStyle: taobaoComputed });
+  assert.equal(api.textLineMode({ whiteSpace: 'nowrap', overflow: 'hidden', height: '40px', textOverflow: 'clip' }), 'grow');
+  assert.equal(api.textLineMode({ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }), 'single');
+  const root = element('div');
+  const bubble = trackStyle(element('div', {}, ['东西质量好']));
+  bubble.lineStyle = {
+    display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', overflowY: 'hidden',
+    height: '40px', textOverflow: 'clip', maxWidth: 'none',
+  };
+  root.append(bubble);
+  const session = api.createSession({
+    root,
+    walkRoot: root,
+    enableBanner: false,
+    revealAnimation: false,
+    IntersectionObserver: class { observe() {} disconnect() {} },
+    MutationObserver: class { observe() {} disconnect() {} },
+    sendBatch: async () => ({ ok: true, translations: ['물건 품질도 좋고 사장님 인품도 좋아요'] }),
+  });
+  session.start();
+  await session.whenIdle();
+  assert.equal(bubble.childNodes[0].nodeValue, '물건 품질도 좋고 사장님 인품도 좋아요');
+  assert.equal(bubble.locks['white-space'], 'normal');
+  assert.equal(bubble.locks.overflow, 'visible');
+  assert.equal(bubble.locks.height, 'auto');
+  assert.equal(bubble.locks['max-height'], 'none');
 });

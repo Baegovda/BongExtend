@@ -77,7 +77,7 @@ html.embed, html.embed body { width: 100%; height: 100%; overflow: auto; }
 .mail-head, .mail-who, .mail-who strong { user-select: none; -webkit-user-select: none; }
 .mail-head { display: flex; align-items: center; gap: 10px; margin: 0; padding: 8px 10px; border-radius: 14px; background: var(--be-surface); cursor: pointer; touch-action: none; }
 .mail-section:not(:has(.mail-list)) .mail-head { box-shadow: inset 3px 0 0 var(--account-accent, var(--be-accent)); }
-.mail-accounts.reordering .mail-head { cursor: grabbing; }
+.mail-accounts.reordering, .mail-accounts.reordering * { user-select: none; -webkit-user-select: none; cursor: grabbing; }
 .mail-section.dragging { z-index: 40; opacity: .98; box-shadow: 0 10px 24px rgba(0,0,0,.28); }
 .mail-quick { display: flex; gap: 2px; opacity: 0; }
 .mail-head:hover .mail-quick, .mail-head:focus-within .mail-quick { opacity: 1; }
