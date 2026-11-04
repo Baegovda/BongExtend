@@ -733,7 +733,7 @@ if (chrome.runtime.onMessageExternal) {
 }
 
 // Add listener once only here and it will only activate when browser action for popup = ""
-chrome.action.onClicked.addListener(async tab => {
+BongExtendCheckerPlusAction.onClicked.addListener(async tab => {
     await initMisc();
     const browserButtonAction = await storage.get("browserButtonAction");
     const checkerPlusBrowserButtonActionIfNoEmail = await storage.get("checkerPlusBrowserButtonActionIfNoEmail");
@@ -2182,7 +2182,7 @@ if (chrome.commands) {
     chrome.commands.onCommand.addListener(async command => {
         // patch for firefox only becaues they don't have active extension option by default and had to add this code above because required user action and i had async code below
         if (command == "activateExtension") {
-            chrome.action.openPopup();
+            BongExtendCheckerPlusAction.openPopup();
             return;
         }
 
@@ -2412,11 +2412,11 @@ chrome.runtime.onMessage.addListener(/* DONT USE ASYNC HERE because of return tr
                     });
                 } else {
                     try {
-                        chrome.action.setPopup({
+                        BongExtendCheckerPlusAction.setPopup({
                             popup: getPopupFile("aiPrompt")
                         });
 
-                        await chrome.action.openPopup();
+                        await BongExtendCheckerPlusAction.openPopup();
 
                         chrome.runtime.sendMessage(message).then(() => {
                             console.log("sent aiPromptData message to popup");
@@ -2613,11 +2613,11 @@ function initContextMenus() {
 }
 
 function setBadgeEllipsis() {
-    chrome.action.setBadgeBackgroundColor({color: BadgeColor.EMOJI});
-	if (chrome.action.setBadgeTextColor) {
-		chrome.action.setBadgeTextColor({color: BadgeColor.WHITE});
+    BongExtendCheckerPlusAction.setBadgeBackgroundColor({color: BadgeColor.EMOJI});
+	if (BongExtendCheckerPlusAction.setBadgeTextColor) {
+		BongExtendCheckerPlusAction.setBadgeTextColor({color: BadgeColor.WHITE});
 	}
-	chrome.action.setBadgeText({ text: "⏳" });
+	BongExtendCheckerPlusAction.setBadgeText({ text: "⏳" });
 }
 
 async function init(source) {
@@ -2681,10 +2681,10 @@ async function init(source) {
     }
 
     // initialized here to detect disable/enable extension by removing the setVia=manifest
-    chrome.action.setPopup({popup: getPopupFile("toolbar")});
+    BongExtendCheckerPlusAction.setPopup({popup: getPopupFile("toolbar")});
 
 	setBadgeEllipsis();
-    chrome.action.setTitle({ title: getMessage("loadingSettings") + "..." });
+    BongExtendCheckerPlusAction.setTitle({ title: getMessage("loadingSettings") + "..." });
     
 	storagePromise.then(async () => {
         setUninstallUrl();
@@ -2951,7 +2951,7 @@ async function pollAccounts(params = {}) {
             if (!params.noEllipsis) { 
                 setBadgeEllipsis();
             }	
-            chrome.action.setTitle({ title: getMessage("pollingAccounts") + "..." });
+            BongExtendCheckerPlusAction.setTitle({ title: getMessage("pollingAccounts") + "..." });
 
             if (await storage.get("accountAddingMethod") == "autoDetect") {
                 accounts.forEach(account => {
@@ -3274,12 +3274,12 @@ async function setSignedOut(params = {}) {
 	console.log("setSignedOut");
 	
 	buttonIcon.setIcon({signedOut:true});
-	chrome.action.setBadgeBackgroundColor({color:BadgeColor.GRAY});
-	chrome.action.setBadgeText({ text: "X" });
+	BongExtendCheckerPlusAction.setBadgeBackgroundColor({color:BadgeColor.GRAY});
+	BongExtendCheckerPlusAction.setBadgeText({ text: "X" });
 	if (params.title) {
-		chrome.action.setTitle({ title: String(params.title) });
+		BongExtendCheckerPlusAction.setTitle({ title: String(params.title) });
 	} else {
-		chrome.action.setTitle({ title: getMessage("notSignedIn") });
+		BongExtendCheckerPlusAction.setTitle({ title: getMessage("notSignedIn") });
 	}
 	if (await storage.get("accountAddingMethod") == "autoDetect") {
 		await storage.set("unreadCount", 0);

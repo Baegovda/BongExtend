@@ -1,6 +1,41 @@
 // Copyright Jason Savard
 "use strict";
 
+// Keep the CheckPlus mail code inside the mail module; it must not take over
+// BongExtend's toolbar icon, badge, popup, or side-panel action.
+globalThis.BongExtendCheckerPlusAction ||= (() => {
+    const action = chrome.action;
+    const noEvent = {addListener() {}, removeListener() {}, hasListener() {return false;}};
+    const noOp = (...args) => {
+        const callback = args.findLast?.(value => typeof value === "function") || [...args].reverse().find(value => typeof value === "function");
+        if (callback) queueMicrotask(() => callback());
+        return Promise.resolve();
+    };
+    return {
+        onClicked: noEvent,
+        onUserSettingsChanged: action.onUserSettingsChanged || noEvent,
+        getUserSettings(...args) {
+            if (typeof action.getUserSettings === "function") return action.getUserSettings.apply(action, args);
+            const callback = args.find(value => typeof value === "function");
+            if (callback) queueMicrotask(() => callback({}));
+            return Promise.resolve({});
+        },
+        async getPopup() {return chrome.runtime.getURL("popup.html");},
+        async openPopup() {
+            if (globalThis.location?.href.includes("source=bongextend")) return;
+            try {await chrome.storage.local.set({"core.popupTab": "gmail"});} catch (error) {}
+            try {return await action.openPopup?.();} catch (error) {}
+        },
+        setIcon: noOp,
+        setBadgeText: noOp,
+        setBadgeBackgroundColor: noOp,
+        setBadgeTextColor: noOp,
+        setTitle: noOp,
+        setPopup: noOp,
+        setPanelBehavior: noOp
+    };
+})();
+
 var commonJSLoaded = true;
 
 function bodyInserted(callback) {
@@ -2383,6 +2418,15 @@ async function findTab(url) {
 
 //usage: openUrl(url, {urlToFind:""})
 async function openUrl(url, params = {}) {
+    // Keep Checker Plus internal pages, including its full options page, inside BongExtend's Mail tab.
+    if (new URLSearchParams(location.search).get("source") === "bongextend") {
+        const target = new URL(String(url), location.href);
+        if (target.origin === location.origin) {
+            target.searchParams.set("source", "bongextend");
+            location.href = target.href;
+            return;
+        }
+    }
     if (globalThis.inWidget) {
         top.location.href = url;
     } else {

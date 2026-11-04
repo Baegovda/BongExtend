@@ -136,8 +136,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
 });
 
-if (chrome.action.onUserSettingsChanged) {
-    chrome.action.onUserSettingsChanged.addListener(userSettings => {
+if (BongExtendCheckerPlusAction.onUserSettingsChanged) {
+    BongExtendCheckerPlusAction.onUserSettingsChanged.addListener(userSettings => {
         if (userSettings.isOnToolbar) {
             document.body.classList.add("hide-pin");
         } else {
@@ -146,8 +146,8 @@ if (chrome.action.onUserSettingsChanged) {
     });
 }
 
-if (chrome.action.getUserSettings) {
-    chrome.action.getUserSettings(userSettings => {
+if (BongExtendCheckerPlusAction.getUserSettings) {
+    BongExtendCheckerPlusAction.getUserSettings(userSettings => {
         if (userSettings.isOnToolbar) {
             document.body.classList.add("hide-pin");
         } else {
@@ -1814,11 +1814,11 @@ async function showOptionsSection(tabName) {
 
             if (tokeResponse) {
                 showToast(getMessage("accessGranted"));
-                chrome.action.openPopup().catch(error => {
+                BongExtendCheckerPlusAction.openPopup().catch(error => {
                     console.error(error);
                     // for firefox cause it requires a user gesture
                     niceAlert("Click the extension icon to open the popup window").then(() => {
-                        chrome.action.openPopup().catch(error => {});
+                        BongExtendCheckerPlusAction.openPopup().catch(error => {});
                     });
                 });
             }

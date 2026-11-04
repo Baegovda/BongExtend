@@ -27,12 +27,12 @@ function closeWindow() {
             await sendMessageToBG("initOauthHybridAccount", {tokenResponse: tokenResponse});
             hideLoading();
             try {
-                await chrome.action.openPopup();
+                await BongExtendCheckerPlusAction.openPopup();
             } catch (error) {
                 console.error("error opening popup", error);
                 // for firefox cause it requires a user gesture
                 await niceAlert("Click the extension icon to open the popup window");
-                chrome.action.openPopup();
+                BongExtendCheckerPlusAction.openPopup();
             }
             await niceAlert("Click to close this window", true);
             closeWindow();

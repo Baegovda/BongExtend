@@ -7,6 +7,12 @@ BongExtend 변경 이력. GitHub **[Releases](https://github.com/Baegovda/BongEx
 
 ## [Unreleased]
 
+## [1.2.13] - 2026-11-05
+
+- BongExtend의 기존 팝업과 툴바 아이콘을 복구해요. Checker Plus 메일 화면은 BongExtend의 메일 탭 안에서만 열려요
+- Checker Plus 설정도 메일 탭 안에서 열리고, Gmail 확인은 Checker Plus가 맡아 중복 확인을 막아요
+- Chrono 다운로드 기능이 BongExtend 전체 툴바 팝업과 아이콘을 바꾸지 않게 고쳤어요
+
 ## [1.2.12] - 2026-11-05
 
 - 다크 모드가 페이지의 색을 자체 추측해 적용을 건너뛰지 않고 Dark Reader 엔진을 바로 적용해요
