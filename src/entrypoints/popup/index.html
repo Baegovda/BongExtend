@@ -68,14 +68,8 @@
         </details>
         <p class="be-hint dark-credit">색상 변환 엔진은 MIT 라이선스의 <a href="https://github.com/darkreader/darkreader" target="_blank" rel="noopener">Dark Reader</a>를 사용해요. <a href="/licenses/DarkReader-MIT.txt" target="_blank" rel="noopener">Dark Reader 라이선스</a> · <a href="/licenses/Malevic-MIT.txt" target="_blank" rel="noopener">Malevic 라이선스</a></p>
     </section>
-    <section class="panel be-shell download-panel" data-frame="download" hidden>
-        <div class="be-title"><h3>다운로드</h3><span id="downloadSummary" class="be-sub">다운로드를 확인 중…</span></div>
-        <div class="be-card be-sec download-summary">
-            <p>파일을 모아 보고, 이어받기·취소·다시 열기를 할 수 있어요.</p>
-            <div class="be-actions"><button id="openDownloads" class="primary" type="button">다운로드 관리 창 열기</button><button id="openChronoManager" type="button">Chrono 매니저</button><button id="openChronoSettings" type="button">Chrono 설정</button></div>
-            <p class="be-hint">관리 창에서 주소 여러 개 받기와 현재 페이지의 링크·이미지·동영상 찾기도 할 수 있어요.</p>
-        </div>
-        <div id="downloadRecent" class="download-recent"></div>
+    <section class="panel be-shell chrono-download-panel" data-frame="download" hidden>
+        <iframe id="chronoPopupFrame" title="Chrono 다운로드" data-src="/pop/pop.html"></iframe>
     </section>
     <section class="panel be-shell mail-panel" data-frame="gmail" hidden>
         <button id="checkerPlusMailHome" class="checkerplus-mail-home" type="button" hidden>메일함으로 돌아가기</button>

@@ -51,6 +51,7 @@ const TAB_IDS: TabId[] = [...DEFAULT_ORDER, "update"];
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 const checkerPlusMailFrame = $("checkerPlusMailFrame") as HTMLIFrameElement;
 const checkerPlusMailHome = $("checkerPlusMailHome") as HTMLButtonElement;
+const chronoPopupFrame = $("chronoPopupFrame") as HTMLIFrameElement;
 checkerPlusMailFrame.addEventListener("load", () => {
     try {
         checkerPlusMailHome.hidden = !checkerPlusMailFrame.contentWindow?.location.pathname.endsWith("/checkerplus-options.html");
@@ -60,6 +61,19 @@ checkerPlusMailFrame.addEventListener("load", () => {
 });
 checkerPlusMailHome.addEventListener("click", () => {
     checkerPlusMailFrame.src = checkerPlusMailFrame.dataset.src || "/checkerplus-popup.html?source=bongextend";
+});
+chronoPopupFrame.addEventListener("load", () => {
+    try {
+        const doc = chronoPopupFrame.contentDocument;
+        if (!doc || doc.documentElement.classList.contains("bongextend-chrono-embedded")) return;
+        doc.documentElement.classList.add("bongextend-chrono-embedded");
+        const stylesheet = doc.createElement("link");
+        stylesheet.rel = "stylesheet";
+        stylesheet.href = chrome.runtime.getURL("pop/pop-embed.css");
+        doc.head.appendChild(stylesheet);
+    } catch (error) {
+        console.warn("Chrono 다운로드 화면을 BongExtend 탭에 맞추지 못했어요.", error);
+    }
 });
 const moduleBar = $("moduleBar");
 const moduleSwitch = $<HTMLInputElement>("moduleSwitch");
@@ -92,6 +106,9 @@ const showTab = async (tab: TabId, persist = true) => {
     });
     if (tab === "gmail") {
         if (!checkerPlusMailFrame.src) checkerPlusMailFrame.src = checkerPlusMailFrame.dataset.src || "/checkerplus-popup.html?source=bongextend";
+    }
+    if (tab === "download" && !chronoPopupFrame.src) {
+        chronoPopupFrame.src = chronoPopupFrame.dataset.src || "/pop/pop.html";
     }
     if (tab === "fx") void refreshFx();
     if (tab === "update" || (tab === "gmail" && !embedded)) {
@@ -659,50 +676,6 @@ effects.storageOnChanged((changes: Record<string, {newValue?: unknown}>, area: s
     if (area === "local" && changes[DARK_SETTINGS_KEY] && current === "dark") void loadDarkConfig();
 });
 void loadDarkConfig();
-
-// ===== 다운로드 관리 창 미리보기 =====
-const refreshDownloadSummary = async () => {
-    try {
-        const items = await chrome.downloads.search({orderBy: ["-startTime"], limit: 3});
-        const active = items.filter((item) => item.state === "in_progress").length;
-        $("downloadSummary").textContent = active ? `${active}개 받고 있어요 · 최근 ${items.length}개` : `최근 다운로드 ${items.length}개`;
-        const list = $("downloadRecent");
-        list.replaceChildren();
-        for (const item of items) {
-            const row = document.createElement("div");
-            row.className = "download-recent-row";
-            const name = document.createElement("strong");
-            name.textContent = item.filename?.replace(/\\/g, "/").split("/").pop() || item.url;
-            const state = document.createElement("span");
-            state.textContent = item.state === "in_progress" ? "받는 중" : item.state === "complete" ? "완료" : item.error || "중단됨";
-            row.append(name, state);
-            list.appendChild(row);
-        }
-    } catch {
-        $("downloadSummary").textContent = "다운로드 권한을 확인해 주세요.";
-    }
-};
-$("openDownloads").addEventListener("click", async () => {
-    const tabs = await effects.tabsQuery({active: true, lastFocusedWindow: true});
-    const sourceTabId = typeof tabs[0]?.id === "number" ? tabs[0].id : "";
-    const url = new URL(effects.getURL("/downloads.html"));
-    if (sourceTabId !== "") url.searchParams.set("sourceTabId", String(sourceTabId));
-    await effects.tabsCreate({url: url.href});
-});
-$("openChronoManager").addEventListener("click", async () => {
-    await chrome.windows.create({
-        url: chrome.runtime.getURL("/pop/pop.html"),
-        type: "popup",
-        width: 960,
-        height: 700
-    });
-});
-$("openChronoSettings").addEventListener("click", async () => {
-    await effects.tabsCreate({url: effects.getURL("/ui/options.html")});
-});
-chrome.downloads.onCreated.addListener(() => void refreshDownloadSummary());
-chrome.downloads.onChanged.addListener(() => void refreshDownloadSummary());
-void refreshDownloadSummary();
 
 type GmailMessage = {
     id: string; thread: string; subject: string; snippet: string;

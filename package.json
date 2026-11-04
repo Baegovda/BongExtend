@@ -1,7 +1,7 @@
 {
     "displayName": "BongExtend",
     "name": "bongextend",
-    "version": "1.2.13",
+    "version": "1.2.14",
     "description": "치지직·디시인사이드 개선, Gemini 번역, 다크 모드, 다운로드 관리 기능을 담은 크롬 확장 프로그램",
     "homepage": "https://github.com/Baegovda/BongExtend",
     "repository": {
@@ -47,5 +47,8 @@
         "webextension-polyfill": "^0.12.0",
         "wxt": "^0.20.27"
     },
-    "private": true
+    "private": true,
+    "patchedDependencies": {
+        "darkreader@4.9.134": "patches/darkreader@4.9.134.patch"
+    }
 }

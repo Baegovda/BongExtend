@@ -71,6 +71,7 @@ export default defineBackground(() => {
         if (area === "local" && changes[CHRONO_SITE_ACCESS_KEY]) void syncChronoSites();
     });
     browser.permissions.onAdded.addListener(() => void syncChronoSites());
+    browser.permissions.onRemoved.addListener(() => void syncChronoSites());
     browser.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         if (!message || message.type !== "chrono-sync-sites") return;
         syncChronoSites().then(

@@ -1,0 +1,30 @@
+diff --git a/darkreader.mjs b/darkreader.mjs
+index 90eb131d3f417cf9ce7141d956ce64f88988aaa4..78f085b7d74e4422ac5cf3313ca56b25a6a1d554 100644
+--- a/darkreader.mjs
++++ b/darkreader.mjs
+@@ -8211,7 +8211,7 @@ function createStaticStyleOverrides() {
+         fixes && fixes.disableCustomElementRegistryProxy
+     );
+     document.dispatchEvent(new CustomEvent("__darkreader__cleanUp"));
+-    {
++    if (!(fixes && fixes.disableInlineScriptInjection)) {
+         const proxyScript = createOrUpdateScript("darkreader--proxy");
+         proxyScript.append(
+             `(${injectProxy})(${enableStyleSheetsProxy}, ${enableCustomElementRegistryProxy})`
+diff --git a/index.d.ts b/index.d.ts
+index 093103e730f86ea33d0549f34d0e1510b9de73e8..20a72d759cf5e87b48aadf05653a73851e40a15f 100644
+--- a/index.d.ts
++++ b/index.d.ts
+@@ -157,6 +157,12 @@ declare namespace DarkReader {
+          * who are using the Dark Reader API.
+          */
+         disableStyleSheetsProxy: boolean;
++        /**
++         * Skip Dark Reader's inline script injection for pages that block it with CSP.
++         * The page still receives generated dark styles, but dynamic stylesheet and
++         * custom-element proxy tracking is unavailable.
++         */
++        disableInlineScriptInjection?: boolean;
+         /**
+          * List of stylesheet URL patterns to ignore.
+          * Stylesheets matching these patterns will not be processed by Dark Reader.
