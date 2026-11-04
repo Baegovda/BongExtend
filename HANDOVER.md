@@ -1,6 +1,6 @@
 # BongExtend 인수인계
 
-코드 버전은 `package.json`의 **1.2.8**예요. 설치 파일은 [Releases](https://github.com/Baegovda/BongExtend/releases/tag/v1.2.8)의 `bongextend-1.2.8-chrome.zip`이에요. 숫자가 다르면 `package.json`과 Releases를 다시 보세요.
+코드 버전은 `package.json`의 **1.2.9**예요. 설치 파일은 [Releases](https://github.com/Baegovda/BongExtend/releases/tag/v1.2.9)의 `bongextend-1.2.9-chrome.zip`이에요. 숫자가 다르면 `package.json`과 Releases를 다시 보세요.
 
 오너(Guilliman / GitHub Baegovda)는 개발자가 아니에요. 화면 글, README, CHANGELOG, 보고는 한국어로 쉽게 써요.
 
@@ -117,6 +117,7 @@ main 푸시와 PR의 CI(`.github/workflows/ci.yml`)는 시험과 빌드와 eval 
 - **1.2.6**: 치지직이 광고를 못 받으면 까만 막을 유지해요. 광고 스크립트와 빈 일정으로 막지 않고, 재생 전 광고 표시만 끄며, 남아 있는 까만 막은 본영상이 나온 뒤에 접어요.
 - **1.2.7**: 환율 칸 순서를 끌 수 있어요. 메일이 없어도 계정이 보여요. 톱니와 단축키 버튼을 다듬고, 새 메일 소리에 Checker Plus 소리를 넣었어요. 즐겨찾기 저장값은 그대로예요.
 - **1.2.8**: 툴바 배지는 읽지 않은 메일만 보여요. 탭·메일·환율 끌기를 다듬고, 환율 금액과 통화 그림을 기억해요. 시세는 지금 출처를 더 자주 받아요. 번역은 안내 글과 짧은 글, 나중에 생긴 말도 바꾸고 말풍선이 잘리지 않아요.
+- **1.2.9**: 번역 중 무지개 막대를 없애고, 채팅방을 바꿔도 새 글을 다시 번역해요.
 
 ## 알려진 문제와 남은 일
 

@@ -15,68 +15,15 @@
   const WIPER_MS = 680;
   const SOFT_MS = 220;
   const PRISM_MS = 860;
-  // 부드러운 파스텔 무지개. 밝은 화면은 탁한 색이라 흰 바탕에서도 글자가 읽히고, 어두운 화면은 더 옅다.
-  const PRISM_INK = 'linear-gradient(105deg, #2a6e7a, #5568b0, #705a9e, #8f5a72, #7d6836, #2a6e7a)';
-  const PRISM_INK_DARK = 'linear-gradient(105deg, #9ad7e4, #c5d0f7, #e0d0f6, #f6d0e0, #f6e6c4, #9ad7e4)';
-  const PRISM_EDGE = 'linear-gradient(90deg, transparent 0%, rgba(42, 110, 122, 0.55) 14%, rgba(85, 104, 176, 0.62) 32%, rgba(112, 90, 158, 0.62) 48%, rgba(143, 90, 114, 0.62) 64%, rgba(125, 104, 54, 0.55) 82%, transparent 100%)';
-  const PRISM_EDGE_DARK = 'linear-gradient(90deg, transparent 0%, rgba(154, 215, 228, 0.7) 14%, rgba(197, 208, 247, 0.75) 32%, rgba(224, 208, 246, 0.75) 48%, rgba(246, 208, 224, 0.75) 64%, rgba(246, 230, 196, 0.7) 82%, transparent 100%)';
+  // 번역을 기다리는 글자만 살짝 흐려진다. 배경, 그라데이션, 막대는 쓰지 않는다.
   const MOTION_CSS = [
-    '@property --pt-p { syntax: "<number>"; inherits: true; initial-value: 0; }',
-    `.${PENDING_CLASS} { text-shadow: 0 0 0.28em rgba(85, 104, 176, 0.16); }`,
-    `.${PENDING_LIVE_CLASS} { animation: pt-prism-glow 1.6s ease-in-out infinite; }`,
-    '@keyframes pt-prism-glow {',
-    '0%, 100% { text-shadow: 0 0 0.32em rgba(85, 104, 176, 0.16); }',
-    '50% { text-shadow: 0 0 0.4em rgba(143, 90, 114, 0.18), 0 0 0.22em rgba(125, 104, 54, 0.12); }',
+    `.${PENDING_CLASS} { animation: pt-pending-pulse 1.1s ease-in-out infinite; }`,
+    '@keyframes pt-pending-pulse {',
+    '0%, 100% { opacity: 1; }',
+    '50% { opacity: 0.72; }',
     '}',
-    `.${FADE_CLASS}, .${REVEAL_CLASS} { animation: none; }`,
-    // 글자색만 숨긴다. -webkit-text-fill-color 는 타오바오처럼 -webkit-line-clamp 로 자른 제목을 풀어 버린다.
-    `.${HOLD_CLASS} { text-shadow: 0 0 0.35em rgba(120, 160, 255, 0.35); }`,
-    `.${SWEEP_CLASS} {`,
-    'position: fixed; margin: 0; padding: 0; overflow: hidden; pointer-events: none; z-index: 2147483644; background: transparent;',
-    '}',
-    `.${SWEEP_CLASS} .pt-prev, .${SWEEP_CLASS} .pt-next {`,
-    'position: absolute; inset: 0; margin: 0; padding: 0; white-space: pre; overflow: hidden;',
-    '}',
-    `.${SWEEP_CLASS} .pt-next { clip-path: inset(0 calc((1 - var(--pt-p)) * 100%) 0 0); }`,
-    `.${SWEEP_CLASS} .pt-prev { clip-path: inset(0 0 0 calc(var(--pt-p) * 100%)); }`,
-    `.${SWEEP_CLASS}.pt-sweep-rtl .pt-next { clip-path: inset(0 0 0 calc((1 - var(--pt-p)) * 100%)); }`,
-    `.${SWEEP_CLASS}.pt-sweep-rtl .pt-prev { clip-path: inset(0 calc(var(--pt-p) * 100%) 0 0); }`,
-    `.${SWEEP_CLASS} .pt-next {`,
-    `background-image: ${PRISM_INK}; background-size: 220% 100%;`,
-    '-webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;',
-    'animation: pt-prism-shift 0.9s linear infinite;',
-    '}',
-    '@keyframes pt-prism-shift { from { background-position: 0% 50%; } to { background-position: 100% 50%; } }',
-    `.${SWEEP_CLASS} .${EDGE_CLASS} {`,
-    'position: absolute; top: 0; bottom: 0; width: 16px; z-index: 2; pointer-events: none;',
-    'left: calc(var(--pt-p) * 100%); transform: translateX(-50%);',
-    `background-image: ${PRISM_EDGE};`,
-    'background-size: 180% 100%;',
-    'box-shadow: 0 0 8px rgba(112, 90, 158, 0.28), 0 0 2px rgba(42, 110, 122, 0.35);',
-    'opacity: clamp(0, min(var(--pt-p), 1 - var(--pt-p)) * 16, 1);',
-    'animation: pt-edge-shimmer 0.85s linear infinite;',
-    '-webkit-mask-image: linear-gradient(180deg, transparent, #000 16%, #000 84%, transparent);',
-    'mask-image: linear-gradient(180deg, transparent, #000 16%, #000 84%, transparent);',
-    '}',
-    `.${SWEEP_CLASS}.pt-sweep-rtl .${EDGE_CLASS} { left: auto; right: calc(var(--pt-p) * 100%); transform: translateX(50%); }`,
-    '@keyframes pt-edge-shimmer { 0%, 100% { filter: hue-rotate(0deg); } 50% { filter: hue-rotate(24deg); } }',
-    `.${PRISM_CLASS} {`,
-    'text-decoration-color: var(--pt-ink, currentColor); caret-color: var(--pt-ink, auto);',
-    `animation: pt-prism-settle ${PRISM_MS}ms ease forwards;`,
-    '}',
-    '@media (prefers-color-scheme: dark) {',
-    `.${SWEEP_CLASS} .pt-next, .${PRISM_CLASS} { background-image: ${PRISM_INK_DARK}; }`,
-    `.${SWEEP_CLASS} .${EDGE_CLASS} { background-image: ${PRISM_EDGE_DARK}; box-shadow: 0 0 8px rgba(224, 208, 246, 0.35), 0 0 2px rgba(154, 215, 228, 0.4); }`,
-    '}',
-    '@keyframes pt-prism-settle {',
-    '0% { text-shadow: 0 0 0.45em rgba(120, 160, 255, 0.55); }',
-    '100% { text-shadow: 0 0 0 transparent; }',
-    '}',
-    `.${PRISM_CLASS}::selection { -webkit-text-fill-color: HighlightText; color: HighlightText; background-color: Highlight; }`,
     '@media (prefers-reduced-motion: reduce) {',
-    `.${PENDING_CLASS}, .${PENDING_LIVE_CLASS} { animation: none; text-shadow: 0 0 0.22em rgba(85, 104, 176, 0.18); }`,
-    `.${SWEEP_CLASS} .pt-next, .${PRISM_CLASS} { animation: none; -webkit-text-fill-color: unset; background-image: none; }`,
-    `.${SWEEP_CLASS} .${EDGE_CLASS} { animation: none; opacity: 0; }`,
+    `.${PENDING_CLASS} { animation: none; opacity: 1; }`,
     '}',
   ].join('');
   const MAX_ITEMS = 24;
@@ -561,8 +508,17 @@
       }
     }
 
+    function tooLargeToPulse(element) {
+      if (!element || typeof element.getBoundingClientRect !== 'function') return false;
+      const rect = element.getBoundingClientRect();
+      const width = Number(rect && rect.width) || 0;
+      const height = Number(rect && rect.height) || 0;
+      if (width <= 0 || height <= 0) return true;
+      return width > 640 || height > 220;
+    }
+
     function markPending(element) {
-      if (!revealAnimation || !canDecorate(element)) return;
+      if (!revealAnimation || !canDecorate(element) || !canHold(element) || tooLargeToPulse(element)) return;
       ensureMotionStyle();
       const count = pendingCounts.get(element) || 0;
       pendingCounts.set(element, count + 1);
@@ -1237,7 +1193,12 @@
       run();
     }
 
-    function queueReveal(job) {
+    function queueReveal() {
+      // 덮개·무지개 막대는 글자 뒤에 남는다. 번역이 오면 글만 바꾸고 표시는 바로 걷는다.
+      return false;
+    }
+
+    function queueRevealUnused(job) {
       if (!canAnimate() || !canDecorate(job.element)) return false;
       if (job.target == null) job.target = showOriginal ? job.original : job.translated;
       job.epoch = sweepEpoch;
@@ -1523,8 +1484,43 @@
         if (intersectionObserver) intersectionObserver.observe(parent);
       }
       bucket.add(node);
-      if (visibility.get(parent) === true || (visibility.get(parent) !== false && isNearViewport(parent))) {
+      // 예전 대화에서 화면 밖이었던 칸이 다시 보여도, 지금 보이면 바로 번역한다.
+      if (visibility.get(parent) === true || isNearViewport(parent)) {
+        visibility.set(parent, true);
         enqueue(node);
+      } else if (intersectionObserver) {
+        intersectionObserver.observe(parent);
+      }
+    }
+
+    function textMatchesRecord(node) {
+      const record = records.get(node);
+      if (!record) return false;
+      const value = node.nodeValue;
+      return value === record.original || value === record.translated;
+    }
+
+    // 같은 글자 칸을 다음 대화가 다시 쓰면, 저장된 번역과 다르면 새로 번역한다.
+    function syncTextNode(node) {
+      if (!node || node.nodeType !== 3) return;
+      if (expectedWrite.get(node) === node.nodeValue) return;
+      if (shouldSkipText(node)) return;
+      if (textMatchesRecord(node)) return;
+      if (done.has(node) || queued.has(node) || records.has(node) || meta.has(node)) forgetNode(node);
+      considerText(node);
+    }
+
+    function resyncElement(element) {
+      if (!element || element.nodeType !== 1 || isSkipElement(element)) return;
+      const stack = [element];
+      let guard = 0;
+      while (stack.length && guard < 5000) {
+        const current = stack.pop();
+        guard += 1;
+        for (const child of [...(current.childNodes || [])]) {
+          if (child.nodeType === 3) syncTextNode(child);
+          else if (child.nodeType === 1 && !isSkipElement(child)) stack.push(child);
+        }
       }
     }
 
@@ -1618,11 +1614,7 @@
     }
 
     function onCharacterData(node) {
-      if (!node || node.nodeType !== 3) return;
-      if (expectedWrite.get(node) === node.nodeValue) return;
-      if (shouldSkipText(node)) return;
-      forgetNode(node);
-      considerText(node);
+      syncTextNode(node);
     }
 
     function onMutations(mutations) {
@@ -1656,6 +1648,7 @@
             watchShadow(shadow);
             walk(shadow);
           }
+          resyncElement(mutation.target);
         }
       }
     }
