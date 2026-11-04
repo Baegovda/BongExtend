@@ -17,6 +17,8 @@
   const PRISM_MS = 860;
   // 번역을 기다리는 글자만 살짝 흐려진다. 배경, 그라데이션, 막대는 쓰지 않는다.
   const MOTION_CSS = [
+    `.pt-page-translator-dup { visibility: hidden !important; }`,
+    `.pt-page-translator-nops::before, .pt-page-translator-nops::after { content: none !important; }`,
     `.${PENDING_CLASS} { animation: pt-pending-pulse 1.1s ease-in-out infinite; }`,
     '@keyframes pt-pending-pulse {',
     '0%, 100% { opacity: 1; }',
@@ -674,7 +676,15 @@
       const maxWidth = style && style.maxWidth;
       if (!maxWidth || maxWidth === 'none') desired.push(['max-width', '100%']);
       if (kind === 'grow') {
-        desired.push(['white-space', 'normal'], ['overflow', 'visible'], ['height', 'auto'], ['max-height', 'none'], ['text-overflow', 'clip']);
+        desired.push(
+          ['white-space', 'normal'],
+          ['overflow-wrap', 'anywhere'],
+          ['overflow-x', 'hidden'],
+          ['overflow-y', 'hidden'],
+          ['height', 'auto'],
+          ['max-height', 'none'],
+          ['text-overflow', 'clip'],
+        );
       } else if (kind === 'single') {
         desired.push(['white-space', 'nowrap'], ['overflow', 'hidden'], ['text-overflow', 'ellipsis']);
         if (isInlineBox(style, element) && !inlineStyleValue(element.style, 'display')) {
@@ -1281,10 +1291,62 @@
       queue.splice(0, queue.length, ...ranked.map((row) => row.item));
     }
 
+    function rowOf(element) {
+      let node = element;
+      for (let depth = 0; depth < 4 && node; depth += 1) {
+        const tag = String(node.tagName || '').toUpperCase();
+        if (tag === 'A' || tag === 'LI' || tag === 'BUTTON') return node;
+        if (!node.parentElement) break;
+        node = node.parentElement;
+      }
+      return element;
+    }
+
+    function coverSourceLayers(node, originalCore) {
+      const start = node && node.parentElement;
+      if (!start || !originalCore) return;
+      const row = rowOf(start);
+      const record = records.get(node);
+      const translatedCore = record ? splitWhitespace(record.translated).core : '';
+      const stack = [row];
+      while (stack.length) {
+        const current = stack.pop();
+        if (!current || current.nodeType !== 1) continue;
+        if (current !== start) {
+          try {
+            for (const pseudo of ['::before', '::after']) {
+              const pseudoStyle = typeof getComputedStyle === 'function' ? getComputedStyle(current, pseudo) : null;
+              const bare = String(pseudoStyle && pseudoStyle.content || '').replace(/^["']|["']$/g, '').trim();
+              if (bare && bare !== 'none' && bare !== 'normal' && bare.includes(originalCore) && current.classList) {
+                current.classList.add('pt-page-translator-nops');
+              }
+            }
+          } catch { /* 가상 요소가 없으면 넘어간다. */ }
+        }
+        for (const child of [...(current.childNodes || [])]) {
+          if (child.nodeType === 3 && child !== node && [originalCore, translatedCore].includes(splitWhitespace(String(child.nodeValue || '')).core)) {
+            const parts = splitWhitespace(String(child.nodeValue || ''));
+            const next = `${parts.lead}${translatedCore}${parts.trail}`;
+            const parent = child.parentElement;
+            const style = parent && computedStyle(parent);
+            const pos = style && style.position;
+            const ghost = pos === 'absolute' || pos === 'fixed' || (parent && parent.getAttribute && parent.getAttribute('aria-hidden') === 'true');
+            if (ghost && parent && parent.classList) parent.classList.add('pt-page-translator-dup');
+            else if (child.nodeValue !== next) {
+              expectedWrite.set(child, next);
+              child.nodeValue = next;
+            }
+          } else if (child.nodeType === 1) stack.push(child);
+        }
+      }
+    }
+
     function writeNode(node, value) {
       expectedWrite.set(node, value);
       if (node.nodeValue !== value) node.nodeValue = value;
       syncLineLock(node);
+      const record = records.get(node);
+      if (record && value === record.translated && record.core) coverSourceLayers(node, record.core);
     }
 
     function nodeBusy(node) {

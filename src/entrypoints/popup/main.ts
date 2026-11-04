@@ -6,11 +6,13 @@ import {describeUpdateError, promiseWithTimeout, UPDATE_TIMEOUT_MESSAGE, UPDATE_
 // @ts-ignore 순수 JS
 import {getModules, setModuleEnabled} from "@/modules/core-modules.js";
 import {moveItem, normalizeTabOrder} from "@/core/popup/tabOrder";
-import {createPointerDrag, nearestSlot} from "@/core/popup/pointerDrag";
+import {createPointerDrag, edgeScrollDelta, gridDropIndex} from "@/core/popup/pointerDrag";
 import type {DragEnd} from "@/core/popup/pointerDrag";
 import {exportAllSettings, importSettingsText} from "@/modules/settings-io";
 // @ts-ignore 순수 JS
 import {COMMON_CODES, CURRENCY_TINT, FX_FORM_KEY, FX_ORDER_KEY, FX_POPUP_REFRESH_MS, FX_URL, convertAmount, currencyCode, currencyColor, currencyIconPath, currencyLabel, currencyName, formatMoney, fxTabBadge, normalizeFxForm, orderCurrencyCards, parseRatePayload, shouldRefreshRates} from "@/modules/fx/convert.js";
+// @ts-ignore 순수 JS
+import {openQuoteStream} from "@/modules/fx/tradingview.js";
 // @ts-ignore 순수 JS
 import {composite} from "@/modules/theme/contrast.js";
 // @ts-ignore 순수 JS
@@ -112,9 +114,11 @@ const bindPointerReorder = (opts: {
     const live = opts.live || opts.list;
     let slot: HTMLElement | null = null;
     let activeId: number | null = null;
-    let originLeft = 0;
-    let originTop = 0;
+    let grabX = 0;
+    let grabY = 0;
+    let originNext: ChildNode | null = null;
     let listening = false;
+    let scrollTimer = 0;
 
     const clearVisual = () => {
         opts.item.classList.remove("dragging");
@@ -130,14 +134,19 @@ const bindPointerReorder = (opts: {
         if (slot?.parentElement) slot.replaceWith(opts.item);
         slot = null;
     };
-    const moveSlot = (client: number) => {
+    const moveSlot = (clientX: number, clientY: number) => {
         if (!slot) return;
+        const scroller = opts.list.closest(".panel") || opts.list;
+        const view = scroller.getBoundingClientRect();
+        const delta = edgeScrollDelta(view, {x: clientX, y: clientY});
+        if (delta.x) scroller.scrollLeft += delta.x;
+        if (delta.y) scroller.scrollTop += delta.y;
         const others = [...opts.list.children].filter((el) => el !== opts.item && el !== slot) as HTMLElement[];
-        const mids = others.map((el) => {
+        const boxes = others.map((el) => {
             const box = el.getBoundingClientRect();
-            return opts.axis === "x" ? box.left + box.width / 2 : box.top + box.height / 2;
+            return {left: box.left, top: box.top, width: box.width, height: box.height};
         });
-        const before = others[nearestSlot(mids, client)] || null;
+        const before = others[gridDropIndex(boxes, {x: clientX, y: clientY})] || null;
         const tops = new Map(others.map((el) => [el, opts.axis === "x" ? el.getBoundingClientRect().left : el.getBoundingClientRect().top]));
         let moved = false;
         if (before) {
@@ -162,6 +171,7 @@ const bindPointerReorder = (opts: {
         window.removeEventListener("pointerup", onUp);
         window.removeEventListener("pointercancel", onCancel);
         window.removeEventListener("blur", onBlur);
+        window.removeEventListener("keydown", onKey);
         document.removeEventListener("pointerleave", onLeave, true);
     };
     const finish = (result: DragEnd | null) => {
@@ -169,7 +179,13 @@ const bindPointerReorder = (opts: {
         const id = activeId;
         activeId = null;
         try { if (id != null) opts.handle.releasePointerCapture(id); } catch { /* 이미 풀린 포인터 */ }
+        if (scrollTimer) window.clearInterval(scrollTimer);
+        scrollTimer = 0;
         detach();
+        if (result === "revert" && slot) {
+            if (originNext && originNext.parentNode === opts.list) opts.list.insertBefore(slot, originNext);
+            else opts.list.appendChild(slot);
+        }
         clearVisual();
         if (result === "drop") opts.onDrop?.();
         else if (result === "click") opts.onClick?.();
@@ -180,8 +196,9 @@ const bindPointerReorder = (opts: {
         ev.preventDefault();
         if (step === "start") {
             const rect = opts.item.getBoundingClientRect();
-            originLeft = rect.left;
-            originTop = rect.top;
+            grabX = ev.clientX - rect.left;
+            grabY = ev.clientY - rect.top;
+            originNext = opts.item.nextSibling;
             slot = document.createElement("div");
             slot.className = "drag-slot";
             slot.style.width = `${rect.width}px`;
@@ -198,9 +215,14 @@ const bindPointerReorder = (opts: {
             opts.item.style.left = `${rect.left}px`;
             opts.item.style.top = `${rect.top}px`;
         }
-        opts.item.style.left = `${originLeft + (ev.clientX - drag.originX)}px`;
-        opts.item.style.top = `${originTop + (ev.clientY - drag.originY)}px`;
-        moveSlot(opts.axis === "x" ? ev.clientX : ev.clientY);
+        opts.item.style.left = `${ev.clientX - grabX}px`;
+        opts.item.style.top = `${ev.clientY - grabY}px`;
+        moveSlot(ev.clientX, ev.clientY);
+    };
+    const onKey = (ev: KeyboardEvent) => {
+        if (ev.key !== "Escape") return;
+        ev.preventDefault();
+        finish(drag.revert());
     };
     const onUp = (ev: PointerEvent) => finish(drag.up(ev));
     const onCancel = (ev?: Event) => {
@@ -224,7 +246,12 @@ const bindPointerReorder = (opts: {
         window.addEventListener("pointerup", onUp);
         window.addEventListener("pointercancel", onCancel);
         window.addEventListener("blur", onBlur);
+        window.addEventListener("keydown", onKey);
         document.addEventListener("pointerleave", onLeave, true);
+        scrollTimer = window.setInterval(() => {
+            if (drag.phase !== "dragging") return;
+            moveSlot(drag.x, drag.y);
+        }, 40);
     });
 };
 
@@ -1123,6 +1150,18 @@ window.setInterval(() => {
     if (document.visibilityState === "hidden") return;
     void refreshFx();
 }, FX_POPUP_REFRESH_MS);
+openQuoteStream({
+    WebSocket: globalThis.WebSocket,
+    onTable(table: FxTable & {source?: string}) {
+        fxTable = table;
+        void effects.storageSet({[FX_KEY]: table});
+        if (!fxFrom.options.length) fillFxSelects(Object.keys(table.rates).sort());
+        renderFx();
+        paintFxBadge(table.rates);
+        if (table.source === "tradingview" && fxTable?.date === "") fxStatus.textContent = "트레이딩뷰 실시간 시세예요. 못 받으면 저장해 둔 표를 보여요.";
+    },
+    onError() { void refreshFx(); }
+});
 window.matchMedia("(prefers-color-scheme: light)").addEventListener("change", () => { if (fxTable) renderFx(); });
 effects.storageGet([FX_KEY, FX_ORDER_KEY, FX_FORM_KEY]).then((stored: Record<string, unknown>) => {
     const cached = stored[FX_KEY] as FxTable | undefined;

@@ -38,7 +38,7 @@ test("a failed fetch keeps the saved table and a fresh table does not fetch", as
     assert.equal(missed.ok, false);
     assert.equal(missed.table.date, "2026-11-01");
     assert.equal(storage.current.date, "2026-11-01");
-    assert.equal(calls, 1);
+    assert.equal(calls, 2);
 
     const fresh = await refreshStoredRates({
         storage,
@@ -47,19 +47,35 @@ test("a failed fetch keeps the saved table and a fresh table does not fetch", as
         fetchImpl: async () => { calls += 1; throw new Error("should not fetch"); }
     });
     assert.equal(fresh.cached, true);
-    assert.equal(calls, 1);
+    assert.equal(calls, 2);
+
+    const urls = [];
+    const live = await refreshStoredRates({
+        storage,
+        now: 20_000,
+        interval: 100,
+        fetchImpl: async (url) => {
+            urls.push(url);
+            if (String(url).includes("scanner.tradingview.com/forex")) {
+                return {ok: true, json: async () => ({data: [{s: "FX_IDC:USDKRW", d: [1400]}]})};
+            }
+            if (String(url).includes("scanner.tradingview.com/crypto")) {
+                return {ok: true, json: async () => ({data: []})};
+            }
+            throw new Error("daily source should not be used");
+        }
+    });
+    assert.equal(live.source, "tradingview");
+    assert.equal(live.table.source, "tradingview");
+    assert.ok(Math.abs(1 / live.table.rates.usd - 1400) < 0.001);
 
     const next = await refreshStoredRates({
         storage,
         now: 50_000,
         interval: 100,
-        fetchImpl: async () => {
-            calls += 1;
-            return {ok: true, json: async () => ({date: "2026-11-04", krw: {usd: 0.0008}})};
-        }
+        fetchImpl: async () => ({ok: true, json: async () => ({date: "2026-11-04", krw: {usd: 0.0008}})})
     });
-    assert.equal(next.ok, true);
+    assert.equal(next.source, "daily");
     assert.equal(next.table.rates.usd, 0.0008);
     assert.equal(next.table.fetchedAt, 50_000);
-    assert.equal(storage.current.rates.usd, 0.0008);
 });

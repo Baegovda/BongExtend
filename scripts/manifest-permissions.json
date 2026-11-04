@@ -25,7 +25,9 @@
         "https://objects.githubusercontent.com/*",
         "https://release-assets.githubusercontent.com/*",
         "https://mail.google.com/*",
-        "https://latest.currency-api.pages.dev/*"
+        "https://latest.currency-api.pages.dev/*",
+        "https://scanner.tradingview.com/*",
+        "wss://data.tradingview.com/*"
     ],
     "optional_host_permissions": [
         "https://*/*",

@@ -1,6 +1,6 @@
 # BongExtend 메모
 
-코드 버전은 `package.json`의 **1.2.9**예요. 설치 파일은 릴리스의 `bongextend-1.2.9-chrome.zip`이에요.
+코드 버전은 `package.json`의 **1.2.10**예요. 설치 파일은 릴리스의 `bongextend-1.2.10-chrome.zip`이에요.
 
 자세한 인수인계는 `HANDOVER.md`예요. 꼭 지킬 규칙은 `AGENTS.md`예요. 이 파일은 그 두 파일을 가리키는 짧은 메모예요.
 
