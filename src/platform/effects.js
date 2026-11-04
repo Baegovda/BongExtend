@@ -2,7 +2,9 @@
 
 export const createChromeEffects = (chromeApi = globalThis.chrome, fetchImpl = globalThis.fetch.bind(globalThis)) => ({
     tabsCreate: (options) => chromeApi.tabs.create(options),
+    tabsUpdate: (tabId, options) => chromeApi.tabs.update(tabId, options),
     tabsQuery: (query) => chromeApi.tabs.query(query),
+    windowsUpdate: (windowId, options) => chromeApi.windows.update(windowId, options),
     fetch: (url, init) => fetchImpl(url, init),
     sendMessage: (message) => chromeApi.runtime.sendMessage(message),
     getURL: (path) => chromeApi.runtime.getURL(path),
@@ -16,10 +18,12 @@ export const createChromeEffects = (chromeApi = globalThis.chrome, fetchImpl = g
 });
 
 export const createFakeEffects = () => {
-    const calls = {tabsCreate: 0, tabsQuery: 0, fetch: 0, sendMessage: 0, storageGet: 0, storageSet: 0, permissionsRequest: 0, permissionsRemove: 0};
+    const calls = {tabsCreate: 0, tabsUpdate: 0, tabsQuery: 0, windowsUpdate: 0, fetch: 0, sendMessage: 0, storageGet: 0, storageSet: 0, permissionsRequest: 0, permissionsRemove: 0};
     const effects = {
         tabsCreate: async (options) => { calls.tabsCreate += 1; return {id: 1, ...options}; },
+        tabsUpdate: async (tabId, options) => { calls.tabsUpdate += 1; return {id: tabId, ...options}; },
         tabsQuery: async () => { calls.tabsQuery += 1; return [{id: 1, url: "https://example.com/page", active: true}]; },
+        windowsUpdate: async () => { calls.windowsUpdate += 1; },
         fetch: async (url) => {
             calls.fetch += 1;
             return {ok: true, status: 200, url, json: async () => ({date: "2026-11-02", krw: {usd: 0.0007}})};

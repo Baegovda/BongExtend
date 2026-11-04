@@ -1,6 +1,6 @@
 # BongExtend 인수인계
 
-코드 버전은 `package.json`의 **1.2.7**예요. 설치 파일은 [Releases](https://github.com/Baegovda/BongExtend/releases/tag/v1.2.7)의 `bongextend-1.2.7-chrome.zip`이에요. 숫자가 다르면 `package.json`과 Releases를 다시 보세요.
+코드 버전은 `package.json`의 **1.2.8**예요. 설치 파일은 [Releases](https://github.com/Baegovda/BongExtend/releases/tag/v1.2.8)의 `bongextend-1.2.8-chrome.zip`이에요. 숫자가 다르면 `package.json`과 Releases를 다시 보세요.
 
 오너(Guilliman / GitHub Baegovda)는 개발자가 아니에요. 화면 글, README, CHANGELOG, 보고는 한국어로 쉽게 써요.
 
@@ -44,7 +44,7 @@ BongExtend는 크롬 확장(MV3) 하나예요. 예전에 따로 쓰던 기능을
 | 공통 | `chrome.storage.local` | `core.modules`, `core.popupTab`, `core.popupTabOrder`, `core.update:*` |
 | 메일 | `chrome.storage.local` | `gmail.snapshot`, `gmail.unread`, `gmail.seen`, `gmail.baseline`, `gmail.error`, `gmail.notify`, `gmail.intervalMs`, `gmail.disabled`, `gmail.photos`, `gmail.accountColors`, `gmail.accountOrder`, `gmail.sound` |
 | 메일 토큰 | `chrome.storage.session` | `gmail.sessionTokens` (브라우저를 닫으면 사라지는 작업 토큰) |
-| 환율 | `chrome.storage.local` | `fx.table`, 카드 순서 `fx.cardOrder`. 옛 `fx.favorites`는 읽지도 쓰지도 않아요 |
+| 환율 | `chrome.storage.local` | `fx.table`, 카드 순서 `fx.cardOrder`, 금액·통화 `fx.form`. 옛 `fx.favorites`는 읽지도 쓰지도 않아요 |
 | 우클릭 | `chrome.storage.local` | `rc.origins` |
 
 디시 데이터 작업(가져오기, 초기화, 백업)은 `src/storage/namespace.ts`가 디시 키만 다뤄요. 다른 구역은 건드리지 않아요.
@@ -116,6 +116,7 @@ main 푸시와 PR의 CI(`.github/workflows/ci.yml`)는 시험과 빌드와 eval 
 - **1.2.5**: 치지직 라이브에서 소리는 나는데 화면만 검던 문제를 고치려 했어요. 본영상을 숨기지 않게 바꿨지만, 광고를 빈 응답으로 막는 방식은 그대로였어요.
 - **1.2.6**: 치지직이 광고를 못 받으면 까만 막을 유지해요. 광고 스크립트와 빈 일정으로 막지 않고, 재생 전 광고 표시만 끄며, 남아 있는 까만 막은 본영상이 나온 뒤에 접어요.
 - **1.2.7**: 환율 칸 순서를 끌 수 있어요. 메일이 없어도 계정이 보여요. 톱니와 단축키 버튼을 다듬고, 새 메일 소리에 Checker Plus 소리를 넣었어요. 즐겨찾기 저장값은 그대로예요.
+- **1.2.8**: 툴바 배지는 읽지 않은 메일만 보여요. 탭·메일·환율 끌기를 다듬고, 환율 금액과 통화 그림을 기억해요. 시세는 지금 출처를 더 자주 받아요.
 
 ## 알려진 문제와 남은 일
 

@@ -22,6 +22,8 @@ import "@/modules/chzzk/lib/ads.js";
 // @ts-ignore 순수 JS
 import {startGmailBackground} from "@/modules/gmail/background.js";
 // @ts-ignore 순수 JS
+import {startFxBackground} from "@/modules/fx/background.js";
+// @ts-ignore 순수 JS
 import {startRightClickBackground} from "@/modules/rightclick/background.js";
 
 export default defineBackground(() => {
@@ -29,6 +31,7 @@ export default defineBackground(() => {
     startTransBackground();
     // ===== 메일: 로그인된 Gmail 세션으로 받은편지함을 맞춘다 =====
     startGmailBackground();
+    startFxBackground();
     startRightClickBackground();
 
     // ===== 치지직 모듈 콘텐츠 스크립트 등록 =====

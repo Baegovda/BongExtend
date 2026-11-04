@@ -1,4 +1,4 @@
-import { badgeForStatus } from './lib/badge.js';
+import { paintToolbarBadge } from '../toolbar-badge.js';
 import { createIdbCache } from './lib/cache.js';
 import { checkApiKey, translateWithGemini } from './lib/gemini.js';
 import { MESSAGES } from './lib/messages.js';
@@ -192,15 +192,14 @@ function readStatusInPage() {
   return session ? session.getStatus() : null;
 }
 
-function setBadge(tabId, status) {
+function setBadge(tabId) {
   if (tabId == null) return;
-  const badge = badgeForStatus(status);
-  chrome.action.setBadgeBackgroundColor({ tabId, color: badge.color }).catch(() => {});
-  chrome.action.setBadgeText({ tabId, text: badge.text }).catch(() => {});
+  chrome.action.setBadgeText({ tabId, text: '' }).catch(() => {});
+  paintToolbarBadge().catch(() => {});
 }
 
 function clearBadge(tabId) {
-  setBadge(tabId, null);
+  setBadge(tabId);
 }
 
 const enabledTabs = new Set();
@@ -256,7 +255,7 @@ async function setEnabled(tabId, enabled) {
       return { ok: false, code: 'INJECT_FAILED', message: MESSAGES.INJECT_FAILED };
     }
     const settled = status || { enabled: false, showOriginal: true, started: false, done: 0, pending: 0 };
-    setBadge(tab.id, settled);
+        setBadge(tab.id);
     rememberEnabled(tab.id, false);
     return { ok: true, status: settled };
   }
@@ -266,7 +265,7 @@ async function setEnabled(tabId, enabled) {
     return { ok: false, code: 'INJECT_FAILED', message: MESSAGES.INJECT_FAILED };
   }
   rememberEnabled(tab.id, true);
-  setBadge(tab.id, status);
+  setBadge(tab.id);
   return { ok: true, status };
 }
 
@@ -365,7 +364,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
   if (message.type === 'PROGRESS') {
-    if (sender.tab?.id != null) setBadge(sender.tab.id, message.status);
+    if (sender.tab?.id != null) setBadge(sender.tab.id);
     return;
   }
   if (message.type === 'CLEAR_BADGE') {

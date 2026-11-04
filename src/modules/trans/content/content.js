@@ -30,7 +30,7 @@
     '}',
     `.${FADE_CLASS}, .${REVEAL_CLASS} { animation: none; }`,
     // 글자색만 숨긴다. -webkit-text-fill-color 는 타오바오처럼 -webkit-line-clamp 로 자른 제목을 풀어 버린다.
-    `.${HOLD_CLASS} { color: transparent !important; }`,
+    `.${HOLD_CLASS} { text-shadow: 0 0 0.35em rgba(120, 160, 255, 0.35); }`,
     `.${SWEEP_CLASS} {`,
     'position: fixed; margin: 0; padding: 0; overflow: hidden; pointer-events: none; z-index: 2147483644; background: transparent;',
     '}',
