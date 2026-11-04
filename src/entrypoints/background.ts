@@ -25,6 +25,10 @@ import {startGmailBackground} from "@/modules/gmail/background.js";
 import {startFxBackground} from "@/modules/fx/background.js";
 // @ts-ignore 순수 JS
 import {startRightClickBackground} from "@/modules/rightclick/background.js";
+// @ts-ignore settings are plain JS shared with the dark-mode popup and content script
+import {DARK_SCRIPT_FILE, DARK_SCRIPT_ID, DARK_SETTINGS_KEY, darkSiteEnabled, darkSitePattern, normalizeDarkSettings} from "@/modules/dark/settings.js";
+// @ts-ignore download helpers are plain JS shared with the manager page
+import {DOWNLOAD_SETTINGS_KEY, cleanSuggestedFilename, makeDownloadFilename, normalizeDownloadSettings} from "@/modules/downloads/settings.js";
 
 export default defineBackground(() => {
     // ===== 번역 모듈 처리기 =====
@@ -33,6 +37,148 @@ export default defineBackground(() => {
     startGmailBackground();
     startFxBackground();
     startRightClickBackground();
+
+    // 다크 모드: 사용자가 권한을 허용한 사이트에만 런타임 콘텐츠 스크립트를 등록한다.
+    const syncDarkReaderScript = async () => {
+        try {
+            const stored = await browser.storage.local.get([DARK_SETTINGS_KEY, MODULES_KEY]);
+            const settings = normalizeDarkSettings(stored[DARK_SETTINGS_KEY]);
+            const modules = (stored[MODULES_KEY] && typeof stored[MODULES_KEY] === "object" ? stored[MODULES_KEY] : {}) as Record<string, unknown>;
+            const matches: string[] = [];
+            if (modules.dark !== false) {
+                if (settings.enabledByDefault) {
+                    const allOrigins = ["https://*/*", "http://*/*"];
+                    if (await browser.permissions.contains({origins: allOrigins})) matches.push(...allOrigins);
+                } else {
+                    const hosts = new Set<string>(settings.enabledSites);
+                    if (settings.siteListMode === "only") for (const host of settings.siteList) hosts.add(host);
+                    for (const host of hosts) {
+                        if (!darkSiteEnabled({...settings, enabledByDefault: false}, host)) continue;
+                        for (const pattern of darkSitePattern(host)) {
+                            if (await browser.permissions.contains({origins: [pattern]})) matches.push(pattern);
+                        }
+                    }
+                }
+            }
+            const registered = await browser.scripting.getRegisteredContentScripts({ids: [DARK_SCRIPT_ID]});
+            if (registered.length) await browser.scripting.unregisterContentScripts({ids: [DARK_SCRIPT_ID]});
+            if (matches.length) {
+                await browser.scripting.registerContentScripts([{
+                    id: DARK_SCRIPT_ID,
+                    matches: [...new Set(matches)],
+                    js: [DARK_SCRIPT_FILE],
+                    runAt: "document_start",
+                    persistAcrossSessions: true
+                }]);
+            }
+        } catch (error) {
+            console.warn("다크 모드 자동 적용 설정을 갱신하지 못했어요.", error);
+        }
+    };
+    void syncDarkReaderScript();
+    browser.storage.onChanged.addListener((changes, area) => {
+        if (area === "local" && (changes[DARK_SETTINGS_KEY] || changes[MODULES_KEY])) void syncDarkReaderScript();
+    });
+
+    // 다운로드 관리: Chrome 자체 다운로드 API를 사용하며 저장 경로는 다운로드 폴더 아래로 제한한다.
+    const syncDownloadUi = async () => {
+        try {
+            const stored = await browser.storage.local.get([DOWNLOAD_SETTINGS_KEY, MODULES_KEY]);
+            const settings = normalizeDownloadSettings(stored[DOWNLOAD_SETTINGS_KEY]);
+            const modules = (stored[MODULES_KEY] && typeof stored[MODULES_KEY] === "object" ? stored[MODULES_KEY] : {}) as Record<string, unknown>;
+            await browser.downloads.setUiOptions({enabled: modules.download === false || !settings.replaceChromeUi});
+        } catch (error) {
+            console.warn("Chrome 다운로드 표시 설정을 바꾸지 못했어요.", error);
+        }
+    };
+    void syncDownloadUi();
+    browser.storage.onChanged.addListener((changes, area) => {
+        if (area === "local" && (changes[DOWNLOAD_SETTINGS_KEY] || changes[MODULES_KEY])) void syncDownloadUi();
+    });
+    chrome.downloads.onDeterminingFilename.addListener((item, suggest) => {
+        void (async () => {
+            try {
+                const nameHint = takeDownloadNameHint(item.url);
+                const stored = await chrome.storage.local.get([DOWNLOAD_SETTINGS_KEY, MODULES_KEY]);
+                const settings = normalizeDownloadSettings(stored[DOWNLOAD_SETTINGS_KEY]);
+                const modules = (stored[MODULES_KEY] && typeof stored[MODULES_KEY] === "object" ? stored[MODULES_KEY] : {}) as Record<string, unknown>;
+                if (modules.download === false || (!settings.filenameMask && !settings.folder && !settings.routeByType && !settings.rules.length)) {
+                    if (nameHint) suggest({filename: nameHint, conflictAction: "uniquify"});
+                    else suggest();
+                    return;
+                }
+                suggest({filename: makeDownloadFilename(item, settings, new Date(), nameHint), conflictAction: "uniquify"});
+            } catch {
+                suggest();
+            }
+        })();
+        return true;
+    });
+    chrome.downloads.onChanged.addListener((delta) => {
+        if (delta.state?.current !== "complete" || delta.state.previous === "complete") return;
+        void (async () => {
+            const stored = await chrome.storage.local.get([DOWNLOAD_SETTINGS_KEY, MODULES_KEY]);
+            const settings = normalizeDownloadSettings(stored[DOWNLOAD_SETTINGS_KEY]);
+            const modules = (stored[MODULES_KEY] && typeof stored[MODULES_KEY] === "object" ? stored[MODULES_KEY] : {}) as Record<string, unknown>;
+            if (modules.download === false || !settings.notifications) return;
+            const item = await chrome.downloads.search({id: delta.id});
+            const name = item[0]?.filename?.replace(/\\/g, "/").split("/").pop() || "파일";
+            await chrome.notifications.create(`bongextend-download-${delta.id}`, {
+                type: "basic",
+                iconUrl: browser.runtime.getURL("/icons/128.png"),
+                title: "다운로드 완료",
+                message: name
+            });
+        })().catch((error) => console.warn("다운로드 알림을 표시하지 못했어요.", error));
+    });
+    const downloadNameHints = new Map<string, {name: string; createdAt: number}[]>();
+    const takeDownloadNameHint = (url: string) => {
+        const queue = downloadNameHints.get(url);
+        if (!queue) return "";
+        const now = Date.now();
+        while (queue.length && now - queue[0].createdAt > 30_000) queue.shift();
+        const hint = queue.shift()?.name || "";
+        if (!queue.length) downloadNameHints.delete(url);
+        return hint;
+    };
+    const removeDownloadNameHint = (url: string, name: string) => {
+        const queue = downloadNameHints.get(url);
+        if (!queue) return;
+        const index = queue.findIndex((entry) => entry.name === name);
+        if (index >= 0) queue.splice(index, 1);
+        if (!queue.length) downloadNameHints.delete(url);
+    };
+    const startDownloadWithName = async (rawUrl: string, rawName: string) => {
+        const url = new URL(rawUrl);
+        if (url.protocol !== "http:" && url.protocol !== "https:") throw new Error("http 또는 https 주소만 받을 수 있어요.");
+        const name = cleanSuggestedFilename(rawName);
+        if (name) {
+            const queue = downloadNameHints.get(url.href) || [];
+            queue.push({name, createdAt: Date.now()});
+            downloadNameHints.set(url.href, queue);
+        }
+        try {
+            return await browser.downloads.download({url: url.href, conflictAction: "uniquify"});
+        } catch (error) {
+            if (name) removeDownloadNameHint(url.href, name);
+            throw error;
+        }
+    };
+    browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
+        if (!message || message.type !== "bongextend-download") return;
+        let senderIsExtensionPage = false;
+        try { senderIsExtensionPage = sender.id === browser.runtime.id && new URL(sender.url || "").protocol === "chrome-extension:"; }
+        catch { senderIsExtensionPage = false; }
+        if (!senderIsExtensionPage || typeof message.url !== "string") {
+            sendResponse({ok: false, error: "확장 프로그램 화면에서만 시작할 수 있어요."});
+            return;
+        }
+        startDownloadWithName(message.url, typeof message.filename === "string" ? message.filename : "").then(
+            (id) => sendResponse({ok: true, id}),
+            (error) => sendResponse({ok: false, error: error?.message || "다운로드를 시작하지 못했어요."})
+        );
+        return true;
+    });
 
     // ===== 치지직 모듈 콘텐츠 스크립트 등록 =====
     // 모듈 스위치를 끄면 등록을 풀어서 치지직 페이지에 아예 붙지 않게 한다.
@@ -187,6 +333,21 @@ export default defineBackground(() => {
             title: "SauceNao 검색",
             contexts: ["image"],
             documentUrlPatterns: ["*://gall.dcinside.com/*"]
+        },
+        {
+            id: "bongDownloadLink",
+            title: "BongExtend로 링크 다운로드",
+            contexts: ["link"]
+        },
+        {
+            id: "bongDownloadImage",
+            title: "BongExtend로 이미지 다운로드",
+            contexts: ["image"]
+        },
+        {
+            id: "bongDownloadMedia",
+            title: "BongExtend로 미디어 다운로드",
+            contexts: ["audio", "video"]
         }
     ];
 
@@ -236,6 +397,25 @@ export default defineBackground(() => {
             case "searchSauceNao":
                 sendMessage("searchSauceNao", undefined, tab.id).catch(() => {});
                 break;
+            case "bongDownloadLink":
+            case "bongDownloadImage":
+            case "bongDownloadMedia": {
+                void getModules().then((modules: Record<string, boolean | undefined>) => {
+                    if (modules.download === false) return;
+                    const rawUrl = info.menuItemId === "bongDownloadLink" ? info.linkUrl : info.srcUrl;
+                    if (!rawUrl) return;
+                    try {
+                        const url = new URL(rawUrl);
+                        if (url.protocol !== "http:" && url.protocol !== "https:") return;
+                        const fallbackName = url.pathname.split("/").pop() || tab.title || "";
+                        const name = cleanSuggestedFilename(fallbackName);
+                        const extension = url.pathname.split("/").pop()?.match(/\.[a-z0-9]{1,8}$/i)?.[0] || "";
+                        const filename = name && !/\.[a-z0-9]{1,8}$/i.test(name) ? `${name}${extension}` : name;
+                        void startDownloadWithName(url.href, filename);
+                    } catch { /* 주소가 올바르지 않으면 건너뛴다 */ }
+                });
+                break;
+            }
         }
     });
 

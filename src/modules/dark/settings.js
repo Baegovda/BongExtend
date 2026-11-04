@@ -1,0 +1,108 @@
+export const DARK_SETTINGS_KEY = "core.darkMode";
+export const DARK_SCRIPT_ID = "bongextend-dark-reader";
+export const DARK_SCRIPT_FILE = "content-scripts/dark.js";
+
+export const DEFAULT_DARK_SETTINGS = Object.freeze({
+  enabledByDefault: false,
+  enabledSites: [],
+  disabledSites: [],
+  siteListMode: "exclude",
+  siteList: [],
+  siteThemes: {},
+  followSystem: false,
+  detectDarkTheme: true,
+  mode: 1,
+  brightness: 100,
+  contrast: 100,
+  sepia: 0,
+  grayscale: 0,
+  useFont: false,
+  fontFamily: "",
+  textStroke: 0,
+  darkSchemeBackgroundColor: "#181a1b",
+  darkSchemeTextColor: "#e8e6e3",
+  styleSystemControls: true
+});
+
+const clamp = (value, min, max, fallback) => {
+  const number = Number(value);
+  return Number.isFinite(number) ? Math.min(max, Math.max(min, number)) : fallback;
+};
+
+const normalizeHost = (value) => {
+  const host = String(value || "").trim().toLowerCase().replace(/^\*\./, "");
+  if (!host || host.length > 253 || !/^[a-z0-9.-]+$/.test(host) || host.includes("..")) return "";
+  return host;
+};
+
+const normalizeHosts = (value) => Array.isArray(value)
+  ? [...new Set(value.map(normalizeHost).filter(Boolean))].slice(0, 200)
+  : [];
+
+const normalizeColor = (value, fallback) => /^#[0-9a-f]{6}$/i.test(String(value || "")) ? value : fallback;
+
+const normalizeTheme = (value) => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  const out = {};
+  for (const key of ["mode", "brightness", "contrast", "sepia", "grayscale", "useFont", "fontFamily", "textStroke", "darkSchemeBackgroundColor", "darkSchemeTextColor"]) {
+    if (value[key] === undefined) continue;
+    if (key === "mode") out.mode = Number(value.mode) === 0 ? 0 : 1;
+    else if (key === "brightness" || key === "contrast") out[key] = clamp(value[key], 50, 120, DEFAULT_DARK_SETTINGS[key]);
+    else if (key === "sepia" || key === "grayscale") out[key] = clamp(value[key], 0, 100, DEFAULT_DARK_SETTINGS[key]);
+    else if (key === "useFont") out.useFont = Boolean(value.useFont);
+    else if (key === "fontFamily") out.fontFamily = String(value.fontFamily || "").replace(/[\r\n{};]/g, "").slice(0, 60);
+    else if (key === "textStroke") out.textStroke = clamp(value.textStroke, 0, 1, 0);
+    else if (key === "darkSchemeBackgroundColor") out[key] = normalizeColor(value[key], DEFAULT_DARK_SETTINGS[key]);
+    else if (key === "darkSchemeTextColor") out[key] = normalizeColor(value[key], DEFAULT_DARK_SETTINGS[key]);
+  }
+  return out;
+};
+
+export const normalizeDarkSettings = (value) => {
+  const source = value && typeof value === "object" && !Array.isArray(value) ? value : {};
+  const siteThemes = {};
+  if (source.siteThemes && typeof source.siteThemes === "object" && !Array.isArray(source.siteThemes)) {
+    for (const [host, theme] of Object.entries(source.siteThemes).slice(0, 200)) {
+      const normalizedHost = normalizeHost(host);
+      if (normalizedHost) siteThemes[normalizedHost] = normalizeTheme(theme);
+    }
+  }
+  return {
+    ...DEFAULT_DARK_SETTINGS,
+    enabledByDefault: Boolean(source.enabledByDefault),
+    enabledSites: normalizeHosts(source.enabledSites),
+    disabledSites: normalizeHosts(source.disabledSites),
+    siteListMode: source.siteListMode === "only" ? "only" : "exclude",
+    siteList: normalizeHosts(source.siteList),
+    siteThemes,
+    followSystem: Boolean(source.followSystem),
+    detectDarkTheme: source.detectDarkTheme !== false,
+    ...normalizeTheme(source)
+  };
+};
+
+export const darkSiteEnabled = (settings, hostname) => {
+  const host = normalizeHost(hostname);
+  if (!host) return false;
+  const disabled = normalizeHosts(settings?.disabledSites);
+  if (disabled.some((site) => host === site || host.endsWith(`.${site}`))) return false;
+  const enabled = normalizeHosts(settings?.enabledSites);
+  if (enabled.some((site) => host === site || host.endsWith(`.${site}`))) return true;
+  const listed = normalizeHosts(settings?.siteList);
+  const onList = listed.some((site) => host === site || host.endsWith(`.${site}`));
+  if (settings?.siteListMode === "only" && !onList) return false;
+  if (settings?.siteListMode !== "only" && onList) return false;
+  return Boolean(settings?.enabledByDefault);
+};
+
+export const darkSitePattern = (hostname) => {
+  const host = normalizeHost(hostname);
+  if (!host) return [];
+  const wildcard = host.includes(".") ? `*.${host}` : host;
+  return [`https://${wildcard}/*`, `http://${wildcard}/*`];
+};
+
+export const darkThemeForSite = (settings, hostname) => {
+  const host = normalizeHost(hostname);
+  return {...settings, ...(host && settings?.siteThemes?.[host] ? settings.siteThemes[host] : {})};
+};
