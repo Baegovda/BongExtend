@@ -1,6 +1,6 @@
 # BongExtend 인수인계
 
-코드 버전은 `package.json`의 **1.2.6**예요. 설치 파일은 [Releases](https://github.com/Baegovda/BongExtend/releases/tag/v1.2.6)의 `bongextend-1.2.6-chrome.zip`이에요. 숫자가 다르면 `package.json`과 Releases를 다시 보세요.
+코드 버전은 `package.json`의 **1.2.7**예요. 설치 파일은 [Releases](https://github.com/Baegovda/BongExtend/releases/tag/v1.2.7)의 `bongextend-1.2.7-chrome.zip`이에요. 숫자가 다르면 `package.json`과 Releases를 다시 보세요.
 
 오너(Guilliman / GitHub Baegovda)는 개발자가 아니에요. 화면 글, README, CHANGELOG, 보고는 한국어로 쉽게 써요.
 
@@ -44,7 +44,7 @@ BongExtend는 크롬 확장(MV3) 하나예요. 예전에 따로 쓰던 기능을
 | 공통 | `chrome.storage.local` | `core.modules`, `core.popupTab`, `core.popupTabOrder`, `core.update:*` |
 | 메일 | `chrome.storage.local` | `gmail.snapshot`, `gmail.unread`, `gmail.seen`, `gmail.baseline`, `gmail.error`, `gmail.notify`, `gmail.intervalMs`, `gmail.disabled`, `gmail.photos`, `gmail.accountColors`, `gmail.accountOrder`, `gmail.sound` |
 | 메일 토큰 | `chrome.storage.session` | `gmail.sessionTokens` (브라우저를 닫으면 사라지는 작업 토큰) |
-| 환율 | `chrome.storage.local` | `fx.table`. 옛 `fx.favorites`는 읽지도 쓰지도 않아요 |
+| 환율 | `chrome.storage.local` | `fx.table`, 카드 순서 `fx.cardOrder`. 옛 `fx.favorites`는 읽지도 쓰지도 않아요 |
 | 우클릭 | `chrome.storage.local` | `rc.origins` |
 
 디시 데이터 작업(가져오기, 초기화, 백업)은 `src/storage/namespace.ts`가 디시 키만 다뤄요. 다른 구역은 건드리지 않아요.
@@ -104,7 +104,7 @@ main 푸시와 PR의 CI(`.github/workflows/ci.yml`)는 시험과 빌드와 eval 
 - 메일 탭의 모듈 스위치, 확인 간격, 새 메일 알림, 긴 설명은 팝업이 아니라 설정 화면의 메일에 있어요. 팝업 메일에는 다시 확인 아이콘만 있어요.
 - 환율 화면은 팝업 높이 안에 들어가요. 칸을 더 내리지 않아도 8개 나라 칸과 시세 글이 보여요. 이 문장은 1.2.3·1.2.4 변경 기록에는 빠졌지만, 화면은 1.2.3부터 들어 있어요.
 
-## 최근 역사 (1.2.0 ~ 1.2.6)
+## 최근 역사 (1.2.0 ~ 1.2.7)
 
 자세한 문장은 `CHANGELOG.md`에 있어요.
 
@@ -115,6 +115,7 @@ main 푸시와 PR의 CI(`.github/workflows/ci.yml`)는 시험과 빌드와 eval 
 - **1.2.4**: 타오바오처럼 주소 `#` 뒤가 바뀌고 글이 나중에 생기는 화면도 번역해요. 메일 탭은 받은 메일이 먼저 보이고, 제목이 가장 크며, 이름·주소·받은 시각이 나와요. 치지직 광고 칸과 짧은 광고 영상은 가리고 소리를 끄며, 건너뛰기가 켜지면 눌러요.
 - **1.2.5**: 치지직 라이브에서 소리는 나는데 화면만 검던 문제를 고치려 했어요. 본영상을 숨기지 않게 바꿨지만, 광고를 빈 응답으로 막는 방식은 그대로였어요.
 - **1.2.6**: 치지직이 광고를 못 받으면 까만 막을 유지해요. 광고 스크립트와 빈 일정으로 막지 않고, 재생 전 광고 표시만 끄며, 남아 있는 까만 막은 본영상이 나온 뒤에 접어요.
+- **1.2.7**: 환율 칸 순서를 끌 수 있어요. 메일이 없어도 계정이 보여요. 톱니와 단축키 버튼을 다듬고, 새 메일 소리에 Checker Plus 소리를 넣었어요. 즐겨찾기 저장값은 그대로예요.
 
 ## 알려진 문제와 남은 일
 

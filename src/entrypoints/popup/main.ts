@@ -8,7 +8,7 @@ import {getModules, setModuleEnabled} from "@/modules/core-modules.js";
 import {moveItem, normalizeTabOrder} from "@/core/popup/tabOrder";
 import {exportAllSettings, importSettingsText} from "@/modules/settings-io";
 // @ts-ignore 순수 JS
-import {COMMON_CODES, CURRENCY_TINT, FX_URL, convertAmount, currencyColor, currencyLabel, currencyName, formatMoney, fxTabBadge, isCacheFresh, parseRatePayload} from "@/modules/fx/convert.js";
+import {COMMON_CODES, CURRENCY_TINT, FX_ORDER_KEY, FX_URL, convertAmount, currencyColor, currencyLabel, currencyName, formatMoney, fxTabBadge, isCacheFresh, orderCurrencyCards, parseRatePayload} from "@/modules/fx/convert.js";
 // @ts-ignore 순수 JS
 import {composite} from "@/modules/theme/contrast.js";
 // @ts-ignore 순수 JS
@@ -195,7 +195,11 @@ const renderUpdate = (s: UpdateStatus | null | undefined) => {
     const cur = effects.getManifest().version;
     releaseUrl = s.releaseUrl || "";
     const available = Boolean(s.updateAvailable && s.latestVersion && isNewerVersion(s.latestVersion, cur));
+    const notice = $("updateNotice");
     $("updateDot").hidden = !available;
+    $("settingsGear").title = available ? `새 버전 ${s.latestVersion}이 있어요` : "업데이트·설정";
+    notice.hidden = !available;
+    notice.textContent = available ? `새 버전 ${s.latestVersion}이 있어요. 아래에서 받을 수 있어요.` : "";
     if (s.error) setStatus(s.error, "error");
     else if (available) setStatus(`${cur} → ${s.latestVersion} 업데이트할 수 있어요`, "ok");
     else if (s.latestVersion) setStatus("최신 버전이에요.");
@@ -541,21 +545,32 @@ const renderGmail = (snapshot: GmailSnapshot | null | undefined, error = "") => 
         gmailAccounts.appendChild(section);
     }
     const messages = accounts.reduce((sum, item) => sum + (item.messages || []).length, 0);
-    const showList = messages > 0 && !view?.loggedOut;
-    if (mailPanel) mailPanel.classList.toggle("is-empty", !showList && !error);
-    gmailAccounts.hidden = !showList;
-    gmailEmpty.hidden = showList || Boolean(error);
+    const loggedOut = Boolean(view?.loggedOut);
+    const showAccounts = accounts.length > 0 && !loggedOut;
+    const showMail = messages > 0 && showAccounts;
+    const gmailQuiet = $("gmailQuiet");
+    if (mailPanel) {
+        mailPanel.classList.toggle("is-empty", !showMail && !showAccounts && !error);
+        mailPanel.classList.toggle("has-accounts", showAccounts);
+    }
+    gmailAccounts.hidden = !showAccounts;
+    gmailEmpty.hidden = showAccounts || showMail || Boolean(error);
+    gmailQuiet.hidden = !showAccounts || showMail || Boolean(error);
     gmailStatus.hidden = !error;
     if (error) gmailStatus.textContent = error;
-    else if (view?.loggedOut) {
+    else if (loggedOut) {
+        gmailEmpty.hidden = false;
         gmailEmptyTitle.textContent = "Gmail에 로그인되어 있지 않아요";
         gmailEmptyNote.textContent = "브라우저에서 Gmail에 로그인한 뒤 오른쪽 위 새로고침을 눌러 주세요.";
-    } else if (!showList) {
+    } else if (!showAccounts) {
+        gmailEmpty.hidden = false;
         gmailEmptyTitle.textContent = "읽지 않은 메일이 없어요";
         gmailEmptyNote.textContent = "새 메일이 오면 여기에 나와요.";
     } else gmailStatus.textContent = "";
-    gmailAccount.textContent = showList
-        ? (accounts.length > 1 ? `계정 ${accounts.length}개 · ${unread}통` : `${unread}통`)
+    gmailAccount.textContent = showAccounts
+        ? (unread > 0
+            ? (accounts.length > 1 ? `계정 ${accounts.length}개 · ${unread}통` : `${unread}통`)
+            : (accounts.length > 1 ? `계정 ${accounts.length}개` : "읽지 않은 메일 없음"))
         : "";
     paintMailBadge(accounts, accounts.filter((item) => item.enabled === false).map((item) => item.index));
     paintSoundAccounts(accounts);
@@ -792,7 +807,16 @@ effects.storageOnChanged((changes: Record<string, {newValue?: unknown}>, area: s
     }
     if (changes["fx.table"]) paintFxBadge((changes["fx.table"].newValue as FxTable | undefined)?.rates);
     if (changes["core.update:available"]) {
-        $("updateDot").hidden = changes["core.update:available"].newValue !== true;
+        const on = changes["core.update:available"].newValue === true;
+        $("updateDot").hidden = !on;
+        const notice = $("updateNotice");
+        notice.hidden = !on;
+        if (on && !notice.textContent) notice.textContent = "새 버전이 있어요. 아래에서 받을 수 있어요.";
+        if (!on) notice.textContent = "";
+    }
+    if (changes[FX_ORDER_KEY] && !fxMore.classList.contains("reordering")) {
+        fxCardOrder = Array.isArray(changes[FX_ORDER_KEY].newValue) ? changes[FX_ORDER_KEY].newValue as string[] : [];
+        if (fxTable && (current === "fx" || embed === "fx")) renderFx();
     }
 });
 
@@ -805,6 +829,8 @@ const fxResult = $("fxResult");
 const fxMore = $("fxMore");
 const fxStatus = $("fxStatus");
 let fxTable: FxTable | null = null;
+let fxCardOrder: string[] = [];
+let fxDragged = false;
 
 const paintFxBadge = (rates: Record<string, number> | undefined) => {
     const badge = $("fxBadge");
@@ -844,12 +870,14 @@ const renderFx = () => {
     const value = convertAmount(amount, fxFrom.value, fxTo.value, fxTable.rates);
     fxResult.textContent = value == null ? "이 통화는 표에 없어요." : `${formatMoney(amount, fxFrom.value)} ${fxFrom.value.toUpperCase()} = ${formatMoney(value, fxTo.value)} ${fxTo.value.toUpperCase()}`;
     const surface = fxSurface();
-    for (const code of COMMON_CODES as string[]) {
+    for (const code of orderCurrencyCards(COMMON_CODES as string[], fxCardOrder) as string[]) {
         const other = convertAmount(amount, fxFrom.value, code, fxTable.rates);
         if (other == null) continue;
         const button = document.createElement("button");
         button.type = "button";
         button.className = "fx-chip";
+        button.dataset.code = code;
+        button.title = "끌어서 순서 바꾸기";
         if (code === fxTo.value) button.classList.add("on");
         const flag = currencyColor(code) as string;
         button.style.setProperty("--fx-flag", flag);
@@ -860,12 +888,53 @@ const renderFx = () => {
         money.textContent = formatMoney(other, code);
         button.append(name, money);
         button.addEventListener("click", () => {
+            if (fxDragged) return;
             if ([...fxTo.options].some((option) => option.value === code)) fxTo.value = code;
             renderFx();
         });
+        bindFxDrag(button);
         fxMore.appendChild(button);
     }
     fxStatus.textContent = fxTable.date ? `${fxTable.date} 시세 · 실시간은 아니에요` : "하루 한 번 바뀌는 시세예요";
+};
+
+const bindFxDrag = (button: HTMLButtonElement) => {
+    button.addEventListener("pointerdown", (event) => {
+        if (event.button !== 0) return;
+        const startY = event.clientY;
+        let dragging = false;
+        const onMove = (ev: PointerEvent) => {
+            if (!dragging) {
+                if (Math.abs(ev.clientY - startY) < 6) return;
+                dragging = true;
+                button.setPointerCapture(ev.pointerId);
+                fxMore.classList.add("reordering");
+                button.classList.add("dragging");
+            }
+            const others = [...fxMore.children].filter((el) => el !== button) as HTMLElement[];
+            const before = others.find((el) => {
+                const rect = el.getBoundingClientRect();
+                return ev.clientY < rect.top + rect.height / 2;
+            });
+            if (before) fxMore.insertBefore(button, before);
+            else fxMore.appendChild(button);
+        };
+        const onUp = () => {
+            button.removeEventListener("pointermove", onMove);
+            button.removeEventListener("pointerup", onUp);
+            button.removeEventListener("pointercancel", onUp);
+            if (!dragging) return;
+            fxDragged = true;
+            setTimeout(() => { fxDragged = false; }, 0);
+            button.classList.remove("dragging");
+            fxMore.classList.remove("reordering");
+            fxCardOrder = [...fxMore.querySelectorAll<HTMLElement>("[data-code]")].map((el) => el.dataset.code || "").filter(Boolean);
+            void effects.storageSet({[FX_ORDER_KEY]: fxCardOrder});
+        };
+        button.addEventListener("pointermove", onMove);
+        button.addEventListener("pointerup", onUp);
+        button.addEventListener("pointercancel", onUp);
+    });
 };
 
 const refreshFx = async () => {
@@ -956,7 +1025,9 @@ $("fxSwap").addEventListener("click", () => {
     renderFx();
 });
 window.matchMedia("(prefers-color-scheme: light)").addEventListener("change", () => { if (fxTable) renderFx(); });
-effects.storageGet(FX_KEY).then((stored: Record<string, unknown>) => {
+effects.storageGet([FX_KEY, FX_ORDER_KEY]).then((stored: Record<string, unknown>) => {
     const cached = stored[FX_KEY] as FxTable | undefined;
+    fxCardOrder = Array.isArray(stored[FX_ORDER_KEY]) ? stored[FX_ORDER_KEY] as string[] : [];
     paintFxBadge(cached?.rates);
+    if (fxTable) renderFx();
 });

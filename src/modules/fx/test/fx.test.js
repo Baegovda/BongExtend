@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import {convertAmount, formatMoney, isCacheFresh, parseRatePayload, currencyLabel, CURRENCY_COLORS, CURRENCY_TINT, currencyColor, fxTabBadge} from "../convert.js";
+import {convertAmount, formatMoney, isCacheFresh, parseRatePayload, currencyLabel, CURRENCY_COLORS, CURRENCY_TINT, currencyColor, fxTabBadge, orderCurrencyCards} from "../convert.js";
 import {composite, contrastRatio} from "../../theme/contrast.js";
 
 test("converts through a KRW rate table, including crypto", () => {
@@ -22,6 +22,12 @@ test("parses the no-key payload and keeps a cached table for 12 hours", () => {
     assert.equal(isCacheFresh(now - 60_000, now), true);
     assert.equal(isCacheFresh(now - 13 * 60 * 60 * 1000, now), false);
     assert.equal(isCacheFresh(0, now), false);
+});
+
+test("card order keeps a saved sequence and leaves unknown favorites alone", () => {
+    assert.deepEqual(orderCurrencyCards(["krw", "usd", "jpy", "eur"], ["jpy", "krw", "nope"]), ["jpy", "krw", "usd", "eur"]);
+    assert.deepEqual(orderCurrencyCards(["krw", "usd"], null), ["krw", "usd"]);
+    assert.deepEqual(orderCurrencyCards(["krw", "usd"], ["usd", "usd", "krw"]), ["usd", "krw"]);
 });
 
 test("one dollar in won is the tab badge, and flag tints stay readable", () => {
