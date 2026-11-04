@@ -272,7 +272,8 @@ test('pending text only fades slightly and never paints a gradient', async () =>
   assert.match(source, /prefers-reduced-motion:\s*reduce/);
   assert.match(source, /pt-page-translator-pending/);
   assert.match(source, /pt-pending-pulse/);
-  assert.match(source, /opacity: 0\.72/);
+  assert.match(source, /opacity: 0\.48/);
+  assert.match(source, /opacity: 0\.96/);
   assert.doesNotMatch(source, /linear-gradient/);
   assert.doesNotMatch(source, /background-image/);
   assert.doesNotMatch(source, /background-clip:\s*text/);
@@ -689,7 +690,7 @@ test('a later chunk uses the same clip instead of popping into place', async () 
   assert.equal(created.some((node) => String(node.className).includes('pt-page-translator-sweep')), false);
 });
 
-test('one text rect is measured once and the overlay does not follow the parent box', async () => {
+test('pending animation measures the text bounds once and does not follow the parent box', async () => {
   const created = [];
   const timers = [];
   let rangeReads = 0;
@@ -726,7 +727,7 @@ test('one text rect is measured once and the overlay does not follow the parent 
   assert.equal(block.childNodes[0].nodeValue, '번역包邮AB');
   assert.equal(block.classList.contains('pt-page-translator-pending'), false);
   assert.equal(created.some((node) => String(node.className).includes('pt-page-translator-sweep')), false);
-  assert.equal(rangeReads, 0);
+  assert.equal(rangeReads, 1);
 });
 
 test('turning translation off restores originals and stops new batches', async () => {
