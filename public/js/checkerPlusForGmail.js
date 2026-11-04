@@ -725,19 +725,19 @@ async function updateBadge(params = {}) {
             buttonIcon.setIcon({signedOut:true});
         }
         if (accountsSummary.firstNiceError) {
-            chrome.action.setTitle({ title: accountsSummary.firstNiceError.toString() });
+            BongExtendCheckerPlusAction.setTitle({ title: accountsSummary.firstNiceError.toString() });
         }
     } else if (accounts.length) {
         if (dndState) {
-            chrome.action.setBadgeText({text: "🌙"});
-            chrome.action.setTitle({ title: getMessage("doNotDisturb") });
-            chrome.action.setBadgeBackgroundColor({color:BadgeColor.EMOJI});
+            BongExtendCheckerPlusAction.setBadgeText({text: "🌙"});
+            BongExtendCheckerPlusAction.setTitle({ title: getMessage("doNotDisturb") });
+            BongExtendCheckerPlusAction.setBadgeBackgroundColor({color:BadgeColor.EMOJI});
         } else {
             const hideCount = await storage.get("hide_count");
             if (hideCount || totalUnread < 1) {
-                chrome.action.setBadgeText({ text: "" });
+                BongExtendCheckerPlusAction.setBadgeText({ text: "" });
             } else {
-                chrome.action.setBadgeText({ text: totalUnread.toString() });
+                BongExtendCheckerPlusAction.setBadgeText({ text: totalUnread.toString() });
             }
         }
 
@@ -750,8 +750,8 @@ async function updateBadge(params = {}) {
                 }
             } else {
                 buttonIcon.setIcon({noUnread:true});
-                chrome.action.setBadgeBackgroundColor({ color: [110, 140, 180, 255] });
-                chrome.action.setTitle({ title: getMessage('noUnreadText') });
+                BongExtendCheckerPlusAction.setBadgeBackgroundColor({ color: [110, 140, 180, 255] });
+                BongExtendCheckerPlusAction.setTitle({ title: getMessage('noUnreadText') });
             }
         } else {
             if (dndState) {
@@ -762,7 +762,7 @@ async function updateBadge(params = {}) {
                 }
             } else {
                 buttonIcon.setIcon({unread:true});
-                chrome.action.setBadgeBackgroundColor({ color: await storage.get("unreadCountBackgroundColor") });
+                BongExtendCheckerPlusAction.setBadgeBackgroundColor({ color: await storage.get("unreadCountBackgroundColor") });
                 
                 if (await storage.get("showButtonTooltip")) {
                     let str = "";
@@ -776,9 +776,9 @@ async function updateBadge(params = {}) {
                             }
                         }
                     }
-                    chrome.action.setTitle({ title: str });
+                    BongExtendCheckerPlusAction.setTitle({ title: str });
                 } else {
-                    chrome.action.setTitle({ title: "" });
+                    BongExtendCheckerPlusAction.setTitle({ title: "" });
                 }
             }
         }
@@ -813,7 +813,7 @@ async function initPopup() {
 	
     if (browserButtonAction == BrowserButtonAction.SIDE_PANEL || browserButtonAction == BrowserButtonAction.GMAIL_INBOX_SIDE_PANEL) {
         popupUrl = "";
-        chrome.sidePanel?.setPanelBehavior({ openPanelOnActionClick: true });
+        BongExtendCheckerPlusAction.setPanelBehavior({ openPanelOnActionClick: true });
     } else {
         if (browserButtonAction == BrowserButtonAction.CHECKER_PLUS_POPOUT || browserButtonAction == BrowserButtonAction.GMAIL_INBOX_POPOUT || browserButtonAction == BrowserButtonAction.GMAIL_DETACHED) {
             popupUrl = "";
@@ -826,17 +826,17 @@ async function initPopup() {
                 popupUrl = "";
             }
         }
-        chrome.sidePanel?.setPanelBehavior({ openPanelOnActionClick: false });
+        BongExtendCheckerPlusAction.setPanelBehavior({ openPanelOnActionClick: false });
     }
 
-    const result = await chrome.action.getPopup({});
+    const result = await BongExtendCheckerPlusAction.getPopup({});
     if (result?.includes("setVia=manifest")) {
         console.log("Extension was disabled I think, let's reinit things...");
         sendMessageToBG("init", "reinit");
         //restartCheckEmailTimer(true);
         //initContextMenus();
     }
-    chrome.action.setPopup({popup: popupUrl});
+    BongExtendCheckerPlusAction.setPopup({popup: popupUrl});
 }
 
 function getPopupFile(source) {
@@ -2037,7 +2037,7 @@ function ButtonIcon() {
 					const imageData19 = getImageData(imageBitmap, customButtonIconCanvas, 19, 19);
 					const imageData38 = getImageData(imageBitmap, customButtonIconRetinaCanvas, 38, 38);
 					
-					chrome.action.setIcon({imageData: {'19':imageData19, '38':imageData38} });
+					BongExtendCheckerPlusAction.setIcon({imageData: {'19':imageData19, '38':imageData38} });
 				});
 			} else {
 				console.log("cached src");
@@ -2048,13 +2048,13 @@ function ButtonIcon() {
 				var retinaParams = shallowClone(params);
 				retinaParams.retina = true;
 				// supports retina
-				chrome.action.setIcon({ path: {
+				BongExtendCheckerPlusAction.setIcon({ path: {
 						"19": await self.generateButtonIconPath(params),
 						"38": await self.generateButtonIconPath(retinaParams)
 					}
 				});
 			} else {
-				chrome.action.setIcon({ path: await self.generateButtonIconPath(params) });
+				BongExtendCheckerPlusAction.setIcon({ path: await self.generateButtonIconPath(params) });
 			}
 		}
 		lastSetIconParams = shallowClone(params); // had to clone or else caused dead object errors in FF
@@ -2138,7 +2138,7 @@ function ButtonIcon() {
                         }
                         
                         try {
-                            chrome.action.setIcon({imageData: canvasContext.getImageData(0, 0, canvas.width, canvas.height)});
+                            BongExtendCheckerPlusAction.setIcon({imageData: canvasContext.getImageData(0, 0, canvas.width, canvas.height)});
                         } catch (error) {
                             //console.error(error);
                         }

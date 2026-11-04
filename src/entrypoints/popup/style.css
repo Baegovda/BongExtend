@@ -65,7 +65,11 @@ html.embed, html.embed body { width: 100%; height: 100%; overflow: auto; }
 .be-page .fx-chip.on { box-shadow: inset 3px 0 0 var(--fx-flag, var(--be-accent)), inset 0 0 0 1.5px var(--be-text); }
 .fx-chip small { color: var(--be-text-2); font-size: 12px; font-weight: 600; }
 .fx-chip b { font-size: 15px; font-weight: 700; letter-spacing: -0.02em; }
-.panel.be-shell.mail-panel { padding-bottom: 64px; }
+.panel.be-shell.mail-panel { position: relative; padding: 0; overflow: hidden; }
+.checkerplus-mail-frame { display: block; width: 100%; height: 100%; min-height: 0; border: 0; background: var(--be-bg); }
+.checkerplus-mail-frame.active { display: block; }
+.checkerplus-mail-home { position: absolute; top: 8px; right: 8px; z-index: 5; padding: 6px 10px; border: 1px solid var(--be-border); border-radius: 9px; background: var(--be-surface); color: var(--be-text); }
+.checkerplus-mail-home[hidden] { display: none; }
 .mail-panel.is-empty { display: flex; flex-direction: column; }
 .mail-panel.is-empty .mail-empty { flex: 1; }
 .mail-title { align-items: center; margin-bottom: 4px; }

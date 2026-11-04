@@ -21,7 +21,6 @@ import {CHRONO_SITE_ACCESS_KEY, syncChronoContentScripts} from "@/modules/chrono
 // @ts-ignore 페이지에 복사되는 순수 JS라 export 를 쓰지 않는다.
 import "@/modules/chzzk/lib/ads.js";
 // @ts-ignore 순수 JS
-import {startGmailBackground} from "@/modules/gmail/background.js";
 // @ts-ignore 순수 JS
 import {startFxBackground} from "@/modules/fx/background.js";
 // @ts-ignore 순수 JS
@@ -32,19 +31,34 @@ import {DARK_SCRIPT_FILE, DARK_SCRIPT_ID, DARK_SETTINGS_KEY, darkSiteEnabled, da
 import {DOWNLOAD_SETTINGS_KEY, cleanSuggestedFilename, makeDownloadFilename, normalizeDownloadSettings} from "@/modules/downloads/settings.js";
 
 export default defineBackground(() => {
-    // Chrono 0.13.12의 원본 서비스워커를 같은 MV3 워커에 불러온다.
+    // CheckPlus 이전 버전이 저장한 도구막대 덮어쓰기를 복구한다.
+    const rootManifest = chrome.runtime.getManifest() as {
+        action?: {default_popup?: string; default_title?: string; default_icon?: Record<string, string>};
+        icons?: Record<string, string>;
+    };
+    try {
+        chrome.action.setPopup({popup: rootManifest.action?.default_popup || "popup.html"});
+        chrome.action.setTitle({title: rootManifest.action?.default_title || "BongExtend"});
+        chrome.action.setBadgeText({text: ""});
+        const iconPaths = rootManifest.action?.default_icon || rootManifest.icons;
+        if (iconPaths) chrome.action.setIcon({path: iconPaths});
+    } catch (error) {
+        console.warn("BongExtend 도구막대를 복구하지 못했어요.", error);
+    }
+
+    // Checker Plus와 Chrono가 확장 툴바 API를 직접 바꾸지 못하게 한다.
     const importChrono = (globalThis as typeof globalThis & {importScripts?: (...urls: string[]) => void}).importScripts;
     if (typeof importChrono === "function") {
-        try { importChrono.call(globalThis, "/chrono-worker.js"); }
-        catch (error) { console.error("Chrono 다운로드 엔진을 시작하지 못했어요.", error); }
+        try { importChrono.call(globalThis, "/js/chrono-action-bridge.js"); }
+        catch (error) { console.error("다운로드 툴바 어댑터를 시작하지 못했어요.", error); }
         try { importChrono.call(globalThis, "/js/background.js"); }
         catch (error) { console.error("Checker Plus 메일 엔진을 시작하지 못했어요.", error); }
+        try { importChrono.call(globalThis, "/chrono-worker.js"); }
+        catch (error) { console.error("Chrono 다운로드 엔진을 시작하지 못했어요.", error); }
     }
 
     // ===== 번역 모듈 처리기 =====
     startTransBackground();
-    // ===== 메일: 로그인된 Gmail 세션으로 받은편지함을 맞춘다 =====
-    startGmailBackground();
     startFxBackground();
     startRightClickBackground();
 

@@ -49,6 +49,18 @@ const DEFAULT_ORDER: TabId[] = ["chzzk", "trans", "dc", "gmail", "fx", "dark", "
 const TAB_IDS: TabId[] = [...DEFAULT_ORDER, "update"];
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
+const checkerPlusMailFrame = $("checkerPlusMailFrame") as HTMLIFrameElement;
+const checkerPlusMailHome = $("checkerPlusMailHome") as HTMLButtonElement;
+checkerPlusMailFrame.addEventListener("load", () => {
+    try {
+        checkerPlusMailHome.hidden = !checkerPlusMailFrame.contentWindow?.location.pathname.endsWith("/checkerplus-options.html");
+    } catch {
+        checkerPlusMailHome.hidden = true;
+    }
+});
+checkerPlusMailHome.addEventListener("click", () => {
+    checkerPlusMailFrame.src = checkerPlusMailFrame.dataset.src || "/checkerplus-popup.html?source=bongextend";
+});
 const moduleBar = $("moduleBar");
 const moduleSwitch = $<HTMLInputElement>("moduleSwitch");
 const moduleLabel = $("moduleLabel");
@@ -58,6 +70,9 @@ let pageBeforeSettings: TabId = "chzzk";
 
 const embed = new URLSearchParams(location.search).get("embed");
 const embedded = embed === "gmail" || embed === "fx" || embed === "update";
+const CHECKER_PLUS_PERMISSIONS: chrome.runtime.ManifestPermission[] = ["identity", "cookies", "gcm", "system.display"];
+const CHECKER_PLUS_ORIGINS = ["https://www.googleapis.com/*", "https://gmail.googleapis.com/*", "https://*.googleusercontent.com/*"];
+const requestCheckerPlusPermissions = () => chrome.permissions.request({permissions: CHECKER_PLUS_PERMISSIONS, origins: CHECKER_PLUS_ORIGINS}).catch(() => false);
 
 const showTab = async (tab: TabId, persist = true) => {
     if (tab === "update" && current !== "update") pageBeforeSettings = current;
@@ -75,7 +90,9 @@ const showTab = async (tab: TabId, persist = true) => {
             el.hidden = !on;
         }
     });
-    if (tab === "gmail") void refreshGmail(false);
+    if (tab === "gmail") {
+        if (!checkerPlusMailFrame.src) checkerPlusMailFrame.src = checkerPlusMailFrame.dataset.src || "/checkerplus-popup.html?source=bongextend";
+    }
     if (tab === "fx") void refreshFx();
     if (tab === "update" || (tab === "gmail" && !embedded)) {
         moduleBar.hidden = true;
@@ -262,6 +279,10 @@ const bindPointerReorder = (opts: {
 tabButtons().forEach((b) => {
     b.addEventListener("click", (e) => {
         if (suppressClick) { e.preventDefault(); e.stopImmediatePropagation(); suppressClick = false; return; }
+        if (b.dataset.tab === "gmail") {
+            void requestCheckerPlusPermissions().then(() => showTab("gmail"));
+            return;
+        }
         void showTab(b.dataset.tab as TabId);
     });
     b.addEventListener("keydown", (e) => {
@@ -1025,32 +1046,6 @@ $("gmailOpen").addEventListener("click", () => {
     if (account) openMailPlace(account, gmailInboxUrl(account.index, account.email));
     else void effects.tabsCreate({url: "https://mail.google.com/mail/"});
 });
-const CHECKER_PLUS_PERMISSIONS: chrome.runtime.ManifestPermission[] = ["identity", "cookies", "gcm", "system.display"];
-const CHECKER_PLUS_ORIGINS = ["https://www.googleapis.com/*", "https://gmail.googleapis.com/*", "https://*.googleusercontent.com/*"];
-const openCheckerPlus = async (settingsPage = false) => {
-    try {
-        const granted = await chrome.permissions.request({permissions: CHECKER_PLUS_PERMISSIONS, origins: CHECKER_PLUS_ORIGINS});
-        if (!granted) {
-            gmailStatus.hidden = false;
-            gmailStatus.textContent = "Checker Plus 권한을 허용하지 않았어요. 현재 로그인된 Gmail 세션으로 열게요.";
-        }
-    } catch (error) {
-        gmailStatus.hidden = false;
-        gmailStatus.textContent = `Checker Plus 권한을 확인하지 못했어요: ${(error as Error)?.message || ""}`;
-    }
-    if (settingsPage) {
-        await chrome.tabs.create({url: chrome.runtime.getURL("/checkerplus-options.html")});
-        return;
-    }
-    await chrome.windows.create({
-        url: chrome.runtime.getURL("/checkerplus-popup.html?source=toolbar"),
-        type: "popup",
-        width: 900,
-        height: 560
-    });
-};
-$("checkerPlusOpen").addEventListener("click", () => void openCheckerPlus());
-$("checkerPlusSettings").addEventListener("click", () => void openCheckerPlus(true));
 $("gmailAddAccount").addEventListener("click", () => {
     const continueUrl = encodeURIComponent("https://mail.google.com/mail/u/0/");
     void effects.tabsCreate({url: `https://accounts.google.com/AccountChooser?service=mail&continue=${continueUrl}`});
