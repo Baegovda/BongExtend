@@ -24,6 +24,28 @@ export const FX_NAMES = {
 };
 
 export const COMMON_CODES = ["krw", "usd", "eur", "jpy", "cny", "gbp", "btc", "eth"];
+export const FX_ORDER_KEY = "fx.cardOrder";
+
+// 저장된 카드 순서를 앞에 두고, 없는 나라는 기본 순서대로 뒤에 붙인다.
+// fx.favorites 는 읽지도 쓰지도 않는다.
+export const orderCurrencyCards = (codes, saved) => {
+    const list = [];
+    const seen = new Set();
+    const have = new Set((codes || []).map((code) => String(code || "").toLowerCase()).filter(Boolean));
+    for (const raw of saved || []) {
+        const code = String(raw || "").toLowerCase();
+        if (!have.has(code) || seen.has(code)) continue;
+        seen.add(code);
+        list.push(code);
+    }
+    for (const raw of codes || []) {
+        const code = String(raw || "").toLowerCase();
+        if (!code || seen.has(code) || !have.has(code)) continue;
+        seen.add(code);
+        list.push(code);
+    }
+    return list;
+};
 
 export const currencyName = (code) => {
     const id = String(code || "").toLowerCase();

@@ -99,8 +99,11 @@
   border-radius: var(--be-radius-sm);
   padding: 8px 14px;
   cursor: pointer;
+  white-space: nowrap;
   transition: transform var(--be-duration) var(--be-ease), opacity var(--be-duration) var(--be-ease);
 }
+.be-page .be-row > button,
+.be-page .be-actions > button { flex: 0 0 auto; }
 .be-page button:hover:not(:disabled) { transform: scale(0.98); }
 .be-page button:disabled { opacity: 0.45; cursor: default; }
 .be-page button.primary, .be-page .be-primary {
