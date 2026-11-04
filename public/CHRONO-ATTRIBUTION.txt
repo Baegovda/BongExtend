@@ -1,0 +1,13 @@
+Chrono Download Manager source included in BongExtend
+
+Upstream: https://chromewebstore.google.com/detail/chrono-download-manager/mciiogijehkdemklbdcbfkefimifhecn
+Integrated package version: 0.13.12
+
+The original manager, settings page, service worker, page helpers, locales, and
+assets are included from the installed upstream package. The service worker
+copy uses a fixed `globalThis` function for the WASM global lookup instead of
+runtime JavaScript generation, and renames Chrono's private expression method
+without changing its logic. BongExtend's root manifest remains authoritative
+so both projects share one extension identity and one MV3 service worker.
+Third-party notices shipped with Chrono are kept in their original locations,
+including libs/LICENSE.txt.

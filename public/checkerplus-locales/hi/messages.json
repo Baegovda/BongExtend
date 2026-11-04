@@ -1,0 +1,197 @@
+{
+   "addToTasks": {
+      "message": "टास्क में जोड़ें"
+   },
+   "alreadyContributedForm": {
+      "message": "पहले से योगदान किया गया फ़ॉर्म"
+   },
+   "archive": {
+      "message": "संग्रहित"
+   },
+   "archiveLinkTitle": {
+      "message": "मेल संग्रहित करे"
+   },
+   "bestValue": {
+      "message": "सबसे अच्छा मूल्य"
+   },
+   "businesses": {
+      "message": "व्यवसाय"
+   },
+   "changeDomain": {
+      "message": "डोमेन बदलें"
+   },
+   "composeLinkTitle": {
+      "message": "मेल लिखे"
+   },
+   "contact": {
+      "message": "संपर्क करें"
+   },
+   "contactDeveloperForMultipleUserLicense": {
+      "message": "बहु-उपयोगकर्ता लाइसेंस खरीदने के लिए डेवलपर से संपर्क करने हेतु OK पर क्लिक करें"
+   },
+   "contributionNotRecognizedUse": {
+      "message": "यदि आपका योगदान पहचाना नहीं गया है, तो इसका उपयोग करें"
+   },
+   "crypto": {
+      "message": "क्रिप्टो"
+   },
+   "deleteLink": {
+      "message": "हटाव"
+   },
+   "deleteLinkTitle": {
+      "message": "मेल हटायें"
+   },
+   "directDeveloperSupport": {
+      "message": "डेवलपर से सीधे सहायता"
+   },
+   "enterEmailForReceipt": {
+      "message": "रसीद के लिए अपना ईमेल दर्ज करें"
+   },
+   "enterEmailToLinkExtensions": {
+      "message": "अन्य एक्सटेंशन लिंक करने के लिए अपना ईमेल दर्ज करें"
+   },
+   "forAllMyExtensions": {
+      "message": "मेरे सभी एक्सटेंशन के लिए"
+   },
+   "fullLinkTitle": {
+      "message": "पूरा सन्देश दिकाएं"
+   },
+   "getPro": {
+      "message": "प्रो प्राप्त करें"
+   },
+   "getUltraSuite": {
+      "message": "Ultra Suite प्राप्त करें"
+   },
+   "ifCompletedContact": {
+      "message": "यदि आपने यह कर लिया है, तो डेवलपर से संपर्क करें"
+   },
+   "includesProForAllExtensions": {
+      "message": "मेरे सभी एक्सटेंशन के लिए सभी सुविधाएँ अनलॉक करें"
+   },
+   "individual": {
+      "message": "व्यक्तिगत"
+   },
+   "invalidNumber": {
+      "message": "अमान्य संख्या"
+   },
+   "invalidPaymentProcess": {
+      "message": "अमान्य भुगतान प्रक्रिया"
+   },
+   "languageName": {
+      "message": "हिंदी"
+   },
+   "makeSureSignedIntoContributingAccount": {
+      "message": "सुनिश्चित करें कि आपने योगदान देने वाले Google खाते में साइन इन किया है, फिर दोबारा प्रयास करें!"
+   },
+   "monthsArray": {
+      "message": "जन,फर,मार्च,अप्रैल,मे,जून,जूलै,अगु,सेप,अक्टो,नवे,दिसं"
+   },
+   "mustCompleteQrPayment": {
+      "message": "आपको QR भुगतान पूरा करना होगा"
+   },
+   "mustEnterEmail": {
+      "message": "आपको ईमेल दर्ज करना होगा"
+   },
+   "mustGrantAccessForContribution": {
+      "message": "योगदान को आपके खाते से जोड़ने के लिए आपको पहले पॉपअप विंडो के माध्यम से एक्सेस देना होगा"
+   },
+   "noPaymentFoundForEmail": {
+      "message": "इस ईमेल के लिए कोई भुगतान नहीं मिला"
+   },
+   "noUnreadText": {
+      "message": "कोई अपठित मेल नहीं"
+   },
+   "oneUnreadText": {
+      "message": "अपठित मेल"
+   },
+   "openLinkTitle": {
+      "message": "वेब मेल में कुले"
+   },
+   "pay": {
+      "message": "भुगतान करें"
+   },
+   "paypal": {
+      "message": "PayPal"
+   },
+   "paypalUnsupportedWithCny": {
+      "message": "PayPal CNY मुद्रा के साथ समर्थित नहीं है"
+   },
+   "popupText": {
+      "message": "आपको नया मेल आया हैं !"
+   },
+   "previewingMarksAsReadNotice": {
+      "message": "ईमेल का प्रीव्यू उन्हें पढ़ा हुआ चिन्हित करता है और इस विंडो से हटा देता है, आप इसे विकल्प > $1 में बदल सकते हैं"
+   },
+   "print": {
+      "message": "प्रिंट करें"
+   },
+   "pro": {
+      "message": "प्रो"
+   },
+   "readLink": {
+      "message": "पठित"
+   },
+   "readLinkTitle": {
+      "message": "पठित के रूप में चिह्नित करे"
+   },
+   "reducedDonationAd_popup_line1": {
+      "message": "अच्छी खबर, लंबे समय से उपयोगकर्ता!"
+   },
+   "reducedDonationAd_popup_line2": {
+      "message": "केवल $2 में $1 पाएं"
+   },
+   "refreshLinkTitle": {
+      "message": "सभी मैल्बोक्सेस नवीकृत करे"
+   },
+   "refreshWhenOpeningPopup": {
+      "message": "पॉपअप विंडो खोलने पर ईमेल रीफ़्रेश करें"
+   },
+   "replyLinkTitle": {
+      "message": "उत्तर दे"
+   },
+   "reportSpam": {
+      "message": "स्पं के रूप में चिह्नित करे"
+   },
+   "selectFiatCurrencyForCrypto": {
+      "message": "क्रिप्टो के लिए फ़िएट मुद्रा और राशि चुनें"
+   },
+   "severalUnreadText": {
+      "message": "अपठित मेल"
+   },
+   "showCopyOTPInNotification": {
+      "message": "सूचनाओं में OTP कॉपी करें बटन दिखाएं"
+   },
+   "spam": {
+      "message": "स्पं"
+   },
+   "starLinkTitle": {
+      "message": "तारांकित"
+   },
+   "subscriptionCryptoContact": {
+      "message": "क्रिप्टो सदस्यता के लिए डेवलपर से संपर्क करें"
+   },
+   "summaryLinkTitle": {
+      "message": "सारांश दिकाएं"
+   },
+   "taskCreated": {
+      "message": "कार्य बनाया गया"
+   },
+   "tryAnotherPaymentMethod": {
+      "message": "कोई अन्य भुगतान विधि आज़माएँ"
+   },
+   "tryAnotherPaymentMethodInstead": {
+      "message": "इसके बजाय कोई अन्य भुगतान विधि आज़माएँ"
+   },
+   "ultraSuite": {
+      "message": "Ultra Suite"
+   },
+   "unreadLink": {
+      "message": "अपठित"
+   },
+   "unreadLinkTitle": {
+      "message": "अपठित के रूप में चिह्नित करे"
+   },
+   "unsubscribe": {
+      "message": "सदस्यता समाप्त करें"
+   }
+}

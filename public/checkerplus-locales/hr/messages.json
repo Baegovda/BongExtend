@@ -1,0 +1,158 @@
+{
+   "addToTasks": {
+      "message": "Dodaj u zadatke"
+   },
+   "archive": {
+      "message": "Arhiviraj"
+   },
+   "archiveLinkTitle": {
+      "message": "Arhiviraj poruku"
+   },
+   "back": {
+      "message": "Povratak"
+   },
+   "backToInbox": {
+      "message": "Povratak u Inbox"
+   },
+   "compose": {
+      "message": "Nova poruka"
+   },
+   "composeLinkTitle": {
+      "message": "Napiši novu poruku"
+   },
+   "contacts": {
+      "message": "Kontakti"
+   },
+   "delete": {
+      "message": "Obriši"
+   },
+   "deleteLink": {
+      "message": "Obriši"
+   },
+   "deleteLinkTitle": {
+      "message": "Obriši poruku"
+   },
+   "directDeveloperSupport": {
+      "message": "Izravna podrška razvojnog programera"
+   },
+   "email": {
+      "message": "E-pošta:"
+   },
+   "emailAccounts": {
+      "message": "Računi e-pošte"
+   },
+   "fullLinkTitle": {
+      "message": "Prikaži cijelu poruku"
+   },
+   "getPro": {
+      "message": "Nabavi Pro"
+   },
+   "getUltraSuite": {
+      "message": "Nabavi Ultra Suite"
+   },
+   "includesProForAllExtensions": {
+      "message": "Otključaj SVE značajke za SVA moja proširenja"
+   },
+   "languageName": {
+      "message": "Hrvatski"
+   },
+   "markAllAsRead": {
+      "message": "Označi sve kao pročitano"
+   },
+   "markAllAsReadTitle": {
+      "message": "Označi sve kao pročitano"
+   },
+   "monthsArray": {
+      "message": "sij,vel,ožu,tra,svi,lip,srp,kol,ruj,lis,stu,pro"
+   },
+   "noUnreadText": {
+      "message": "Nema nepročitanih poruka"
+   },
+   "oneUnreadText": {
+      "message": "nepročitana poruka"
+   },
+   "open": {
+      "message": "Otvori"
+   },
+   "openComposeInTab": {
+      "message": "Otvori u novom prozoru"
+   },
+   "openLinkTitle": {
+      "message": "Otvori u novom prozoru"
+   },
+   "openReply": {
+      "message": "Otvori (Odgovori)"
+   },
+   "popupText": {
+      "message": "Primili ste novu poruku!"
+   },
+   "previewingMarksAsReadNotice": {
+      "message": "Pregled e-poruka označava ih kao pročitane i uklanja iz ovog prozora, to možete promijeniti u Opcije > $1"
+   },
+   "print": {
+      "message": "Ispis"
+   },
+   "readLink": {
+      "message": "Pročitano"
+   },
+   "readLinkTitle": {
+      "message": "Označi kao pročitano"
+   },
+   "reducedDonationAd_popup_line1": {
+      "message": "Dobre vijesti, dugogodišnji korisniče!"
+   },
+   "reducedDonationAd_popup_line2": {
+      "message": "Nabavite $1 za samo $2"
+   },
+   "refreshLinkTitle": {
+      "message": "Osvježi sve sandučiće"
+   },
+   "refreshWhenOpeningPopup": {
+      "message": "Osvježi e-poštu pri otvaranju skočnog prozora"
+   },
+   "reply": {
+      "message": "Odgovori"
+   },
+   "replyLinkTitle": {
+      "message": "Odgovori na poruku"
+   },
+   "reportSpam": {
+      "message": "Prijavi neželjenu poruku"
+   },
+   "search": {
+      "message": "Tražilica"
+   },
+   "sendPageLinkTitle": {
+      "message": "Pošalji link ove stranice"
+   },
+   "severalUnreadText": {
+      "message": "nepročitane/ih poruke/a"
+   },
+   "showCopyOTPInNotification": {
+      "message": "Prikaži gumb za kopiranje OTP-a u obavijestima"
+   },
+   "spam": {
+      "message": "Prijavi"
+   },
+   "starLinkTitle": {
+      "message": "Dodaj zvjezdicu"
+   },
+   "summaryLinkTitle": {
+      "message": "Prikaži kratak pregled"
+   },
+   "taskCreated": {
+      "message": "Zadatak je stvoren"
+   },
+   "ultraSuite": {
+      "message": "Ultra Suite"
+   },
+   "unreadLink": {
+      "message": "Nepročitano"
+   },
+   "unreadLinkTitle": {
+      "message": "Označi kao nepročitano"
+   },
+   "unsubscribe": {
+      "message": "Odjava"
+   }
+}

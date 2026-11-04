@@ -1,0 +1,197 @@
+{
+   "addToTasks": {
+      "message": "إضافة إلى المهام"
+   },
+   "alreadyContributedForm": {
+      "message": "already contributed form"
+   },
+   "archive": {
+      "message": "الأرشيف"
+   },
+   "archiveLinkTitle": {
+      "message": "وضع في الأرشيف"
+   },
+   "bestValue": {
+      "message": "Best value"
+   },
+   "businesses": {
+      "message": "Businesses"
+   },
+   "changeDomain": {
+      "message": "Change domain"
+   },
+   "composeLinkTitle": {
+      "message": "إنشاء رسالة"
+   },
+   "contact": {
+      "message": "contact"
+   },
+   "contactDeveloperForMultipleUserLicense": {
+      "message": "Click Ok to contact the developer to purchase a multiple user license."
+   },
+   "contributionNotRecognizedUse": {
+      "message": "If your contribution is not recognized then please use the"
+   },
+   "crypto": {
+      "message": "Crypto"
+   },
+   "deleteLink": {
+      "message": "حذف"
+   },
+   "deleteLinkTitle": {
+      "message": "حذف الرسالة"
+   },
+   "dir": {
+      "message": "rtl"
+   },
+   "directDeveloperSupport": {
+      "message": "دعم مباشر من المطور"
+   },
+   "enterEmailForReceipt": {
+      "message": "Enter your email for the receipt"
+   },
+   "enterEmailToLinkExtensions": {
+      "message": "Enter your email to link the other extensions"
+   },
+   "forAllMyExtensions": {
+      "message": "for ALL my extensions"
+   },
+   "fullLinkTitle": {
+      "message": "عرض  الرسالة كاملة"
+   },
+   "getPro": {
+      "message": "احصل على Pro"
+   },
+   "getUltraSuite": {
+      "message": "احصل على Ultra Suite"
+   },
+   "ifCompletedContact": {
+      "message": "If you did this then contact the developer"
+   },
+   "includesProForAllExtensions": {
+      "message": "فتح كل الميزات لجميع إضافاتي"
+   },
+   "individual": {
+      "message": "Individual"
+   },
+   "invalidNumber": {
+      "message": "Invalid number"
+   },
+   "invalidPaymentProcess": {
+      "message": "Invalid payment process"
+   },
+   "makeSureSignedIntoContributingAccount": {
+      "message": "Make sure to sign into the Google account which you contributed from, then try again!"
+   },
+   "monthsArray": {
+      "message": "كانون الثاني,شباط,آذار,نيسان,أيار,حزيران,تموز,آب,أيلول,تشرين الأول,تشرين الثاني,كانون الأول"
+   },
+   "mustCompleteQrPayment": {
+      "message": "You must scan the code and complete the payment first."
+   },
+   "mustEnterEmail": {
+      "message": "You must enter an email"
+   },
+   "mustGrantAccessForContribution": {
+      "message": "You must first grant access via the popup window so that I can associate your account with the contribution."
+   },
+   "noPaymentFoundForEmail": {
+      "message": "No payment found for email"
+   },
+   "noUnreadText": {
+      "message": "لا يوجد رسائل غير مقروءة"
+   },
+   "oneUnreadText": {
+      "message": "رسالة غير مقروءة"
+   },
+   "openLinkTitle": {
+      "message": "فتح في جوجل"
+   },
+   "pay": {
+      "message": "Pay"
+   },
+   "paypal": {
+      "message": "PayPal"
+   },
+   "paypalUnsupportedWithCny": {
+      "message": "PayPal is not supported with CNY currency. Please select USD or another payment method."
+   },
+   "popupText": {
+      "message": "لديك رسائل جديدة!"
+   },
+   "previewingMarksAsReadNotice": {
+      "message": "معاينة الرسائل تضعها كمقروءة وتزيلها من هذه النافذة، يمكنك تغيير ذلك من الخيارات > $1"
+   },
+   "print": {
+      "message": "طباعة"
+   },
+   "pro": {
+      "message": "Pro"
+   },
+   "readLink": {
+      "message": "مقروءة"
+   },
+   "readLinkTitle": {
+      "message": "تعليمها كمقروءة"
+   },
+   "reducedDonationAd_popup_line1": {
+      "message": "خبر سار أيها المستخدم القديم!"
+   },
+   "reducedDonationAd_popup_line2": {
+      "message": "احصل على $1 مقابل $2 فقط"
+   },
+   "refreshLinkTitle": {
+      "message": "تحديث البريد الوارد"
+   },
+   "refreshWhenOpeningPopup": {
+      "message": "تحديث الرسائل عند فتح النافذة المنبثقة"
+   },
+   "replyLinkTitle": {
+      "message": "رد علي الرسالة"
+   },
+   "reportSpam": {
+      "message": "تعليمها كالرسالة المزعج"
+   },
+   "selectFiatCurrencyForCrypto": {
+      "message": "Select a fiat currency and an amount then the Crypto option will appear."
+   },
+   "severalUnreadText": {
+      "message": "رسائل غير مقروءة"
+   },
+   "showCopyOTPInNotification": {
+      "message": "إظهار زر نسخ رمز OTP في الإشعارات"
+   },
+   "spam": {
+      "message": "الرسائل المزعج"
+   },
+   "starLinkTitle": {
+      "message": "الرسائل المميزة بنجمة"
+   },
+   "subscriptionCryptoContact": {
+      "message": "For a subscription by crypto, please contact the developer"
+   },
+   "summaryLinkTitle": {
+      "message": "عرض الملخص"
+   },
+   "taskCreated": {
+      "message": "تم إنشاء المهمة"
+   },
+   "tryAnotherPaymentMethod": {
+      "message": "Try another payment method."
+   },
+   "tryAnotherPaymentMethodInstead": {
+      "message": "Try another payment method instead."
+   },
+   "ultraSuite": {
+      "message": "Ultra Suite"
+   },
+   "unreadLink": {
+      "message": "غير مقروءة"
+   },
+   "unreadLinkTitle": {
+      "message": "تعليمها كغير مقروءة"
+   },
+   "unsubscribe": {
+      "message": "إلغاء الاشتراك"
+   }
+}

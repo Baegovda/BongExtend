@@ -1,0 +1,1985 @@
+{
+   "24hourMode": {
+      "message": "24-uurs tijdweergave"
+   },
+   "24hourModeTitle": {
+      "message": "Toon de tijd in 24-uursnotatie, bijvoorbeeld 18:00"
+   },
+   "DND": {
+      "message": "Niet storen"
+   },
+   "DNDisEnabled": {
+      "message": "Niet storen is ingeschakeld"
+   },
+   "EOM": {
+      "message": "EOM"
+   },
+   "EOMToolTip": {
+      "message": "Einde van bericht"
+   },
+   "NAME_says": {
+      "message": "$1 zegt"
+   },
+   "XNewEmails": {
+      "message": "$1 nieuwe e-mails"
+   },
+   "XSnoozedEmails": {
+      "message": "$1 uitgestelde e-mails"
+   },
+   "Xattachments": {
+      "message": "$1 bijlagen"
+   },
+   "Xday": {
+      "message": "dag"
+   },
+   "Xdays": {
+      "message": "$1 dagen"
+   },
+   "Xhour": {
+      "message": "$1 uur"
+   },
+   "Xhours": {
+      "message": "$1 uur"
+   },
+   "Xminute": {
+      "message": "$1 minuut"
+   },
+   "Xminutes": {
+      "message": "$1 minuten"
+   },
+   "Xseconds": {
+      "message": "$1 seconden"
+   },
+   "Xuser": {
+      "message": "$1 gebruiker"
+   },
+   "Xusers": {
+      "message": "$1 gebruikers"
+   },
+   "aboutMe": {
+      "message": "Over mij"
+   },
+   "accept": {
+      "message": "Accepteren"
+   },
+   "acceptAndContinue": {
+      "message": "Accepteren & doorgaan"
+   },
+   "accessDetails": {
+      "message": "Toegangsdetails"
+   },
+   "account": {
+      "message": "Account"
+   },
+   "accounts": {
+      "message": "Accounts"
+   },
+   "accountsAndLabels": {
+      "message": "Accounts / labels"
+   },
+   "activateExtension": {
+      "message": "Extensie activeren"
+   },
+   "addAccount": {
+      "message": "Account toevoegen"
+   },
+   "addAccountsStaySignedIn": {
+      "message": "Accounts toevoegen en aangemeld blijven"
+   },
+   "addEmailAlias": {
+      "message": "Voeg een alias toe aan uw e-mailadres"
+   },
+   "addReaction": {
+      "message": "Reactie toevoegen"
+   },
+   "addSkinsOrThemes": {
+      "message": "Skins & thema's"
+   },
+   "addSpeechEngines": {
+      "message": "Stem toevoegen"
+   },
+   "addToGoogleCalendar": {
+      "message": "Toevoegen aan Google Agenda"
+   },
+   "addToTasks": {
+      "message": "Toevoegen aan taken"
+   },
+   "added": {
+      "message": "Toegevoegd"
+   },
+   "admin": {
+      "message": "Beheerder"
+   },
+   "agenda": {
+      "message": "Agenda"
+   },
+   "agendaOnly": {
+      "message": "Alleen agenda"
+   },
+   "alertMe": {
+      "message": "of herinner mij..."
+   },
+   "alias": {
+      "message": "Alias"
+   },
+   "all": {
+      "message": "Alles"
+   },
+   "allMail": {
+      "message": "Alle e-mails"
+   },
+   "alreadyContributedForm": {
+      "message": "formulier voor al bijgedragen"
+   },
+   "alreadyDonated": {
+      "message": "Reeds bijgedragen"
+   },
+   "alsoTryMy": {
+      "message": "Probeer ook mijn"
+   },
+   "alwaysDisplayExternalContent": {
+      "message": "Altijd externe afbeeldingen weergeven"
+   },
+   "alwaysSpeak": {
+      "message": "Altijd spreken"
+   },
+   "amount": {
+      "message": "Bedrag"
+   },
+   "anyAmount": {
+      "message": "bedrag"
+   },
+   "appearance": {
+      "message": "Uiterlijk"
+   },
+   "archive": {
+      "message": "Archiveren"
+   },
+   "archiveAll": {
+      "message": "Alles archiveren"
+   },
+   "archiveAllWarning": {
+      "message": "Dit archiveert alle e-mails in dit pop-upvenster voor dit account."
+   },
+   "archiveLinkTitle": {
+      "message": "Archiveer bericht"
+   },
+   "archive_read": {
+      "message": "Archiveren markeert als gelezen"
+   },
+   "archive_readToolTip": {
+      "message": "Markeer een e-mail als gelezen wanneer u deze archiveert"
+   },
+   "archived": {
+      "message": "Gearchiveerd"
+   },
+   "askToTranslateX": {
+      "message": "Vraag om $1 te vertalen"
+   },
+   "attachments": {
+      "message": "Bijlagen"
+   },
+   "authentification": {
+      "message": "authenticatie"
+   },
+   "autoAdvanceTo": {
+      "message": "Automatisch verdergaan naar"
+   },
+   "autoCollapseConversations": {
+      "message": "Gesprekken automatisch samenvouwen"
+   },
+   "autoDetectAccounts": {
+      "message": "Probeer de accounts te detecteren waarin u bent aangemeld."
+   },
+   "autoDetectAccountsStaySignedIn": {
+      "message": "Aangemelde accounts automatisch detecteren"
+   },
+   "automaticallyTranslateX": {
+      "message": "$1 automatisch vertalen"
+   },
+   "available": {
+      "message": "Beschikbaar"
+   },
+   "back": {
+      "message": "Terug"
+   },
+   "backToInbox": {
+      "message": "Terug naar Inbox"
+   },
+   "backgroundColor": {
+      "message": "Achtergrondkleur"
+   },
+   "bestDeal": {
+      "message": "Beste deal"
+   },
+   "bestDealTooltip": {
+      "message": "Bespaar geld"
+   },
+   "bestValue": {
+      "message": "Beste prijs-kwaliteitverhouding"
+   },
+   "bitcoin": {
+      "message": "Bitcoin"
+   },
+   "blue": {
+      "message": "Blauw"
+   },
+   "brieflyWriteWhatYouWantToSay": {
+      "message": "Schrijf kort wat je wilt zeggen..."
+   },
+   "bubbly": {
+      "message": "Bubbly"
+   },
+   "businesses": {
+      "message": "Bedrijven"
+   },
+   "button": {
+      "message": "Knop"
+   },
+   "buttonClickAction": {
+      "message": "Actie bij klikken op knop"
+   },
+   "buttonIcon": {
+      "message": "Knoppictogram"
+   },
+   "buttonIconColor": {
+      "message": "Kleur van knop-pictogram"
+   },
+   "by": {
+      "message": "door"
+   },
+   "calendarViewTitle": {
+      "message": "Selecteer de standaard agenda-weergave"
+   },
+   "cancel": {
+      "message": "Annuleren"
+   },
+   "cancelAnytime": {
+      "message": "Altijd opzegbaar"
+   },
+   "card": {
+      "message": "Kaart"
+   },
+   "categories": {
+      "message": "Categorieën"
+   },
+   "changeDomain": {
+      "message": "Domein wijzigen"
+   },
+   "changeLabels": {
+      "message": "Labels wijzigen"
+   },
+   "changeThisDomain": {
+      "message": "Om dit e-maildomein nu te wijzigen $1"
+   },
+   "changeThisDomain2": {
+      "message": "meld u af en meld u aan als een andere gebruiker"
+   },
+   "changeView": {
+      "message": "Weergave aanpassen"
+   },
+   "changelog": {
+      "message": "Wijzigingenoverzicht"
+   },
+   "checkPrimaryOrMore": {
+      "message": "Zet Primair of meer labels aan"
+   },
+   "checkerPlusCompose": {
+      "message": "Checker Plus Schrijven"
+   },
+   "checkerPlusComposeHardLimit": {
+      "message": "U heeft de dagelijkse harde limiet voor Checker Plus Compose bereikt. Probeer het morgen opnieuw."
+   },
+   "checkerPlusComposeIntro": {
+      "message": "Checker Plus Compose is een krachtige functie om u te helpen sneller en efficiënter e-mails te schrijven en beantwoorden met prompts.\n\nDeze functie stuurt de inhoud van de huidige e-mailthread naar het Google Gemini AI-model via een veilige proxy. Noch de Checker Plus-ontwikkelaar noch Google bewaart deze gegevens voor training.\n\nGegevens worden versleuteld, opgeschoond en alleen gebruikt om antwoorden te genereren."
+   },
+   "checkerPlusComposeQuota": {
+      "message": "U heeft uw dagelijkse quota voor Checker Plus Compose bereikt. Probeer het morgen opnieuw of kies een betalingsabonnement om deze quota te verwijderen."
+   },
+   "chime": {
+      "message": "Bel"
+   },
+   "chooseNoUnreadEmail": {
+      "message": "Pictogram voor geen ongelezen e-mail kiezen"
+   },
+   "chooseSignedOutIcon": {
+      "message": "Pictogram voor afgemelde status kiezen"
+   },
+   "chooseUnreadEmail": {
+      "message": "Pictogram voor ongelezen e-mail kiezen"
+   },
+   "clickToPreviewEmail": {
+      "message": "Klik om e-mailvoorbeeld te tonen"
+   },
+   "clickToolbarIconToContinue": {
+      "message": "Klik op het werkbalkpictogram om door te gaan"
+   },
+   "clickingAnywhereOnNotification": {
+      "message": "Klikken overal op de melding"
+   },
+   "clickingCheckerPlusLogo": {
+      "message": "Klikken op het Checker Plus voor Gmail-logo"
+   },
+   "close": {
+      "message": "Sluiten"
+   },
+   "closeAfterX": {
+      "message": "Sluiten na"
+   },
+   "closeAfterX_andThen": {
+      "message": "en daarna"
+   },
+   "closesPopupWindow": {
+      "message": "Sluit pop-upvenster"
+   },
+   "code": {
+      "message": "code"
+   },
+   "colors": {
+      "message": "Kleuren"
+   },
+   "comfortable": {
+      "message": "Comfortabel"
+   },
+   "compact": {
+      "message": "Compact"
+   },
+   "compose": {
+      "message": "Opstellen"
+   },
+   "composeLinkTitle": {
+      "message": "Nieuw bericht maken"
+   },
+   "confirmationCode": {
+      "message": "bevestigingscode"
+   },
+   "contact": {
+      "message": "contact"
+   },
+   "contactDeveloperForMultipleUserLicense": {
+      "message": "Klik op OK om contact op te nemen met de ontwikkelaar voor een licentie voor meerdere gebruikers."
+   },
+   "contacts": {
+      "message": "Contacten"
+   },
+   "contactsHome": {
+      "message": "T"
+   },
+   "contactsLoaded": {
+      "message": "Contacten geladen!"
+   },
+   "contactsMobile": {
+      "message": "M"
+   },
+   "contactsOther": {
+      "message": "O"
+   },
+   "contactsWork": {
+      "message": "W"
+   },
+   "continue": {
+      "message": "Doorgaan"
+   },
+   "contribute": {
+      "message": "Bijdragen"
+   },
+   "contributionNotRecognizedUse": {
+      "message": "Als je bijdrage niet wordt herkend, gebruik dan het"
+   },
+   "conversationList": {
+      "message": "Gesprekslijst"
+   },
+   "conversationView": {
+      "message": "Gespreksweergave"
+   },
+   "conversationViewToolTip": {
+      "message": "Bepaalt of e-mails met hetzelfde onderwerp bij elkaar worden gegroepeerd (aanbevolen standaard is AAN)"
+   },
+   "copy": {
+      "message": "Kopiëren"
+   },
+   "copyEmailAddress": {
+      "message": "E-mailadres kopiëren"
+   },
+   "copyToClipboard": {
+      "message": "Kopiëren naar klembord"
+   },
+   "cozy": {
+      "message": "Gezellig"
+   },
+   "crypto": {
+      "message": "Crypto"
+   },
+   "currencyCode": {
+      "message": "EUR"
+   },
+   "custom": {
+      "message": "Aangepast"
+   },
+   "customToThisExtension": {
+      "message": "Aangepast voor deze extensie"
+   },
+   "customizeNotifications": {
+      "message": "Meldingen aanpassen"
+   },
+   "customized": {
+      "message": "Aangepast"
+   },
+   "d": {
+      "message": "d"
+   },
+   "dark": {
+      "message": "Donker"
+   },
+   "daysAgo": {
+      "message": "dagen"
+   },
+   "daysLeft": {
+      "message": "over $1 dagen"
+   },
+   "decline": {
+      "message": "Afwijzen"
+   },
+   "default": {
+      "message": "Standaard"
+   },
+   "delete": {
+      "message": "Verwijderen"
+   },
+   "deleteAfterOTP": {
+      "message": "E-mail verwijderen na kopiëren van code (OTP)"
+   },
+   "deleteCustomSounds": {
+      "message": "Aangepaste geluiden verwijderen"
+   },
+   "deleteLink": {
+      "message": "Verwijderen"
+   },
+   "deleteLinkTitle": {
+      "message": "Verwijder bericht"
+   },
+   "deletingMarksAsRead": {
+      "message": "Verwijderen markeert als gelezen"
+   },
+   "deletingMarksAsReadToolTip": {
+      "message": "Markeer een e-mail als gelezen wanneer u deze verwijdert"
+   },
+   "description": {
+      "message": "Hiermee wordt berichten in uw Postvak IN van Gmail weergegeven. U kunt ook op de knop klikken om het Postvak IN te openen"
+   },
+   "detachedPopupWindow": {
+      "message": "Losstaand pop-upvenster"
+   },
+   "developingMore": {
+      "message": "en ik werk hard aan meer suggesties van u..."
+   },
+   "developingMoreSuggestions": {
+      "message": "en ik werk aan meer van uw $1"
+   },
+   "developingMoreSuggestions_suggestions": {
+      "message": "suggesties"
+   },
+   "differentSounds": {
+      "message": "Geluiden voor verschillende accounts, labels of personen"
+   },
+   "ding": {
+      "message": "Ding"
+   },
+   "dir": {
+      "message": "ltr"
+   },
+   "directDeveloperSupport": {
+      "message": "Directe ondersteuning van de ontwikkelaar"
+   },
+   "disableAll": {
+      "message": "Alles uitschakelen"
+   },
+   "disableTransitions": {
+      "message": "Overgangen uitschakelen"
+   },
+   "disabled": {
+      "message": "Uitgeschakeld"
+   },
+   "disabledSkinsUseEnable": {
+      "message": "U heeft de skins uitgeschakeld; gebruik de knop Inschakelen"
+   },
+   "discoverMyApps": {
+      "message": "Ontdek mijn apps"
+   },
+   "dismiss": {
+      "message": "Negeren"
+   },
+   "display": {
+      "message": "Weergave"
+   },
+   "displayAccountReceivingEmail": {
+      "message": "Account weergeven dat e-mail ontvangt"
+   },
+   "displayDensity": {
+      "message": "Weergavedichtheid"
+   },
+   "displayImages": {
+      "message": "Afbeeldingen weergeven"
+   },
+   "displaySenders_1": {
+      "message": "Toon afzender"
+   },
+   "dndDuringCalendarEvent": {
+      "message": "Niet storen tijdens agenda-afspraak"
+   },
+   "dndInFullscreenMode": {
+      "message": "Niet storen in volledig scherm"
+   },
+   "doNotDisturb": {
+      "message": "Niet storen"
+   },
+   "doNotShowNotificationIfGmailTabOpen": {
+      "message": "Geen meldingen tonen als een Gmail-tabblad open is"
+   },
+   "donate": {
+      "message": "Doneren"
+   },
+   "donateButton": {
+      "message": "https://www.paypal.com/nl_NL/i/btn/btn_donate_SM.gif"
+   },
+   "donationRequired": {
+      "message": "Bijdrage vereist"
+   },
+   "done": {
+      "message": "Gereed"
+   },
+   "dontTranslateX": {
+      "message": "$1 niet vertalen"
+   },
+   "download": {
+      "message": "Downloaden"
+   },
+   "draft": {
+      "message": "Concept"
+   },
+   "dragToChangeOrder": {
+      "message": "Sleep om de volgorde te wijzigen"
+   },
+   "duplicateLabelWarning": {
+      "message": "Selecteer slechts 1 van de hoofdlabels (Inbox, Primair, Belangrijk, Alle e-mails), anders krijgt u duplicaten!"
+   },
+   "duplicateWarning": {
+      "message": "Duplicaatwaarschuwing"
+   },
+   "elaborate": {
+      "message": "Uitwerken"
+   },
+   "email": {
+      "message": "E-mail"
+   },
+   "emailAccounts": {
+      "message": "E-mailaccounts"
+   },
+   "emailContext": {
+      "message": "E-mailcontext"
+   },
+   "emailFrom_NAME": {
+      "message": "E-mail van $1"
+   },
+   "emailPreview": {
+      "message": "E-mailvoorbeeld"
+   },
+   "emailPreviewToolTip": {
+      "message": "Als u dit uitschakelt, wordt de e-mail direct in de Gmail-website geopend wanneer u op de e-mailoverzicht klikt"
+   },
+   "email_from": {
+      "message": "afzender"
+   },
+   "email_message": {
+      "message": "bericht"
+   },
+   "email_subject": {
+      "message": "onderwerp"
+   },
+   "enable": {
+      "message": "Inschakelen"
+   },
+   "enableSwiping": {
+      "message": "Vegen inschakelen"
+   },
+   "enableVoiceInputToolTip": {
+      "message": "Voegt een microfoon toe onderaan een nieuw bericht of antwoordvak in uw Gmail-webpagina"
+   },
+   "enabled": {
+      "message": "Ingeschakeld"
+   },
+   "enter": {
+      "message": "Enter"
+   },
+   "enterAnAmount": {
+      "message": "U moet een bedrag invoeren!"
+   },
+   "enterEmailForReceipt": {
+      "message": "Voer je e-mailadres in voor de ontvangstbevestiging"
+   },
+   "enterEmailToLinkExtensions": {
+      "message": "Voer je e-mailadres in om de andere extensies te koppelen"
+   },
+   "esc": {
+      "message": "Esc"
+   },
+   "eventDescription": {
+      "message": "Beschrijving"
+   },
+   "example": {
+      "message": "voorbeeld"
+   },
+   "exceptionsToChooseFrom": {
+      "message": "Uitsluitingen om uit te kiezen"
+   },
+   "expandAll": {
+      "message": "Alles uitvouwen"
+   },
+   "exportOptions": {
+      "message": "Opties exporteren"
+   },
+   "extensionUpdated": {
+      "message": "Extensie bijgewerkt!"
+   },
+   "extensionUpdates": {
+      "message": "Extensie-updates"
+   },
+   "extraFeatures": {
+      "message": "Extra functies"
+   },
+   "extraFeaturesMonthlyBlurb": {
+      "message": "Deze functie vereist een abonnement vanwege de quota die Gmail API mij oplegt. Let op: de meeste extra functies vereisen slechts een eenmalige betaling."
+   },
+   "extraFeaturesPopup1": {
+      "message": "Deze gedimde opties zijn extra functies waar ik veel tijd in heb gestoken."
+   },
+   "extraFeaturesPopup2": {
+      "message": "Om deze functies te ontgrendelen, doneer een bedrag ter ondersteuning van mijn werk."
+   },
+   "failureWithPayPalPurchase": {
+      "message": "Geannuleerd of fout bij de transactie! Probeer $1 in plaats daarvan?"
+   },
+   "feedback": {
+      "message": "Feedback"
+   },
+   "finance": {
+      "message": "Financiën"
+   },
+   "firstAndLastName": {
+      "message": "voornaam & achternaam"
+   },
+   "firstNameOnly": {
+      "message": "alleen voornaam"
+   },
+   "followMe": {
+      "message": "Volg mij"
+   },
+   "forAllMyExtensions": {
+      "message": "Voor al mijn extensies"
+   },
+   "forever": {
+      "message": "Voor altijd"
+   },
+   "formalize": {
+      "message": "Formaliseren"
+   },
+   "forums": {
+      "message": "Forums"
+   },
+   "forward": {
+      "message": "Doorsturen"
+   },
+   "from": {
+      "message": "Van"
+   },
+   "fullLinkTitle": {
+      "message": "Volledig bericht weergeven"
+   },
+   "general": {
+      "message": "Algemeen"
+   },
+   "getPro": {
+      "message": "Pro nemen"
+   },
+   "getUltraSuite": {
+      "message": "Ultra Suite nemen"
+   },
+   "googleAccountsSignIn": {
+      "message": "Aanmelden met Google"
+   },
+   "grantAccess": {
+      "message": "Toegang verlenen"
+   },
+   "grantedTo": {
+      "message": "Verleend aan"
+   },
+   "gray": {
+      "message": "Grijs"
+   },
+   "green": {
+      "message": "Groen"
+   },
+   "guideForPrimaryCategory": {
+      "message": "Gids voor Primair label"
+   },
+   "guideForPrimaryCategoryToolTip": {
+      "message": "Specifieke labels volgen: Primair, Social, Updates, Inbox, etc."
+   },
+   "guideForTooManyUnreadEmails": {
+      "message": "Te veel ongelezen e-mails?"
+   },
+   "h": {
+      "message": "u"
+   },
+   "hearEmail": {
+      "message": "E-mail beluisteren"
+   },
+   "hearEmailMessage": {
+      "message": "E-mailbericht afspelen"
+   },
+   "hearEmailSubject": {
+      "message": "E-mailonderwerp afspelen"
+   },
+   "hearEmailToolTip": {
+      "message": "Selecteer welke delen van de e-mail u wilt horen... afzender, onderwerp of berichttekst"
+   },
+   "height": {
+      "message": "Hoogte"
+   },
+   "help": {
+      "message": "Help"
+   },
+   "helpSupport": {
+      "message": "steun de auteur van deze extensie!"
+   },
+   "hiddenGmailTabsNote": {
+      "message": "U heeft Gmail-tabbladen verborgen, zoals Updates of Forums, waardoor het e-mailaantal wordt beïnvloed."
+   },
+   "hideButton": {
+      "message": "Knop verbergen"
+   },
+   "hideReadEmails": {
+      "message": "Gelezen e-mails verbergen"
+   },
+   "hideSentFrom": {
+      "message": "Verberg e-mailhandtekeningen uit de samenvatting zoals 'Verzonden vanaf mijn ...'"
+   },
+   "hideSentFromToolTip": {
+      "message": "Schakel dit in om handtekeningen te verbergen die zijn verzonden vanaf apparaten zoals 'Verzonden vanaf mijn iPhone of Blackberry' enz."
+   },
+   "hideUnreadCount": {
+      "message": "Aantal ongelezen e-mails verbergen"
+   },
+   "hideUnreadCountToolTip": {
+      "message": "Verberg het aantal ongelezen e-mails van het browserpictogram"
+   },
+   "hours": {
+      "message": "uur"
+   },
+   "hoursAgo": {
+      "message": "$1 uur geleden"
+   },
+   "hoursLeft": {
+      "message": "over $1 uur"
+   },
+   "icon": {
+      "message": "Pictogram"
+   },
+   "ifCompletedContact": {
+      "message": "Als je dit al hebt voltooid, neem dan contact op met de ontwikkelaar"
+   },
+   "ifNoUnreadMail": {
+      "message": "Als er geen ongelezen e-mail is"
+   },
+   "ignoreThisAccount": {
+      "message": "Dit account negeren"
+   },
+   "ignored": {
+      "message": "Genegeerd"
+   },
+   "imagesAreNotDisplayed": {
+      "message": "Afbeeldingen worden niet weergegeven."
+   },
+   "importOptions": {
+      "message": "Opties importeren"
+   },
+   "important": {
+      "message": "Belangrijk"
+   },
+   "importantMail": {
+      "message": "Belangrijke e-mail"
+   },
+   "in": {
+      "message": "in"
+   },
+   "inVARhour": {
+      "message": "over $1 uur"
+   },
+   "inVARhours": {
+      "message": "over $1 uur"
+   },
+   "inVARminutes": {
+      "message": "over $1 min."
+   },
+   "inbox": {
+      "message": "Inbox"
+   },
+   "inboxFor": {
+      "message": "$1"
+   },
+   "includesExtraFeaturesForAllMyExtensions": {
+      "message": "Bevat de extra functies voor AL mijn extensies"
+   },
+   "includesExtraFeaturesForX": {
+      "message": "Bevat de extra functies voor $1"
+   },
+   "includesProForAllExtensions": {
+      "message": "Ontgrendel ALLE functies voor al mijn extensies"
+   },
+   "indefinitely": {
+      "message": "Onbepaalde tijd"
+   },
+   "individual": {
+      "message": "Particulier"
+   },
+   "insertDraft": {
+      "message": "Concept invoegen"
+   },
+   "insertSignatureBeforeQuotedText": {
+      "message": "Handtekening vóór geciteerde tekst in antwoorden invoegen"
+   },
+   "invalidNumber": {
+      "message": "Ongeldig nummer"
+   },
+   "invalidPaymentProcess": {
+      "message": "Ongeldig betaalproces"
+   },
+   "keyboardShortcuts": {
+      "message": "Sneltoetsen"
+   },
+   "keys": {
+      "message": "Toetsen"
+   },
+   "label": {
+      "message": "Label"
+   },
+   "labelAdded": {
+      "message": "Label toegevoegd"
+   },
+   "labelRemoved": {
+      "message": "Label verwijderd"
+   },
+   "labels": {
+      "message": "Labels"
+   },
+   "language": {
+      "message": "Taal"
+   },
+   "languageName": {
+      "message": "Nederlands"
+   },
+   "licenseOnlyValidFor": {
+      "message": "De licentie is alleen geldig voor gebruikers die inloggen op hun Google-account met een"
+   },
+   "light": {
+      "message": "Licht"
+   },
+   "listenToYourEmail": {
+      "message": "Luister naar uw e-mail"
+   },
+   "loadOptions": {
+      "message": "Opties laden"
+   },
+   "loading": {
+      "message": "Laden..."
+   },
+   "loadingSettings": {
+      "message": "Instellingen laden"
+   },
+   "m": {
+      "message": "m"
+   },
+   "mailtoLinks": {
+      "message": "Open mailto-links met Gmail"
+   },
+   "makeButtonOpenGmail": {
+      "message": "Laat de knop Gmail openen"
+   },
+   "makeButtonOpenGmailGuideToolTip": {
+      "message": "Niet aanbevolen, omdat het het pop-upvenster vervangt"
+   },
+   "makeSureSignedIntoContributingAccount": {
+      "message": "Zorg dat je bent ingelogd met het Google-account waarmee je hebt bijgedragen en probeer het opnieuw!"
+   },
+   "makeThisAMonthlyContribution": {
+      "message": "Maak dit een maandelijkse bijdrage"
+   },
+   "makeThisAMonthlyContributionTooltip": {
+      "message": "Help mijn gebruikersondersteuning en updates te onderhouden"
+   },
+   "man": {
+      "message": "Man"
+   },
+   "manuallyAddingMultipleAccountsCost": {
+      "message": "De standaard automatische detectie ondersteunt onbeperkt gratis accounts."
+   },
+   "manuallyAddingMultipleAccountsCost2": {
+      "message": "De optie om accounts handmatig toe te voegen ondersteunt $1 accounts gratis; meer dan $1 vereist een bijdrage om serverkosten en meldingen in realtime te dekken."
+   },
+   "markAllAsDone": {
+      "message": "Alles als gedaan markeren"
+   },
+   "markAllAsDoneWarning": {
+      "message": "Dit markeert alle e-mails als gedaan in dit pop-upvenster voor dit account."
+   },
+   "markAllAsRead": {
+      "message": "Alles als gelezen markeren"
+   },
+   "markAllAsReadTitle": {
+      "message": "Alles als gelezen markeren"
+   },
+   "markAllAsReadWarning": {
+      "message": "Dit markeert ALLE e-mails als gelezen in dit pop-upvenster voor dit account. U kunt deze knop verbergen in Opties > Knop. Als u dit account juist wilde openen, klikt u op de accountnaam links."
+   },
+   "markAllAsSpam": {
+      "message": "Alles als spam markeren"
+   },
+   "markAllAsSpamWarning": {
+      "message": "Dit meldt alle e-mails als spam in dit pop-upvenster voor dit account."
+   },
+   "markAsReadInNotificationWindow": {
+      "message": "Markeer e-mail als gelezen in het meldingsvenster"
+   },
+   "markDone": {
+      "message": "Afgewerkt markeren"
+   },
+   "markedAsDone": {
+      "message": "Gemarkeerd als gedaan"
+   },
+   "markedAsRead": {
+      "message": "Gemarkeerd als gelezen"
+   },
+   "maxEmailsToShowPerAccount": {
+      "message": "Aantal e-mails per account om weer te geven"
+   },
+   "me": {
+      "message": "mij"
+   },
+   "message": {
+      "message": "Bericht"
+   },
+   "min": {
+      "message": "min"
+   },
+   "mini": {
+      "message": "Mini"
+   },
+   "minimumAmount": {
+      "message": "U moet minimaal $1 bijdragen"
+   },
+   "minutesAgo": {
+      "message": "$1 minuten geleden"
+   },
+   "minutesLeft": {
+      "message": "over $1 minuten"
+   },
+   "monitor": {
+      "message": "Monitoren"
+   },
+   "month": {
+      "message": "Maand"
+   },
+   "monthly": {
+      "message": "Maandelijks"
+   },
+   "monthlyContribution": {
+      "message": "Maandelijkse bijdrage"
+   },
+   "monthsArray": {
+      "message": "jan,feb,mar,apr,mei,jun,jul,aug,sep,okt,nov,dec"
+   },
+   "more": {
+      "message": "meer"
+   },
+   "moreInfo": {
+      "message": "Meer informatie"
+   },
+   "morning": {
+      "message": "Ochtend"
+   },
+   "moveIntoActionCenter": {
+      "message": "Naar actiecentrum verplaatsen"
+   },
+   "moveLabel": {
+      "message": "Verplaatsen naar"
+   },
+   "movedToTrash": {
+      "message": "Verplaatst naar prullenbak"
+   },
+   "movingMarksAsRead": {
+      "message": "Verplaatsen markeert als gelezen"
+   },
+   "multipleUserLicense": {
+      "message": "Licentie voor meerdere gebruikers"
+   },
+   "multipleUserLicenseFor": {
+      "message": "Licentie voor meerdere gebruikers voor $1"
+   },
+   "mustCompleteQrPayment": {
+      "message": "Je moet de QR-betaling voltooien."
+   },
+   "mustEnterEmail": {
+      "message": "Je moet een e-mailadres invullen"
+   },
+   "mustGrantAccessForContribution": {
+      "message": "Je moet eerst toegang verlenen via het pop-upvenster zodat je account aan de bijdrage kan worden gekoppeld."
+   },
+   "mustSignInToPay": {
+      "message": "U moet inloggen op uw Gmail en wachten totdat deze extensie is geladen!"
+   },
+   "muteVoiceWhileSleeping": {
+      "message": "Schema voor Niet storen"
+   },
+   "nameNoTM": {
+      "message": "Checker Plus voor Gmail"
+   },
+   "native": {
+      "message": "Systeem"
+   },
+   "networkProblem": {
+      "message": "Netwerkprobleem"
+   },
+   "never": {
+      "message": "Nooit"
+   },
+   "newEmail": {
+      "message": "Nieuwe e-mail"
+   },
+   "newer": {
+      "message": "Nieuwere"
+   },
+   "next": {
+      "message": "Volgende"
+   },
+   "nickname": {
+      "message": "Bijnaam"
+   },
+   "night": {
+      "message": "Nacht"
+   },
+   "nightMode": {
+      "message": "Nachtmodus"
+   },
+   "no": {
+      "message": "Nee"
+   },
+   "noPaymentFoundForEmail": {
+      "message": "Er is geen betaling gevonden voor dit e-mailadres"
+   },
+   "noSubject": {
+      "message": "Geen onderwerp"
+   },
+   "noUnreadText": {
+      "message": "Geen ongelezen berichten"
+   },
+   "noUpdateNotifications": {
+      "message": "Geen update-meldingen"
+   },
+   "noUpdates": {
+      "message": "Geen updates."
+   },
+   "none": {
+      "message": "Geen"
+   },
+   "notSignedIn": {
+      "message": "Niet aangemeld"
+   },
+   "notSpam": {
+      "message": "Geen spam"
+   },
+   "notWorking": {
+      "message": "Werkt niet?"
+   },
+   "notification": {
+      "message": "Melding"
+   },
+   "notificationButton1": {
+      "message": "Meldingsknop #1"
+   },
+   "notificationButton2": {
+      "message": "Meldingsknop #2"
+   },
+   "notificationSound": {
+      "message": "Geluidmeldingen"
+   },
+   "notificationTextToSpeech": {
+      "message": "Spraakmeldingen"
+   },
+   "notificationTryItOutInstructions": {
+      "message": "Markeer ten minste één van uw e-mails als ongelezen en klik hier, wacht dan om het meldingsvenster te zien!"
+   },
+   "notificationWakesUpScreenTemporarily": {
+      "message": "Melding wekt scherm tijdelijk weer"
+   },
+   "notifications": {
+      "message": "Meldingen"
+   },
+   "notificationsGuideToolTip": {
+      "message": "Geluiden, stemmen, bureaubladmeldingen"
+   },
+   "of": {
+      "message": "van"
+   },
+   "off": {
+      "message": "Uit"
+   },
+   "ok": {
+      "message": "OK"
+   },
+   "older": {
+      "message": "Oudere"
+   },
+   "onDATE_NAMEwrote": {
+      "message": "Op $1 schreef $2:"
+   },
+   "oneUnreadText": {
+      "message": "ongelezen bericht"
+   },
+   "onetime": {
+      "message": "Eenmalig"
+   },
+   "onlyMuteSounds": {
+      "message": "Alleen geluiden dempen"
+   },
+   "onlyPreventNotifications": {
+      "message": "Alleen meldingen voorkomen (badge-aantal, animaties en geluiden behouden)"
+   },
+   "open": {
+      "message": "Openen"
+   },
+   "openCalendar": {
+      "message": "Agenda openen"
+   },
+   "openCheckerPlusComposeInGmailAction": {
+      "message": "Waar moet het promptvenster worden geopend"
+   },
+   "openCheckerPlusDetached": {
+      "message": "Checker Plus los openen"
+   },
+   "openCheckerPlusSidePanel": {
+      "message": "Checker Plus in zijpaneel openen"
+   },
+   "openComposeInTab": {
+      "message": "Nieuw bericht in een tabblad openen"
+   },
+   "openComposeInTabToolTip": {
+      "message": "Open een nieuw bericht in een tabblad in plaats van in een klein pop-upvenster (geldt ook voor mailto-links)"
+   },
+   "openComposeReplyAction": {
+      "message": "Knoppen voor opstellen en beantwoorden"
+   },
+   "openComposeReplyActionInPopupWindow": {
+      "message": "In extern pop-upvenster openen"
+   },
+   "openComposeReplyActionInTab": {
+      "message": "In tabblad openen"
+   },
+   "openEmailDisplayedInNotificationWindow": {
+      "message": "Open de in het meldingsvenster weergegeven e-mail"
+   },
+   "openGmailInNewTab": {
+      "message": "Gmail in een nieuw tabblad openen"
+   },
+   "openGmailPopupWindow": {
+      "message": "Gmail voor mobiel openen"
+   },
+   "openGmailPopupWindowToolTip": {
+      "message": "Volledig Gmail in een pop-upvenster, bekijk elk label, NIET aanpasbaar, NIET aanbevolen voor meerdere accounts."
+   },
+   "openGmailSidePanel": {
+      "message": "Gmail voor mobiel in zijpaneel openen"
+   },
+   "openGmailTab": {
+      "message": "Gmail openen"
+   },
+   "openGmailTabToolTip": {
+      "message": "Schakelt het pop-upvenster uit (niet aanbevolen) en opent een Gmail-tabblad."
+   },
+   "openHelp": {
+      "message": "Help openen"
+   },
+   "openInNewTab": {
+      "message": "Openen in nieuw tabblad"
+   },
+   "openInPopup": {
+      "message": "Openen in pop-up"
+   },
+   "openLabel": {
+      "message": "Label openen"
+   },
+   "openLabelTooltip": {
+      "message": "Standaard label om in Gmail-tabblad te openen"
+   },
+   "openLinkTitle": {
+      "message": "Openen in webmail"
+   },
+   "openPopout": {
+      "message": "Losgemaakt venster openen"
+   },
+   "openPopupPreview": {
+      "message": "Checker Plus openen"
+   },
+   "openPopupPreviewToolTip": {
+      "message": "Bekijk snel en handel alleen op ongelezen e-mails uit alle door u bewaakte labels. Zeer aanpasbaar en geoptimaliseerd voor meerdere accounts."
+   },
+   "openReply": {
+      "message": "Openen (beantwoorden)"
+   },
+   "openThisLabel": {
+      "message": "Dit label openen"
+   },
+   "openThisLabelToolTip": {
+      "message": "Bepaalt waar de gebruiker naartoe wordt gestuurd wanneer hij op het e-mailaccount of het extensiepictogram klikt"
+   },
+   "option": {
+      "message": "Optie"
+   },
+   "options": {
+      "message": "Opties"
+   },
+   "or": {
+      "message": "of"
+   },
+   "original": {
+      "message": "Origineel"
+   },
+   "otherAmount": {
+      "message": "Ander bedrag"
+   },
+   "otherPlans": {
+      "message": "Andere plannen"
+   },
+   "otherPlansDescription": {
+      "message": "Onderwijsprijzen, jaarlijks ..."
+   },
+   "paragraph": {
+      "message": "paragraaf"
+   },
+   "passcode": {
+      "message": "pincode"
+   },
+   "password": {
+      "message": "wachtwoord"
+   },
+   "pay": {
+      "message": "Betalen"
+   },
+   "paypal": {
+      "message": "PayPal"
+   },
+   "paypalUnsupportedWithCny": {
+      "message": "PayPal wordt niet ondersteund met CNY. Selecteer USD of een andere betaalmethode."
+   },
+   "pinExtensionToToolbar": {
+      "message": "Extensie aan werkbalk vastzetten"
+   },
+   "pitch": {
+      "message": "Pitch"
+   },
+   "playVideosInsideGmail": {
+      "message": "Video's in Gmail afspelen"
+   },
+   "polish": {
+      "message": "Verbeteren"
+   },
+   "pollingAccounts": {
+      "message": "Accounts controleren"
+   },
+   "pollingInterval": {
+      "message": "Polling-interval"
+   },
+   "popout": {
+      "message": "Losmaken"
+   },
+   "popupText": {
+      "message": "U heeft een nieuw e-mail bericht ontvangen!"
+   },
+   "popupWindow": {
+      "message": "Pop-upvenster"
+   },
+   "positionFromLeft": {
+      "message": "Positie vanaf links"
+   },
+   "positionFromTop": {
+      "message": "Positie vanaf boven"
+   },
+   "pressCtrlToOpenInBackground": {
+      "message": "Druk op $1 en klik op een link om deze in een nieuw tabblad op de achtergrond te openen."
+   },
+   "preview": {
+      "message": "Voorbeeld"
+   },
+   "previewingMarksAsRead": {
+      "message": "Voorbeeld markeert als gelezen"
+   },
+   "previewingMarksAsReadNotice": {
+      "message": "Voorvertoning markeert e-mails als gelezen en verwijdert ze uit dit venster, je kunt dit wijzigen in Opties > $1"
+   },
+   "previewingMarksAsReadToolTip": {
+      "message": "Markeer een e-mail als gelezen wanneer u deze in het pop-upvenster bekijkt"
+   },
+   "previous": {
+      "message": "Vorige"
+   },
+   "primary": {
+      "message": "Primair"
+   },
+   "print": {
+      "message": "Afdrukken"
+   },
+   "priorityInbox": {
+      "message": "Prioriteitsinbox"
+   },
+   "private": {
+      "message": "Privé"
+   },
+   "pro": {
+      "message": "Pro"
+   },
+   "profileLoaded": {
+      "message": "Profiel geladen!"
+   },
+   "progressivelyLoadEmails": {
+      "message": "E-mails geleidelijk laden"
+   },
+   "promotions": {
+      "message": "Promoties"
+   },
+   "purchases": {
+      "message": "Aankopen"
+   },
+   "quickAdd": {
+      "message": "Toevoegen"
+   },
+   "quickAddDefaultText": {
+      "message": "bijv., 21:00 kijken voetbal"
+   },
+   "quickComposeEmail": {
+      "message": "Snel contact"
+   },
+   "quickReply": {
+      "message": "✨ Snel beantwoorden"
+   },
+   "rate": {
+      "message": "Beoordelen"
+   },
+   "read": {
+      "message": "Lezen"
+   },
+   "readLink": {
+      "message": "Gelezen"
+   },
+   "readLinkTitle": {
+      "message": "Markeren als gelezen"
+   },
+   "realtime": {
+      "message": "Realtime"
+   },
+   "realtimeForMultipleAccounts": {
+      "message": "Realtime meldingen voor meerdere accounts"
+   },
+   "recommended": {
+      "message": "Aanbevolen"
+   },
+   "recordSound": {
+      "message": "Geluid opnemen"
+   },
+   "recycleNotification": {
+      "message": "Melding opnieuw gebruiken"
+   },
+   "reducedDonationAd_notification": {
+      "message": "Goed nieuws, trouwe gebruiker [Klik om te sluiten]"
+   },
+   "reducedDonationAd_popup": {
+      "message": "Goed nieuws, trouwe gebruiker! Krijg de $1 voor slechts $2"
+   },
+   "reducedDonationAd_popup_line1": {
+      "message": "Goed nieuws, trouwe gebruiker!"
+   },
+   "reducedDonationAd_popup_line2": {
+      "message": "Krijg $1 voor slechts $2"
+   },
+   "refresh": {
+      "message": "Vernieuwen"
+   },
+   "refreshLinkTitle": {
+      "message": "Alle postvakken vernieuwen"
+   },
+   "refreshWhenOpeningPopup": {
+      "message": "E-mails vernieuwen bij het openen van het pop-upvenster"
+   },
+   "removeAccount": {
+      "message": "Account verwijderen"
+   },
+   "removeAccountIcon": {
+      "message": "Accountpictogram verwijderen"
+   },
+   "removeShareLinks": {
+      "message": "Deel-links verbergen"
+   },
+   "removeShareLinksTooltip": {
+      "message": "Verwijdert Facebook-, Twitter-links enz."
+   },
+   "repeatNotification": {
+      "message": "Melding herhalen"
+   },
+   "reply": {
+      "message": "Beantwoorden"
+   },
+   "replyInGmail": {
+      "message": "In Gmail beantwoorden"
+   },
+   "replyInPopup": {
+      "message": "Beantwoorden in pop-up"
+   },
+   "replyLinkTitle": {
+      "message": "Antwoorden"
+   },
+   "replyToAll": {
+      "message": "Allen beantwoorden"
+   },
+   "replyingMarksAsRead": {
+      "message": "Beantwoorden markeert als gelezen"
+   },
+   "reportSpam": {
+      "message": "Markeren als ongewenst"
+   },
+   "reset": {
+      "message": "Opnieuw instellen"
+   },
+   "resetEmailUnreadIconWhenButtonClicked": {
+      "message": "Ongelezen pictogram resetten wanneer op knop wordt geklikt"
+   },
+   "resetTranslationSettings": {
+      "message": "Vertaalinstellingen resetten"
+   },
+   "revertAutoSizing": {
+      "message": "Automatische grootte herstellen"
+   },
+   "revokeAccess": {
+      "message": "Toegang intrekken"
+   },
+   "richNotification": {
+      "message": "Uitgebreide melding"
+   },
+   "richNotificationToolTip": {
+      "message": "Meldingen met knoppen"
+   },
+   "runInBackground": {
+      "message": "Uitvoeren in de achtergrond wanneer Google Chrome gesloten is"
+   },
+   "runInBackgroundToolTip": {
+      "message": "Blijf nieuwe e-mailmeldingen ontvangen, zelfs wanneer uw browser is gesloten! Ik raad dit alleen aan voor gevorderde gebruikers."
+   },
+   "runInBackgroundWarning1": {
+      "message": "Lees zorgvuldig meer over $1"
+   },
+   "runInBackgroundWarning1b": {
+      "message": "achtergrondapps"
+   },
+   "runInBackgroundWarning2": {
+      "message": "Als u achtergrondapps in Chrome heeft uitgeschakeld, kunt u ze opnieuw inschakelen door de $1 te lezen"
+   },
+   "runInBackgroundWarning2b": {
+      "message": "laatste klikbare sectie"
+   },
+   "runInBackgroundWarning3": {
+      "message": "Mogelijk moet u de $1 van de Gmail-inlogpagina gebruiken"
+   },
+   "runInBackgroundWarning3b": {
+      "message": "ingelogd blijven"
+   },
+   "save": {
+      "message": "Opslaan"
+   },
+   "saveOptions": {
+      "message": "Opties opslaan"
+   },
+   "schedule": {
+      "message": "Schema"
+   },
+   "search": {
+      "message": "Zoeken"
+   },
+   "securityCode": {
+      "message": "beveiligingscode"
+   },
+   "seeUpdates": {
+      "message": "Updates bekijken"
+   },
+   "selectEmailAccount": {
+      "message": "Selecteer een e-mailaccount"
+   },
+   "selectFiatCurrencyForCrypto": {
+      "message": "Selecteer een fiatvaluta en een bedrag; daarna verschijnt de crypto-optie."
+   },
+   "selectQuickActionButtons": {
+      "message": "Actieknoppen tonen of verbergen"
+   },
+   "selectQuickActionButtonsToolTip": {
+      "message": "Let op: hierdoor worden de knoppen in de volledige e-mailweergave niet verborgen!"
+   },
+   "send": {
+      "message": "Verzenden"
+   },
+   "sendPageLinkTitle": {
+      "message": "Pagina-link e-mailen"
+   },
+   "sendVoiceOrVideoEmails": {
+      "message": "Spraak- of video-e-mails verzenden"
+   },
+   "sending": {
+      "message": "Verzending"
+   },
+   "sent": {
+      "message": "Verzonden"
+   },
+   "setAccountIcon": {
+      "message": "Accountpictogram instellen"
+   },
+   "setPositionAndSize": {
+      "message": "Positie en grootte van extern pop-upvenster instellen"
+   },
+   "severalUnreadText": {
+      "message": "ongelezen berichten"
+   },
+   "share": {
+      "message": "Delen"
+   },
+   "shareIntro": {
+      "message": "Probeer deze geweldige Chrome-extensie"
+   },
+   "shortcutKeysHeader": {
+      "message": "Deze toetsen gelden alleen voor het bovenste pop-upvenster dat wordt geactiveerd door de knop"
+   },
+   "shorten": {
+      "message": "Inkorten"
+   },
+   "showAgendaOptions": {
+      "message": "Toon een link naar de opties"
+   },
+   "showAllEmails": {
+      "message": "Alle e-mails tonen"
+   },
+   "showButtonTooltip": {
+      "message": "Tooltip tonen bij zweven over het knop-pictogram"
+   },
+   "showCalendarDetails": {
+      "message": "Agenda-details tonen"
+   },
+   "showCheckerPlusComposeInGmail": {
+      "message": "Voeg ✨ Opstellen-knop toe aan Gmail"
+   },
+   "showCheckerPlusComposeInPopup": {
+      "message": "Voeg ✨ Opstellen-knop toe aan Checker Plus"
+   },
+   "showConsoleMessages": {
+      "message": "Berichten in JavaScript-console loggen"
+   },
+   "showConsoleMessagesTitle": {
+      "message": "Alleen bedoeld voor debugging en kan de extensie iets vertragen!"
+   },
+   "showContactPhoto": {
+      "message": "Contactfoto's en details in pop-up tonen"
+   },
+   "showContactPhotos": {
+      "message": "Contactfoto's tonen"
+   },
+   "showContextMenuItem": {
+      "message": "Contextmenu-item bij rechtsklikken tonen"
+   },
+   "showCopyOTPInNotification": {
+      "message": "Knop OTP kopiëren in meldingen weergeven"
+   },
+   "showDesktopNotifications": {
+      "message": "Bureaubladmeldingen"
+   },
+   "showDetails": {
+      "message": "Details tonen"
+   },
+   "showEOM": {
+      "message": "Voeg een marker toe om het einde van een e-mailoverzicht aan te geven [EOM]"
+   },
+   "showEOMToolTip": {
+      "message": "EOM - End Of Message. Nuttig wanneer u veel snelle, kleine e-mails ontvangt om niet steeds op de samenvatting te hoeven klikken om te zien of er meer tekst in de voorbeeldweergave staat"
+   },
+   "showGrayIconInDND": {
+      "message": "Altijd een grijs pictogram tonen"
+   },
+   "showHideEmailPreview": {
+      "message": "E-mailvoorbeeld tonen"
+   },
+   "showIconAnimation": {
+      "message": "Pictogramanimatie weergeven"
+   },
+   "showIconAnimationToolTip": {
+      "message": "Animeert het pictogram wanneer er nieuwe e-mail is"
+   },
+   "showNotificationEmailImagePreview": {
+      "message": "Voorbeeld van de eerste afbeelding in de e-mail tonen"
+   },
+   "showNotificationsForOlderDateEmails": {
+      "message": "Meldingen tonen voor oudere e-mails (alleen nuttig voor POP3-accounts)"
+   },
+   "showNotificationsForOlderDateEmailsToolTip": {
+      "message": "Als dit niet is aangevinkt, verschijnen pop-upmeldingen alleen voor uw nieuwste e-mails (aanbevolen voor de meeste gebruikers), maar soms arriveren e-mails die via POP3 zijn opgehaald pas na uw nieuwste e-mails en staan daardoor in het midden van uw inbox vanwege hun oudere datum. Als u deze optie inschakelt, verschijnen deze e-mails ook in uw pop-upmeldingen, maar maximaal 20 ongelezen e-mails in uw inbox. Let op: als u e-mails als ongelezen markeert, verschijnen ze ook weer als pop-upmelding!"
+   },
+   "showNotificationsMissedWhileIdling": {
+      "message": "Laatste melding tonen terwijl u weg was van uw computer"
+   },
+   "showNotificationsOnStartup": {
+      "message": "Meldingen tonen bij opstarten"
+   },
+   "showOnlyRecentUnreadEmails": {
+      "message": "Alleen recente ongelezen e-mails tonen"
+   },
+   "showSendAndArchiveButton": {
+      "message": "Knop \"Verzenden & archiveren\" tonen"
+   },
+   "showSendAndDeleteButton": {
+      "message": "Knop \"Verzenden & verwijderen\" tonen"
+   },
+   "showSnoozedNotifications": {
+      "message": "Uitgestelde meldingen tonen"
+   },
+   "showUpdateNotificationsForEvertyhing": {
+      "message": "Meldingen tonen voor alle updates en bugfixes"
+   },
+   "showUpdateNotificationsForInterestingUpdates": {
+      "message": "Meldingen tonen voor nieuwe functies"
+   },
+   "sidePanel": {
+      "message": "Zijpaneel"
+   },
+   "signIn": {
+      "message": "Aanmelden"
+   },
+   "signInAsUserOfOrg": {
+      "message": "U moet $1 en inloggen op uw Gmail met het e-mailadres van uw organisatie"
+   },
+   "signInAsUserOfOrg2": {
+      "message": "afmelden"
+   },
+   "signOutAndIn": {
+      "message": "Afmelden / aanmelden"
+   },
+   "signature": {
+      "message": "Handtekening"
+   },
+   "skin": {
+      "message": "Skin"
+   },
+   "skins": {
+      "message": "Skins"
+   },
+   "snoozed": {
+      "message": "Uitgesteld"
+   },
+   "social": {
+      "message": "Social"
+   },
+   "sound": {
+      "message": "Geluid"
+   },
+   "spam": {
+      "message": "Ongewenst"
+   },
+   "spokenWordsLimit": {
+      "message": "Beperk gesproken woorden tot"
+   },
+   "standard": {
+      "message": "Standaard"
+   },
+   "starAndArchive": {
+      "message": "Sterren & archiveren"
+   },
+   "starLinkTitle": {
+      "message": "Ster toevoegen aan bericht"
+   },
+   "starringAppliesInboxLabel": {
+      "message": "Sterren passen het Inbox-label toe"
+   },
+   "starringMarksAsRead": {
+      "message": "Sterren markeren als gelezen"
+   },
+   "stop": {
+      "message": "Stoppen"
+   },
+   "subject": {
+      "message": "Onderwerp"
+   },
+   "subscriptionCryptoContact": {
+      "message": "Neem voor crypto-abonnementen contact op met de ontwikkelaar"
+   },
+   "subscriptionFeatures": {
+      "message": "Abonnementsfuncties"
+   },
+   "summary": {
+      "message": "samenvatting"
+   },
+   "summaryLinkTitle": {
+      "message": "Samenvatting tonen"
+   },
+   "support": {
+      "message": "Ondersteuning"
+   },
+   "switchToAddAccounts": {
+      "message": "U moet overschakelen naar de methode Accounts toevoegen om deze functie te gebruiken."
+   },
+   "switchToCheckerPlus": {
+      "message": "Wisselen naar Checker Plus"
+   },
+   "switchToInbox": {
+      "message": "Wisselen naar inbox"
+   },
+   "syncContacts": {
+      "message": "Contacten synchroniseren"
+   },
+   "syncDND": {
+      "message": "Niet storen synchroniseren met alle Checker Plus-extensies"
+   },
+   "syncSignInOrder": {
+      "message": "Volgorde synchroniseren"
+   },
+   "syncSignInOrderTooltip": {
+      "message": "Synchroniseer opnieuw: de aanmeldvolgorde van uw Gmail-webpagina-accounts kan afwijken van de hier vermelde accounts en soms openen links in mijn extensie de verkeerde inbox."
+   },
+   "systemDefault": {
+      "message": "Systeemstandaard"
+   },
+   "systemLabels": {
+      "message": "Systeemlabels"
+   },
+   "tab": {
+      "message": "Tabblad"
+   },
+   "tabToolTip": {
+      "message": "Voeg tabbladen toe in het mobiele Gmail-pop-upvenster"
+   },
+   "taskCreated": {
+      "message": "Taak gemaakt"
+   },
+   "testIt": {
+      "message": "Probeer het uit!"
+   },
+   "textNotification": {
+      "message": "Tekstmelding"
+   },
+   "textNotificationToolTip": {
+      "message": "Eenvoudige meldingen"
+   },
+   "thankYouForYourContribution": {
+      "message": "De functies zijn nu ontgrendeld. Bedankt voor uw bijdrage!"
+   },
+   "theme": {
+      "message": "Thema"
+   },
+   "theresAProblem": {
+      "message": "Er is een probleem"
+   },
+   "thinkingdotdotdot": {
+      "message": "Nadenken..."
+   },
+   "tip": {
+      "message": "Tip"
+   },
+   "to": {
+      "message": "aan"
+   },
+   "today": {
+      "message": "vandaag"
+   },
+   "tomorrow": {
+      "message": "Morgen"
+   },
+   "tooManyUnread": {
+      "message": "Slechts $1 e-mails tegelijk worden verwerkt om time-outs te voorkomen. Te veel e-mails? Klik op de knop voor andere oplossingen."
+   },
+   "translateMessage": {
+      "message": "Bericht vertalen"
+   },
+   "transparent": {
+      "message": "Transparant"
+   },
+   "tryAgain": {
+      "message": "Probeer het nog eens"
+   },
+   "tryAgainLater": {
+      "message": "Probeer het later opnieuw"
+   },
+   "tryAnotherPaymentMethod": {
+      "message": "Probeer een andere betaalmethode."
+   },
+   "tryAnotherPaymentMethodInstead": {
+      "message": "Probeer in plaats daarvan een andere betaalmethode."
+   },
+   "tryCheckerPlusWindowFirst": {
+      "message": "Houd het Checker Plus-pop-upvenster een paar dagen bovenaan, het is krachtiger"
+   },
+   "turnOff": {
+      "message": "Uitschakelen"
+   },
+   "ultraSuite": {
+      "message": "Ultra Suite"
+   },
+   "uncheckInboxLabel": {
+      "message": "Zet het Inbox-label uit"
+   },
+   "undo": {
+      "message": "Ongedaan maken"
+   },
+   "unknownSender": {
+      "message": "Onbekende afzender"
+   },
+   "unlimited": {
+      "message": "Onbeperkt"
+   },
+   "unlimitedManualAddAccounts": {
+      "message": "Onbeperkt handmatig accounts toevoegen"
+   },
+   "unlockOtherExtensions": {
+      "message": "Ontgrendel de andere extensies door hun bijdragepagina te openen en de link 'Reeds bijgedragen' hierboven te gebruiken."
+   },
+   "unread": {
+      "message": "Ongelezen"
+   },
+   "unreadLink": {
+      "message": "Ongelezen"
+   },
+   "unreadLinkTitle": {
+      "message": "Markeren als ongelezen"
+   },
+   "unreadLinkTitleShort": {
+      "message": "Ongelezen"
+   },
+   "unreadMail": {
+      "message": "Ongelezen e-mail"
+   },
+   "unreadMailCountColor": {
+      "message": "Kleur van aantal ongelezen e-mails"
+   },
+   "unsubscribe": {
+      "message": "Uitschrijven"
+   },
+   "update": {
+      "message": "Bijwerken"
+   },
+   "updates": {
+      "message": "Updates"
+   },
+   "uploadSound": {
+      "message": "Geluid uploaden"
+   },
+   "useChromeSignIn": {
+      "message": "Aanmelden met Chrome"
+   },
+   "verify": {
+      "message": "verifiëren"
+   },
+   "videoEmail": {
+      "message": "Video-e-mail"
+   },
+   "videoMessage": {
+      "message": "Videobericht"
+   },
+   "view": {
+      "message": "Bekijken"
+   },
+   "viewOnGoogleCalendar": {
+      "message": "Bekijken in Google Agenda"
+   },
+   "viewSpamFolder": {
+      "message": "Spammap bekijken"
+   },
+   "voice": {
+      "message": "Spraak"
+   },
+   "voiceCommands": {
+      "message": "Spraakopdrachten"
+   },
+   "voiceEmail": {
+      "message": "Spraak-e-mail"
+   },
+   "voiceInput": {
+      "message": "Spraakinvoer"
+   },
+   "voiceInputSuggestions": {
+      "message": "Suggesties inschakelen"
+   },
+   "voiceMessage": {
+      "message": "Spraakbericht"
+   },
+   "voiceNotificationOnlyIfIdle": {
+      "message": "Alleen als u minstens"
+   },
+   "voiceTest": {
+      "message": "Stem testen"
+   },
+   "volume": {
+      "message": "Volume"
+   },
+   "week": {
+      "message": "Week"
+   },
+   "welcome": {
+      "message": "Welkom"
+   },
+   "when": {
+      "message": "Wanneer"
+   },
+   "where": {
+      "message": "Waar"
+   },
+   "whileYouWereInterrupted": {
+      "message": "U werd onderbroken tijdens het beantwoorden, daarom heb ik het opgeslagen :)"
+   },
+   "white": {
+      "message": "Wit"
+   },
+   "who": {
+      "message": "Wie"
+   },
+   "wholeEmail": {
+      "message": "hele e-mail"
+   },
+   "widget": {
+      "message": "Widget"
+   },
+   "width": {
+      "message": "Breedte"
+   },
+   "woman": {
+      "message": "Vrouw"
+   },
+   "yearly": {
+      "message": "Jaarlijks"
+   },
+   "yellow": {
+      "message": "Geel"
+   },
+   "yes": {
+      "message": "Ja"
+   },
+   "yesterday": {
+      "message": "gisteren"
+   },
+   "youSay": {
+      "message": "U zegt"
+   },
+   "yourOffline": {
+      "message": "U bent offline! Schakel de netwerkverbinding uit/weer in, herstart de browser of probeer Opties > Beheer > Onlinecontrole uitschakelen"
+   },
+   "zoom": {
+      "message": "Zoomen"
+   }
+}

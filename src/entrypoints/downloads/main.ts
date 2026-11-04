@@ -18,6 +18,10 @@ const sniffList = $("sniffList");
 const params = new URLSearchParams(location.search);
 const sourceTabText = params.get("sourceTabId");
 const sourceTabId = sourceTabText ? Number(sourceTabText) : Number.NaN;
+const CHRONO_ACCESS_KEY = "chrono.siteAccess";
+const CHRONO_ORIGINS = ["http://*/*", "https://*/*"];
+const CHRONO_PERMISSIONS: chrome.runtime.ManifestPermission[] = ["webRequest", "clipboardRead", "downloads.open", "downloads.ui"];
+const CHRONO_SITE_PERMISSION: chrome.runtime.ManifestPermission[] = ["webRequest"];
 let items: DownloadItem[] = [];
 let sniffed: Sniffed[] = [];
 let settings: Settings = normalizeDownloadSettings(null) as Settings;
@@ -301,6 +305,44 @@ $<HTMLButtonElement>("downloadSelected").addEventListener("click", async () => {
 });
 $<HTMLButtonElement>("refresh").addEventListener("click", () => void refresh());
 $<HTMLButtonElement>("openChromeDownloads").addEventListener("click", () => void chrome.tabs.create({url: "chrome://downloads/"}));
+$<HTMLButtonElement>("openChronoManager").addEventListener("click", async () => {
+    await chrome.windows.create({url: chrome.runtime.getURL("/pop/pop.html"), type: "popup", width: 960, height: 700});
+});
+$<HTMLButtonElement>("openChronoSettings").addEventListener("click", async () => {
+    await chrome.tabs.create({url: chrome.runtime.getURL("/ui/options.html")});
+});
+const chronoAccessButton = $<HTMLButtonElement>("chronoSiteAccess");
+const syncChronoAccessButton = async () => {
+    const stored = await chrome.storage.local.get(CHRONO_ACCESS_KEY);
+    const enabled = stored[CHRONO_ACCESS_KEY] === true && await chrome.permissions.contains({permissions: CHRONO_SITE_PERMISSION, origins: CHRONO_ORIGINS});
+    chronoAccessButton.setAttribute("aria-pressed", enabled ? "true" : "false");
+    chronoAccessButton.textContent = enabled ? "사이트 감지 끄기" : "모든 사이트에서 감지 켜기";
+};
+chronoAccessButton.addEventListener("click", async () => {
+    const enabled = chronoAccessButton.getAttribute("aria-pressed") === "true";
+    if (enabled) {
+        await chrome.storage.local.set({[CHRONO_ACCESS_KEY]: false});
+        const result = await chrome.runtime.sendMessage({type: "chrono-sync-sites"});
+        await chrome.permissions.remove({permissions: CHRONO_SITE_PERMISSION});
+        if (!result?.ok) { setStatus(result?.error || "Chrono 사이트 연결을 끄지 못했어요.", true); return; }
+        setStatus("Chrono 사이트 연결을 껐어요. 확장 프로그램을 새로 시작하고 있어요.");
+        window.setTimeout(() => chrome.runtime.reload(), 400);
+        return;
+    }
+    try {
+        const granted = await chrome.permissions.request({permissions: CHRONO_PERMISSIONS, origins: CHRONO_ORIGINS});
+        if (!granted) { setStatus("권한을 허용하지 않아 페이지 감지를 켜지 않았어요.", true); return; }
+        await chrome.storage.local.set({[CHRONO_ACCESS_KEY]: true});
+        const result = await chrome.runtime.sendMessage({type: "chrono-sync-sites"});
+        if (!result?.ok) throw new Error(result?.error || "Chrono 페이지 연결을 등록하지 못했어요.");
+        await syncChronoAccessButton();
+        setStatus("페이지 자동 감지를 켰어요. 확장 프로그램을 새로 시작할게요.");
+        window.setTimeout(() => chrome.runtime.reload(), 500);
+    } catch (error) {
+        setStatus(`Chrono 사이트 권한을 바꾸지 못했어요: ${(error as Error)?.message || "권한을 확인해 주세요."}`, true);
+    }
+});
+void syncChronoAccessButton();
 stateFilter.addEventListener("change", render);
 typeFilter.addEventListener("change", render);
 ageFilter.addEventListener("change", render);

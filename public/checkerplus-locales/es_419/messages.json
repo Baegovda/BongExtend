@@ -1,0 +1,119 @@
+{
+   "addToTasks": {
+      "message": "Agregar a tareas"
+   },
+   "archive": {
+      "message": "Archivar"
+   },
+   "archiveLinkTitle": {
+      "message": "Archivar correo"
+   },
+   "composeLinkTitle": {
+      "message": "Redactar nuevo correo"
+   },
+   "deleteLink": {
+      "message": "Eliminar"
+   },
+   "deleteLinkTitle": {
+      "message": "Eliminar correo"
+   },
+   "directDeveloperSupport": {
+      "message": "Soporte directo del desarrollador"
+   },
+   "fullLinkTitle": {
+      "message": "Mostrar mensaje completo"
+   },
+   "getPro": {
+      "message": "Obtener Pro"
+   },
+   "getUltraSuite": {
+      "message": "Obtener Ultra Suite"
+   },
+   "includesProForAllExtensions": {
+      "message": "Desbloquea TODAS las funciones para TODAS mis extensiones"
+   },
+   "languageName": {
+      "message": "Español"
+   },
+   "monthsArray": {
+      "message": "ene,feb,mar,abr,may,jun,jul,ago,sep,oct,nov,dic"
+   },
+   "noUnreadText": {
+      "message": "No tienes correos sin leer"
+   },
+   "oneUnreadText": {
+      "message": "correo sin leer"
+   },
+   "openLinkTitle": {
+      "message": "Abrir en webmail"
+   },
+   "popupText": {
+      "message": "Has recibido un nuevo correo!"
+   },
+   "previewingMarksAsReadNotice": {
+      "message": "La vista previa marca los correos como leídos y los quita de esta ventana, puedes cambiarlo en Opciones > $1"
+   },
+   "print": {
+      "message": "Imprimir"
+   },
+   "readLink": {
+      "message": "Leído"
+   },
+   "readLinkTitle": {
+      "message": "Marcar como leído"
+   },
+   "reducedDonationAd_popup_line1": {
+      "message": "¡Buenas noticias, usuario de hace tiempo!"
+   },
+   "reducedDonationAd_popup_line2": {
+      "message": "Obtén $1 por solo $2"
+   },
+   "refreshLinkTitle": {
+      "message": "Consultar nuevos correos"
+   },
+   "refreshWhenOpeningPopup": {
+      "message": "Actualizar los correos al abrir la ventana emergente"
+   },
+   "replyLinkTitle": {
+      "message": "Responder"
+   },
+   "reportSpam": {
+      "message": "Marcar como spam"
+   },
+   "sendPageLinkTitle": {
+      "message": "Enviar link a pagina"
+   },
+   "severalUnreadText": {
+      "message": "correos sin leer"
+   },
+   "showCopyOTPInNotification": {
+      "message": "Mostrar botón Copiar OTP en las notificaciones"
+   },
+   "showLabelsTitle": {
+      "message": "Mostrar etiquetas"
+   },
+   "spam": {
+      "message": "Spam"
+   },
+   "starLinkTitle": {
+      "message": "Destacar"
+   },
+   "summaryLinkTitle": {
+      "message": "Mostrar resumen"
+   },
+   "taskCreated": {
+      "message": "Tarea creada"
+   },
+   "ultraSuite": {
+      "message": "Ultra Suite"
+   },
+   "unreadLink": {
+      "message": "No leído"
+   },
+   "unreadLinkTitle": {
+      "message": "Marcar como no leído"
+   },
+   "unsubscribe": {
+      "message": "Cancelar suscripción"
+   }
+}

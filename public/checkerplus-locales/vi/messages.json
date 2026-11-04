@@ -1,0 +1,113 @@
+{
+   "addToTasks": {
+      "message": "Thêm vào tác vụ"
+   },
+   "archive": {
+      "message": "Lưu trữ"
+   },
+   "archiveLinkTitle": {
+      "message": "Lưu trữ thư"
+   },
+   "composeLinkTitle": {
+      "message": "Soạn thư mới"
+   },
+   "deleteLink": {
+      "message": "Xóa"
+   },
+   "deleteLinkTitle": {
+      "message": "Xóa thư"
+   },
+   "directDeveloperSupport": {
+      "message": "Hỗ trợ trực tiếp từ nhà phát triển"
+   },
+   "fullLinkTitle": {
+      "message": "Hiển thị nội dung đầy đủ"
+   },
+   "getPro": {
+      "message": "Nhận Pro"
+   },
+   "getUltraSuite": {
+      "message": "Nhận Ultra Suite"
+   },
+   "includesProForAllExtensions": {
+      "message": "Mở khóa TẤT CẢ tính năng cho TẤT CẢ tiện ích của tôi"
+   },
+   "languageName": {
+      "message": "Tiếng Việt"
+   },
+   "monthsArray": {
+      "message": "tháng 1,tháng 2,tháng 3,tháng 4,tháng 5,tháng 6,tháng 7,tháng 8,tháng 9,tháng 10,tháng 11,tháng 12"
+   },
+   "noUnreadText": {
+      "message": "Không có thư chưa đọc"
+   },
+   "oneUnreadText": {
+      "message": "thư chưa đọc"
+   },
+   "openLinkTitle": {
+      "message": "Mở ra webmail"
+   },
+   "popupText": {
+      "message": "Bạn hiện có thư mới!"
+   },
+   "previewingMarksAsReadNotice": {
+      "message": "Xem trước email sẽ đánh dấu là đã đọc và xóa khỏi cửa sổ này, bạn có thể thay đổi trong Tùy chọn > $1"
+   },
+   "print": {
+      "message": "In"
+   },
+   "readLink": {
+      "message": "Thư đã đọc"
+   },
+   "readLinkTitle": {
+      "message": "Đánh dấu đã đọc"
+   },
+   "reducedDonationAd_popup_line1": {
+      "message": "Tin vui cho người dùng lâu năm!"
+   },
+   "reducedDonationAd_popup_line2": {
+      "message": "Nhận $1 chỉ với $2"
+   },
+   "refreshLinkTitle": {
+      "message": "Cập nhật danh sách thư"
+   },
+   "refreshWhenOpeningPopup": {
+      "message": "Làm mới email khi mở cửa sổ bật lên"
+   },
+   "replyLinkTitle": {
+      "message": "Hồi âm"
+   },
+   "reportSpam": {
+      "message": "Đánh dấu thư rác"
+   },
+   "severalUnreadText": {
+      "message": "thư chưa đọc"
+   },
+   "showCopyOTPInNotification": {
+      "message": "Hiển thị nút Sao chép OTP trong thông báo"
+   },
+   "spam": {
+      "message": "Rác"
+   },
+   "starLinkTitle": {
+      "message": "Đánh dấu sao"
+   },
+   "summaryLinkTitle": {
+      "message": "Hiển thị tóm tắt"
+   },
+   "taskCreated": {
+      "message": "Đã tạo tác vụ"
+   },
+   "ultraSuite": {
+      "message": "Ultra Suite"
+   },
+   "unreadLink": {
+      "message": "Thư chưa đọc"
+   },
+   "unreadLinkTitle": {
+      "message": "Đánh dấu chưa đọc"
+   },
+   "unsubscribe": {
+      "message": "Hủy đăng ký"
+   }
+}

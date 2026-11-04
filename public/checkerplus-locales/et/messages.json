@@ -1,0 +1,113 @@
+{
+   "addToTasks": {
+      "message": "Lisa ülesannetele"
+   },
+   "archive": {
+      "message": "Arhiveeri"
+   },
+   "archiveLinkTitle": {
+      "message": "Arhiveeri kiri"
+   },
+   "composeLinkTitle": {
+      "message": "Koosta uus kiri"
+   },
+   "deleteLink": {
+      "message": "Kustuta"
+   },
+   "deleteLinkTitle": {
+      "message": "Kustuta kiri"
+   },
+   "directDeveloperSupport": {
+      "message": "Otsene tugi arendajalt"
+   },
+   "fullLinkTitle": {
+      "message": "Näita kogu kirja"
+   },
+   "getPro": {
+      "message": "Hangi Pro"
+   },
+   "getUltraSuite": {
+      "message": "Hangi Ultra Suite"
+   },
+   "includesProForAllExtensions": {
+      "message": "Ava KÕIK funktsioonid KÕIGILE minu laiendustele"
+   },
+   "languageName": {
+      "message": "Eesti keel"
+   },
+   "monthsArray": {
+      "message": "jaan,veeb,märts,apr,mai,juun,juul,aug,sep,okt,nov,dets"
+   },
+   "noUnreadText": {
+      "message": "Pole uusi kirju"
+   },
+   "oneUnreadText": {
+      "message": "lugemata kiri"
+   },
+   "openLinkTitle": {
+      "message": "Ava veebilehel"
+   },
+   "popupText": {
+      "message": "Sulle on uus kiri!"
+   },
+   "previewingMarksAsReadNotice": {
+      "message": "E-kirjade eelvaade märgib need loetuks ja eemaldab sellest aknast, seda saad muuta valikutes > $1"
+   },
+   "print": {
+      "message": "Prindi"
+   },
+   "readLink": {
+      "message": "Loe"
+   },
+   "readLinkTitle": {
+      "message": "Märgi loetuna"
+   },
+   "reducedDonationAd_popup_line1": {
+      "message": "Hea uudis, pikaajaline kasutaja!"
+   },
+   "reducedDonationAd_popup_line2": {
+      "message": "Saa $1 vaid $2 eest"
+   },
+   "refreshLinkTitle": {
+      "message": "Uuenda kõiki postkaste"
+   },
+   "refreshWhenOpeningPopup": {
+      "message": "Värskenda e-kirju hüpikakna avamisel"
+   },
+   "replyLinkTitle": {
+      "message": "Vasta kirjale"
+   },
+   "reportSpam": {
+      "message": "Märgi rämpspostina"
+   },
+   "severalUnreadText": {
+      "message": "lugemata kirja"
+   },
+   "showCopyOTPInNotification": {
+      "message": "Kuva märguannetes OTP kopeerimise nupp"
+   },
+   "spam": {
+      "message": "Rämpspost"
+   },
+   "starLinkTitle": {
+      "message": "Märgista kiri"
+   },
+   "summaryLinkTitle": {
+      "message": "Näita kokkuvõtet"
+   },
+   "taskCreated": {
+      "message": "Ülesanne loodud"
+   },
+   "ultraSuite": {
+      "message": "Ultra Suite"
+   },
+   "unreadLink": {
+      "message": "Lugemata"
+   },
+   "unreadLinkTitle": {
+      "message": "Märgi lugemata"
+   },
+   "unsubscribe": {
+      "message": "Tellimusest loobumine"
+   }
+}

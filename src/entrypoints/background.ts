@@ -17,6 +17,7 @@ import {createTransMenus, startTransBackground} from "@/modules/trans/background
 // @ts-ignore 공통 모듈 스위치(순수 JS)
 import {MODULES_KEY, getModules} from "@/modules/core-modules.js";
 import {syncChzzkScripts} from "@/modules/chzzk-register";
+import {CHRONO_SITE_ACCESS_KEY, syncChronoContentScripts} from "@/modules/chrono-register";
 // @ts-ignore 페이지에 복사되는 순수 JS라 export 를 쓰지 않는다.
 import "@/modules/chzzk/lib/ads.js";
 // @ts-ignore 순수 JS
@@ -31,12 +32,39 @@ import {DARK_SCRIPT_FILE, DARK_SCRIPT_ID, DARK_SETTINGS_KEY, darkSiteEnabled, da
 import {DOWNLOAD_SETTINGS_KEY, cleanSuggestedFilename, makeDownloadFilename, normalizeDownloadSettings} from "@/modules/downloads/settings.js";
 
 export default defineBackground(() => {
+    // Chrono 0.13.12의 원본 서비스워커를 같은 MV3 워커에 불러온다.
+    const importChrono = (globalThis as typeof globalThis & {importScripts?: (...urls: string[]) => void}).importScripts;
+    if (typeof importChrono === "function") {
+        try { importChrono.call(globalThis, "/chrono-worker.js"); }
+        catch (error) { console.error("Chrono 다운로드 엔진을 시작하지 못했어요.", error); }
+        try { importChrono.call(globalThis, "/js/background.js"); }
+        catch (error) { console.error("Checker Plus 메일 엔진을 시작하지 못했어요.", error); }
+    }
+
     // ===== 번역 모듈 처리기 =====
     startTransBackground();
     // ===== 메일: 로그인된 Gmail 세션으로 받은편지함을 맞춘다 =====
     startGmailBackground();
     startFxBackground();
     startRightClickBackground();
+
+    const syncChronoSites = async () => {
+        const stored = await browser.storage.local.get(CHRONO_SITE_ACCESS_KEY);
+        await syncChronoContentScripts(stored[CHRONO_SITE_ACCESS_KEY] === true);
+    };
+    void syncChronoSites();
+    browser.storage.onChanged.addListener((changes, area) => {
+        if (area === "local" && changes[CHRONO_SITE_ACCESS_KEY]) void syncChronoSites();
+    });
+    browser.permissions.onAdded.addListener(() => void syncChronoSites());
+    browser.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+        if (!message || message.type !== "chrono-sync-sites") return;
+        syncChronoSites().then(
+            () => sendResponse({ok: true}),
+            error => sendResponse({ok: false, error: error?.message || "사이트 연결을 등록하지 못했어요."})
+        );
+        return true;
+    });
 
     // 다크 모드: 사용자가 권한을 허용한 사이트에만 런타임 콘텐츠 스크립트를 등록한다.
     const syncDarkReaderScript = async () => {

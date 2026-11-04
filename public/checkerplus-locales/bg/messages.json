@@ -1,0 +1,197 @@
+{
+   "addToTasks": {
+      "message": "Добавяне към задачи"
+   },
+   "alreadyContributedForm": {
+      "message": "already contributed form"
+   },
+   "archive": {
+      "message": "Архивирай"
+   },
+   "archiveLinkTitle": {
+      "message": "Архивирай писмото"
+   },
+   "bestValue": {
+      "message": "Best value"
+   },
+   "businesses": {
+      "message": "Businesses"
+   },
+   "changeDomain": {
+      "message": "Change domain"
+   },
+   "composeLinkTitle": {
+      "message": "Напиши ново писмо"
+   },
+   "contact": {
+      "message": "contact"
+   },
+   "contactDeveloperForMultipleUserLicense": {
+      "message": "Click Ok to contact the developer to purchase a multiple user license."
+   },
+   "contributionNotRecognizedUse": {
+      "message": "If your contribution is not recognized then please use the"
+   },
+   "crypto": {
+      "message": "Crypto"
+   },
+   "deleteLink": {
+      "message": "Изтрий"
+   },
+   "deleteLinkTitle": {
+      "message": "Изтрий писмото"
+   },
+   "directDeveloperSupport": {
+      "message": "Директна поддръжка от разработчика"
+   },
+   "enterEmailForReceipt": {
+      "message": "Enter your email for the receipt"
+   },
+   "enterEmailToLinkExtensions": {
+      "message": "Enter your email to link the other extensions"
+   },
+   "forAllMyExtensions": {
+      "message": "for ALL my extensions"
+   },
+   "fullLinkTitle": {
+      "message": "Покажи пълното съобщение"
+   },
+   "getPro": {
+      "message": "Вземи Pro"
+   },
+   "getUltraSuite": {
+      "message": "Вземи Ultra Suite"
+   },
+   "ifCompletedContact": {
+      "message": "If you did this then contact the developer"
+   },
+   "includesProForAllExtensions": {
+      "message": "Отключване на ВСИЧКИ функции за ВСИЧКИ мои разширения"
+   },
+   "individual": {
+      "message": "Individual"
+   },
+   "invalidNumber": {
+      "message": "Invalid number"
+   },
+   "invalidPaymentProcess": {
+      "message": "Invalid payment process"
+   },
+   "languageName": {
+      "message": "Български"
+   },
+   "makeSureSignedIntoContributingAccount": {
+      "message": "Make sure to sign into the Google account which you contributed from, then try again!"
+   },
+   "monthsArray": {
+      "message": "яну,фев,мар,апр,май,юни,юли,авг,сеп,окт,ное,дек"
+   },
+   "mustCompleteQrPayment": {
+      "message": "You must scan the code and complete the payment first."
+   },
+   "mustEnterEmail": {
+      "message": "You must enter an email"
+   },
+   "mustGrantAccessForContribution": {
+      "message": "You must first grant access via the popup window so that I can associate your account with the contribution."
+   },
+   "noPaymentFoundForEmail": {
+      "message": "No payment found for email"
+   },
+   "noUnreadText": {
+      "message": "Няма непрочетени писма"
+   },
+   "oneUnreadText": {
+      "message": "непрочетено писмо"
+   },
+   "openLinkTitle": {
+      "message": "Отвори в уеб-мейла"
+   },
+   "pay": {
+      "message": "Pay"
+   },
+   "paypal": {
+      "message": "PayPal"
+   },
+   "paypalUnsupportedWithCny": {
+      "message": "PayPal is not supported with CNY currency. Please select USD or another payment method."
+   },
+   "popupText": {
+      "message": "Имате ново писмо!"
+   },
+   "previewingMarksAsReadNotice": {
+      "message": "Преглеждането маркира имейлите като прочетени и ги премахва от този прозорец; можете да промените това в Опции > $1"
+   },
+   "print": {
+      "message": "Печат"
+   },
+   "pro": {
+      "message": "Pro"
+   },
+   "readLink": {
+      "message": "Прочетено"
+   },
+   "readLinkTitle": {
+      "message": "Маркирай като прочетено"
+   },
+   "reducedDonationAd_popup_line1": {
+      "message": "Добри новини, дългогодишни потребители!"
+   },
+   "reducedDonationAd_popup_line2": {
+      "message": "Получете $1 само за $2"
+   },
+   "refreshLinkTitle": {
+      "message": "Обнови всички папки"
+   },
+   "refreshWhenOpeningPopup": {
+      "message": "Опресняване на имейлите при отваряне на изскачащия прозорец"
+   },
+   "replyLinkTitle": {
+      "message": "Отговори на писмото"
+   },
+   "reportSpam": {
+      "message": "Маркирай като Спам"
+   },
+   "selectFiatCurrencyForCrypto": {
+      "message": "Select a fiat currency and an amount then the Crypto option will appear."
+   },
+   "severalUnreadText": {
+      "message": "непрочетено"
+   },
+   "showCopyOTPInNotification": {
+      "message": "Показване на бутона за копиране на OTP в известията"
+   },
+   "spam": {
+      "message": "Спам"
+   },
+   "starLinkTitle": {
+      "message": "Маркирай писмото"
+   },
+   "subscriptionCryptoContact": {
+      "message": "For a subscription by crypto, please contact the developer"
+   },
+   "summaryLinkTitle": {
+      "message": "Покажи всички"
+   },
+   "taskCreated": {
+      "message": "Задачата е създадена"
+   },
+   "tryAnotherPaymentMethod": {
+      "message": "Try another payment method."
+   },
+   "tryAnotherPaymentMethodInstead": {
+      "message": "Try another payment method instead."
+   },
+   "ultraSuite": {
+      "message": "Ultra Suite"
+   },
+   "unreadLink": {
+      "message": "Непрочетено"
+   },
+   "unreadLinkTitle": {
+      "message": "Маркирай като непрочетено"
+   },
+   "unsubscribe": {
+      "message": "Отписване"
+   }
+}

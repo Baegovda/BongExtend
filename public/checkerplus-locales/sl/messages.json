@@ -1,0 +1,113 @@
+{
+   "addToTasks": {
+      "message": "Dodaj med opravila"
+   },
+   "archive": {
+      "message": "Arhiviraj"
+   },
+   "archiveLinkTitle": {
+      "message": "Arhiviraj sporočilo"
+   },
+   "composeLinkTitle": {
+      "message": "Novo sporočilo"
+   },
+   "deleteLink": {
+      "message": "Izbriši"
+   },
+   "deleteLinkTitle": {
+      "message": "Izbriši sporočilo"
+   },
+   "directDeveloperSupport": {
+      "message": "Neposredna podpora razvijalca"
+   },
+   "fullLinkTitle": {
+      "message": "Prikaži celo sporočilo"
+   },
+   "getPro": {
+      "message": "Pridobi Pro"
+   },
+   "getUltraSuite": {
+      "message": "Pridobi Ultra Suite"
+   },
+   "includesProForAllExtensions": {
+      "message": "Odkleni VSE funkcije za VSE moje razširitve"
+   },
+   "languageName": {
+      "message": "Slovenščina"
+   },
+   "monthsArray": {
+      "message": "jan,feb,mar,apr,maj,jun,jul,avg,sep,okt,nov,dec"
+   },
+   "noUnreadText": {
+      "message": "Ni neprebranih sporočil"
+   },
+   "oneUnreadText": {
+      "message": "neprebrano sporočilo"
+   },
+   "openLinkTitle": {
+      "message": "Odpri v novem zavihku"
+   },
+   "popupText": {
+      "message": "Prejeli ste novo sporočilo!"
+   },
+   "previewingMarksAsReadNotice": {
+      "message": "Predogled e-pošte jih označi kot prebrane in odstrani iz tega okna, to lahko spremenite v Možnosti > $1"
+   },
+   "print": {
+      "message": "Natisni"
+   },
+   "readLink": {
+      "message": "Prebrano"
+   },
+   "readLinkTitle": {
+      "message": "Označi kot prebrano"
+   },
+   "reducedDonationAd_popup_line1": {
+      "message": "Dobra novica, dolgoletni uporabnik!"
+   },
+   "reducedDonationAd_popup_line2": {
+      "message": "Dobite $1 za samo $2"
+   },
+   "refreshLinkTitle": {
+      "message": "Osveži vse"
+   },
+   "refreshWhenOpeningPopup": {
+      "message": "Osveži e-pošto ob odpiranju pojavnega okna"
+   },
+   "replyLinkTitle": {
+      "message": "Odgovori"
+   },
+   "reportSpam": {
+      "message": "Označi kot vsiljeno pošto"
+   },
+   "severalUnreadText": {
+      "message": "neprebranih sporočil"
+   },
+   "showCopyOTPInNotification": {
+      "message": "Pokaži gumb za kopiranje OTP v obvestilih"
+   },
+   "spam": {
+      "message": "Vsiljena pošta"
+   },
+   "starLinkTitle": {
+      "message": "Označi z zvezdico"
+   },
+   "summaryLinkTitle": {
+      "message": "Prikaži povzetek"
+   },
+   "taskCreated": {
+      "message": "Opravilo ustvarjeno"
+   },
+   "ultraSuite": {
+      "message": "Ultra Suite"
+   },
+   "unreadLink": {
+      "message": "Neprebrano"
+   },
+   "unreadLinkTitle": {
+      "message": "Označi kot neprebrano"
+   },
+   "unsubscribe": {
+      "message": "Odjava naročnine"
+   }
+}

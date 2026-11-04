@@ -54,6 +54,12 @@
         changed = true;
       }
     }
+    for (const key of ROLL_KEYS) {
+      if (payload[key] === true || payload[key] === 1 || payload[key] === 'Y') {
+        payload[key] = false;
+        changed = true;
+      }
+    }
 
     // 재생 정보와 한 객체에 섞여 있으면 끄지 않는다. 광고 시작 신호만 중단으로 바꾼다.
     if (!isMediaPayload(payload) && typeof payload.adControlType === 'string' && payload.adControlType &&
@@ -92,6 +98,8 @@
 
   function looksLikeAdJson(text) {
     return text.indexOf('playerAdDisplayResponse') !== -1
+      || text.indexOf('midRoll') !== -1
+      || text.indexOf('midroll') !== -1
       || text.indexOf('adBreaks') !== -1
       || text.indexOf('videoAdScheduleId') !== -1
       || text.indexOf('skipPreRollAd') !== -1
@@ -107,7 +115,7 @@
   function isAdEndpoint(url, method) {
     if (String(method || 'GET').toUpperCase() === 'OPTIONS') return false;
     const u = String(url || '');
-    if (/^https:\/\/api\.chzzk\.naver\.com\/ad-polling\/v\d+\/lives\/[^/?#]+\/ad(?:\/|\?|$)/.test(u)) return true;
+    if (/^https:\/\/api\.chzzk\.naver\.com\/ad-polling\/v\d+\/lives\/[^/?#]+\/ads?(?:\/|\?|$)/.test(u)) return true;
     if (/^https:\/\/api\.chzzk\.naver\.com\/service\/v\d+\/lives\/[^/?#]+\/ads\/current(?:\/|\?|$)/.test(u)) return true;
     return false;
   }

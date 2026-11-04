@@ -1,0 +1,113 @@
+{
+   "addToTasks": {
+      "message": "Dodaj u zadatke"
+   },
+   "archive": {
+      "message": "Архивирај"
+   },
+   "archiveLinkTitle": {
+      "message": "Архивирај поруку"
+   },
+   "composeLinkTitle": {
+      "message": "Састави нову поруку"
+   },
+   "deleteLink": {
+      "message": "Обриши"
+   },
+   "deleteLinkTitle": {
+      "message": "Обриши поруку"
+   },
+   "directDeveloperSupport": {
+      "message": "Директна подршка програмера"
+   },
+   "fullLinkTitle": {
+      "message": "Прикажи целу поруку"
+   },
+   "getPro": {
+      "message": "Набави Pro"
+   },
+   "getUltraSuite": {
+      "message": "Набави Ultra Suite"
+   },
+   "includesProForAllExtensions": {
+      "message": "Откључај СВЕ функције за СВА моја проширења"
+   },
+   "languageName": {
+      "message": "Српски ћирилица"
+   },
+   "monthsArray": {
+      "message": "јан,феб,мар,апр,мај,јун,јул,авг,сеп,окт,нов,дец"
+   },
+   "noUnreadText": {
+      "message": "Нема непрочитаних порука"
+   },
+   "oneUnreadText": {
+      "message": "непрочитана порука"
+   },
+   "openLinkTitle": {
+      "message": "Отвори у новом прозору"
+   },
+   "popupText": {
+      "message": "Добили сте нову поруку!"
+   },
+   "previewingMarksAsReadNotice": {
+      "message": "Pregled e-poruka ih označava kao pročitane i uklanja iz ovog prozora, to možete promeniti u Opcije > $1"
+   },
+   "print": {
+      "message": "Штампај"
+   },
+   "readLink": {
+      "message": "Прочитано"
+   },
+   "readLinkTitle": {
+      "message": "Означи као прочитано"
+   },
+   "reducedDonationAd_popup_line1": {
+      "message": "Dobre vesti, dugogodišnji korisniče!"
+   },
+   "reducedDonationAd_popup_line2": {
+      "message": "Preuzmite $1 za samo $2"
+   },
+   "refreshLinkTitle": {
+      "message": "Освежи све налоге"
+   },
+   "refreshWhenOpeningPopup": {
+      "message": "Освежи имејлове при отварању искачућег прозора"
+   },
+   "replyLinkTitle": {
+      "message": "Одговори на поруку"
+   },
+   "reportSpam": {
+      "message": "Пријави непожељну поруку"
+   },
+   "severalUnreadText": {
+      "message": "непрочитане поруке"
+   },
+   "showCopyOTPInNotification": {
+      "message": "Прикажи дугме за копирање OTP-а у обавештењима"
+   },
+   "spam": {
+      "message": "Пријави"
+   },
+   "starLinkTitle": {
+      "message": "Додај звездицу"
+   },
+   "summaryLinkTitle": {
+      "message": "Прикажи кратак преглед"
+   },
+   "taskCreated": {
+      "message": "Zadatak je kreiran"
+   },
+   "ultraSuite": {
+      "message": "Ultra Suite"
+   },
+   "unreadLink": {
+      "message": "Непрочитано"
+   },
+   "unreadLinkTitle": {
+      "message": "Означи као непрочитано"
+   },
+   "unsubscribe": {
+      "message": "Одјава претплате"
+   }
+}

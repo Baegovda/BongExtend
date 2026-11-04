@@ -1,0 +1,1214 @@
+{
+   "24hourMode": {
+      "message": "24 hores de visualització de temps"
+   },
+   "24hourModeTitle": {
+      "message": "És a dir, mostrar l'hora en 24 hores. 18:00"
+   },
+   "DND": {
+      "message": "DND"
+   },
+   "DNDisEnabled": {
+      "message": "L'opció \"No molestar\" està habilitada"
+   },
+   "EOM": {
+      "message": "EOM"
+   },
+   "EOMToolTip": {
+      "message": "Final del missatge"
+   },
+   "NAME_says": {
+      "message": "$1 diu"
+   },
+   "XNewEmails": {
+      "message": "$1 nous missatges de correu electrònic"
+   },
+   "Xattachments": {
+      "message": "$1 fitxers adjunts"
+   },
+   "Xday": {
+      "message": "dia"
+   },
+   "Xdays": {
+      "message": "$1 dies"
+   },
+   "Xhour": {
+      "message": "$1 hora"
+   },
+   "Xhours": {
+      "message": "$1 hores"
+   },
+   "Xminute": {
+      "message": "$1 minut"
+   },
+   "Xminutes": {
+      "message": "$1 minuts"
+   },
+   "Xseconds": {
+      "message": "$1 segons"
+   },
+   "Xuser": {
+      "message": "$1 usuari"
+   },
+   "Xusers": {
+      "message": "$1 usuaris"
+   },
+   "aboutMe": {
+      "message": "Sobre mi"
+   },
+   "account": {
+      "message": "Compte"
+   },
+   "accounts": {
+      "message": "Comptes"
+   },
+   "addAccount": {
+      "message": "Afegir compte"
+   },
+   "addSpeechEngines": {
+      "message": "Afegir una veu"
+   },
+   "addToGoogleCalendar": {
+      "message": "Afegeix a Google Calendar"
+   },
+   "addToTasks": {
+      "message": "Afegeix a les tasques"
+   },
+   "added": {
+      "message": "Afegit"
+   },
+   "admin": {
+      "message": "Administració"
+   },
+   "alias": {
+      "message": "Àlies"
+   },
+   "all": {
+      "message": "Tots"
+   },
+   "allMail": {
+      "message": "Tots els missatges"
+   },
+   "alreadyContributedForm": {
+      "message": "already contributed form"
+   },
+   "alreadyDonated": {
+      "message": "Ja has contribuït?"
+   },
+   "alsoTryMy": {
+      "message": "També prova el meu"
+   },
+   "amount": {
+      "message": "Quantitat"
+   },
+   "anyAmount": {
+      "message": "QUALSEVOL quantitat"
+   },
+   "archive": {
+      "message": "Arxiu"
+   },
+   "archiveLinkTitle": {
+      "message": "Arxivar correu"
+   },
+   "archive_readToolTip": {
+      "message": "Marcar correu com a llegit quan l'arxives"
+   },
+   "available": {
+      "message": "Disponible"
+   },
+   "back": {
+      "message": "Endarrera"
+   },
+   "backToInbox": {
+      "message": "Tornar a la safata d'entrada"
+   },
+   "bestValue": {
+      "message": "Best value"
+   },
+   "bitcoin": {
+      "message": "Bitcoin"
+   },
+   "blue": {
+      "message": "Blau"
+   },
+   "businesses": {
+      "message": "Businesses"
+   },
+   "button": {
+      "message": "Botó"
+   },
+   "buttonIcon": {
+      "message": "Icona de botó"
+   },
+   "by": {
+      "message": "per"
+   },
+   "cancel": {
+      "message": "Cancel·la"
+   },
+   "card": {
+      "message": "Targeta"
+   },
+   "categories": {
+      "message": "Categories"
+   },
+   "changeDomain": {
+      "message": "Change domain"
+   },
+   "changeLabels": {
+      "message": "Canviar les etiquetes"
+   },
+   "changeThisDomain2": {
+      "message": "Tancar i iniciar la sessió com un altre usuari"
+   },
+   "changelog": {
+      "message": "Novetats"
+   },
+   "chime": {
+      "message": "Carilló"
+   },
+   "chooseNoUnreadEmail": {
+      "message": "Triar icona de cap missatge sense llegir"
+   },
+   "chooseSignedOutIcon": {
+      "message": "Triar icona sense sessió"
+   },
+   "chooseUnreadEmail": {
+      "message": "Triar icona de missatges sense llegir"
+   },
+   "clickToPreviewEmail": {
+      "message": "Prem per a previsualitzar el missatge"
+   },
+   "clickToolbarIconToContinue": {
+      "message": "Feu clic a la icona de la barra d'eines per continuar"
+   },
+   "clickingAnywhereOnNotification": {
+      "message": "Clic a qualsevol lloc a la notificació"
+   },
+   "close": {
+      "message": "Tancar"
+   },
+   "closeAfterX": {
+      "message": "Tancar després"
+   },
+   "closesPopupWindow": {
+      "message": "Tanca la finestra emergent"
+   },
+   "colors": {
+      "message": "Colors"
+   },
+   "comfortable": {
+      "message": "Còmode"
+   },
+   "compact": {
+      "message": "Compacte"
+   },
+   "compose": {
+      "message": "Escriure"
+   },
+   "composeLinkTitle": {
+      "message": "Redacta un nou correu"
+   },
+   "contact": {
+      "message": "contact"
+   },
+   "contactDeveloperForMultipleUserLicense": {
+      "message": "Click Ok to contact the developer to purchase a multiple user license."
+   },
+   "contacts": {
+      "message": "Contactes"
+   },
+   "contactsHome": {
+      "message": "H"
+   },
+   "contactsMobile": {
+      "message": "M"
+   },
+   "contactsOther": {
+      "message": "O"
+   },
+   "contactsWork": {
+      "message": "W"
+   },
+   "continue": {
+      "message": "Continuar"
+   },
+   "contribute": {
+      "message": "Contribuir"
+   },
+   "contributionNotRecognizedUse": {
+      "message": "If your contribution is not recognized then please use the"
+   },
+   "conversationView": {
+      "message": "Visualització de conversa"
+   },
+   "copyEmailAddress": {
+      "message": "Copiar l'adreça de correu electrònic"
+   },
+   "cozy": {
+      "message": "Acollidor"
+   },
+   "crypto": {
+      "message": "Crypto"
+   },
+   "custom": {
+      "message": "Personalitzat"
+   },
+   "customToThisExtension": {
+      "message": "Personalitzar l'extensió"
+   },
+   "customizeNotifications": {
+      "message": "Personalitzar les notificacions"
+   },
+   "dark": {
+      "message": "Fosc"
+   },
+   "dayAgo": {
+      "message": "fa $1 dia"
+   },
+   "daysAgo": {
+      "message": "fa $1 dies"
+   },
+   "daysArray": {
+      "message": "diumenge,dilluns,dimarts,dimecres,dijous,divendres,dissabte"
+   },
+   "daysArrayShort": {
+      "message": "Dg, dl, dm, DC, DJ, Dv, DS"
+   },
+   "default": {
+      "message": "Per defecte"
+   },
+   "delete": {
+      "message": "Esborrar"
+   },
+   "deleteCustomSounds": {
+      "message": "Eliminar sons personalitzats"
+   },
+   "deleteLink": {
+      "message": "Esborrar"
+   },
+   "deleteLinkTitle": {
+      "message": "Esborrar correu"
+   },
+   "deletingMarksAsReadToolTip": {
+      "message": "Marcar correu com a llegit quan el suprimeixes"
+   },
+   "developingMore": {
+      "message": "i jo estic treballant en més dels seus suggeriments ..."
+   },
+   "developingMoreSuggestions_suggestions": {
+      "message": "suggeriments"
+   },
+   "ding": {
+      "message": "Ding"
+   },
+   "directDeveloperSupport": {
+      "message": "Suport directe del desenvolupador"
+   },
+   "disableAll": {
+      "message": "Inhabilita-ho tot"
+   },
+   "disabled": {
+      "message": "Deshabilitat"
+   },
+   "discoverMyApps": {
+      "message": "Descobrir les meves aplicacions"
+   },
+   "dismiss": {
+      "message": "Descarta"
+   },
+   "display": {
+      "message": "Mostrar"
+   },
+   "displayDensity": {
+      "message": "Densitat de visualització"
+   },
+   "displaySenders_1": {
+      "message": "Mostrar el remitent"
+   },
+   "doNotDisturb": {
+      "message": "No molestar"
+   },
+   "doNotNotifyMeOfUpdates": {
+      "message": "No avisar de les actualitzacions"
+   },
+   "donate": {
+      "message": "Donar"
+   },
+   "donationRequired": {
+      "message": "Contribució necessària"
+   },
+   "done": {
+      "message": "Fet"
+   },
+   "download": {
+      "message": "Descarregar"
+   },
+   "email": {
+      "message": "Email"
+   },
+   "emailAccounts": {
+      "message": "Comptes de correu electrònic"
+   },
+   "emailFrom_NAME": {
+      "message": "E-mail de $1"
+   },
+   "emailPreview": {
+      "message": "Visualització prèvia del correu"
+   },
+   "email_from": {
+      "message": "remitent"
+   },
+   "email_message": {
+      "message": "missatge"
+   },
+   "email_subject": {
+      "message": "assumpte"
+   },
+   "enable": {
+      "message": "Activa"
+   },
+   "enabled": {
+      "message": "Habilitat"
+   },
+   "enter": {
+      "message": "Entrar"
+   },
+   "enterAnAmount": {
+      "message": "Podeu entrar una quantitat!"
+   },
+   "enterEmailForReceipt": {
+      "message": "Enter your email for the receipt"
+   },
+   "enterEmailToLinkExtensions": {
+      "message": "Enter your email to link the other extensions"
+   },
+   "esc": {
+      "message": "Esc"
+   },
+   "example": {
+      "message": "exemple"
+   },
+   "extensionUpdated": {
+      "message": "Extensió actualitzada!"
+   },
+   "extensionUpdates": {
+      "message": "Actualitzacions de l'extensió"
+   },
+   "extraFeatures": {
+      "message": "Les característiques addicionals"
+   },
+   "extraFeaturesMonthlyBlurb": {
+      "message": "Aquesta característica requereix un pagament mensual de qualsevol quantitat degut a la quota que m'imposa l'API de Gmail. Nota: la majoria de característiques extres només requereixen un sol pagament per donar-me suport."
+   },
+   "failureWithPayPalPurchase": {
+      "message": "Cancel·lat o ha fallat la transacció! Vol intentar-ho amb $1?"
+   },
+   "feedback": {
+      "message": "Comentaris"
+   },
+   "finance": {
+      "message": "Finances"
+   },
+   "firstAndLastName": {
+      "message": "nom i cognoms"
+   },
+   "firstNameOnly": {
+      "message": "només nom"
+   },
+   "followMe": {
+      "message": "Segueix-me"
+   },
+   "forAllMyExtensions": {
+      "message": "for ALL my extensions"
+   },
+   "forever": {
+      "message": "Per sempre"
+   },
+   "forums": {
+      "message": "Fòrums"
+   },
+   "from": {
+      "message": "De"
+   },
+   "general": {
+      "message": "General"
+   },
+   "getPro": {
+      "message": "Obtenir Pro"
+   },
+   "getUltraSuite": {
+      "message": "Obtenir Ultra Suite"
+   },
+   "grantAccess": {
+      "message": "Concedeix accés"
+   },
+   "green": {
+      "message": "Verd"
+   },
+   "guideForInboxByGmail": {
+      "message": "Guia per a usuaris de Inbox by Gmail"
+   },
+   "guideForInboxByGmailToolTip": {
+      "message": "Utilitza això només si heu activat l'Inbox de Gmail"
+   },
+   "hearEmail": {
+      "message": "Escoltar el missatge"
+   },
+   "hearEmailMessage": {
+      "message": "Escoltar el missatge"
+   },
+   "hearEmailSubject": {
+      "message": "Escoltar assumpte del missatge"
+   },
+   "height": {
+      "message": "Alçada"
+   },
+   "help": {
+      "message": "Ajuda"
+   },
+   "hiddenGmailTabsNote": {
+      "message": ""
+   },
+   "hideButton": {
+      "message": "Amagar botó"
+   },
+   "hideReadEmails": {
+      "message": "Amaga els correus llegits"
+   },
+   "hourAgo": {
+      "message": "fa $1 hora"
+   },
+   "hours": {
+      "message": "hores"
+   },
+   "hoursAgo": {
+      "message": "$1 hores"
+   },
+   "icon": {
+      "message": "Icona"
+   },
+   "ifCompletedContact": {
+      "message": "If you did this then contact the developer"
+   },
+   "ignored": {
+      "message": "Ignorat"
+   },
+   "important": {
+      "message": "Importants"
+   },
+   "importantMail": {
+      "message": "Correu important"
+   },
+   "in": {
+      "message": "en"
+   },
+   "inbox": {
+      "message": "Safata d'entrada"
+   },
+   "inboxFor": {
+      "message": "$1"
+   },
+   "includesExtraFeaturesForX": {
+      "message": "Inclou les característiques extra per $1"
+   },
+   "includesProForAllExtensions": {
+      "message": "Desbloqueja TOTES les funcions per a TOTES les meves extensions"
+   },
+   "indefinitely": {
+      "message": "Indefinidament"
+   },
+   "individual": {
+      "message": "Individual"
+   },
+   "invalidNumber": {
+      "message": "Invalid number"
+   },
+   "invalidPaymentProcess": {
+      "message": "Invalid payment process"
+   },
+   "keyboardShortcuts": {
+      "message": "dreceres de teclat"
+   },
+   "keys": {
+      "message": "Claus"
+   },
+   "label": {
+      "message": "Etiqueta"
+   },
+   "labels": {
+      "message": "Etiquetes"
+   },
+   "language": {
+      "message": "Llengua"
+   },
+   "listenToYourEmail": {
+      "message": "Escolteu el vostre E-mail"
+   },
+   "loading": {
+      "message": "Carregant..."
+   },
+   "loadingSettings": {
+      "message": "Carregant configuració"
+   },
+   "mailtoLinks": {
+      "message": "Obrir enllaços mailto amb Gmail"
+   },
+   "makeButtonOpenGmailGuideToolTip": {
+      "message": "No es recomana perquè reemplaçarà la finestra emergent"
+   },
+   "makeSureSignedIntoContributingAccount": {
+      "message": "Make sure to sign into the Google account which you contributed from, then try again!"
+   },
+   "man": {
+      "message": "Home"
+   },
+   "manuallyAddingMultipleAccountsCost": {
+      "message": "La detecció automàtica per defecte admet comptes il·limitats gratuïtament."
+   },
+   "manuallyAddingMultipleAccountsCost2": {
+      "message": "El mètode d'afegir comptes suporta $1 comptes gratuïtament; més de $1 requereix una contribució per cobrir els costos del servidor amb notificacions en temps real."
+   },
+   "markAllAsRead": {
+      "message": "Marcar tots com a llegits"
+   },
+   "markAllAsReadTitle": {
+      "message": "Marcar tots com a llegits"
+   },
+   "markedAsDone": {
+      "message": "Marcat com a fet"
+   },
+   "markedAsRead": {
+      "message": "Marcat com a llegit"
+   },
+   "me": {
+      "message": "jo"
+   },
+   "message": {
+      "message": "Missatge"
+   },
+   "mini": {
+      "message": "Mini"
+   },
+   "minimumAmount": {
+      "message": "Cal donar almenys $1"
+   },
+   "minutesAgo": {
+      "message": "fa $1 minuts"
+   },
+   "monitor": {
+      "message": "Monitor"
+   },
+   "month": {
+      "message": "Mes"
+   },
+   "monthly": {
+      "message": "Mensualment"
+   },
+   "monthlyContribution": {
+      "message": "Contribució mensual"
+   },
+   "monthsArray": {
+      "message": "gener,febrer,març,abril,maig,juny,juliol,agost,setembre,octubre,novembre,desembre"
+   },
+   "monthsArrayShort": {
+      "message": "gen,feb,mar,abr,mai,jun,jul,ago,set,oct,nov,des"
+   },
+   "more": {
+      "message": "més"
+   },
+   "moreInfo": {
+      "message": "Més informació"
+   },
+   "morning": {
+      "message": "Matí"
+   },
+   "moveLabel": {
+      "message": "Moure a"
+   },
+   "movedToTrash": {
+      "message": "Mogut a la paperera"
+   },
+   "mustCompleteQrPayment": {
+      "message": "You must scan the code and complete the payment first."
+   },
+   "mustEnterEmail": {
+      "message": "You must enter an email"
+   },
+   "mustGrantAccessForContribution": {
+      "message": "You must first grant access via the popup window so that I can associate your account with the contribution."
+   },
+   "mustSignInToPay": {
+      "message": "Cal iniciar la sessió a Gmail i esperar que aquesta extensió carregui!"
+   },
+   "native": {
+      "message": "natiu"
+   },
+   "never": {
+      "message": "Mai"
+   },
+   "newEmail": {
+      "message": "Nou missatge"
+   },
+   "newer": {
+      "message": "Més recent"
+   },
+   "next": {
+      "message": "Següent"
+   },
+   "nickname": {
+      "message": "Sobrenom"
+   },
+   "night": {
+      "message": "Nit"
+   },
+   "no": {
+      "message": "No"
+   },
+   "noPaymentFoundForEmail": {
+      "message": "No payment found for email"
+   },
+   "noSubject": {
+      "message": "Cap assumpte"
+   },
+   "noUnreadText": {
+      "message": "No hi ha correu sense llegir"
+   },
+   "noUpdateNotifications": {
+      "message": "No hi ha notificacions d'actualització"
+   },
+   "noUpdates": {
+      "message": "No hi ha actualitzacions."
+   },
+   "none": {
+      "message": "Cap"
+   },
+   "notSignedIn": {
+      "message": "Sessió no iniciada"
+   },
+   "notWorking": {
+      "message": "No funciona?"
+   },
+   "notification": {
+      "message": "Notificació"
+   },
+   "notificationButton1": {
+      "message": "Botó de notificació 1"
+   },
+   "notificationButton2": {
+      "message": "Botó de notificació 2"
+   },
+   "notificationSound": {
+      "message": "Notificació de so"
+   },
+   "notificationTextToSpeech": {
+      "message": "so de la notificació"
+   },
+   "notifications": {
+      "message": "Notificacions"
+   },
+   "notificationsGuideToolTip": {
+      "message": "Sons, veus, notificacions d'escriptori"
+   },
+   "of": {
+      "message": "de"
+   },
+   "off": {
+      "message": "Apagat"
+   },
+   "ok": {
+      "message": "D'acord"
+   },
+   "older": {
+      "message": "Més vell"
+   },
+   "onlyPreventNotifications": {
+      "message": "Només evitar notificacions (mantenir el recompte de la insígnia, les animacions i els sons)"
+   },
+   "open": {
+      "message": "Obrir"
+   },
+   "openGmailInNewTab": {
+      "message": "Obrir Gmail en una nova pestanya"
+   },
+   "openGmailPopupWindow": {
+      "message": "Obrir Gmail per a mòbils"
+   },
+   "openGmailTab": {
+      "message": "Obrir Gmail"
+   },
+   "openHelp": {
+      "message": "Obrir l'ajuda"
+   },
+   "openInNewTab": {
+      "message": "Obert en una pestanya nova"
+   },
+   "openInPopup": {
+      "message": "Obert en una finestra emergent"
+   },
+   "openInboxByGmail": {
+      "message": "Obrir Inbox by Gmail"
+   },
+   "openLinkTitle": {
+      "message": "Obrir al webmail"
+   },
+   "openReply": {
+      "message": "Obrir (resposta)"
+   },
+   "openThisLabel": {
+      "message": "Obrir aquesta etiqueta"
+   },
+   "openThisLabelToolTip": {
+      "message": "Determina on l'usuari es manarà quan fent clic a la icona correu electrònic de compte o extensió"
+   },
+   "option": {
+      "message": "Opció"
+   },
+   "options": {
+      "message": "Opcions"
+   },
+   "or": {
+      "message": "o"
+   },
+   "original": {
+      "message": "Original"
+   },
+   "paragraph": {
+      "message": "paràgraf"
+   },
+   "pay": {
+      "message": "Pay"
+   },
+   "paypal": {
+      "message": "PayPal"
+   },
+   "paypalUnsupportedWithCny": {
+      "message": "PayPal is not supported with CNY currency. Please select USD or another payment method."
+   },
+   "pitch": {
+      "message": "Brea"
+   },
+   "playVideosInsideGmail": {
+      "message": "Reproduir vídeos dins de Gmail"
+   },
+   "pollingInterval": {
+      "message": "Interval d'actualització"
+   },
+   "popout": {
+      "message": "Popout"
+   },
+   "preview": {
+      "message": "Visualització prèvia"
+   },
+   "previewingMarksAsReadNotice": {
+      "message": "La previsualització marca els correus com a llegits i els elimina d'aquesta finestra; pots canviar-ho a Opcions > $1"
+   },
+   "previous": {
+      "message": "Anterior"
+   },
+   "primary": {
+      "message": "Primari"
+   },
+   "print": {
+      "message": "Imprimeix"
+   },
+   "priorityInbox": {
+      "message": "Prioritaris"
+   },
+   "pro": {
+      "message": "Pro"
+   },
+   "promotions": {
+      "message": "Promocions"
+   },
+   "purchases": {
+      "message": "Compres"
+   },
+   "quickComposeEmail": {
+      "message": "Contacte ràpid"
+   },
+   "rate": {
+      "message": "Valorar"
+   },
+   "read": {
+      "message": "Lectura"
+   },
+   "readLink": {
+      "message": "Llegit"
+   },
+   "readLinkTitle": {
+      "message": "Marcar com a llegit"
+   },
+   "realtimeForMultipleAccounts": {
+      "message": "Notificacions en temps real per a múltiples comptes"
+   },
+   "recommended": {
+      "message": "Recomanat"
+   },
+   "recordSound": {
+      "message": "Gravar so"
+   },
+   "reducedDonationAd_popup_line1": {
+      "message": "Bones notícies, usuari de fa temps!"
+   },
+   "reducedDonationAd_popup_line2": {
+      "message": "Aconsegueix $1 per només $2"
+   },
+   "refresh": {
+      "message": "Actualitzar"
+   },
+   "refreshLinkTitle": {
+      "message": "Refresca totes les bústies"
+   },
+   "refreshWhenOpeningPopup": {
+      "message": "Actualitza els correus en obrir la finestra emergent"
+   },
+   "removeAccount": {
+      "message": "Eliminar compte"
+   },
+   "removeAccountIcon": {
+      "message": "Treure icona de compte"
+   },
+   "removeShareLinks": {
+      "message": "Treure enllaços per compartir"
+   },
+   "removeShareLinksTooltip": {
+      "message": "Elimina els enllaços Facebook, Twitter, etc del calendari"
+   },
+   "reply": {
+      "message": "Respondre"
+   },
+   "replyInGmail": {
+      "message": "Respondre a Gmail"
+   },
+   "replyInPopup": {
+      "message": "Respondre en una finestra emergent"
+   },
+   "replyLinkTitle": {
+      "message": "Respon al correu"
+   },
+   "replyOnlyToSender": {
+      "message": "Respondre només al remitent"
+   },
+   "replyToAll": {
+      "message": "Respondre a tots"
+   },
+   "reportSpam": {
+      "message": "Marcar com a brossa"
+   },
+   "reset": {
+      "message": "Restablir"
+   },
+   "richNotification": {
+      "message": "Notificacions completes"
+   },
+   "richNotificationToolTip": {
+      "message": "Notificacions amb botons"
+   },
+   "runInBackground": {
+      "message": "Executar en segon pla quan es tancaGoogle Chrome"
+   },
+   "runInBackgroundToolTip": {
+      "message": "Continuar rebent notificacions d'e-mail nous, fins i tot mentre el navegador està tancat! Opció recomanada només a usuaris avançats."
+   },
+   "runInBackgroundWarning1b": {
+      "message": "Aplicacions en segon pla"
+   },
+   "runInBackgroundWarning3b": {
+      "message": "Mantenir la sessió iniciada"
+   },
+   "save": {
+      "message": "Desa"
+   },
+   "saveOptions": {
+      "message": "Desar opcions"
+   },
+   "schedule": {
+      "message": "Programar"
+   },
+   "search": {
+      "message": "Cerca"
+   },
+   "seeUpdates": {
+      "message": "Visualitza les actualitzacions"
+   },
+   "selectEmailAccount": {
+      "message": "Seleccioneu un compte de correu electrònic"
+   },
+   "selectFiatCurrencyForCrypto": {
+      "message": "Select a fiat currency and an amount then the Crypto option will appear."
+   },
+   "selectQuickActionButtonsToolTip": {
+      "message": ""
+   },
+   "send": {
+      "message": "Enviar"
+   },
+   "sendPageLinkTitle": {
+      "message": "Enllaç de pàgina de correu electrònic"
+   },
+   "sendVoiceOrVideoEmails": {
+      "message": "Enviar correus de veu o vídeo"
+   },
+   "sending": {
+      "message": "Enviant"
+   },
+   "sent": {
+      "message": "Enviat"
+   },
+   "setAccountIcon": {
+      "message": "Fer-la icona del compte"
+   },
+   "share": {
+      "message": "Compartir"
+   },
+   "shareIntro": {
+      "message": "Provar aquest increïble extensió de Chrome"
+   },
+   "showAllEmails": {
+      "message": "Mostrar tots els correus"
+   },
+   "showButtonTooltip": {
+      "message": "Mostra el tooltip quan el ratolí sobre la icona de botó"
+   },
+   "showConsoleMessages": {
+      "message": "Els missatges de registre a la consola de Javascript"
+   },
+   "showConsoleMessagesTitle": {
+      "message": "Només per a la depuració i pot alentir l'extensió una mica!"
+   },
+   "showContactPhotos": {
+      "message": "Mostrar fotos de contacte"
+   },
+   "showContextMenuItem": {
+      "message": "Mostra elements del menú contextual"
+   },
+   "showCopyOTPInNotification": {
+      "message": "Mostra el botó per copiar l'OTP a les notificacions"
+   },
+   "showDesktopNotifications": {
+      "message": "Mostra les notificacions d'escriptori"
+   },
+   "showDetails": {
+      "message": "Mostra els detalls"
+   },
+   "showGrayIconInDND": {
+      "message": "Mostra sempre la icona de color gris"
+   },
+   "showHideEmailPreview": {
+      "message": "Mostra/Amaga previsualització del missatge"
+   },
+   "showIconAnimation": {
+      "message": "Mostra l'animació de la icona"
+   },
+   "showNotificationEmailImagePreview": {
+      "message": "Mostrar la vista prèvia de la primera imatge dins del missatge"
+   },
+   "showSendAndArchiveButton": {
+      "message": "Mostra el botó \"Envia i arxiva\""
+   },
+   "showSendAndDeleteButton": {
+      "message": "Mostra el botó \"Envia i esborra\""
+   },
+   "showUpdateNotificationsForEvertyhing": {
+      "message": "Mostra les notificacions per a totes les actualitzacions i correccions d'errors"
+   },
+   "showUpdateNotificationsForInterestingUpdates": {
+      "message": "Mostra només les notificacions d'actualitzacions interessants"
+   },
+   "signIn": {
+      "message": "Accedir"
+   },
+   "signInAsUserOfOrg2": {
+      "message": "tancar la sessió"
+   },
+   "signOutAndIn": {
+      "message": "Iniciar/tancar la sessió"
+   },
+   "signature": {
+      "message": "Signatura"
+   },
+   "skin": {
+      "message": "Pell"
+   },
+   "skins": {
+      "message": "Pells"
+   },
+   "social": {
+      "message": "Social"
+   },
+   "sound": {
+      "message": "So"
+   },
+   "spam": {
+      "message": "Correu brossa"
+   },
+   "standard": {
+      "message": "Estàndard"
+   },
+   "starLinkTitle": {
+      "message": "Destaca correu"
+   },
+   "subject": {
+      "message": "Assumpte"
+   },
+   "subscriptionCryptoContact": {
+      "message": "For a subscription by crypto, please contact the developer"
+   },
+   "summary": {
+      "message": "resum"
+   },
+   "syncContacts": {
+      "message": "Sincronitzar contactes"
+   },
+   "tab": {
+      "message": "Pestanya"
+   },
+   "taskCreated": {
+      "message": "Tasca creada"
+   },
+   "testIt": {
+      "message": "Prova-ho!"
+   },
+   "textNotification": {
+      "message": "Notificació de text"
+   },
+   "textNotificationToolTip": {
+      "message": "Notificacions simples"
+   },
+   "thankYouForYourContribution": {
+      "message": "Les característiques ara estan desbloquejades. Gràcies per la seva contribució!"
+   },
+   "theme": {
+      "message": "Tema"
+   },
+   "theresAProblem": {
+      "message": "Hi ha un problema"
+   },
+   "tip": {
+      "message": "Consell"
+   },
+   "to": {
+      "message": "a"
+   },
+   "today": {
+      "message": "Avui"
+   },
+   "tomorrow": {
+      "message": "Demà"
+   },
+   "transparent": {
+      "message": "Transparents"
+   },
+   "tryAgain": {
+      "message": "Per favor intenteu-ho novament"
+   },
+   "tryAgainLater": {
+      "message": "Per favor intenteu-ho més tard"
+   },
+   "tryAnotherPaymentMethod": {
+      "message": "Try another payment method."
+   },
+   "tryAnotherPaymentMethodInstead": {
+      "message": "Try another payment method instead."
+   },
+   "turnOff": {
+      "message": "Desactivar"
+   },
+   "ultraSuite": {
+      "message": "Ultra Suite"
+   },
+   "uncheckInboxLabel": {
+      "message": "Desselecciona l'etiqueta d'Inbox"
+   },
+   "undo": {
+      "message": "Desfer"
+   },
+   "unknownSender": {
+      "message": "Remitent desconegut"
+   },
+   "unlimited": {
+      "message": "Il·limitat"
+   },
+   "unlimitedManualAddAccounts": {
+      "message": "Afegir comptes manuals il·limitats"
+   },
+   "unread": {
+      "message": "No llegits"
+   },
+   "unreadLink": {
+      "message": "No llegit"
+   },
+   "unreadLinkTitle": {
+      "message": "Marcar com a no llegit"
+   },
+   "unreadLinkTitleShort": {
+      "message": "No llegit"
+   },
+   "unreadMail": {
+      "message": "Missatges no llegits"
+   },
+   "unsubscribe": {
+      "message": "Cancel·la la subscripció"
+   },
+   "update": {
+      "message": "Actualitzar"
+   },
+   "updates": {
+      "message": "Actualitzacions"
+   },
+   "useBasicHTMLView": {
+      "message": "Utilitzar la visualització d'HTML bàsic"
+   },
+   "videoEmail": {
+      "message": "Correu de vídeo"
+   },
+   "videoMessage": {
+      "message": "Missatge de vídeo"
+   },
+   "voice": {
+      "message": "Veu"
+   },
+   "voiceCommands": {
+      "message": "Ordres de veu"
+   },
+   "voiceEmail": {
+      "message": "Correu de veu"
+   },
+   "voiceMessage": {
+      "message": "Missatge de veu"
+   },
+   "voiceNotificationOnlyIfIdle": {
+      "message": "Només si estàs lluny de l'ordinador una estona"
+   },
+   "voiceTest": {
+      "message": "Prova de veu"
+   },
+   "volume": {
+      "message": "Volum"
+   },
+   "welcome": {
+      "message": "Benvingut"
+   },
+   "wholeEmail": {
+      "message": "E-mail sencer"
+   },
+   "width": {
+      "message": "Amplada"
+   },
+   "woman": {
+      "message": "Dona"
+   },
+   "yellow": {
+      "message": "Groc"
+   },
+   "yes": {
+      "message": "Sí"
+   },
+   "yesterday": {
+      "message": "ahir"
+   },
+   "zoom": {
+      "message": "Zoom"
+   }
+}

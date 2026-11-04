@@ -1,0 +1,20 @@
+{
+   "currencyCode": {
+      "message": "GBP"
+   },
+   "directDeveloperSupport": {
+      "message": "Direct developer support"
+   },
+   "getPro": {
+      "message": "Get Pro"
+   },
+   "getUltraSuite": {
+      "message": "Get Ultra Suite"
+   },
+   "includesProForAllExtensions": {
+      "message": "Unlock Pro features for ALL my extensions"
+   },
+   "ultraSuite": {
+      "message": "Ultra Suite"
+   }
+}

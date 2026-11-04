@@ -7,6 +7,10 @@ BongExtend 변경 이력. GitHub **[Releases](https://github.com/Baegovda/BongEx
 
 ## [Unreleased]
 
+- Chrono Download Manager 0.13.12 원본 매니저·설정·다운로드 엔진을 연결하고, 사이트 자동 감지는 권한을 켠 뒤 사용해요
+- Checker Plus for Gmail 36.6 원본 팝업·설정·메일 엔진을 연결하고 Gmail 화면에서 바로 열 수 있어요
+- 치지직 광고 감지가 플레이어 Shadow DOM 안의 미드롤 광고 영상도 찾아 넘기고, 광고 신호의 새 응답 형식도 처리해요
+
 ## [1.2.12] - 2026-11-05
 
 - 다크 모드가 페이지의 색을 자체 추측해 적용을 건너뛰지 않고 Dark Reader 엔진을 바로 적용해요

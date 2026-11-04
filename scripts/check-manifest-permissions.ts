@@ -2,7 +2,7 @@ import {readFileSync} from "node:fs";
 
 const expected = JSON.parse(readFileSync(new URL("./manifest-permissions.json", import.meta.url), "utf8"));
 const manifest = JSON.parse(readFileSync(new URL("../.output/chrome-mv3/manifest.json", import.meta.url), "utf8"));
-const keys = ["permissions", "host_permissions", "optional_host_permissions"] as const;
+const keys = ["permissions", "optional_permissions", "host_permissions", "optional_host_permissions"] as const;
 
 const same = (left: string[] = [], right: string[] = []) => JSON.stringify([...left].sort()) === JSON.stringify([...right].sort());
 
