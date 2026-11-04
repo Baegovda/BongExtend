@@ -52,7 +52,7 @@ export default defineContentScript({
             const stored = await browser.storage.local.get([DARK_SETTINGS_KEY, MODULES_KEY]);
             if (current !== generation) return;
             const settings = normalizeDarkSettings(stored[DARK_SETTINGS_KEY]);
-            const modules = stored[MODULES_KEY] && typeof stored[MODULES_KEY] === "object" ? stored[MODULES_KEY] : {};
+            const modules = (stored[MODULES_KEY] && typeof stored[MODULES_KEY] === "object" ? stored[MODULES_KEY] : {}) as Record<string, unknown>;
             if (modules.dark === false || !darkSiteEnabled(settings, hostname)) {
                 auto(false);
                 disable();

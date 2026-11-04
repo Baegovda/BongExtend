@@ -43,7 +43,7 @@ export default defineBackground(() => {
         try {
             const stored = await browser.storage.local.get([DARK_SETTINGS_KEY, MODULES_KEY]);
             const settings = normalizeDarkSettings(stored[DARK_SETTINGS_KEY]);
-            const modules = stored[MODULES_KEY] && typeof stored[MODULES_KEY] === "object" ? stored[MODULES_KEY] : {};
+            const modules = (stored[MODULES_KEY] && typeof stored[MODULES_KEY] === "object" ? stored[MODULES_KEY] : {}) as Record<string, unknown>;
             const matches: string[] = [];
             if (modules.dark !== false) {
                 if (settings.enabledByDefault) {
@@ -85,7 +85,7 @@ export default defineBackground(() => {
         try {
             const stored = await browser.storage.local.get([DOWNLOAD_SETTINGS_KEY, MODULES_KEY]);
             const settings = normalizeDownloadSettings(stored[DOWNLOAD_SETTINGS_KEY]);
-            const modules = stored[MODULES_KEY] && typeof stored[MODULES_KEY] === "object" ? stored[MODULES_KEY] : {};
+            const modules = (stored[MODULES_KEY] && typeof stored[MODULES_KEY] === "object" ? stored[MODULES_KEY] : {}) as Record<string, unknown>;
             await browser.downloads.setUiOptions({enabled: modules.download === false || !settings.replaceChromeUi});
         } catch (error) {
             console.warn("Chrome 다운로드 표시 설정을 바꾸지 못했어요.", error);
@@ -101,7 +101,7 @@ export default defineBackground(() => {
                 const nameHint = takeDownloadNameHint(item.url);
                 const stored = await chrome.storage.local.get([DOWNLOAD_SETTINGS_KEY, MODULES_KEY]);
                 const settings = normalizeDownloadSettings(stored[DOWNLOAD_SETTINGS_KEY]);
-                const modules = stored[MODULES_KEY] && typeof stored[MODULES_KEY] === "object" ? stored[MODULES_KEY] : {};
+                const modules = (stored[MODULES_KEY] && typeof stored[MODULES_KEY] === "object" ? stored[MODULES_KEY] : {}) as Record<string, unknown>;
                 if (modules.download === false || (!settings.filenameMask && !settings.folder && !settings.routeByType && !settings.rules.length)) {
                     if (nameHint) suggest({filename: nameHint, conflictAction: "uniquify"});
                     else suggest();
@@ -119,7 +119,7 @@ export default defineBackground(() => {
         void (async () => {
             const stored = await chrome.storage.local.get([DOWNLOAD_SETTINGS_KEY, MODULES_KEY]);
             const settings = normalizeDownloadSettings(stored[DOWNLOAD_SETTINGS_KEY]);
-            const modules = stored[MODULES_KEY] && typeof stored[MODULES_KEY] === "object" ? stored[MODULES_KEY] : {};
+            const modules = (stored[MODULES_KEY] && typeof stored[MODULES_KEY] === "object" ? stored[MODULES_KEY] : {}) as Record<string, unknown>;
             if (modules.download === false || !settings.notifications) return;
             const item = await chrome.downloads.search({id: delta.id});
             const name = item[0]?.filename?.replace(/\\/g, "/").split("/").pop() || "파일";
@@ -400,14 +400,14 @@ export default defineBackground(() => {
             case "bongDownloadLink":
             case "bongDownloadImage":
             case "bongDownloadMedia": {
-                void getModules().then((modules) => {
+                void getModules().then((modules: Record<string, boolean | undefined>) => {
                     if (modules.download === false) return;
                     const rawUrl = info.menuItemId === "bongDownloadLink" ? info.linkUrl : info.srcUrl;
                     if (!rawUrl) return;
                     try {
                         const url = new URL(rawUrl);
                         if (url.protocol !== "http:" && url.protocol !== "https:") return;
-                        const fallbackName = info.linkText || tab.title || "";
+                        const fallbackName = url.pathname.split("/").pop() || tab.title || "";
                         const name = cleanSuggestedFilename(fallbackName);
                         const extension = url.pathname.split("/").pop()?.match(/\.[a-z0-9]{1,8}$/i)?.[0] || "";
                         const filename = name && !/\.[a-z0-9]{1,8}$/i.test(name) ? `${name}${extension}` : name;

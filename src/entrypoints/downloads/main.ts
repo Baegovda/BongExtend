@@ -128,7 +128,7 @@ const render = () => {
             addButton(actions, "열기", () => chrome.downloads.open(item.id));
             addButton(actions, "폴더 보기", () => chrome.downloads.show(item.id));
         } else {
-            addButton(actions, "다시 받기", () => startDownload(item.finalUrl || item.url, item.filename?.replace(/\\/g, "/").split("/").pop()));
+            addButton(actions, "다시 받기", async () => { await startDownload(item.finalUrl || item.url, item.filename?.replace(/\\/g, "/").split("/").pop()); });
         }
         addButton(actions, "기록 지우기", async () => { await chrome.downloads.erase({id: item.id}); await refresh(); });
         row.append(main, progress, details, actions);
@@ -226,16 +226,17 @@ const scanPage = async () => {
         const results = await chrome.scripting.executeScript({
             target: {tabId: sourceTabId},
             func: () => {
-                const found = new Map();
-                const add = (raw, name, kind) => {
+                const found = new Map<string, {url: string; name: string; kind: string}>();
+                const add = (raw: string | null, name: string | null, kind: string) => {
                     try {
+                        if (!raw) return;
                         const url = new URL(raw, location.href);
                         if (!['http:', 'https:'].includes(url.protocol) || found.has(url.href)) return;
                         found.set(url.href, {url: url.href, name: String(name || url.pathname.split('/').pop() || url.hostname).trim().slice(0, 180), kind});
                     } catch { /* skip invalid URLs */ }
                 };
-                document.querySelectorAll('a[href]').forEach((node) => add(node.href, node.innerText || node.title, '링크'));
-                document.querySelectorAll('img[src],img[data-src],source[src],video[src],audio[src]').forEach((node) => {
+                document.querySelectorAll<HTMLAnchorElement>('a[href]').forEach((node) => add(node.href, node.innerText || node.title, '링크'));
+                document.querySelectorAll<HTMLImageElement | HTMLSourceElement | HTMLVideoElement | HTMLAudioElement>('img[src],img[data-src],source[src],video[src],audio[src]').forEach((node) => {
                     const tag = node.tagName.toLowerCase();
                     const kind = tag === 'img' ? '이미지' : tag === 'audio' ? '음성' : tag === 'video' ? '동영상' : '미디어';
                     let raw = node.getAttribute('src') || node.getAttribute('data-src');
