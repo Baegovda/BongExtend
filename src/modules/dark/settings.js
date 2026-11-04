@@ -10,7 +10,6 @@ export const DEFAULT_DARK_SETTINGS = Object.freeze({
   siteList: [],
   siteThemes: {},
   followSystem: false,
-  detectDarkTheme: true,
   mode: 1,
   brightness: 100,
   contrast: 100,
@@ -30,7 +29,7 @@ const clamp = (value, min, max, fallback) => {
 };
 
 const normalizeHost = (value) => {
-  const host = String(value || "").trim().toLowerCase().replace(/^\*\./, "");
+  const host = String(value || "").trim().toLowerCase().replace(/^\*\./, "").replace(/^www\./, "");
   if (!host || host.length > 253 || !/^[a-z0-9.-]+$/.test(host) || host.includes("..")) return "";
   return host;
 };
@@ -76,7 +75,6 @@ export const normalizeDarkSettings = (value) => {
     siteList: normalizeHosts(source.siteList),
     siteThemes,
     followSystem: Boolean(source.followSystem),
-    detectDarkTheme: source.detectDarkTheme !== false,
     ...normalizeTheme(source)
   };
 };

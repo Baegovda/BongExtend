@@ -293,9 +293,15 @@ document.querySelector(".brand")?.addEventListener("dblclick", () => { applyOrde
 moduleSwitch.addEventListener("change", async () => {
     if (current === "update") return;
     await setModuleEnabled(current, moduleSwitch.checked);
-    moduleNote.textContent = moduleSwitch.checked
-        ? "켰어요. 열려 있는 페이지는 새로고침(F5)하면 적용돼요."
-        : "껐어요. 열려 있는 페이지는 새로고침(F5)하면 꺼져요.";
+    if (current === "dark") {
+        moduleNote.textContent = moduleSwitch.checked
+            ? "다크 모드 기능을 켰어요. 이 사이트에 적용하려면 아래 사이트 스위치도 켜 주세요."
+            : "다크 모드 기능을 껐어요.";
+    } else {
+        moduleNote.textContent = moduleSwitch.checked
+            ? "켰어요. 열려 있는 페이지는 새로고침(F5)하면 적용돼요."
+            : "껐어요. 열려 있는 페이지는 새로고침(F5)하면 꺼져요.";
+    }
 });
 
 // ===== 업데이트 (BongExtend 전체에서 업데이트 UI는 이 탭 하나뿐) =====
@@ -465,12 +471,13 @@ let darkConfig: DarkConfig = normalizeDarkSettings(null) as DarkConfig;
 let darkTabId: number | null = null;
 let darkHost = "";
 let darkSiteOrigin = "";
+let darkPermissionGranted = false;
+let darkAllSitesPermissionGranted = false;
 const darkStatus = $("darkStatus");
 const darkInputs = {
     everywhere: $<HTMLInputElement>("darkEverywhere"),
     currentSite: $<HTMLInputElement>("darkCurrentSite"),
     followSystem: $<HTMLInputElement>("darkFollowSystem"),
-    detectDarkTheme: $<HTMLInputElement>("darkDetectTheme"),
     customSite: $<HTMLInputElement>("darkCustomSite"),
     mode: $<HTMLSelectElement>("darkMode"),
     brightness: $<HTMLInputElement>("darkBrightness"),
@@ -484,11 +491,10 @@ const darkInputs = {
 const paintDarkValues = (config: DarkConfig) => {
     const siteTheme = darkHost && config.siteThemes?.[darkHost] ? config.siteThemes[darkHost] : null;
     const theme = {...config, ...(siteTheme || {})};
-    darkInputs.everywhere.checked = Boolean(config.enabledByDefault);
-    darkInputs.currentSite.checked = Boolean(darkHost && darkSiteEnabled(config, darkHost));
+    darkInputs.everywhere.checked = Boolean(config.enabledByDefault && darkAllSitesPermissionGranted);
+    darkInputs.currentSite.checked = Boolean(darkHost && darkPermissionGranted && darkSiteEnabled(config, darkHost));
     darkInputs.currentSite.disabled = !darkHost;
     darkInputs.followSystem.checked = Boolean(config.followSystem);
-    darkInputs.detectDarkTheme.checked = config.detectDarkTheme !== false;
     darkInputs.customSite.checked = Boolean(siteTheme);
     darkInputs.customSite.disabled = !darkHost;
     darkInputs.mode.value = String(theme.mode ?? 1);
@@ -500,7 +506,11 @@ const paintDarkValues = (config: DarkConfig) => {
     darkInputs.background.value = theme.darkSchemeBackgroundColor || "#181a1b";
     darkInputs.text.value = theme.darkSchemeTextColor || "#e8e6e3";
     $("darkSiteLabel").textContent = darkHost || "이 페이지에서는 사용할 수 없어요";
-    $("darkSiteNote").textContent = darkHost ? `${darkSiteOrigin}에 적용해요.` : "브라우저 내부 페이지에는 적용할 수 없어요.";
+    $("darkSiteNote").textContent = !darkHost
+        ? "브라우저 내부 페이지에는 적용할 수 없어요."
+        : !darkPermissionGranted
+            ? `${darkSiteOrigin} 권한을 허용하면 켤 수 있어요.`
+            : `${darkSiteOrigin}에 적용해요.`;
     $<HTMLSelectElement>("darkSiteListMode").value = config.siteListMode;
     $<HTMLTextAreaElement>("darkSiteList").value = config.siteList.join("\n");
 };
@@ -513,6 +523,8 @@ const loadDarkConfig = async () => {
     darkTabId = typeof tab?.id === "number" ? tab.id : null;
     darkHost = "";
     darkSiteOrigin = "";
+    darkPermissionGranted = false;
+    darkAllSitesPermissionGranted = false;
     try {
         const url = new URL(tab?.url || "");
         if (url.protocol === "http:" || url.protocol === "https:") {
@@ -520,6 +532,12 @@ const loadDarkConfig = async () => {
             darkSiteOrigin = url.origin;
         }
     } catch { /* 주소 표시줄이나 브라우저 내부 페이지 */ }
+    if (darkHost && darkSiteOrigin) {
+        const protocol = new URL(darkSiteOrigin).protocol;
+        const pattern = darkSitePattern(darkHost).find((item: string) => item.startsWith(`${protocol}//`));
+        if (pattern) darkPermissionGranted = await chrome.permissions.contains({origins: [pattern]});
+    }
+    darkAllSitesPermissionGranted = await chrome.permissions.contains({origins: ["https://*/*", "http://*/*"]});
     darkConfig = normalizeDarkSettings(stored[DARK_SETTINGS_KEY]) as DarkConfig;
     paintDarkValues(darkConfig);
 };
@@ -548,13 +566,16 @@ const requestDarkOrigin = async (patterns: string[]) => {
 darkInputs.currentSite.addEventListener("change", async () => {
     if (!darkHost) return;
     const enabling = darkInputs.currentSite.checked;
-    if (enabling && !darkConfig.enabledByDefault) {
-        const granted = await requestDarkOrigin(darkSitePattern(darkHost));
+    if (enabling && !darkPermissionGranted) {
+        const protocol = new URL(darkSiteOrigin).protocol;
+        const pattern = darkSitePattern(darkHost).find((item: string) => item.startsWith(`${protocol}//`));
+        const granted = pattern ? await requestDarkOrigin([pattern]) : false;
         if (!granted) {
             darkInputs.currentSite.checked = false;
             setDarkStatus("사이트 권한을 허용하지 않아 켜지 않았어요.", true);
             return;
         }
+        darkPermissionGranted = true;
     }
     const enabledSites = new Set<string>(darkConfig.enabledSites);
     const disabledSites = new Set<string>(darkConfig.disabledSites);
@@ -571,11 +592,11 @@ darkInputs.everywhere.addEventListener("change", async () => {
             setDarkStatus("모든 사이트 권한을 허용하지 않아 전체 적용을 켜지 않았어요.", true);
             return;
         }
+        darkAllSitesPermissionGranted = true;
     }
     await saveDarkConfig({...darkConfig, enabledByDefault: enabling});
 });
 darkInputs.followSystem.addEventListener("change", () => void saveDarkConfig({...darkConfig, followSystem: darkInputs.followSystem.checked}));
-darkInputs.detectDarkTheme.addEventListener("change", () => void saveDarkConfig({...darkConfig, detectDarkTheme: darkInputs.detectDarkTheme.checked}));
 darkInputs.customSite.addEventListener("change", async () => {
     if (!darkHost) return;
     const siteThemes = {...darkConfig.siteThemes};
@@ -704,7 +725,7 @@ const bindMailDrag = (section: HTMLElement, head: HTMLElement, account: GmailAcc
         handle: head,
         item: section,
         list: gmailAccounts,
-        axis: "x",
+        axis: "y",
         ignore: (target) => Boolean((target as Element | null)?.closest?.("button, a")),
         onClick: () => {
             mailAccountFilter = account.email.trim().toLowerCase();
@@ -793,6 +814,11 @@ const renderGmail = (snapshot: GmailSnapshot | null | undefined, error = "") => 
         };
         quickButton("새 메일", lineIcon("M4 20h4L18.5 9.5a2.1 2.1 0 0 0-3-3L5 17z"), () => openMailPlace(item, gmailComposeUrl(item.index, item.email)));
         quickButton("받은편지함 열기", lineIcon("M4 13h4l2 3h4l2-3h4v5H4zM4 13l2-7h12l2 7"), () => openMailPlace(item, gmailInboxUrl(item.index, item.email)));
+        quickButton("이 계정 메일 검색", lineIcon("M11 19a8 8 0 1 1 0-16 8 8 0 0 1 0 16ZM17 17l4 4"), () => {
+            mailAccountFilter = item.email.trim().toLowerCase();
+            renderGmail(gmailView);
+            requestAnimationFrame(() => $<HTMLInputElement>("mailSearch").focus());
+        });
         const markAll = quickButton("모두 읽음", lineIcon("M5 12.5 9.2 17 19 7"), () => void readAccount(item.index));
         markAll.disabled = !(item.messages || []).length;
         head.append(avatar, who, count, quick);
@@ -892,6 +918,7 @@ const renderGmail = (snapshot: GmailSnapshot | null | undefined, error = "") => 
         mailPanel.classList.toggle("has-accounts", showAccounts);
     }
     gmailAccounts.hidden = !showAccounts;
+    $("gmailAddAccount").hidden = !showAccounts;
     gmailList.hidden = !showMail;
     document.querySelector<HTMLElement>(".mail-account-toolbar")!.hidden = !showAccounts;
     document.querySelector<HTMLElement>(".mail-list-toolbar")!.hidden = !showAccounts;
@@ -981,6 +1008,15 @@ $("gmailCompose").addEventListener("click", () => {
     const account = renderedMailAccounts.find((item) => item.email.trim().toLowerCase() === mailAccountFilter) || renderedMailAccounts[0];
     if (account) openMailPlace(account, gmailComposeUrl(account.index, account.email));
     else void effects.tabsCreate({url: "https://mail.google.com/mail/"});
+});
+$("gmailOpen").addEventListener("click", () => {
+    const account = renderedMailAccounts.find((item) => item.email.trim().toLowerCase() === mailAccountFilter) || renderedMailAccounts[0];
+    if (account) openMailPlace(account, gmailInboxUrl(account.index, account.email));
+    else void effects.tabsCreate({url: "https://mail.google.com/mail/"});
+});
+$("gmailAddAccount").addEventListener("click", () => {
+    const continueUrl = encodeURIComponent("https://mail.google.com/mail/u/0/");
+    void effects.tabsCreate({url: `https://accounts.google.com/AccountChooser?service=mail&continue=${continueUrl}`});
 });
 
 const soundState = {...defaultSound()};
