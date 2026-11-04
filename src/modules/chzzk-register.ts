@@ -48,6 +48,16 @@ const upsertScript = async (script: chrome.scripting.RegisteredContentScript) =>
     else await chrome.scripting.registerContentScripts([script]);
 };
 
+const applyAdProtectionToOpenTabs = async () => {
+    const tabs = await chrome.tabs.query({url: CHZZK_MATCHES});
+    for (const tab of tabs) {
+        if (typeof tab.id !== "number") continue;
+        const target = {tabId: tab.id};
+        await chrome.scripting.executeScript({target, files: CHZZK_AD_SCRIPT_FILES, world: "MAIN"});
+        await chrome.scripting.executeScript({target, files: CHZZK_AD_FLAG_FILES, world: "ISOLATED"});
+    }
+};
+
 export const syncChzzkScripts = (getModules: ModulesGetter): Promise<void> => {
     running = running.then(async () => {
         if (!chrome.scripting?.registerContentScripts) return;
@@ -84,6 +94,7 @@ export const syncChzzkScripts = (getModules: ModulesGetter): Promise<void> => {
                 world: "MAIN",
                 persistAcrossSessions: true
             });
+            await applyAdProtectionToOpenTabs();
         } catch (error) {
             console.error("치지직 스크립트를 등록하지 못했어요.", error);
         }

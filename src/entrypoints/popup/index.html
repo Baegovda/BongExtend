@@ -46,7 +46,6 @@
             <label class="be-row"><span class="be-row-text"><span>모든 사이트에서 사용</span><small>처음 켤 때 모든 웹사이트 접근 권한을 요청해요.</small></span><input id="darkEverywhere" type="checkbox" role="switch"></label>
             <label class="be-row"><span class="be-row-text"><span>현재 사이트에서 사용</span><small id="darkSiteNote">사이트별로 켜고 끌 수 있어요.</small></span><input id="darkCurrentSite" type="checkbox" role="switch"></label>
             <label class="be-row"><span>시스템 다크 모드 따라가기</span><input id="darkFollowSystem" type="checkbox" role="switch"></label>
-            <label class="be-row"><span>이미 어두운 사이트는 그대로 두기</span><input id="darkDetectTheme" type="checkbox" role="switch" checked></label>
             <label class="be-row"><span>현재 사이트만 따로 꾸미기</span><input id="darkCustomSite" type="checkbox" role="switch"></label>
         </div>
         <div class="be-card be-sec dark-options">
@@ -73,7 +72,7 @@
         <div class="be-title"><h3>다운로드</h3><span id="downloadSummary" class="be-sub">다운로드를 확인 중…</span></div>
         <div class="be-card be-sec download-summary">
             <p>파일을 모아 보고, 이어받기·취소·다시 열기를 할 수 있어요.</p>
-            <div class="be-actions"><button id="openDownloads" class="primary" type="button">다운로드 관리 창 열기</button></div>
+            <div class="be-actions"><button id="openDownloads" class="primary" type="button">다운로드 관리 창 열기</button><button id="openChronoManager" type="button">Chrono 매니저</button><button id="openChronoSettings" type="button">Chrono 설정</button></div>
             <p class="be-hint">관리 창에서 주소 여러 개 받기와 현재 페이지의 링크·이미지·동영상 찾기도 할 수 있어요.</p>
         </div>
         <div id="downloadRecent" class="download-recent"></div>
@@ -84,6 +83,9 @@
             <span class="be-sub" id="gmailAccount"></span>
             <span class="be-spacer"></span>
             <button id="gmailCompose" class="mail-header-btn" type="button" title="새 메일 쓰기">작성</button>
+            <button id="gmailOpen" class="mail-header-btn" type="button" title="Gmail 열기">Gmail 열기</button>
+            <button id="checkerPlusOpen" class="mail-header-btn" type="button" title="Checker Plus for Gmail 열기">Checker+</button>
+            <button id="checkerPlusSettings" class="mail-header-btn" type="button" title="Checker Plus 설정 열기">CP 설정</button>
             <button id="gmailSettingsToggle" class="mail-header-btn" type="button" title="메일 설정 보기" aria-expanded="false">설정</button>
             <button id="gmailRefresh" class="mail-icon" type="button" title="다시 확인" aria-label="다시 확인">
                 <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
@@ -121,6 +123,7 @@
         <div class="mail-account-toolbar">
             <button id="mailAllAccounts" class="mail-account-all active" type="button">전체 계정</button>
             <div id="gmailAccounts" class="mail-accounts"></div>
+            <button id="gmailAddAccount" class="mail-add-account" type="button" title="Gmail 계정 추가" aria-label="Gmail 계정 추가" hidden>계정 추가</button>
         </div>
         <div class="mail-list-toolbar">
             <input id="mailSearch" type="search" placeholder="보낸 사람, 제목, 내용 검색" aria-label="메일 검색">

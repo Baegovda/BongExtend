@@ -166,19 +166,22 @@ iframe.active { display: block; }
 .mail-title .be-sub { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .be-page .mail-header-btn { min-height: 32px; padding: 0 11px; border: 1px solid var(--be-border); border-radius: 10px; background: var(--be-surface); color: var(--be-text-2); font-size: 12px; font-weight: 650; }
 .be-page .mail-header-btn:hover { background: var(--be-surface-2); color: var(--be-text); }
-.mail-account-toolbar { display: flex; align-items: stretch; gap: 8px; margin: 8px 0 10px; }
+.mail-account-toolbar { display: flex; flex-direction: column; align-items: stretch; gap: 8px; margin: 8px 0 10px; }
 .mail-account-toolbar[hidden], .mail-list-toolbar[hidden] { display: none; }
-.be-page .mail-account-all { flex: 0 0 auto; min-width: 100px; padding: 0 12px; border: 1px solid var(--be-border); border-radius: 12px; background: var(--be-surface); color: var(--be-text-2); font-size: 12px; font-weight: 650; }
+.be-page .mail-account-all { align-self: flex-start; min-height: 30px; padding: 0 12px; border: 1px solid var(--be-border); border-radius: 12px; background: var(--be-surface); color: var(--be-text-2); font-size: 12px; font-weight: 650; }
 .be-page .mail-account-all.active { border-color: var(--be-accent); color: var(--be-text); box-shadow: inset 0 0 0 1px var(--be-accent); }
-.mail-accounts { flex: 1; flex-direction: row; gap: 7px; min-width: 0; margin: 0; overflow-x: auto; scrollbar-width: thin; }
-.mail-section { flex: 0 0 176px; min-width: 0; }
-.mail-head { min-height: 44px; gap: 8px; padding: 6px 8px; border: 1px solid var(--be-border); border-radius: 12px; }
+.mail-accounts { display: flex; flex-direction: column; gap: 7px; min-width: 0; margin: 0; }
+.mail-section { min-width: 0; }
+.mail-head { min-height: 48px; gap: 10px; padding: 7px 10px; border: 1px solid var(--be-border); border-radius: 14px; }
 .mail-section.selected .mail-head { border-color: var(--account-accent); box-shadow: inset 0 0 0 1px var(--account-accent); }
-.mail-avatar { width: 28px; height: 28px; font-size: 12px; box-shadow: none; }
-.mail-head strong { font-size: 12px; }
+.mail-avatar { width: 32px; height: 32px; font-size: 13px; box-shadow: none; }
+.mail-head strong { font-size: 13px; }
 .mail-quick { opacity: 1; }
 .be-page .mail-quick button { width: 25px; height: 25px; }
 .mail-quick svg { width: 14px; height: 14px; }
+.be-page .mail-add-account { align-self: flex-end; min-width: 46px; min-height: 40px; padding: 0 14px; border: 1px solid var(--be-border); border-radius: 999px; background: var(--be-surface-2); color: var(--be-text); font-size: 12px; font-weight: 650; }
+.be-page .mail-add-account[hidden] { display: none; }
+.be-page .mail-add-account:hover { border-color: var(--be-accent); }
 .mail-list-toolbar { display: flex; gap: 7px; margin: 0 0 8px; }
 .mail-list-toolbar input, .mail-list-toolbar select { min-width: 0; height: 34px; border: 1px solid var(--be-border); border-radius: 10px; background: var(--be-surface); color: var(--be-text); font-size: 12px; }
 .mail-list-toolbar input { flex: 1; padding: 0 10px; }
@@ -200,9 +203,10 @@ iframe.active { display: block; }
 .be-page .mail-actions button { padding: 4px 7px; font-size: 11px; }
 .mail-panel .mail-empty { min-height: 220px; }
 @media (max-width: 520px) {
-    .mail-account-toolbar { flex-direction: column; }
     .be-page .mail-account-all { min-height: 34px; }
-    .mail-section { flex-basis: 158px; }
+    .mail-head { gap: 7px; padding-inline: 8px; }
+    .mail-quick { gap: 0; }
+    .be-page .mail-quick button { width: 24px; height: 26px; }
     .mail-list-toolbar select { flex-basis: 104px; }
     .mail-title .be-sub { display: none; }
 }

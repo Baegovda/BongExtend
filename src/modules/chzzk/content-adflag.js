@@ -3,6 +3,8 @@
 // 광고 막은 플레이어 그림자 루트 안에 있어서, 문서 CSS 만으로는 검게 덮인 채 남는다.
 (() => {
   'use strict';
+  if (globalThis.__bongAdFlagHook) return;
+  globalThis.__bongAdFlagHook = true;
   const STYLE_ID = 'bex-adconceal';
   const SHADOW_STYLE_ID = 'bex-adconceal-shadow';
   const openShadow = (el) => {

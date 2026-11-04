@@ -46,6 +46,12 @@ export default defineConfig({
         name: "BongExtend",
         description: "치지직·디시인사이드 개선, Gemini 번역, 다크 모드, 다운로드 관리 기능을 담은 확장 프로그램",
         minimum_chrome_version: "109",
+        default_locale: "en",
+        oauth2: {
+            client_id: "450788627700-b4u9la88b9jii904fet8l7p20c0iotv5.apps.googleusercontent.com",
+            scopes: ["https://www.googleapis.com/auth/gmail.modify"]
+        },
+        storage: {managed_schema: "checkerplus-schema.json"},
         action: {
             default_title: "BongExtend"
         },
@@ -88,7 +94,31 @@ export default defineConfig({
         // 항상 번역을 켤 때 그 사이트만 요청한다. host_permissions 에 <all_urls> 를 넣지 않는다.
         optional_host_permissions: [
             "https://*/*",
-            "http://*/*"
+            "http://*/*",
+            "https://www.googleapis.com/*",
+            "https://gmail.googleapis.com/*",
+            "https://*.googleusercontent.com/*"
+        ],
+        optional_permissions: [
+            "webRequest", "clipboardRead", "downloads.open", "downloads.ui",
+            "identity", "cookies", "gcm", "system.display"
+        ],
+        content_scripts: [
+            {
+                matches: ["https://mail.google.com/mail/mu/mp/*"],
+                include_globs: ["https://mail.google.com/mail/mu/*mui=checkerPlusForGmail*"],
+                js: ["js/tabletView.js"],
+                run_at: "document_start",
+                all_frames: true
+            },
+            {
+                matches: ["https://mail.google.com/mail/mu/mp/*"],
+                include_globs: ["https://mail.google.com/mail/mu/*mui=checkerPlusForGmail*"],
+                js: ["js/tabletViewScript.js"],
+                run_at: "document_start",
+                all_frames: true,
+                world: "MAIN"
+            }
         ],
         web_accessible_resources: [
             {
@@ -104,6 +134,18 @@ export default defineConfig({
                     "chzzk/empty-ad-poll.json"
                 ],
                 matches: ["https://chzzk.naver.com/*"]
+            },
+            {
+                resources: ["icons/newd.png", "icons/newd_pause.png", "com/taskdlg.html"],
+                matches: ["http://*/*", "https://*/*"]
+            },
+            {
+                resources: ["checkerplus-options.html", "contribute.html"],
+                matches: ["https://jasonsavard.com/*", "https://checkout.stripe.com/*", "https://www.paypal.com/*", "https://nowpayments.io/*"]
+            },
+            {
+                resources: ["css/tabletView.css"],
+                matches: ["https://mail.google.com/*"]
             }
         ],
         browser_specific_settings: {

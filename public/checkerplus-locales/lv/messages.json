@@ -1,0 +1,113 @@
+{
+   "addToTasks": {
+      "message": "Pievienot uzdevumiem"
+   },
+   "archive": {
+      "message": "Arhīvs"
+   },
+   "archiveLinkTitle": {
+      "message": "Arhivēt e-pastu"
+   },
+   "composeLinkTitle": {
+      "message": "Rakstīt jaunu e-pastu"
+   },
+   "deleteLink": {
+      "message": "Dzēst"
+   },
+   "deleteLinkTitle": {
+      "message": "Dzēst e-pastu"
+   },
+   "directDeveloperSupport": {
+      "message": "Tiešs izstrādātāja atbalsts"
+   },
+   "fullLinkTitle": {
+      "message": "Rādīt pilnskatā"
+   },
+   "getPro": {
+      "message": "Iegūt Pro"
+   },
+   "getUltraSuite": {
+      "message": "Iegūt Ultra Suite"
+   },
+   "includesProForAllExtensions": {
+      "message": "Atbloķēt VISAS funkcijas VISIEM maniem paplašinājumiem"
+   },
+   "languageName": {
+      "message": "Latviešu"
+   },
+   "monthsArray": {
+      "message": "jan,feb,mar,apr,may,jun,jul,aug,sep,oct,nov,dec"
+   },
+   "noUnreadText": {
+      "message": "Nav jaunu e-pastu"
+   },
+   "oneUnreadText": {
+      "message": "nelasīts e-pasts"
+   },
+   "openLinkTitle": {
+      "message": "Atvērt webpastā"
+   },
+   "popupText": {
+      "message": "Pienācis e-pasts!"
+   },
+   "previewingMarksAsReadNotice": {
+      "message": "E-pastu priekšskatījums atzīmē tos kā izlasītus un noņem no šī loga, to var mainīt Iestatījumos > $1"
+   },
+   "print": {
+      "message": "Drukāt"
+   },
+   "readLink": {
+      "message": "Lasīts"
+   },
+   "readLinkTitle": {
+      "message": "Atzīmēt kā lasītu"
+   },
+   "reducedDonationAd_popup_line1": {
+      "message": "Lieliskas ziņas, ilggadējais lietotāj!"
+   },
+   "reducedDonationAd_popup_line2": {
+      "message": "Iegūstiet $1 tikai par $2"
+   },
+   "refreshLinkTitle": {
+      "message": "Pārbaudīt visus e-pastus"
+   },
+   "refreshWhenOpeningPopup": {
+      "message": "Atsvaidzināt e-pastus, atverot uznirstošo logu"
+   },
+   "replyLinkTitle": {
+      "message": "Atbildēt uz e-pastu"
+   },
+   "reportSpam": {
+      "message": "Atzīmēt kā lasītu"
+   },
+   "severalUnreadText": {
+      "message": "nelasīti e-pasti"
+   },
+   "showCopyOTPInNotification": {
+      "message": "Rādīt OTP kopēšanas pogu paziņojumos"
+   },
+   "spam": {
+      "message": "Spams"
+   },
+   "starLinkTitle": {
+      "message": "Atzīmēt kā favorītu"
+   },
+   "summaryLinkTitle": {
+      "message": "Rādīt kopsavilkumu"
+   },
+   "taskCreated": {
+      "message": "Uzdevums izveidots"
+   },
+   "ultraSuite": {
+      "message": "Ultra Suite"
+   },
+   "unreadLink": {
+      "message": "Nelasīts"
+   },
+   "unreadLinkTitle": {
+      "message": "Atzīmēt kā nelasītu"
+   },
+   "unsubscribe": {
+      "message": "Atraksties"
+   }
+}

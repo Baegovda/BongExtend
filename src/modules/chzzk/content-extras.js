@@ -393,9 +393,39 @@
     console.info('[BongExtend] 광고 SKIP 클릭', picked.text.slice(0, 40));
     return true;
   }
+  const AD_LAYER_SEL = '[data-role="adVideoContainerEl"], [data-role="imaAdContainerEl"], [data-role="gvAdContainerEl"], .webplayer-internal-core-ad-ui';
+  function playerElements(root, selector) {
+    const found = [], seen = new Set();
+    const visit = scope => {
+      if (!scope || seen.has(scope)) return;
+      seen.add(scope);
+      try { if (scope.matches && scope.matches(selector)) found.push(scope); } catch (e) {}
+      if (!scope.querySelectorAll) return;
+      for (const el of scope.querySelectorAll('*')) {
+        try { if (el.matches(selector)) found.push(el); } catch (e) {}
+        const shadow = shadowOf(el);
+        if (shadow) visit(shadow);
+      }
+      const own = shadowOf(scope);
+      if (own) visit(own);
+    };
+    visit(root);
+    return [...new Set(found)];
+  }
+  function hasAdLayerAncestor(el) {
+    let node = el;
+    while (node) {
+      try { if (node.matches && node.matches(AD_LAYER_SEL)) return true; } catch (e) {}
+      const tree = node.getRootNode && node.getRootNode();
+      node = node.parentElement || (tree && tree.host) || null;
+    }
+    return false;
+  }
   function adVideos(root) {
-    const vs = [...root.querySelectorAll('video')].filter(visible).map(v => { const r = v.getBoundingClientRect(); return { v, area: r.width * r.height, w: r.width, h: r.height }; });
-    const shortOnes = vs.filter(x => P.isAdDuration(x.v.duration));
+    const vs = playerElements(root, 'video').filter(visible).map(v => { const r = v.getBoundingClientRect(); return { v, area: r.width * r.height, w: r.width, h: r.height, inAdLayer: hasAdLayerAncestor(v) }; });
+    const layered = vs.filter(x => x.inAdLayer);
+    if (layered.length) return layered.map(x => x.v);
+    const shortOnes = vs.filter(x => P.isAdDuration(x.v.duration) && !x.v.classList.contains('webplayer-internal-video'));
     if (shortOnes.length) return shortOnes.map(x => x.v);
     if (vs.length >= 2) { // 라이브가 작은 PIP로 줄어든 경우: 가장 큰 영상을 광고로 봄
       vs.sort((x, y) => y.area - x.area);
@@ -421,10 +451,9 @@
     try { el.click(); } catch (e) {}
   }
   let lastSkipClick = 0;
-  const AD_LAYER_SEL = '[data-role="adVideoContainerEl"], [data-role="imaAdContainerEl"], [data-role="gvAdContainerEl"], .webplayer-internal-core-ad-ui';
   function boostAdVideo(v) {
     if (!v) return;
-    const inAdLayer = !!(v.closest && v.closest(AD_LAYER_SEL));
+    const inAdLayer = hasAdLayerAncestor(v);
     if (!P.isBoostTarget({
       isContent: v.classList.contains('webplayer-internal-video') && !inAdLayer,
       isMain: v.classList.contains('webplayer-internal-video'),
@@ -595,11 +624,11 @@
       adTimer = setTimeout(adTick, 1000);
       return;
     }
-    const container = cfg.adSkip ? document.querySelector(P.AD_CONTAINER_SEL) : null;
+    const container = cfg.adSkip ? playerElements(document.querySelector(ROOT) || document.querySelector('div.pzp') || document.getElementById('live_player_layout'), P.AD_CONTAINER_SEL).find(visible) || null : null;
     const root = cfg.adSkip ? (document.querySelector(ROOT) || document.querySelector('div.pzp') || document.getElementById('live_player_layout')) : null;
     let active = !!container, hits = [];
     if (root) {
-      const ui = root.querySelector('.webplayer-internal-core-ad-ui');
+      const ui = playerElements(root, '.webplayer-internal-core-ad-ui').find(visible);
       hits = scanTexts(root);
       active = active || P.isAdActive({ adUiExists: !!ui, adUiHidden: !!ui && ui.classList.contains('wpc-dis-hid'), indicatorVisible: visible(root.querySelector('.pzp-ad-break-indicator')), textHits: hits.length });
     }
@@ -620,7 +649,10 @@
       const skipScope = root || (container ? naverAdRoot(container) : null);
       if (skipScope) clickReadySkip(skipScope);
       if (root) {
-        for (const v of adVideos(root)) if (!v.closest(P.AD_CONTAINER_SEL) && !container && !(location.pathname.startsWith('/live/') && !P.isAdDuration(v.duration))) boostAdVideo(v); // 라이브 본방송 영상을 광고로 오인해 16배속·끝으로 이동시키지 않도록
+        for (const v of adVideos(root)) {
+          const inAdLayer = hasAdLayerAncestor(v);
+          if ((inAdLayer || !container) && !(location.pathname.startsWith('/live/') && !inAdLayer && !P.isAdDuration(v.duration))) boostAdVideo(v);
+        }
       }
     } else if (adWasActive) endAd(true);
     adWasActive = active;

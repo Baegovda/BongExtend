@@ -1,0 +1,11 @@
+Checker Plus for Gmail source included in BongExtend
+
+Upstream: https://jasonsavard.com/?ref=homepage_url&ext=gmail
+Integrated package version: 36.6
+Copyright notice: CHECKERPLUS-COPYRIGHT
+
+The original popup, options page, background code, account helpers, locales,
+and assets are included from the installed upstream package. BongExtend keeps
+one extension manifest and service worker; page and import paths are adjusted
+to let the two projects share them. The original OAuth client configuration
+is retained in the merged manifest.
