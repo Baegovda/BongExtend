@@ -426,26 +426,6 @@ const check = async (force: boolean) => {
 
 checkBtn.addEventListener("click", () => void check(true));
 
-const readInstallDirHandle = async (): Promise<FileSystemDirectoryHandle | undefined> => {
-    const db = await new Promise<IDBDatabase>((resolve, reject) => {
-        const request = indexedDB.open("bongextend-install", 1);
-        request.onupgradeneeded = () => {
-            if (!request.result.objectStoreNames.contains("kv")) request.result.createObjectStore("kv");
-            if (!request.result.objectStoreNames.contains("pending")) request.result.createObjectStore("pending");
-        };
-        request.onerror = () => reject(request.error);
-        request.onsuccess = () => resolve(request.result);
-    });
-    return new Promise((resolve, reject) => {
-        const tx = db.transaction("kv", "readonly");
-        const request = tx.objectStore("kv").get("installDir");
-        request.onsuccess = () => resolve(request.result as FileSystemDirectoryHandle | undefined);
-        request.onerror = () => reject(request.error);
-        tx.oncomplete = () => db.close();
-        tx.onerror = () => { db.close(); reject(tx.error); };
-    });
-};
-
 const saveInstallDirHandle = async (handle: FileSystemDirectoryHandle) => {
     const db = await new Promise<IDBDatabase>((resolve, reject) => {
         const request = indexedDB.open("bongextend-install", 1);
@@ -462,6 +442,7 @@ const saveInstallDirHandle = async (handle: FileSystemDirectoryHandle) => {
         tx.oncomplete = () => { db.close(); resolve(); };
         tx.onerror = () => { db.close(); reject(tx.error); };
     });
+    localStorage.setItem("bongextend.installDirSaved", "1");
 };
 
 const validInstallDir = async (handle: FileSystemDirectoryHandle) => {
@@ -477,18 +458,17 @@ doUpdate.addEventListener("click", async () => {
     doUpdate.disabled = true;
     setStatus("확장 프로그램 폴더를 확인하고 있어요.");
     try {
-        let dir = await readInstallDirHandle().catch(() => undefined);
-        if (dir) {
-            const permission = await dir.queryPermission({mode: "readwrite"});
-            if (permission !== "granted" || !(await validInstallDir(dir))) dir = undefined;
+        if (localStorage.getItem("bongextend.installDirSaved") === "1") {
+            await openUrl(effects, effects.getURL("/update.html?start=1"));
+            return;
         }
-        if (!dir) {
-            if (!window.showDirectoryPicker) throw new Error("폴더 선택을 지원하는 Chrome에서 업데이트해 주세요.");
-            setStatus("manifest.json이 들어 있는 BongExtend 설치 폴더를 골라 주세요.");
-            dir = await window.showDirectoryPicker({mode: "readwrite", id: "bongextend-install"});
-            if (!(await validInstallDir(dir))) throw new Error("선택한 폴더가 BongExtend 설치 폴더가 아니에요.");
-            await saveInstallDirHandle(dir);
-        }
+        if (!window.showDirectoryPicker) throw new Error("폴더 선택을 지원하는 Chrome에서 업데이트해 주세요.");
+        setStatus("manifest.json이 들어 있는 BongExtend 설치 폴더를 골라 주세요.");
+        // Open the picker synchronously in the click handler while Chrome's
+        // transient user activation is still available.
+        const dir = await window.showDirectoryPicker({mode: "readwrite", id: "bongextend-install"});
+        if (!(await validInstallDir(dir))) throw new Error("선택한 폴더가 BongExtend 설치 폴더가 아니에요.");
+        await saveInstallDirHandle(dir);
         setStatus("설치 폴더를 확인했어요. 업데이트를 시작해요.", "ok");
         await openUrl(effects, effects.getURL("/update.html?start=1"));
     } catch (error) {

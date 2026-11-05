@@ -7,6 +7,10 @@ BongExtend 변경 이력. GitHub **[Releases](https://github.com/Baegovda/BongEx
 
 ## [Unreleased]
 
+## [1.2.19] - 2026-11-05
+
+- 업데이트할 폴더 선택창을 클릭 직후 열어, 권한이 없거나 만료된 경우에도 업데이트를 시작할 수 있어요
+
 ## [1.2.18] - 2026-11-05
 
 - 읽지 않은 메일 숫자를 피드에 표시된 메일과 맞추고, BongExtend 툴바 뱃지도 같은 합계를 사용해요
