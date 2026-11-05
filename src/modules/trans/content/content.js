@@ -11,11 +11,13 @@
   const SWEEP_CLASS = 'pt-page-translator-sweep';
   const EDGE_CLASS = 'pt-sweep-edge';
   const PRISM_CLASS = 'pt-page-translator-prism';
+  const WIPE_CLASS = 'pt-page-translator-aurora-wipe';
   const MAX_LIVE_PENDING = 8;
   const FADE_MS = 880;
   const WIPER_MS = 1380;
   const SOFT_MS = 460;
   const PRISM_MS = 1340;
+  const WIPE_MS = 1720;
   // 번역 대기 중에는 얕게 숨 쉬고, 결과는 오로라 와이퍼가 쓸고 지나가요.
   const MOTION_CSS = [
     `.pt-page-translator-dup { visibility: hidden !important; }`,
@@ -45,11 +47,19 @@
     '38% { background-position: 53% 50%; filter: drop-shadow(0 0 8px rgba(172, 133, 255, .58)); }',
     '100% { background-position: 0% 50%; filter: none; }',
     '}',
+    `.${WIPE_CLASS} { color: transparent !important; -webkit-text-fill-color: transparent !important; background-image: linear-gradient(105deg, var(--pt-ink) 0%, var(--pt-ink) 25%, #00cfff 34%, #8d5dff 44%, #ff46ba 53%, #48ffd0 63%, #f6ff74 72%, var(--pt-ink) 84%, var(--pt-ink) 100%) !important; background-size: 360% 100% !important; background-position: 100% 50% !important; background-repeat: no-repeat !important; background-clip: text !important; -webkit-background-clip: text !important; animation: pt-aurora-wipe ${WIPE_MS}ms cubic-bezier(.18, .78, .15, 1) both !important; filter: drop-shadow(0 0 5px rgba(0, 210, 255, .92)) drop-shadow(0 0 12px rgba(150, 74, 255, .72)) !important; }`,
+    '@keyframes pt-aurora-wipe {',
+    '0% { background-position: 100% 50%; filter: drop-shadow(0 0 3px rgba(0, 210, 255, .64)); }',
+    '30% { background-position: 72% 50%; filter: drop-shadow(0 0 9px rgba(0, 210, 255, .98)) drop-shadow(0 0 16px rgba(150, 74, 255, .82)); }',
+    '62% { background-position: 34% 50%; filter: drop-shadow(0 0 8px rgba(255, 70, 186, .78)) drop-shadow(0 0 15px rgba(72, 255, 208, .82)); }',
+    '100% { background-position: 0% 50%; filter: none; }',
+    '}',
     '@media (prefers-reduced-motion: reduce) {',
     `.${PENDING_CLASS} { animation: none !important; opacity: 0.74 !important; }`,
     `.${FADE_CLASS} { animation: none !important; opacity: 1 !important; filter: none !important; }`,
     `.${SWEEP_CLASS} { display: none !important; }`,
     `.${PRISM_CLASS} { animation: none !important; color: var(--pt-ink) !important; -webkit-text-fill-color: currentColor !important; background: none !important; filter: none !important; }`,
+    `.${WIPE_CLASS} { animation: none !important; color: var(--pt-ink) !important; -webkit-text-fill-color: currentColor !important; background: none !important; filter: none !important; }`,
     '}',
   ].join('');
   const MAX_ITEMS = 24;
@@ -372,6 +382,7 @@
     const done = new Set();
     const expectedWrite = new WeakMap();
     const visibility = new WeakMap();
+    const wipeToken = new WeakMap();
 
     let started = false;
     let enabled = false;
@@ -554,6 +565,8 @@
     function markPending(element, node) {
       if (!revealAnimation || !canDecorate(element) || !canHold(element) || tooLargeToPulse(element, node)) return;
       ensureMotionStyle();
+      if (element.classList) element.classList.remove(WIPE_CLASS);
+      wipeToken.delete(element);
       const count = pendingCounts.get(element) || 0;
       pendingCounts.set(element, count + 1);
       decorated.add(element);
@@ -690,18 +703,24 @@
       return chosen;
     }
 
-    function lockKind(style, mode) {
+    function lockKind(style, mode, element) {
       if (!style || mode === 'flow') return 'flow';
       const display = String(style.display || '');
-      if (mode === 'clamp' || lineClampOf(style) > 0 || display.includes('webkit-box')) return 'clamp';
+      if (mode === 'clamp' || lineClampOf(style) > 0 || display.includes('webkit-box')) {
+        const clippedVertically = Number(element && element.clientHeight) > 0
+          && Number(element && element.scrollHeight) > Number(element.clientHeight) + 2;
+        return clippedVertically ? 'grow' : 'clamp';
+      }
       if (mode === 'grow') return 'grow';
+      if (mode === 'single' && Number(element && element.clientWidth) > 0
+        && Number(element && element.scrollWidth) > Number(element.clientWidth) + 2) return 'grow';
       if (mode === 'single') return 'single';
       return 'flow';
     }
 
     function paintLineLock(element, style, mode) {
       if (!element || !element.style) return;
-      const kind = lockKind(style, mode);
+      const kind = lockKind(style, mode, element);
       if (kind === 'flow') return;
       const owned = new Set(lineLocks.get(element) || []);
       const desired = [['min-width', '0']];
@@ -716,7 +735,11 @@
           ['height', 'auto'],
           ['max-height', 'none'],
           ['text-overflow', 'clip'],
+          ['-webkit-line-clamp', 'unset'],
+          ['line-clamp', 'unset'],
         );
+        if ((mode === 'clamp' || lineClampOf(style) > 0 || String(style.display || '').includes('webkit-box'))
+          && String(style.display || '').includes('webkit-box')) desired.push(['display', 'block']);
       } else if (kind === 'single') {
         desired.push(['white-space', 'nowrap'], ['overflow', 'hidden'], ['text-overflow', 'ellipsis']);
         if (isInlineBox(style, element) && !inlineStyleValue(element.style, 'display')) {
@@ -1070,6 +1093,28 @@
       }, PRISM_MS);
     }
 
+    function armAuroraWipe(element) {
+      if (!revealAnimation || motionReduced() || !canDecorate(element) || !canHold(element)) return;
+      const computed = computedStyle(element);
+      if (!backgroundIsClear(computed)) return;
+      ensureMotionStyle();
+      const ink = computed && computed.color;
+      if (ink) setCssVar(element, '--pt-ink', ink);
+      element.classList.remove(WIPE_CLASS);
+      if (typeof element.offsetWidth === 'number') void element.offsetWidth;
+      element.classList.add(WIPE_CLASS);
+      decorated.add(element);
+      const token = {};
+      wipeToken.set(element, token);
+      setTimer(() => {
+        if (wipeToken.get(element) !== token) return;
+        if (element.classList) element.classList.remove(WIPE_CLASS);
+        clearCssVar(element, '--pt-ink');
+        wipeToken.delete(element);
+        if (!pendingCounts.has(element)) decorated.delete(element);
+      }, WIPE_MS + 80);
+    }
+
     function releaseJob(job, commit) {
       if (!job || job.settled) return;
       job.settled = true;
@@ -1283,6 +1328,8 @@
           element.classList.remove(REVEAL_CLASS);
           element.classList.remove(HOLD_CLASS);
           element.classList.remove(PRISM_CLASS);
+          element.classList.remove(WIPE_CLASS);
+          wipeToken.delete(element);
         }
         clearCssVar(element, '--pt-ink');
       }
@@ -1326,7 +1373,7 @@
 
     function rowOf(element) {
       let node = element;
-      for (let depth = 0; depth < 4 && node; depth += 1) {
+      for (let depth = 0; depth < 10 && node; depth += 1) {
         const tag = String(node.tagName || '').toUpperCase();
         if (tag === 'A' || tag === 'LI' || tag === 'BUTTON') return node;
         if (!node.parentElement) break;
@@ -1357,9 +1404,8 @@
           } catch { /* 가상 요소가 없으면 넘어간다. */ }
         }
         for (const child of [...(current.childNodes || [])]) {
-          if (child.nodeType === 3 && child !== node && [originalCore, translatedCore].includes(splitWhitespace(String(child.nodeValue || '')).core)) {
-            const parts = splitWhitespace(String(child.nodeValue || ''));
-            const next = `${parts.lead}${translatedCore}${parts.trail}`;
+          if (child.nodeType === 3 && child !== node && originalCore && String(child.nodeValue || '').includes(originalCore)) {
+            const next = String(child.nodeValue || '').replaceAll(originalCore, translatedCore);
             const parent = child.parentElement;
             const style = parent && computedStyle(parent);
             const pos = style && style.position;
@@ -1369,6 +1415,12 @@
               expectedWrite.set(child, next);
               child.nodeValue = next;
             }
+          } else if (child.nodeType === 3 && child !== node && translatedCore && String(child.nodeValue || '').includes(translatedCore)) {
+            const parent = child.parentElement;
+            const style = parent && computedStyle(parent);
+            const pos = style && style.position;
+            const ghost = pos === 'absolute' || pos === 'fixed' || (parent && parent.getAttribute && parent.getAttribute('aria-hidden') === 'true');
+            if (ghost && parent && parent.classList) parent.classList.add('pt-page-translator-dup');
           } else if (child.nodeType === 1) stack.push(child);
         }
       }
@@ -1856,6 +1908,7 @@
             } else if (motionReduced()) {
               writeNode(item.node, translated);
               clearPending(parent, 'fade');
+              armAuroraWipe(parent);
             } else if (!queueReveal({
               node: item.node,
               element: parent,
@@ -1864,6 +1917,7 @@
             })) {
               writeNode(item.node, translated);
               clearPending(parent, 'fade');
+              armAuroraWipe(parent);
             }
           });
           error = null;

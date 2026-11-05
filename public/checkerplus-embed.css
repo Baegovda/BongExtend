@@ -1,0 +1,198 @@
+html.bongextend-checkerplus-embedded,
+html.bongextend-checkerplus-embedded body {
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  overflow: hidden !important;
+  color-scheme: inherit;
+  background: var(--be-bg) !important;
+  color: var(--be-text) !important;
+  font-family: var(--be-font) !important;
+}
+
+html.bongextend-checkerplus-embedded {
+  --primary-background-color: var(--be-bg);
+  --primary-background-color-with-image: var(--be-surface);
+  --secondary-background-color: var(--be-surface);
+  --inbox-section-bg-color: var(--be-bg);
+  --text-color: var(--be-text);
+  --bg-color: var(--be-surface);
+  --border-color: var(--be-border);
+  --main-box-shadow: 0 4px 14px rgba(0, 0, 0, .12);
+}
+
+html.bongextend-checkerplus-embedded body,
+html.bongextend-checkerplus-embedded .pageWrapper,
+html.bongextend-checkerplus-embedded #inboxSection {
+  background: var(--be-bg) !important;
+  color: var(--be-text) !important;
+}
+
+html.bongextend-checkerplus-embedded .site-header {
+  box-sizing: border-box !important;
+  height: 44px !important;
+  min-height: 44px !important;
+  padding: 0 10px !important;
+  background: var(--be-bg) !important;
+  border-bottom: 1px solid var(--be-border) !important;
+}
+
+html.bongextend-checkerplus-embedded .header-content {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  height: 100% !important;
+  padding: 0 !important;
+}
+
+html.bongextend-checkerplus-embedded .header-start,
+html.bongextend-checkerplus-embedded .logo-and-title {
+  display: none !important;
+}
+
+html.bongextend-checkerplus-embedded .utility-items {
+  display: flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  margin-inline-start: auto !important;
+}
+
+html.bongextend-checkerplus-embedded .utility-items j-button,
+html.bongextend-checkerplus-embedded .accountHeader j-button {
+  --icon-color: var(--be-text-2) !important;
+  --icon-size: 18px;
+  --icon-only-padding: 6px;
+  border-radius: 10px !important;
+  color: var(--be-text-2) !important;
+}
+
+html.bongextend-checkerplus-embedded .utility-items j-button:hover,
+html.bongextend-checkerplus-embedded .accountHeader j-button:hover {
+  background: var(--be-surface-3) !important;
+  color: var(--be-text) !important;
+}
+
+html.bongextend-checkerplus-embedded #accounts-and-inbox {
+  height: calc(100% - 44px) !important;
+  min-height: 0 !important;
+  background: var(--be-bg) !important;
+}
+
+html.bongextend-checkerplus-embedded #accountAvatars {
+  gap: 8px !important;
+  padding: 12px 8px 12px 12px !important;
+}
+
+html.bongextend-checkerplus-embedded #inbox {
+  box-sizing: border-box !important;
+  min-width: 0 !important;
+  padding: 8px 10px 14px 4px !important;
+  background: var(--be-bg) !important;
+  color: var(--be-text) !important;
+  scrollbar-color: var(--be-surface-3) transparent;
+}
+
+html.bongextend-checkerplus-embedded .account {
+  margin: 0 0 10px !important;
+  color: var(--be-text) !important;
+}
+
+html.bongextend-checkerplus-embedded .accountHeader {
+  box-sizing: border-box !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  width: 100% !important;
+  height: auto !important;
+  min-height: 48px !important;
+  margin: 0 !important;
+  padding: 6px 9px 6px 12px !important;
+  border: 1px solid var(--be-border) !important;
+  border-radius: 14px !important;
+  background: var(--be-surface) !important;
+  box-shadow: none !important;
+  color: var(--be-text) !important;
+}
+
+html.bongextend-checkerplus-embedded .accountTitleArea {
+  display: flex !important;
+  align-items: center !important;
+  flex: 1 1 auto !important;
+  gap: 8px !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  color: var(--be-text) !important;
+}
+
+html.bongextend-checkerplus-embedded .accountTitle,
+html.bongextend-checkerplus-embedded .unreadCount {
+  margin: 0 !important;
+  color: var(--be-text) !important;
+  font: 600 13px/1.35 var(--be-font) !important;
+}
+
+html.bongextend-checkerplus-embedded .unreadCount {
+  flex: 0 0 auto !important;
+  color: var(--be-accent) !important;
+  font-size: 12px !important;
+}
+
+html.bongextend-checkerplus-embedded .accountPhoto {
+  flex: 0 0 28px !important;
+  width: 28px !important;
+  height: 28px !important;
+  margin: 0 2px 0 0 !important;
+  border-radius: 50% !important;
+}
+
+html.bongextend-checkerplus-embedded .mail {
+  margin: 7px 0 0 !important;
+  padding: 12px !important;
+  border: 1px solid var(--be-border) !important;
+  border-radius: 14px !important;
+  background: var(--be-surface) !important;
+  box-shadow: none !important;
+  color: var(--be-text) !important;
+  transition: border-color 180ms ease, background 180ms ease !important;
+}
+
+html.bongextend-checkerplus-embedded .mail:hover,
+html.bongextend-checkerplus-embedded .mail.active {
+  border-color: var(--be-accent) !important;
+  background: var(--be-surface-2) !important;
+  box-shadow: none !important;
+}
+
+html.bongextend-checkerplus-embedded .mail-content,
+html.bongextend-checkerplus-embedded .mail-content * {
+  color: var(--be-text-2);
+  font-family: var(--be-font) !important;
+}
+
+html.bongextend-checkerplus-embedded .mail .subject,
+html.bongextend-checkerplus-embedded .mail .sender,
+html.bongextend-checkerplus-embedded .mail .from {
+  color: var(--be-text) !important;
+}
+
+html.bongextend-checkerplus-embedded a {
+  color: var(--be-link) !important;
+}
+
+html.bongextend-checkerplus-embedded j-listbox,
+html.bongextend-checkerplus-embedded j-listbox j-icon-item,
+html.bongextend-checkerplus-embedded j-listbox j-item {
+  --bg-color: var(--be-surface);
+  --text-color: var(--be-text);
+  --border-color: var(--be-border);
+  color: var(--be-text) !important;
+}
+
+html.bongextend-checkerplus-embedded .accountErrorWrapper {
+  border: 1px solid var(--be-error) !important;
+  border-radius: 12px !important;
+  background: color-mix(in srgb, var(--be-error) 18%, var(--be-surface)) !important;
+  color: var(--be-text) !important;
+}

@@ -88,15 +88,22 @@ export const enabledAccounts = (accounts, disabled) => {
     return (accounts || []).filter((account) => !off.has(Number(account.index)));
 };
 
+// A Gmail feed can report a stale fullcount while returning no unread entries.
+// Trust an explicit empty message list as the current inbox state.
+export const accountUnread = (account) => {
+    if (Array.isArray(account?.messages) && account.messages.length === 0) return 0;
+    return Math.max(0, Number(account?.unread) || 0);
+};
+
 export const unreadOf = (accounts, disabled) =>
-    enabledAccounts(accounts, disabled).reduce((sum, account) => sum + (Number(account.unread) || 0), 0);
+    enabledAccounts(accounts, disabled).reduce((sum, account) => sum + accountUnread(account), 0);
 
 // 탭 배지. 같은 주소는 한 번만 더하고, 알림을 끈 계정은 빼며, 0은 빈 글자, 100부터는 99+.
 export const mailTabBadge = (accounts, disabled) => {
     const off = new Set((disabled || []).map(Number));
     const count = dedupeAccounts(accounts)
         .filter((account) => account?.enabled !== false && !off.has(Number(account?.index)))
-        .reduce((sum, account) => sum + Math.max(0, Number(account?.unread) || 0), 0);
+        .reduce((sum, account) => sum + accountUnread(account), 0);
     if (count <= 0) return "";
     if (count > 99) return "99+";
     return String(Math.floor(count));
