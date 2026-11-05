@@ -10,6 +10,7 @@ import {
     missingReachable,
     orderFiles,
     pendingDecision,
+    shouldAutoStartInstall,
     versionLine,
     writeChangedFiles
 } from "@/core/update/installPlan";
@@ -81,6 +82,13 @@ describe("bytesEqual / pending / version", () => {
         expect(pendingDecision(pending, "5.2.22")).toBe("clear");
         expect(pendingDecision({version: "9.0.0", files: []}, "1.0.0")).toBe("clear");
         expect(pendingDecision({version: "nope", files: [textFile("a.js", "a")]}, "1.0.0")).toBe("clear");
+    });
+
+    test("automatically starts a new install only with a saved granted folder", () => {
+        expect(shouldAutoStartInstall({updateAvailable: true, pending: "none", directoryPermission: "granted"})).toBe(true);
+        expect(shouldAutoStartInstall({updateAvailable: true, pending: "none", directoryPermission: "prompt"})).toBe(false);
+        expect(shouldAutoStartInstall({updateAvailable: true, pending: "resume", directoryPermission: "granted"})).toBe(false);
+        expect(shouldAutoStartInstall({updateAvailable: false, pending: "none", directoryPermission: "granted"})).toBe(false);
     });
 
     test("formats the version line", () => {

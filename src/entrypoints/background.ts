@@ -11,6 +11,8 @@ import {
     setUpdateAutoCheck
 } from "@/core/updateCheck";
 import {refreshUpdateStateAfterInstall} from "@/core/updateCheck";
+// @ts-ignore shared plain-JavaScript badge module
+import {paintToolbarBadge, checkerPlusUnreadCount} from "@/modules/toolbar-badge.js";
 
 // @ts-ignore 번역 모듈은 순수 JS를 그대로 쓴다.
 import {createTransMenus, startTransBackground} from "@/modules/trans/background.js";
@@ -46,6 +48,14 @@ export default defineBackground(() => {
         console.warn("BongExtend 도구막대를 복구하지 못했어요.", error);
     }
 
+    // Checker Plus calls this after its unreadCount write has committed.
+    // Mirror that one authoritative count to BongExtend storage and toolbar.
+    (globalThis as typeof globalThis & {BongExtendOnUnreadCount?: (value: unknown) => void}).BongExtendOnUnreadCount = (value) => {
+        const count = checkerPlusUnreadCount({value});
+        if (count === null) return;
+        void paintToolbarBadge(count).catch((error) => console.warn("메일 뱃지를 갱신하지 못했어요.", error));
+    };
+
     // Checker Plus와 Chrono가 확장 툴바 API를 직접 바꾸지 못하게 한다.
     const importChrono = (globalThis as typeof globalThis & {importScripts?: (...urls: string[]) => void}).importScripts;
     if (typeof importChrono === "function") {
@@ -56,6 +66,7 @@ export default defineBackground(() => {
         try { importChrono.call(globalThis, "/chrono-worker.js"); }
         catch (error) { console.error("Chrono 다운로드 엔진을 시작하지 못했어요.", error); }
     }
+    void paintToolbarBadge();
 
     // ===== 번역 모듈 처리기 =====
     startTransBackground();

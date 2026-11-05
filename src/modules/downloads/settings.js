@@ -1,5 +1,11 @@
 export const DOWNLOAD_SETTINGS_KEY = "core.downloads";
 
+export const completedDownloadsBadge = (value) => {
+  const count = Math.max(0, Math.floor(Number(value) || 0));
+  if (count === 0) return "";
+  return count > 99 ? "99+" : String(count);
+};
+
 export const normalizeDownloadSettings = (value) => {
   const source = value && typeof value === "object" && !Array.isArray(value) ? value : {};
   const folder = String(source.folder || "").replace(/\\/g, "/").split("/").filter((part) => part && part !== "." && part !== ".." && !/[:<>"|?*]/.test(part)).slice(0, 4).join("/");

@@ -9,6 +9,7 @@ import {
     enabledAccounts,
     orderAccounts,
     mailTabBadge,
+    accountUnread,
     isDuplicateEmail,
     inboxSignature,
     nextWaitMs,
@@ -50,6 +51,9 @@ test("the mail tab badge counts each email once, skips disabled accounts, and ca
     assert.equal(mailTabBadge([{index: 0, email: "a@gmail.com", unread: 0, enabled: true}], []), "");
     assert.equal(mailTabBadge([{index: 0, email: "a@gmail.com", unread: 99, enabled: true}], []), "99");
     assert.equal(mailTabBadge([{index: 0, email: "a@gmail.com", unread: 120, enabled: true}], []), "99+");
+    assert.equal(mailTabBadge([{index: 0, email: "a@gmail.com", unread: 1, enabled: true, messages: [{id: "1"}, {id: "2"}, {id: "3"}, {id: "4"}]}], []), "4");
+    assert.equal(accountUnread({unread: 1, messages: [{id: "1"}, {id: "2"}, {id: "3"}, {id: "4"}]}), 4);
+    assert.equal(accountUnread({unread: 9, messages: []}), 0);
 });
 
 test("saved email order is kept, duplicates stay one row, and new accounts go last", () => {

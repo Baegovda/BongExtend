@@ -21,9 +21,20 @@ const FAB_CSP_FIXES = Object.freeze({
   ignoreCSSUrl: []
 });
 
+const TAOBAO_CSP_FIXES = Object.freeze({
+  invert: [],
+  css: "",
+  ignoreInlineStyle: [],
+  ignoreImageAnalysis: [],
+  disableStyleSheetsProxy: true,
+  disableInlineScriptInjection: true,
+  ignoreCSSUrl: []
+});
+
 export const darkReaderFixesForSite = (hostname) => {
   const host = String(hostname || "").toLowerCase().replace(/^www\./, "");
   if (host === "search.naver.com" || host === "m.search.naver.com") return NAVER_SEARCH_FIXES;
   if (host === "fab.com" || host.endsWith(".fab.com")) return FAB_CSP_FIXES;
+  if (host === "taobao.com" || host.endsWith(".taobao.com")) return TAOBAO_CSP_FIXES;
   return undefined;
 };

@@ -12,43 +12,56 @@ export default defineContentScript({
     registration: "runtime",
     runAt: "document_start",
     main() {
+        const controllerKey = "__bongextendDarkReaderController";
+        const scope = globalThis as unknown as Record<string, {apply?: () => Promise<void>} | undefined>;
+        const existing = scope[controllerKey];
+        if (existing?.apply) {
+            void existing.apply();
+            return;
+        }
         let generation = 0;
         const hostname = location.hostname.toLowerCase();
 
         const apply = async () => {
             const current = ++generation;
-            const stored = await browser.storage.local.get([DARK_SETTINGS_KEY, MODULES_KEY]);
-            if (current !== generation) return;
-            const settings = normalizeDarkSettings(stored[DARK_SETTINGS_KEY]);
-            const modules = (stored[MODULES_KEY] && typeof stored[MODULES_KEY] === "object" ? stored[MODULES_KEY] : {}) as Record<string, unknown>;
-            if (modules.dark === false || !darkSiteEnabled(settings, hostname)) {
-                auto(false);
-                disable();
-                return;
-            }
+            try {
+                const stored = await browser.storage.local.get([DARK_SETTINGS_KEY, MODULES_KEY]);
+                if (current !== generation) return;
+                const settings = normalizeDarkSettings(stored[DARK_SETTINGS_KEY]);
+                const modules = (stored[MODULES_KEY] && typeof stored[MODULES_KEY] === "object" ? stored[MODULES_KEY] : {}) as Record<string, unknown>;
+                if (modules.dark === false || !darkSiteEnabled(settings, hostname)) {
+                    auto(false);
+                    disable();
+                    return;
+                }
 
-            const siteTheme = darkThemeForSite(settings, hostname);
-            const siteFixes = darkReaderFixesForSite(hostname);
-            const theme = {
-                mode: siteTheme.mode,
-                brightness: siteTheme.brightness,
-                contrast: siteTheme.contrast,
-                sepia: siteTheme.sepia,
-                grayscale: siteTheme.grayscale,
-                useFont: Boolean(siteTheme.fontFamily),
-                fontFamily: siteTheme.fontFamily,
-                textStroke: siteTheme.textStroke,
-                darkSchemeBackgroundColor: siteTheme.darkSchemeBackgroundColor,
-                darkSchemeTextColor: siteTheme.darkSchemeTextColor,
-                styleSystemControls: true
-            };
-            if (settings.followSystem) auto(theme, siteFixes);
-            else {
-                auto(false);
-                enable(theme, siteFixes);
+                const siteTheme = darkThemeForSite(settings, hostname);
+                const siteFixes = darkReaderFixesForSite(hostname);
+                const theme = {
+                    mode: siteTheme.mode,
+                    brightness: siteTheme.brightness,
+                    contrast: siteTheme.contrast,
+                    sepia: siteTheme.sepia,
+                    grayscale: siteTheme.grayscale,
+                    useFont: Boolean(siteTheme.fontFamily),
+                    fontFamily: siteTheme.fontFamily,
+                    textStroke: siteTheme.textStroke,
+                    darkSchemeBackgroundColor: siteTheme.darkSchemeBackgroundColor,
+                    darkSchemeTextColor: siteTheme.darkSchemeTextColor,
+                    styleSystemControls: true
+                };
+                disable();
+                if (settings.followSystem) auto(theme, siteFixes);
+                else {
+                    auto(false);
+                    enable(theme, siteFixes);
+                }
+            } catch (error) {
+                console.error("BongExtend 다크 모드를 적용하지 못했어요.", error);
             }
         };
 
+        scope[controllerKey] = {apply};
         void apply();
         browser.storage.onChanged.addListener((changes, area) => {
             if (area === "local" && (changes[DARK_SETTINGS_KEY] || changes[MODULES_KEY])) void apply();
