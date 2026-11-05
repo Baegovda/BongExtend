@@ -82,6 +82,8 @@ test('복구 전 음소거와 볼륨 상태를 새 영상에 복원한다', () =
   const muted = P.captureAudioState({ muted: true, volume: 0.7 });
   P.restoreAudioState(replacement, muted);
   assert.deepEqual(replacement, { muted: true, volume: 0.7 });
+  assert.equal(P.audioStateMatches(replacement, muted), true);
+  assert.equal(P.audioStateMatches(replacement, audible), false);
 });
 
 test('광고 전 소리를 기억하고, 광고 중 음소거는 덮어쓰지 않는다', () => {

@@ -1,52 +1,95 @@
-// 치지직 넓은 화면 자동: /live, /video 진입 시 플레이어 '넓은 화면'을 한 번 켬
-// 주의: 넓은 화면 버튼 선택자는 실사이트에서 확인하지 못한 추정입니다.
+// 치지직 라이브·다시보기 자동 넓은 화면
 (() => {
   'use strict';
   if (window.top !== window) return;
   const D = globalThis.BongWide;
-  let enabled = true, doneUrl = '', tries = 0, timer = 0;
-  BCStore.sync.get({ autoWide: true }, v => { enabled = v.autoWide; start(); });
-  BCStore.onChanged.addListener((c, a) => { if (a === 'sync' && c.autoWide) { enabled = c.autoWide.newValue; doneUrl = ''; start(); } });
+  const RETRY_MS = 1200;
+  const MAX_CLICKS = 5;
+  let enabled = true, route = '', clicks = 0, timer = 0, lastClickAt = 0, settledRoute = '';
 
-  const info = el => ({
-    cls: el.className && el.className.baseVal !== undefined ? el.className.baseVal : String(el.className || ''),
-    label: el.getAttribute('aria-label') || el.getAttribute('title') || '',
-    text: (el.textContent || '').trim().slice(0, 40),
-    ariaPressed: el.getAttribute('aria-pressed'),
-    ariaChecked: el.getAttribute('aria-checked'),
-    layoutWide: /wide|theater/i.test((document.getElementById('live_player_layout') || {}).className || '') || undefined
+  BCStore.sync.get({ autoWide: true }, value => { enabled = value.autoWide !== false; start(true); });
+  BCStore.onChanged.addListener((changes, area) => {
+    if (area !== 'sync' || !changes.autoWide) return;
+    enabled = changes.autoWide.newValue !== false;
+    start(true);
   });
-  function findButton() {
-    const root = document.querySelector('div.pzp.pzp-pc') || document.getElementById('live_player_layout') || document;
-    const els = root.querySelectorAll('button, [role="button"], [class*="viewmode"], [class*="wide"], [class*="screen-mode"]');
-    let best = null, bestS = 0;
-    const found = [];
-    for (const el of els) {
-      const i = info(el), s = D.scoreCandidate(i);
-      if (s > 0) found.push(`${s}:${i.cls}|${i.label}`);
-      if (s > bestS) { best = el; bestS = s; }
-    }
-    console.debug('[BongExtend] 넓은 화면 후보:', found.length ? found : '(없음)');
-    return best ? (best.closest('button') || best) : null;
-  }
-  const pageKey = () => /^\/(live|video)\//.test(location.pathname) ? location.pathname : '';
 
+  const pageKey = () => /^\/(live|video)\/[^/]+/.test(location.pathname) ? location.pathname : '';
+  const layout = () => document.getElementById('live_player_layout') || document.getElementById('player_layout');
+  const playerRoot = () => layout() || document.querySelector('div.pzp.pzp-pc');
+  function info(el) {
+    const box = layout();
+    const cls = el && el.className && el.className.baseVal !== undefined ? el.className.baseVal : String(el && el.className || '');
+    return {
+      cls,
+      label: el && (el.getAttribute('aria-label') || el.getAttribute('title')) || '',
+      text: (el && el.textContent || '').trim().slice(0, 40),
+      ariaPressed: el && el.getAttribute('aria-pressed'),
+      ariaChecked: el && el.getAttribute('aria-checked'),
+      layoutKnown: !!box,
+      layoutWide: !!box && (box.classList.contains('is_large') || box.classList.contains('is-wide') || box.classList.contains('wide'))
+    };
+  }
+  function findButton(root) {
+    if (!root) return null;
+    const exact = root.querySelector('.pzp-viewmode-button, .pzp-pc-viewmode-button');
+    if (exact) return exact;
+    let best = null, bestScore = 0;
+    for (const el of root.querySelectorAll('button, [role="button"], [class*="viewmode"], [class*="wide"], [class*="screen-mode"]')) {
+      const score = D.scoreCandidate(info(el));
+      if (score > bestScore) { best = el; bestScore = score; }
+    }
+    return best;
+  }
+  function schedule(delay = RETRY_MS) {
+    clearTimeout(timer);
+    timer = setTimeout(attempt, delay);
+  }
   function attempt() {
+    clearTimeout(timer);
     const key = pageKey();
-    if (!enabled || !key || doneUrl === key) return;
-    const btn = document.querySelector('div.pzp.pzp-pc video') ? findButton() : null;
-    if (!btn) {
-      if (++tries < 6) timer = setTimeout(attempt, 2000); // ~10초 동안 플레이어 렌더 대기
+    if (!enabled || !key) { route = ''; settledRoute = ''; return; }
+    if (route !== key) { route = key; clicks = 0; lastClickAt = 0; settledRoute = ''; }
+    if (settledRoute === key) return;
+
+    const root = playerRoot();
+    const video = root && root.querySelector('video');
+    const button = video && findButton(root);
+    if (!video || !button) { schedule(); return; }
+
+    const state = D.wideState(info(button));
+    if (state === true || info(root).layoutWide) {
+      settledRoute = key;
+      console.debug('[BongExtend] 넓은 화면 적용 확인');
       return;
     }
-    doneUrl = key; // 상태를 몰라도 URL당 최대 1번만 클릭(토글 반복 방지)
-    const st = D.wideState(info(btn));
-    if (st === true) { console.debug('[BongExtend] 이미 넓은 화면'); return; }
-    btn.click();
-    console.debug('[BongExtend] 넓은 화면 버튼 클릭', btn);
+
+    if (clicks < MAX_CLICKS && Date.now() - lastClickAt >= RETRY_MS) {
+      // 첫 화면 렌더 직후에는 치지직이 버튼 이벤트를 아직 붙이지 않은 경우가 있어 성공 여부를 확인하며 다시 시도한다.
+      lastClickAt = Date.now();
+      clicks++;
+      button.click();
+      console.debug('[BongExtend] 넓은 화면 전환 시도', clicks);
+    }
+    schedule();
   }
-  function start() { clearTimeout(timer); tries = 0; timer = setTimeout(attempt, 1500); }
-  let last = location.pathname;
-  setInterval(() => { if (location.pathname !== last) { last = location.pathname; start(); } }, 1000);
-  window.addEventListener('popstate', () => setTimeout(() => { if (location.pathname !== last) { last = location.pathname; start(); } }, 200));
+  function start(reset) {
+    clearTimeout(timer);
+    const key = pageKey();
+    if (reset || key !== route) {
+      route = key;
+      clicks = 0;
+      lastClickAt = 0;
+      settledRoute = '';
+    }
+    if (enabled && key) schedule(700);
+  }
+
+  let lastPath = location.pathname;
+  setInterval(() => {
+    if (location.pathname !== lastPath) { lastPath = location.pathname; start(true); }
+    else if (enabled && pageKey() && settledRoute !== pageKey() && !timer) schedule(0);
+  }, 1000);
+  document.addEventListener('playing', () => { if (enabled && pageKey() && settledRoute !== pageKey()) schedule(0); }, true);
+  window.addEventListener('popstate', () => setTimeout(() => { lastPath = location.pathname; start(true); }, 200));
 })();

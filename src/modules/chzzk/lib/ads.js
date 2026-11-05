@@ -48,6 +48,8 @@
         changed = true;
       } else if (turnOffRolls(payload.playerAdDisplayResponse)) changed = true;
     }
+    // 채널 my-info 응답은 playerAdDisplayResponse 대신 playerAdFlag 로 광고 여부를 준다.
+    if (isObj(payload.playerAdFlag) && turnOffRolls(payload.playerAdFlag)) changed = true;
     for (const key of ['showPreroll', 'showMidroll', 'prerollEnabled', 'midrollEnabled']) {
       if (payload[key] === true || payload[key] === 1 || payload[key] === 'Y') {
         payload[key] = false;
@@ -98,6 +100,7 @@
 
   function looksLikeAdJson(text) {
     return text.indexOf('playerAdDisplayResponse') !== -1
+      || text.indexOf('playerAdFlag') !== -1
       || text.indexOf('midRoll') !== -1
       || text.indexOf('midroll') !== -1
       || text.indexOf('adBreaks') !== -1

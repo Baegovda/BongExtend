@@ -237,41 +237,43 @@
   // ── 광고 방지 (best effort): 클래스 + 화면 텍스트(AD 1/1, N 초 후 SKIP, SKIP, 광고 페이지 보기)로 감지 ──
   let adWasActive = false, adTimer = 0;
   const boosted = new Set();
-  // 광고가 본영상 소리를 음소거로 덮어쓰기 전에 기억해 둔다.
-  let audioHold = null, audioTouched = false, restoreToken = 0, restoreUntil = 0;
+  // 재생 중 사이트가 자동으로 건 음소거를 되돌리고, 사용자가 직접 정한 음량은 저장한다.
+  const DEFAULT_AUDIO = { muted: false, volume: 1 };
+  let audioHold = { ...DEFAULT_AUDIO }, audioReady = false, audioPointerActive = false, audioUserChangePendingUntil = 0, restoreToken = 0, audioSaveTimer = 0;
+  BCStore.local.get({ audioPreference: DEFAULT_AUDIO }, value => {
+    audioHold = P.captureAudioState(value.audioPreference) || { ...DEFAULT_AUDIO };
+    audioReady = true;
+  });
+  // 저장소 응답이 늦어져도 첫 재생을 음소거로 방치하지 않는다.
+  setTimeout(() => { audioReady = true; }, 1200);
   function contentVideo() {
     const list = [...document.querySelectorAll('video')].filter(v => v.isConnected && !v.closest(P.AD_CONTAINER_SEL));
     return list.find(v => v.classList.contains('webplayer-internal-video'))
       || list.sort((a, b) => b.clientWidth * b.clientHeight - a.clientWidth * a.clientHeight)[0]
       || null;
   }
-  function rememberQuiet() {
-    if (adWasActive || globalThis.__bongAdActive || document.querySelector(P.AD_CONTAINER_SEL)) return;
-    audioHold = P.noteLiveAudio(audioHold, P.captureAudioState(contentVideo()), false);
+  function enforceAudioPreference(v) {
+    if (!audioReady || audioPointerActive || audioUserChangePendingUntil > Date.now() || !v || !v.isConnected) return;
+    if (adWasActive || globalThis.__bongAdActive || (v.closest && v.closest(P.AD_CONTAINER_SEL))) return;
+    if (!v.classList.contains('webplayer-internal-video')) return;
+    if (!P.audioStateMatches(v, audioHold)) P.restoreAudioState(v, audioHold);
+  }
+  function scheduleAudioEnforcement(v, delays) {
+    for (const delay of delays) setTimeout(() => enforceAudioPreference(v), delay);
   }
   function watchContentAudio(v) {
     if (!v || v._bongAudioWatch || (v.closest && v.closest(P.AD_CONTAINER_SEL))) return;
     v._bongAudioWatch = 1;
-    const grab = () => {
-      const captured = P.captureAudioState(v);
-      // 광고가 같은 순간에 소리를 끄면, 그 음소거를 사용자 상태로 기억하지 않는다.
-      setTimeout(() => {
-        if (globalThis.__bongAdActive || adWasActive || (v.closest && v.closest(P.AD_CONTAINER_SEL)) || document.querySelector(P.AD_CONTAINER_SEL)) return;
-        audioHold = P.noteLiveAudio(audioHold, captured, false);
-      }, 0);
-    };
-    v.addEventListener('volumechange', grab);
-    v.addEventListener('loadedmetadata', grab);
-    grab();
+    v.addEventListener('volumechange', () => scheduleAudioEnforcement(v, [0, 80, 250]));
+    v.addEventListener('playing', () => scheduleAudioEnforcement(v, [0, 120, 400, 1000, 2200]));
   }
-  const inAudioWindow = () => !!globalThis.__bongAdActive || Date.now() < restoreUntil;
   function userAudioTarget(e) {
-    if (!e || !e.isTrusted || !inAudioWindow()) return false;
+    if (!e || !e.isTrusted) return false;
     const target = e.target;
     if (!target || !target.closest) return false;
     if (e.type === 'keydown') {
-      if (target.closest('input, textarea, [contenteditable="true"]')) return false;
-      return e.key === 'm' || e.key === 'M';
+      if (target.closest('input, textarea, [contenteditable="true"]') || !/^[mM]$/.test(e.key)) return false;
+      return !!(target.closest('div.pzp, #live_player_layout') || document.activeElement?.closest?.('div.pzp, #live_player_layout'));
     }
     if (target.closest('input[type="range"]') && target.closest('div.pzp, #live_player_layout')) return true;
     const el = target.closest('button, [role="button"], input, a');
@@ -279,21 +281,39 @@
     const label = `${el.getAttribute('aria-label') || ''} ${el.getAttribute('title') || ''} ${el.className || ''} ${(el.textContent || '').slice(0, 80)}`;
     return P.isAudioControlLabel(label);
   }
-  const noteUserAudio = () => setTimeout(() => {
-    const state = P.captureAudioState(contentVideo());
-    if (state) audioHold = state;
-    else audioTouched = true;
-  }, 30);
-  document.addEventListener('pointerdown', e => { if (userAudioTarget(e)) noteUserAudio(); }, true);
-  document.addEventListener('keydown', e => { if (userAudioTarget(e)) noteUserAudio(); }, true);
+  function queueUserAudioSave() {
+    clearTimeout(audioSaveTimer);
+    audioSaveTimer = setTimeout(() => {
+      const state = P.captureAudioState(contentVideo());
+      if (state) {
+        audioHold = state;
+        audioReady = true;
+        BCStore.local.set({ audioPreference: state });
+      }
+      audioUserChangePendingUntil = 0;
+      const video = contentVideo();
+      if (video) scheduleAudioEnforcement(video, [0, 120]);
+    }, 160);
+  }
+  function noteUserAudio(e) {
+    if (e && e.type === 'pointerdown') audioPointerActive = true;
+    if (e && (e.type === 'pointerup' || e.type === 'pointercancel')) audioPointerActive = false;
+    audioUserChangePendingUntil = Date.now() + 1500;
+    queueUserAudioSave();
+  }
+  document.addEventListener('pointerdown', e => { if (userAudioTarget(e)) noteUserAudio(e); }, true);
+  document.addEventListener('pointerup', e => {
+    if (audioPointerActive) noteUserAudio(e);
+    else if (audioUserChangePendingUntil > Date.now() && userAudioTarget(e)) noteUserAudio(e);
+  }, true);
+  document.addEventListener('pointercancel', e => { if (audioPointerActive) noteUserAudio(e); }, true);
+  document.addEventListener('keydown', e => { if (userAudioTarget(e)) noteUserAudio(e); }, true);
   function scheduleLiveAudioRestore() {
     const token = ++restoreToken;
-    restoreUntil = Date.now() + 6000;
     const apply = () => {
       if (token !== restoreToken) return;
-      const state = P.audioAfterAd(audioHold, audioTouched);
       const video = contentVideo();
-      if (state && video) P.restoreAudioState(video, state);
+      if (video) enforceAudioPreference(video);
     };
     for (const delay of [0, 80, 250, 700, 1500, 3000, 5000]) setTimeout(apply, delay);
   }
@@ -632,15 +652,11 @@
       hits = scanTexts(root);
       active = active || P.isAdActive({ adUiExists: !!ui, adUiHidden: !!ui && ui.classList.contains('wpc-dis-hid'), indicatorVisible: visible(root.querySelector('.pzp-ad-break-indicator')), textHits: hits.length });
     }
-    if (!active) {
-      for (const v of document.querySelectorAll('video')) watchContentAudio(v);
-      rememberQuiet();
-    }
+    if (!active) for (const v of document.querySelectorAll('video')) watchContentAudio(v);
     globalThis.__bongAdActive = active; // 버퍼링 복구·자동 재생이 광고 중엔 개입하지 않도록
     if (cfg.adBlock !== false) concealAds(root || playerBox());
     if (active) {
       if (!adWasActive) {
-        audioTouched = false;
         console.info('[BongExtend] 광고 감지', { naver: !!container, texts: hits.map(h => h.t) });
       }
       if (container) {

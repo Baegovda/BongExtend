@@ -42,6 +42,10 @@ test('wide scoreCandidate / wideState', () => {
   assert.equal(D.wideState({ ariaPressed: 'true' }), true);
   assert.equal(D.wideState({ ariaChecked: 'false' }), false);
   assert.equal(D.wideState({ label: '넓은 화면 해제' }), true);
-  assert.equal(D.wideState({ label: '넓은 화면', cls: 'pzp-pc-viewmode-button' }), null);
+  assert.equal(D.wideState({ label: '넓은 화면', cls: 'pzp-pc-viewmode-button' }), false);
   assert.equal(D.wideState({ layoutWide: true }), true);
+  assert.ok(D.scoreCandidate({ cls: 'pzp-viewmode-button', label: '' }) > 0);
+  assert.equal(D.wideState({ cls: 'pzp-viewmode-button--active', label: '넓은 화면' }), true);
+  assert.equal(D.wideState({ cls: 'pzp-viewmode-button', label: '넓은 화면', layoutKnown: true, layoutWide: false }), false);
+  assert.equal(D.wideState({ cls: 'pzp-viewmode-button', label: '기본 화면' }), true);
 });

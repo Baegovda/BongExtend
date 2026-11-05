@@ -2,6 +2,7 @@
 (function (root) {
   'use strict';
   const LABEL = /넓은\s*화면|와이드|wide/i;
+  const ACTIVE_LABEL = /기본\s*화면|넓은\s*화면\s*(해제|끄기)|wide\s*(off|exit)|축소/i;
   const CLS = /viewmode|wide|screen-mode|theater/i;
   // 후보 요소 정보 {cls, label, text} → 점수(0이면 후보 아님). 전체화면 버튼은 제외.
   function scoreCandidate(info) {
@@ -13,16 +14,18 @@
     if (CLS.test(cls)) s += 1;
     return s;
   }
-  // 넓은 화면 상태: true/false/null(모름). label이 '넓은 화면 해제/종료' 류면 이미 켜짐.
+  // 넓은 화면 상태: true/false/null(모름). 치지직은 #live_player_layout 에 is_large 를 단다.
   function wideState(info) {
     const ap = info && info.ariaPressed, ac = info && info.ariaChecked;
-    if (ap === 'true' || ac === 'true') return true;
-    if (ap === 'false' || ac === 'false') return false;
     const label = String(info && info.label || '');
-    if (/(해제|종료|끄기|exit)/i.test(label)) return true;
+    if (ACTIVE_LABEL.test(label)) return true;
     const cls = String(info && info.cls || '');
-    if (/--(active|on|wide|checked)\b|is-active|is-wide/i.test(cls)) return true;
+    if (/--(active|on|wide|checked)\b|is-active|is-wide|is_large/i.test(cls)) return true;
     if (info && info.layoutWide === true) return true;
+    if (ap === 'true' || ac === 'true') return true;
+    if (info && info.layoutKnown === true) return false;
+    if (ap === 'false' || ac === 'false') return false;
+    if (info && LABEL.test(label)) return false;
     return null;
   }
   root.BongWide = { scoreCandidate, wideState };
