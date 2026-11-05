@@ -82,7 +82,10 @@ if (import.meta.env.FIREFOX) {
     };
 
     const loadDir = () => idb<FileSystemDirectoryHandle | undefined>("kv", "readonly", (store) => store.get("installDir")).catch(() => null);
-    const saveDir = (handle: FileSystemDirectoryHandle) => idb("kv", "readwrite", (store) => store.put(handle, "installDir"));
+    const saveDir = async (handle: FileSystemDirectoryHandle) => {
+        await idb("kv", "readwrite", (store) => store.put(handle, "installDir"));
+        localStorage.setItem("bongextend.installDirSaved", "1");
+    };
     const loadPending = () => idb<PendingUpdate | undefined>("pending", "readonly", (store) => store.get("pending")).catch(() => null);
     const savePending = async (pending: PendingUpdate): Promise<void> => {
         await idb("pending", "readwrite", (store) => store.put(pending, "pending"));
@@ -295,13 +298,17 @@ if (import.meta.env.FIREFOX) {
         }
     };
 
-    const runUpdate = async (savedDir?: FileSystemDirectoryHandle) => {
+    const runUpdate = async (savedDir?: FileSystemDirectoryHandle, selectedDir?: Promise<FileSystemDirectoryHandle>) => {
         if (!startButton || !release?.assetUrl) return;
         startButton.disabled = true;
         setError("");
 
         try {
-            const dir = savedDir || await getInstallDir(true);
+            const dir = savedDir || (selectedDir ? await selectedDir : await getInstallDir(true));
+            if (selectedDir) {
+                await verifyDir(dir);
+                await saveDir(dir);
+            }
             resetProgress();
             showProgress("download", 0, release.assetSize);
             let bytes: ArrayBuffer;
@@ -342,12 +349,26 @@ if (import.meta.env.FIREFOX) {
             startButton.disabled = false;
         }
     };
-    startButton?.addEventListener("click", () => void runUpdate());
+    startButton?.addEventListener("click", () => {
+        if (!window.showDirectoryPicker) {
+            void runUpdate(undefined, Promise.reject(new Error("이 브라우저는 폴더 선택을 지원하지 않아요.")));
+            return;
+        }
+        // Start the folder picker before any async storage or permission reads.
+        const selectedDir = window.showDirectoryPicker({mode: "readwrite", id: "bongextend-install"});
+        void runUpdate(undefined, selectedDir);
+    });
 
     resumeButton?.addEventListener("click", async () => {
         if (!resumeButton) return;
         resumeButton.disabled = true;
         setError("");
+        if (!window.showDirectoryPicker) {
+            setError("이 브라우저는 폴더 선택을 지원하지 않아요.");
+            resumeButton.disabled = false;
+            return;
+        }
+        const selectedDir = window.showDirectoryPicker({mode: "readwrite", id: "bongextend-install"});
 
         try {
             const pending = normalizePending(await loadPending());
@@ -357,7 +378,9 @@ if (import.meta.env.FIREFOX) {
                 return;
             }
 
-            const dir = await getInstallDir(true);
+            const dir = await selectedDir;
+            await verifyDir(dir);
+            await saveDir(dir);
             resetProgress();
             showProgress("unzip");
             await installFiles(dir, pending.files, pending.version);
