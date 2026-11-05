@@ -351,6 +351,28 @@ function publicError(error) {
   };
 }
 
+// 페이지 번역은 전용 포트로 받아요. Checker Plus와 Chrono도 메시지 수신기를
+// 등록하므로, 일반 메시지 응답이 서로 먼저 도착해 번역 응답을 가리지 않게 해요.
+chrome.runtime.onConnect.addListener((port) => {
+  if (port.name !== 'bongextend-translation-batch' || port.sender?.id !== chrome.runtime.id) return;
+  port.onMessage.addListener((message) => {
+    if (!message || message.type !== 'BONGEXTEND_TRANSLATION_BATCH') return;
+    translator.translateMany(message.texts).then(
+      (result) => port.postMessage({
+        type: 'BONGEXTEND_TRANSLATION_BATCH_RESULT',
+        response: { ok: true, translations: result.translations, model: result.model },
+      }),
+      (error) => {
+        console.warn('[page-translator]', error?.code || 'API_ERROR', error?.status || '');
+        port.postMessage({
+          type: 'BONGEXTEND_TRANSLATION_BATCH_RESULT',
+          response: publicError(error),
+        });
+      },
+    );
+  });
+});
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (sender.id !== chrome.runtime.id || !message || typeof message !== 'object') return;
   if (message.type === 'TRANSLATE_BATCH') {
