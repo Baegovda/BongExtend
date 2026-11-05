@@ -53,7 +53,7 @@ export default defineBackground(() => {
     (globalThis as typeof globalThis & {BongExtendOnUnreadCount?: (value: unknown) => void}).BongExtendOnUnreadCount = (value) => {
         const count = checkerPlusUnreadCount({value});
         if (count === null) return;
-        void paintToolbarBadge(count).catch((error) => console.warn("메일 뱃지를 갱신하지 못했어요.", error));
+        void paintToolbarBadge(count).catch((error: unknown) => console.warn("메일 뱃지를 갱신하지 못했어요.", error));
     };
 
     // Checker Plus와 Chrono가 확장 툴바 API를 직접 바꾸지 못하게 한다.
