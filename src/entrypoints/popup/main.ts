@@ -2,6 +2,7 @@
 import "@/modules/theme/theme.css";
 import {sendMessage} from "@/http/messaging";
 import {isNewerVersion} from "@/core/update/availability";
+import {isBongExtendManifest} from "@/core/update/release";
 import {describeUpdateError, promiseWithTimeout, UPDATE_TIMEOUT_MESSAGE, UPDATE_UI_TIMEOUT_MS, UPDATE_UNKNOWN_MESSAGE} from "@/core/update/timeout";
 // @ts-ignore 순수 JS
 import {getModules, setModuleEnabled} from "@/modules/core-modules.js";
@@ -30,7 +31,7 @@ import {gmailComposeUrl, gmailInboxUrl, gmailMessageUrl} from "@/modules/gmail/o
 // @ts-ignore settings helpers are plain JS
 import {DARK_SETTINGS_KEY, darkSiteEnabled, darkSitePattern, normalizeDarkHost, normalizeDarkSettings} from "@/modules/dark/settings.js";
 // @ts-ignore download settings helpers are plain JS
-import {DOWNLOAD_SETTINGS_KEY, normalizeDownloadSettings} from "@/modules/downloads/settings.js";
+import {completedDownloadsBadge, DOWNLOAD_SETTINGS_KEY, normalizeDownloadSettings} from "@/modules/downloads/settings.js";
 
 const effects = createChromeEffects();
 
@@ -88,12 +89,33 @@ chronoPopupFrame.addEventListener("load", () => {
         console.warn("Chrono 다운로드 화면을 BongExtend 탭에 맞추지 못했어요.", error);
     }
 });
-const moduleBar = $("moduleBar");
-const moduleSwitch = $<HTMLInputElement>("moduleSwitch");
-const moduleLabel = $("moduleLabel");
-const moduleNote = $("moduleNote");
 let current: TabId = "chzzk";
 let pageBeforeSettings: TabId = "chzzk";
+
+type ModuleId = "chzzk" | "trans" | "dc" | "gmail" | "fx" | "dark" | "download";
+const moduleOptions = [...document.querySelectorAll<HTMLInputElement>("[data-module-toggle]")];
+const paintModuleOptions = async () => {
+    const modules = await getModules() as Record<ModuleId, boolean>;
+    for (const input of moduleOptions) input.checked = modules[input.dataset.moduleToggle as ModuleId] !== false;
+};
+for (const input of moduleOptions) {
+    input.addEventListener("change", async () => {
+        const id = input.dataset.moduleToggle as ModuleId;
+        const wanted = input.checked;
+        const status = $("moduleStatus");
+        input.disabled = true;
+        try {
+            const next = await setModuleEnabled(id, wanted) as Record<ModuleId, boolean>;
+            input.checked = next[id] !== false;
+            status.textContent = `${NAMES[id]} 모듈을 ${wanted ? "켰어요" : "껐어요"}.`;
+        } catch {
+            input.checked = !wanted;
+            status.textContent = `${NAMES[id]} 모듈 설정을 저장하지 못했어요.`;
+        } finally {
+            input.disabled = false;
+        }
+    });
+}
 
 const embed = new URLSearchParams(location.search).get("embed");
 const embedded = embed === "gmail" || embed === "fx" || embed === "update";
@@ -124,15 +146,7 @@ const showTab = async (tab: TabId, persist = true) => {
         chronoPopupFrame.src = chronoPopupFrame.dataset.src || "/pop/pop.html";
     }
     if (tab === "fx") void refreshFx();
-    if (tab === "update" || (tab === "gmail" && !embedded)) {
-        moduleBar.hidden = true;
-    } else {
-        moduleBar.hidden = false;
-        const modules = await getModules();
-        moduleSwitch.checked = modules[tab] !== false;
-        moduleLabel.textContent = `${NAMES[tab] || "모듈"} 모듈 사용`;
-        moduleNote.textContent = moduleSwitch.checked ? "" : "꺼져 있어요. 켜면 새로 열거나 새로고침한 페이지부터 적용돼요.";
-    }
+    if (tab === "update") void paintModuleOptions();
     if (persist) void effects.storageSet({[TAB_KEY]: tab});
 };
 
@@ -341,20 +355,6 @@ tabButtons().forEach((b) => {
 // 로고 더블클릭 = 기본 순서로 되돌리기
 document.querySelector(".brand")?.addEventListener("dblclick", () => { applyOrder(DEFAULT_ORDER); saveOrder(); });
 
-moduleSwitch.addEventListener("change", async () => {
-    if (current === "update") return;
-    await setModuleEnabled(current, moduleSwitch.checked);
-    if (current === "dark") {
-        moduleNote.textContent = moduleSwitch.checked
-            ? "다크 모드 기능을 켰어요. 이 사이트에 적용하려면 아래 사이트 스위치도 켜 주세요."
-            : "다크 모드 기능을 껐어요.";
-    } else {
-        moduleNote.textContent = moduleSwitch.checked
-            ? "켰어요. 열려 있는 페이지는 새로고침(F5)하면 적용돼요."
-            : "껐어요. 열려 있는 페이지는 새로고침(F5)하면 꺼져요.";
-    }
-});
-
 // ===== 업데이트 (BongExtend 전체에서 업데이트 UI는 이 탭 하나뿐) =====
 type UpdateStatus = {
     currentVersion?: string; latestVersion?: string; updateAvailable?: boolean;
@@ -425,7 +425,81 @@ const check = async (force: boolean) => {
 };
 
 checkBtn.addEventListener("click", () => void check(true));
-doUpdate.addEventListener("click", () => void openUrl(effects, effects.getURL("/update.html")));
+
+const readInstallDirHandle = async (): Promise<FileSystemDirectoryHandle | undefined> => {
+    const db = await new Promise<IDBDatabase>((resolve, reject) => {
+        const request = indexedDB.open("bongextend-install", 1);
+        request.onupgradeneeded = () => {
+            if (!request.result.objectStoreNames.contains("kv")) request.result.createObjectStore("kv");
+            if (!request.result.objectStoreNames.contains("pending")) request.result.createObjectStore("pending");
+        };
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => resolve(request.result);
+    });
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction("kv", "readonly");
+        const request = tx.objectStore("kv").get("installDir");
+        request.onsuccess = () => resolve(request.result as FileSystemDirectoryHandle | undefined);
+        request.onerror = () => reject(request.error);
+        tx.oncomplete = () => db.close();
+        tx.onerror = () => { db.close(); reject(tx.error); };
+    });
+};
+
+const saveInstallDirHandle = async (handle: FileSystemDirectoryHandle) => {
+    const db = await new Promise<IDBDatabase>((resolve, reject) => {
+        const request = indexedDB.open("bongextend-install", 1);
+        request.onupgradeneeded = () => {
+            if (!request.result.objectStoreNames.contains("kv")) request.result.createObjectStore("kv");
+            if (!request.result.objectStoreNames.contains("pending")) request.result.createObjectStore("pending");
+        };
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => resolve(request.result);
+    });
+    await new Promise<void>((resolve, reject) => {
+        const tx = db.transaction("kv", "readwrite");
+        tx.objectStore("kv").put(handle, "installDir");
+        tx.oncomplete = () => { db.close(); resolve(); };
+        tx.onerror = () => { db.close(); reject(tx.error); };
+    });
+};
+
+const validInstallDir = async (handle: FileSystemDirectoryHandle) => {
+    try {
+        const file = await handle.getFileHandle("manifest.json");
+        return isBongExtendManifest(await (await file.getFile()).text());
+    } catch {
+        return false;
+    }
+};
+
+doUpdate.addEventListener("click", async () => {
+    doUpdate.disabled = true;
+    setStatus("확장 프로그램 폴더를 확인하고 있어요.");
+    try {
+        let dir = await readInstallDirHandle().catch(() => undefined);
+        if (dir) {
+            const permission = await dir.queryPermission({mode: "readwrite"});
+            if (permission !== "granted" || !(await validInstallDir(dir))) dir = undefined;
+        }
+        if (!dir) {
+            if (!window.showDirectoryPicker) throw new Error("폴더 선택을 지원하는 Chrome에서 업데이트해 주세요.");
+            setStatus("manifest.json이 들어 있는 BongExtend 설치 폴더를 골라 주세요.");
+            dir = await window.showDirectoryPicker({mode: "readwrite", id: "bongextend-install"});
+            if (!(await validInstallDir(dir))) throw new Error("선택한 폴더가 BongExtend 설치 폴더가 아니에요.");
+            await saveInstallDirHandle(dir);
+        }
+        setStatus("설치 폴더를 확인했어요. 업데이트를 시작해요.", "ok");
+        await openUrl(effects, effects.getURL("/update.html?start=1"));
+    } catch (error) {
+        const message = error instanceof DOMException && error.name === "AbortError"
+            ? "폴더 선택을 취소했어요."
+            : (error as Error)?.message || "업데이트를 시작하지 못했어요.";
+        setStatus(message, "error");
+    } finally {
+        doUpdate.disabled = false;
+    }
+});
 downloadZip.addEventListener("click", async () => {
     try {
         const r = await sendMessage("applyUpdate", undefined) as {ok: boolean; error?: string};
@@ -702,10 +776,19 @@ type GmailMessage = {
 type GmailAccount = {index: number; email: string; unread: number; enabled?: boolean; messages: GmailMessage[]};
 type GmailSnapshot = {checkedAt?: number; loggedOut?: boolean; unread?: number; accounts?: GmailAccount[]};
 
+let mailBadgeRevision = 0;
+let mailBadgeDisabled: unknown = [];
+let mailBadgeAccounts: GmailAccount[] | undefined;
+let mailBadgeUnreadOverride: number | null = null;
 const paintMailBadge = (accounts: GmailAccount[] | undefined, disabled: unknown) => {
     const badge = $("mailBadge");
     if (!badge) return;
-    const text = mailTabBadge(accounts, Array.isArray(disabled) ? disabled : []) as string;
+    mailBadgeRevision += 1;
+    if (accounts !== undefined) mailBadgeAccounts = accounts;
+    if (Array.isArray(disabled)) mailBadgeDisabled = disabled;
+    const text = mailBadgeUnreadOverride === null
+        ? mailTabBadge(mailBadgeAccounts, Array.isArray(mailBadgeDisabled) ? mailBadgeDisabled : []) as string
+        : mailBadgeUnreadOverride > 99 ? "99+" : mailBadgeUnreadOverride > 0 ? String(mailBadgeUnreadOverride) : "";
     badge.textContent = text;
     badge.hidden = !text;
 };
@@ -1192,8 +1275,12 @@ effects.storageGet(ACCOUNT_ORDER_KEY).then((stored: Record<string, unknown>) => 
     mailOrder = Array.isArray(stored[ACCOUNT_ORDER_KEY]) ? stored[ACCOUNT_ORDER_KEY] as string[] : [];
     if (gmailView) renderGmail(gmailView);
 });
-effects.storageGet(["gmail.snapshot", "gmail.disabled"]).then((stored: Record<string, unknown>) => {
+const mailBadgeReadRevision = mailBadgeRevision;
+effects.storageGet(["gmail.snapshot", "gmail.disabled", "gmail.unread"]).then((stored: Record<string, unknown>) => {
+    if (mailBadgeRevision !== mailBadgeReadRevision) return;
     const snapshot = stored["gmail.snapshot"] as GmailSnapshot | undefined;
+    const unread = Number(stored["gmail.unread"]);
+    mailBadgeUnreadOverride = Number.isFinite(unread) && unread >= 0 ? Math.floor(unread) : null;
     paintMailBadge(snapshot?.accounts, stored["gmail.disabled"]);
 });
 effects.storageGet(["gmail.intervalMs", "gmail.notify"]).then((stored: Record<string, unknown>) => {
@@ -1202,6 +1289,7 @@ effects.storageGet(["gmail.intervalMs", "gmail.notify"]).then((stored: Record<st
 });
 effects.storageOnChanged((changes: Record<string, {newValue?: unknown}>, area: string) => {
     if (area !== "local") return;
+    if (changes["core.modules"] && current === "update") void paintModuleOptions();
     if (changes["gmail.photos"]) gmailPhotos = (changes["gmail.photos"].newValue || {}) as Record<string, string>;
     if (changes["gmail.accountColors"]) gmailColors = (changes["gmail.accountColors"].newValue || {}) as Record<string, string>;
     if (changes[GMAIL_SOUND_KEY]) {
@@ -1218,11 +1306,15 @@ effects.storageOnChanged((changes: Record<string, {newValue?: unknown}>, area: s
         mailOrder = Array.isArray(changes["gmail.accountOrder"].newValue) ? changes["gmail.accountOrder"].newValue as string[] : [];
         if ((current === "gmail" || embed === "gmail") && gmailView && !gmailAccounts.classList.contains("reordering")) renderGmail(gmailView);
     }
+    if (changes["gmail.unread"]) {
+        const unread = Number(changes["gmail.unread"].newValue);
+        mailBadgeUnreadOverride = Number.isFinite(unread) && unread >= 0 ? Math.floor(unread) : null;
+        paintMailBadge(undefined, mailBadgeDisabled);
+    }
     if (changes["gmail.snapshot"] || changes["gmail.disabled"]) {
-        effects.storageGet(["gmail.snapshot", "gmail.disabled"]).then((stored: Record<string, unknown>) => {
-            const snapshot = (stored["gmail.snapshot"] || changes["gmail.snapshot"]?.newValue) as GmailSnapshot | undefined;
-            paintMailBadge(snapshot?.accounts, stored["gmail.disabled"]);
-        });
+        const snapshot = changes["gmail.snapshot"]?.newValue as GmailSnapshot | undefined;
+        const disabled = changes["gmail.disabled"] ? changes["gmail.disabled"].newValue : mailBadgeDisabled;
+        paintMailBadge(snapshot?.accounts, disabled);
     }
     if ((changes["gmail.snapshot"] || changes["gmail.photos"] || changes["gmail.accountColors"]) && (current === "gmail" || embed === "gmail")) {
         renderGmail((changes["gmail.snapshot"]?.newValue as GmailSnapshot) || gmailView);
@@ -1243,6 +1335,26 @@ effects.storageOnChanged((changes: Record<string, {newValue?: unknown}>, area: s
 });
 
 type FxTable = {base: string; date: string; rates: Record<string, number>; fetchedAt: number};
+const downloadBadge = $("downloadBadge");
+const paintDownloadBadge = (count: number) => {
+    const text = completedDownloadsBadge(count) as string;
+    downloadBadge.textContent = text;
+    downloadBadge.hidden = !text;
+};
+const refreshDownloadBadge = async () => {
+    try {
+        const completed = await chrome.downloads.search({state: "complete"});
+        paintDownloadBadge(completed.length);
+    } catch {
+        paintDownloadBadge(0);
+    }
+};
+void refreshDownloadBadge();
+chrome.downloads.onChanged.addListener((delta) => {
+    if (delta.state?.current === "complete" || delta.state?.previous === "complete") void refreshDownloadBadge();
+});
+chrome.downloads.onErased.addListener(() => void refreshDownloadBadge());
+
 const FX_KEY = "fx.table";
 const fxAmount = $<HTMLInputElement>("fxAmount");
 const fxFrom = $<HTMLSelectElement>("fxFrom");

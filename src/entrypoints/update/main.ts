@@ -1,6 +1,6 @@
 import "@/modules/theme/theme.css";
 import {canApplyVersion, checkLatestRelease, isBongExtendManifest, type LatestRelease} from "@/core/update/release";
-import {installSession, pendingDecision, versionLine, type WriteProgress} from "@/core/update/installPlan";
+import {installSession, pendingDecision, shouldAutoStartInstall, versionLine, type WriteProgress} from "@/core/update/installPlan";
 import {fileKey, type PendingUpdate, type ZipFile} from "@/core/update/types";
 import {extractAll} from "@/core/update/zip";
 import {computeProgress, createMonotonic, pickTotalBytes, readAllWithProgress, type ProgressStage} from "@/core/update/progress";
@@ -156,6 +156,18 @@ if (import.meta.env.FIREFOX) {
         return dir;
     };
 
+    const findGrantedInstallDir = async (): Promise<FileSystemDirectoryHandle | null> => {
+        const saved = await loadDir();
+        if (!saved) return null;
+        try {
+            if (await saved.queryPermission({mode: "readwrite"}) !== "granted") return null;
+            await verifyDir(saved);
+            return saved;
+        } catch {
+            return null;
+        }
+    };
+
     const readExisting = async (dir: FileSystemDirectoryHandle, path: string[]): Promise<Uint8Array | null> => {
         try {
             let current = dir;
@@ -257,8 +269,15 @@ if (import.meta.env.FIREFOX) {
                 setError("릴리스에 Chrome용 zip(*-chrome.zip)이 없어요.");
                 return;
             }
-            setStatus("아래 버튼을 눌러 업데이트해 주세요.");
+            setStatus("업데이트를 확인했어요.");
             if (startButton) startButton.disabled = false;
+            const savedDir = await findGrantedInstallDir();
+            if (shouldAutoStartInstall({updateAvailable: true, pending: decision, directoryPermission: savedDir ? "granted" : "missing"})) {
+                setStatus("저장된 BongExtend 폴더를 확인했어요. 업데이트를 바로 설치해요.");
+                void runUpdate(savedDir!);
+            } else {
+                setStatus("폴더를 고르고 업데이트 시작을 누르면 바로 설치해요.");
+            }
         } catch (error) {
             if (decision !== "resume") {
                 setStatus("업데이트 정보를 가져오지 못했어요.");
@@ -276,13 +295,13 @@ if (import.meta.env.FIREFOX) {
         }
     };
 
-    startButton?.addEventListener("click", async () => {
+    const runUpdate = async (savedDir?: FileSystemDirectoryHandle) => {
         if (!startButton || !release?.assetUrl) return;
         startButton.disabled = true;
         setError("");
 
         try {
-            const dir = await getInstallDir(true);
+            const dir = savedDir || await getInstallDir(true);
             resetProgress();
             showProgress("download", 0, release.assetSize);
             let bytes: ArrayBuffer;
@@ -322,7 +341,8 @@ if (import.meta.env.FIREFOX) {
             showFail(error);
             startButton.disabled = false;
         }
-    });
+    };
+    startButton?.addEventListener("click", () => void runUpdate());
 
     resumeButton?.addEventListener("click", async () => {
         if (!resumeButton) return;

@@ -22,7 +22,7 @@
         <button data-tab="gmail" role="tab" title="끌어서 순서 바꾸기 (Alt+←/→)" type="button">메일<span id="mailBadge" class="tab-badge" hidden></span></button>
         <button data-tab="fx" role="tab" title="끌어서 순서 바꾸기 (Alt+←/→)" type="button">환율<span id="fxBadge" class="tab-badge fx" hidden></span></button>
         <button data-tab="dark" role="tab" title="끌어서 순서 바꾸기 (Alt+←/→)" type="button">다크</button>
-        <button data-tab="download" role="tab" title="끌어서 순서 바꾸기 (Alt+←/→)" type="button">다운로드</button>
+        <button data-tab="download" role="tab" title="끌어서 순서 바꾸기 (Alt+←/→)" type="button">다운로드<span id="downloadBadge" class="tab-badge download" hidden></span></button>
     </div>
     <button id="rightClick" class="mouse-toggle" type="button" title="이 사이트에서 오른쪽 클릭, 복사, 글자 선택을 되살려요" aria-label="오른쪽 클릭" aria-pressed="false">
         <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
@@ -32,10 +32,6 @@
         </svg>
     </button>
 </nav>
-<div class="module-bar" id="moduleBar">
-    <label class="module-switch"><input id="moduleSwitch" type="checkbox"> <span id="moduleLabel">모듈 사용</span></label>
-    <small id="moduleNote"></small>
-</div>
 <main>
     <iframe data-frame="chzzk" title="치지직 설정"></iframe>
     <iframe data-frame="trans" title="번역"></iframe>
@@ -166,10 +162,24 @@
                     <button hidden id="openRelease" type="button">릴리스 페이지</button>
                     <button id="manage" type="button">확장 프로그램 관리</button>
                 </div>
-                <p class="be-hint" hidden id="updateHint">“지금 업데이트”는 새 탭에서 진행돼요. 처음 한 번만 확장 프로그램 폴더(manifest.json이 있는 폴더)를 고르면, 다음부터는 바뀐 파일만 덮어쓰고 자동으로 다시 켜요.</p>
+                <p class="be-hint" hidden id="updateHint">지금 업데이트를 누르면 설치 폴더를 고른 뒤 바로 설치해요. 선택한 폴더 권한이 남아 있으면 다음 업데이트부터는 확인 후 자동으로 진행돼요.</p>
                 <p class="be-hint" hidden id="firefoxUpdateNote">설치 파일은 크롬용이에요. 파이어폭스용 zip은 올리지 않아요.</p>
             </section>
             <div class="be-col">
+                <section class="be-card be-sec">
+                    <h4>모듈 사용</h4>
+                    <p class="be-hint">각 기능을 여기서 켜고 끌 수 있어요.</p>
+                    <div id="moduleOptions" class="module-options">
+                        <label class="be-row"><span class="be-row-text"><span>치지직</span><small>라이브 화면 편의 기능</small></span><input type="checkbox" role="switch" data-module-toggle="chzzk" aria-label="치지직 모듈 사용"></label>
+                        <label class="be-row"><span class="be-row-text"><span>번역</span><small>웹페이지 번역 기능</small></span><input type="checkbox" role="switch" data-module-toggle="trans" aria-label="번역 모듈 사용"></label>
+                        <label class="be-row"><span class="be-row-text"><span>디시</span><small>디시인사이드 편의 기능</small></span><input type="checkbox" role="switch" data-module-toggle="dc" aria-label="디시 모듈 사용"></label>
+                        <label class="be-row"><span class="be-row-text"><span>메일</span><small>메일 확인과 알림</small></span><input type="checkbox" role="switch" data-module-toggle="gmail" aria-label="메일 모듈 사용"></label>
+                        <label class="be-row"><span class="be-row-text"><span>환율</span><small>환율 계산 기능</small></span><input type="checkbox" role="switch" data-module-toggle="fx" aria-label="환율 모듈 사용"></label>
+                        <label class="be-row"><span class="be-row-text"><span>다크 모드</span><small>웹페이지 색상 변환 기능</small></span><input type="checkbox" role="switch" data-module-toggle="dark" aria-label="다크 모드 모듈 사용"></label>
+                        <label class="be-row"><span class="be-row-text"><span>다운로드</span><small>Chrono 및 다운로드 도구</small></span><input type="checkbox" role="switch" data-module-toggle="download" aria-label="다운로드 모듈 사용"></label>
+                    </div>
+                    <p id="moduleStatus" class="be-hint" role="status"></p>
+                </section>
                 <section class="be-card be-sec">
                     <h4>설정 백업·복원</h4>
                     <p class="be-hint">치지직·번역·디시 설정을 파일 하나로 저장하고 불러와요.</p>

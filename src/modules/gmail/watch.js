@@ -25,6 +25,13 @@ export const nextWaitMs = ({notify, moduleOn, online, idle, intervalMs}) => {
 
 export const accountEmailKey = (account) => String(account?.email || "").trim().toLowerCase();
 
+// The Atom fullcount can lag behind its entries. The visible unread list is a
+// lower bound, while an explicitly empty list means the inbox is now clear.
+export const accountUnread = (account) => {
+    if (Array.isArray(account?.messages) && account.messages.length === 0) return 0;
+    return Math.max(0, Number(account?.unread) || 0, Array.isArray(account?.messages) ? account.messages.length : 0);
+};
+
 // 같은 주소는 한 번만 둔다. Gmail 이 /mail/u/N 여러 번호를 같은 계정으로 돌려줘도 목록이 늘어나지 않는다.
 // 먼저 본 번호를 유지해서 읽음·보관 주소와 알림 끄기가 그대로다.
 export const dedupeAccounts = (accounts) => {
@@ -86,13 +93,6 @@ export const isDuplicateEmail = (accounts, account) => {
 export const enabledAccounts = (accounts, disabled) => {
     const off = new Set((disabled || []).map(Number));
     return (accounts || []).filter((account) => !off.has(Number(account.index)));
-};
-
-// A Gmail feed can report a stale fullcount while returning no unread entries.
-// Trust an explicit empty message list as the current inbox state.
-export const accountUnread = (account) => {
-    if (Array.isArray(account?.messages) && account.messages.length === 0) return 0;
-    return Math.max(0, Number(account?.unread) || 0);
 };
 
 export const unreadOf = (accounts, disabled) =>

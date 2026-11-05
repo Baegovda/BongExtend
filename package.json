@@ -1,7 +1,7 @@
 {
     "displayName": "BongExtend",
     "name": "bongextend",
-    "version": "1.2.17",
+    "version": "1.2.18",
     "description": "치지직·디시인사이드 개선, Gemini 번역, 다크 모드, 다운로드 관리 기능을 담은 크롬 확장 프로그램",
     "homepage": "https://github.com/Baegovda/BongExtend",
     "repository": {
@@ -24,7 +24,7 @@
         "zip:firefox": "node scripts/fetch-fx-icons.mjs && wxt zip -b firefox",
         "test:dc": "bun test src/core src/modules/settings-io.test.ts src/storage/update-keys.test.ts src/utils/sanitizeHtml.test.ts src/entrypoints/dc/composables/popupTabs.test.ts",
         "test:types": "tsc --noEmit -p tsconfig.json",
-        "test:js": "node --test src/modules/chzzk/test/*.test.js src/modules/trans/test/*.test.js src/modules/gmail/test/*.test.js src/modules/fx/test/*.test.js src/modules/rightclick/test/*.test.js src/modules/theme/test/*.test.js src/platform/test/*.test.js",
+        "test:js": "node --test src/modules/chzzk/test/*.test.js src/modules/trans/test/*.test.js src/modules/gmail/test/*.test.js src/modules/fx/test/*.test.js src/modules/rightclick/test/*.test.js src/modules/theme/test/*.test.js src/modules/dark/test/*.test.js src/modules/downloads/test/*.test.js src/platform/test/*.test.js",
         "verify": "bun scripts/verify-release-zip.ts"
     },
     "dependencies": {

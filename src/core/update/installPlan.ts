@@ -27,6 +27,12 @@ export const bytesEqual = (left: Uint8Array | null | undefined, right: Uint8Arra
 
 export const versionLine = (from: string, to: string): string => `${from} → ${to}`;
 
+export const shouldAutoStartInstall = (options: {
+    updateAvailable: boolean;
+    pending: PendingDecision;
+    directoryPermission: "granted" | "prompt" | "denied" | "missing";
+}): boolean => options.updateAvailable && options.pending !== "resume" && options.directoryPermission === "granted";
+
 export const pendingDecision = (
     pending: PendingUpdate | null | undefined,
     runningVersion: string

@@ -42,6 +42,13 @@ test("atom feed lists unread mail and the thread id", () => {
     assert.equal(parseAtom("<html>login</html>"), null);
 });
 
+test("atom fullcount never hides unread entries returned by the feed", () => {
+    const feed = ATOM.replace("<fullcount>2</fullcount>", "<fullcount>1</fullcount>");
+    const parsed = parseAtom(feed);
+    assert.equal(parsed.messages.length, 2);
+    assert.equal(parsed.unread, 2);
+});
+
 test("the first check does not notify, later new mail does", () => {
     const first = planMailNotifications([], [{id: "a"}, {id: "b"}], false);
     assert.deepEqual(first.notify, []);

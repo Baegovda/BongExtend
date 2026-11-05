@@ -5638,7 +5638,18 @@ function IndexedDBStorage() {
         if (cachedItems) {
             cachedItems[key] = value;
         }
-        return wrappedDB.putObject(storeId, key, value);
+        return wrappedDB.putObject(storeId, key, value).then(result => {
+            // Keep BongExtend's mail tab and toolbar badge in sync with the
+            // unread count Checker Plus has just committed to IndexedDB.
+            if (key === "unreadCount" && typeof globalThis.BongExtendOnUnreadCount === "function") {
+                try {
+                    globalThis.BongExtendOnUnreadCount(value);
+                } catch (error) {
+                    console.warn("BongExtend mail badge sync failed", error);
+                }
+            }
+            return result;
+        });
     };
 
     this.setEncryptedObj = async function (key, value, replacer = null) {

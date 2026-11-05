@@ -55,9 +55,10 @@ export const parseAtom = (xml) => {
             link
         });
     }
+    const unreadMessages = messages.filter((item) => item.id);
     return {
-        unread: Number.isFinite(full) ? full : messages.length,
+        unread: Math.max(Number.isFinite(full) ? full : 0, unreadMessages.length),
         email: emailFromTitle(feedTitle),
-        messages: messages.filter((item) => item.id)
+        messages: unreadMessages
     };
 };
