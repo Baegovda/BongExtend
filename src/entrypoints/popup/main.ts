@@ -16,7 +16,7 @@ import {openQuoteStream} from "@/modules/fx/tradingview.js";
 // @ts-ignore 순수 JS
 import {composite} from "@/modules/theme/contrast.js";
 // @ts-ignore 순수 JS
-import {dedupeAccounts, formatMailTime, mailSenderLines, mailTabBadge, orderAccounts, preferInbox} from "@/modules/gmail/watch.js";
+import {accountUnread, dedupeAccounts, formatMailTime, mailSenderLines, mailTabBadge, orderAccounts, preferInbox} from "@/modules/gmail/watch.js";
 // @ts-ignore 순수 JS
 import {ACCOUNT_COLORS, accountColor, accountInitial} from "@/modules/gmail/account-style.js";
 // @ts-ignore 순수 JS
@@ -28,7 +28,7 @@ import {gmailReadAccount, loadJson, openGmailPlace, openUrl, sendExtension} from
 // @ts-ignore 순수 JS
 import {gmailComposeUrl, gmailInboxUrl, gmailMessageUrl} from "@/modules/gmail/open.js";
 // @ts-ignore settings helpers are plain JS
-import {DARK_SETTINGS_KEY, darkSiteEnabled, darkSitePattern, normalizeDarkSettings} from "@/modules/dark/settings.js";
+import {DARK_SETTINGS_KEY, darkSiteEnabled, darkSitePattern, normalizeDarkHost, normalizeDarkSettings} from "@/modules/dark/settings.js";
 // @ts-ignore download settings helpers are plain JS
 import {DOWNLOAD_SETTINGS_KEY, normalizeDownloadSettings} from "@/modules/downloads/settings.js";
 
@@ -52,9 +52,26 @@ const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getEleme
 const checkerPlusMailFrame = $("checkerPlusMailFrame") as HTMLIFrameElement;
 const checkerPlusMailHome = $("checkerPlusMailHome") as HTMLButtonElement;
 const chronoPopupFrame = $("chronoPopupFrame") as HTMLIFrameElement;
+const applyEmbeddedTheme = (doc: Document, className: string, stylePath: string) => {
+    const root = doc.documentElement;
+    if (!root || root.classList.contains(className)) return;
+    root.classList.add(className);
+    root.style.colorScheme = getComputedStyle(document.documentElement).colorScheme;
+    for (const href of ["theme/theme.css", stylePath]) {
+        const stylesheet = doc.createElement("link");
+        stylesheet.rel = "stylesheet";
+        stylesheet.href = chrome.runtime.getURL(href);
+        doc.head?.appendChild(stylesheet);
+    }
+};
 checkerPlusMailFrame.addEventListener("load", () => {
     try {
-        checkerPlusMailHome.hidden = !checkerPlusMailFrame.contentWindow?.location.pathname.endsWith("/checkerplus-options.html");
+        const doc = checkerPlusMailFrame.contentDocument;
+        const optionsPage = checkerPlusMailFrame.contentWindow?.location.pathname.endsWith("/checkerplus-options.html");
+        checkerPlusMailHome.hidden = !optionsPage;
+        if (doc?.body?.id === "gmail-extension-popup") {
+            applyEmbeddedTheme(doc, "bongextend-checkerplus-embedded", "checkerplus-embed.css");
+        }
     } catch {
         checkerPlusMailHome.hidden = true;
     }
@@ -65,12 +82,8 @@ checkerPlusMailHome.addEventListener("click", () => {
 chronoPopupFrame.addEventListener("load", () => {
     try {
         const doc = chronoPopupFrame.contentDocument;
-        if (!doc || doc.documentElement.classList.contains("bongextend-chrono-embedded")) return;
-        doc.documentElement.classList.add("bongextend-chrono-embedded");
-        const stylesheet = doc.createElement("link");
-        stylesheet.rel = "stylesheet";
-        stylesheet.href = chrome.runtime.getURL("pop/pop-embed.css");
-        doc.head.appendChild(stylesheet);
+        if (!doc) return;
+        applyEmbeddedTheme(doc, "bongextend-chrono-embedded", "pop/pop-embed.css");
     } catch (error) {
         console.warn("Chrono 다운로드 화면을 BongExtend 탭에 맞추지 못했어요.", error);
     }
@@ -508,6 +521,7 @@ type DarkConfig = Record<string, any>;
 let darkConfig: DarkConfig = normalizeDarkSettings(null) as DarkConfig;
 let darkTabId: number | null = null;
 let darkHost = "";
+let darkHostLabel = "";
 let darkSiteOrigin = "";
 let darkPermissionGranted = false;
 let darkAllSitesPermissionGranted = false;
@@ -543,7 +557,7 @@ const paintDarkValues = (config: DarkConfig) => {
     darkInputs.font.value = theme.fontFamily || "";
     darkInputs.background.value = theme.darkSchemeBackgroundColor || "#181a1b";
     darkInputs.text.value = theme.darkSchemeTextColor || "#e8e6e3";
-    $("darkSiteLabel").textContent = darkHost || "이 페이지에서는 사용할 수 없어요";
+    $("darkSiteLabel").textContent = darkHostLabel || "이 페이지에서는 사용할 수 없어요";
     $("darkSiteNote").textContent = !darkHost
         ? "브라우저 내부 페이지에는 적용할 수 없어요."
         : !darkPermissionGranted
@@ -560,14 +574,18 @@ const loadDarkConfig = async () => {
     const tab = tabs[0];
     darkTabId = typeof tab?.id === "number" ? tab.id : null;
     darkHost = "";
+    darkHostLabel = "";
     darkSiteOrigin = "";
     darkPermissionGranted = false;
     darkAllSitesPermissionGranted = false;
     try {
         const url = new URL(tab?.url || "");
         if (url.protocol === "http:" || url.protocol === "https:") {
-            darkHost = url.hostname.toLowerCase();
-            darkSiteOrigin = url.origin;
+            darkHost = normalizeDarkHost(url.hostname) as string;
+            if (darkHost) {
+                darkHostLabel = url.hostname.toLowerCase();
+                darkSiteOrigin = url.origin;
+            }
         }
     } catch { /* 주소 표시줄이나 브라우저 내부 페이지 */ }
     if (darkHost && darkSiteOrigin) {
@@ -763,7 +781,7 @@ const renderGmail = (snapshot: GmailSnapshot | null | undefined, error = "") => 
     const accounts = orderAccounts(dedupeAccounts(view?.accounts || []), mailOrder) as GmailAccount[];
     renderedMailAccounts = accounts;
     if (mailAccountFilter && !accounts.some((item) => item.email.trim().toLowerCase() === mailAccountFilter)) mailAccountFilter = "";
-    const unread = accounts.filter((item) => item.enabled !== false).reduce((sum, item) => sum + (Number(item.unread) || 0), 0);
+    const unread = accounts.filter((item) => item.enabled !== false).reduce((sum, item) => sum + accountUnread(item), 0);
     gmailAccounts.replaceChildren();
     gmailList.replaceChildren();
     const allCount = accounts.reduce((sum, item) => sum + (item.messages || []).length, 0);
@@ -797,7 +815,7 @@ const renderGmail = (snapshot: GmailSnapshot | null | undefined, error = "") => 
         who.append(title);
         const count = document.createElement("span");
         count.className = "mail-count";
-        const unreadCount = Number(item.unread) || 0;
+        const unreadCount = accountUnread(item);
         count.textContent = unreadCount > 99 ? "99+" : String(unreadCount);
         count.hidden = unreadCount <= 0;
         count.setAttribute("aria-label", `읽지 않은 메일 ${unreadCount}통`);

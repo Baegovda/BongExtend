@@ -28,11 +28,13 @@ const clamp = (value, min, max, fallback) => {
   return Number.isFinite(number) ? Math.min(max, Math.max(min, number)) : fallback;
 };
 
-const normalizeHost = (value) => {
+export const normalizeDarkHost = (value) => {
   const host = String(value || "").trim().toLowerCase().replace(/^\*\./, "").replace(/^www\./, "");
   if (!host || host.length > 253 || !/^[a-z0-9.-]+$/.test(host) || host.includes("..")) return "";
   return host;
 };
+
+const normalizeHost = normalizeDarkHost;
 
 const normalizeHosts = (value) => Array.isArray(value)
   ? [...new Set(value.map(normalizeHost).filter(Boolean))].slice(0, 200)
