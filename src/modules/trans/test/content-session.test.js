@@ -274,6 +274,7 @@ test('pending text breathes gently and aurora gradients are reserved for the rev
   assert.match(source, /pt-pending-pulse/);
   assert.match(source, /WIPER_MS = 1380/);
   assert.match(source, /PRISM_MS = 1340/);
+  assert.match(source, /WIPE_MS = 1800/);
   assert.match(source, /50% \{ opacity: 0\.72;/);
   assert.match(source, /0%, 100% \{ opacity: 0\.94;/);
   const pendingRule = source.match(/`\.\$\{PENDING_CLASS\} \{[^`]+`/)?.[0] || '';
@@ -281,6 +282,11 @@ test('pending text breathes gently and aurora gradients are reserved for the rev
   assert.doesNotMatch(pendingRule, /linear-gradient|background-image|background-clip/);
   assert.match(source, /linear-gradient\(108deg, #46eaff/);
   assert.match(source, /pt-aurora-polish/);
+  assert.match(source, /pt-page-translator-wiper-beam/);
+  assert.match(source, /mix-blend-mode: normal/);
+  assert.match(source, /linear-gradient\(90deg, #00cfff 0%, #00cfff 18%, #ffffff 40%/);
+  assert.match(source, /box-shadow: 0 0 3px #ffffff, 0 0 8px/);
+  assert.match(source, /#f5ffff 49%/);
   assert.doesNotMatch(source, /pt-prism-glow/);
   assert.doesNotMatch(source, /#2a6e7a|#9ad7e4|#5568b0/);
 
@@ -311,6 +317,7 @@ test('pending text breathes gently and aurora gradients are reserved for the rev
   assert.equal(reduced.classList.contains('pt-page-translator-reveal'), false);
   assert.equal(reduced.classList.contains('pt-page-translator-prism'), false);
   assert.equal(reduced.childNodes[0].nodeValue, 'T:包邮');
+  assert.equal(reducedSession.sent.length, 1);
 
   const plainRoot = element('div');
   const plain = element('a', {}, ['包邮']);
@@ -346,15 +353,42 @@ test('pending text breathes gently and aurora gradients are reserved for the rev
 });
 
 function revealDocument(created) {
+  const children = [];
+  const listeners = new Map();
+  const documentElement = {
+    children,
+    appendChild(node) {
+      children.push(node);
+      node.parentNode = documentElement;
+      return node;
+    },
+    removeChild(node) {
+      const index = children.indexOf(node);
+      if (index >= 0) children.splice(index, 1);
+      node.parentNode = null;
+      return node;
+    },
+  };
   return {
+    dispatch(type) { for (const listener of listeners.get(type) || []) listener(); },
+    addEventListener(type, listener) {
+      if (!listeners.has(type)) listeners.set(type, []);
+      listeners.get(type).push(listener);
+    },
     getElementById() { return { id: 'page-translator-motion' }; },
     createElement() {
+      const declarations = {};
       const node = {
         id: '',
         className: '',
         textContent: '',
-        style: {},
+        style: {
+          setProperty(name, value) { declarations[name] = String(value); },
+          removeProperty(name) { delete declarations[name]; },
+          getPropertyValue(name) { return declarations[name] || ''; },
+        },
         children: [],
+        parentNode: null,
         setAttribute() {},
         appendChild(child) { this.children.push(child); return child; },
         append(...kids) { this.children.push(...kids); },
@@ -363,9 +397,117 @@ function revealDocument(created) {
       return node;
     },
     createTextNode(value) { return { nodeType: 3, nodeValue: value }; },
-    documentElement: { appendChild() {} },
+    documentElement,
   };
 }
+
+test('the aurora beam visibly crosses translated text and cleans up after its pass', async () => {
+  const created = [];
+  const document = revealDocument(created);
+  const timers = [];
+  const frames = [];
+  let clock = 0;
+  const api = loadContent({
+    document,
+    getComputedStyle() {
+      return {
+        direction: 'ltr',
+        color: 'rgb(24, 32, 48)',
+        backgroundColor: 'rgba(0, 0, 0, 0)',
+        backgroundImage: 'none',
+      };
+    },
+  });
+  const root = element('div');
+  const text = styleBag(element('span', {
+    rect: { left: 20, top: 50, right: 120, bottom: 70, width: 100, height: 20 },
+  }, ['Free shipping']));
+  root.append(text);
+  const session = api.createSession({
+    root,
+    walkRoot: root,
+    enableBanner: false,
+    prefersReducedMotion: false,
+    now: () => clock,
+    requestAnimationFrame(fn) { frames.push(fn); return frames.length; },
+    measureRect(node) { return node.parentElement.getBoundingClientRect(); },
+    setTimer(fn, ms) { timers.push({ fn, ms }); return timers.length; },
+    clearTimer() {},
+    IntersectionObserver: class { observe() {} disconnect() {} },
+    MutationObserver: class { observe() {} disconnect() {} },
+    sendBatch: async (texts) => ({ ok: true, translations: texts.map(() => '무료 배송') }),
+  });
+
+  session.start();
+  await session.whenIdle();
+  const beam = created.find((node) => node.className === 'pt-page-translator-wiper-beam');
+  assert.ok(beam, 'a foreground wiper element is created');
+  assert.equal(text.childNodes[0].nodeValue, '무료 배송');
+  assert.equal(text.classList.contains('pt-page-translator-aurora-wipe'), true);
+  assert.equal(beam.style.getPropertyValue('position'), 'fixed');
+  assert.equal(beam.style.getPropertyValue('z-index'), '2147483647');
+  assert.equal(beam.style.getPropertyValue('width'), '5px');
+  assert.equal(beam.style.getPropertyValue('left'), '9px');
+  assert.match(beam.style.getPropertyValue('background'), /#00cfff.*#9a56ff/);
+  assert.equal(beam.style.getPropertyValue('mix-blend-mode'), 'normal');
+
+  const firstFrame = frames.shift();
+  clock = 900;
+  firstFrame(clock);
+  const middle = Number.parseFloat(beam.style.getPropertyValue('left'));
+  assert.ok(middle > 55 && middle < 80, `beam is over the sentence at midpoint (${middle}px)`);
+  assert.equal(beam.style.getPropertyValue('opacity'), '1');
+
+  text.rect = { left: 200, top: 80, right: 300, bottom: 100, width: 100, height: 20 };
+  document.dispatch('scroll');
+  assert.equal(Number.parseFloat(beam.style.getPropertyValue('left')), 247.5);
+  assert.equal(Number.parseFloat(beam.style.getPropertyValue('top')), 76.4);
+
+  const finalFrame = frames.shift();
+  clock = 1800;
+  finalFrame(clock);
+  assert.equal(beam.parentNode, null);
+  assert.equal(text.classList.contains('pt-page-translator-aurora-wipe'), false);
+  assert.equal(text.ink['--pt-ink'], undefined);
+});
+
+test('turning translation off during the aurora pass removes its beam and restores the source', async () => {
+  const created = [];
+  const frames = [];
+  const api = loadContent({
+    document: revealDocument(created),
+    getComputedStyle() {
+      return { direction: 'ltr', color: 'black', backgroundColor: 'transparent', backgroundImage: 'none' };
+    },
+  });
+  const root = element('div');
+  const text = styleBag(element('span', {}, ['Free shipping']));
+  root.append(text);
+  const session = api.createSession({
+    root,
+    walkRoot: root,
+    enableBanner: false,
+    prefersReducedMotion: false,
+    requestAnimationFrame(fn) { frames.push(fn); return frames.length; },
+    measureRect(node) { return node.parentElement.getBoundingClientRect(); },
+    setTimer() { return 1; },
+    clearTimer() {},
+    IntersectionObserver: class { observe() {} disconnect() {} },
+    MutationObserver: class { observe() {} disconnect() {} },
+    sendBatch: async (texts) => ({ ok: true, translations: texts.map(() => '무료 배송') }),
+  });
+
+  session.start();
+  await session.whenIdle();
+  const beam = created.find((node) => node.className === 'pt-page-translator-wiper-beam');
+  assert.ok(beam);
+  session.setEnabled(false);
+  assert.equal(text.childNodes[0].nodeValue, 'Free shipping');
+  assert.equal(beam.parentNode, null);
+  assert.equal(text.classList.contains('pt-page-translator-aurora-wipe'), false);
+  frames.shift()(500); // 취소한 프레임이 늦게 와도 다시 켜지면 안 돼요.
+  assert.equal(beam.parentNode, null);
+});
 
 test('wiper order follows the line and finishes every box on one clock', () => {
   const api = loadContent();

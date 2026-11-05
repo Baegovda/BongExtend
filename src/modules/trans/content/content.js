@@ -12,12 +12,13 @@
   const EDGE_CLASS = 'pt-sweep-edge';
   const PRISM_CLASS = 'pt-page-translator-prism';
   const WIPE_CLASS = 'pt-page-translator-aurora-wipe';
+  const BEAM_CLASS = 'pt-page-translator-wiper-beam';
   const MAX_LIVE_PENDING = 8;
   const FADE_MS = 880;
   const WIPER_MS = 1380;
   const SOFT_MS = 460;
   const PRISM_MS = 1340;
-  const WIPE_MS = 1720;
+  const WIPE_MS = 1800;
   // 번역 대기 중에는 얕게 숨 쉬고, 결과는 오로라 와이퍼가 쓸고 지나가요.
   const MOTION_CSS = [
     `.pt-page-translator-dup { visibility: hidden !important; }`,
@@ -47,19 +48,21 @@
     '38% { background-position: 53% 50%; filter: drop-shadow(0 0 8px rgba(172, 133, 255, .58)); }',
     '100% { background-position: 0% 50%; filter: none; }',
     '}',
-    `.${WIPE_CLASS} { color: transparent !important; -webkit-text-fill-color: transparent !important; background-image: linear-gradient(105deg, var(--pt-ink) 0%, var(--pt-ink) 25%, #00cfff 34%, #8d5dff 44%, #ff46ba 53%, #48ffd0 63%, #f6ff74 72%, var(--pt-ink) 84%, var(--pt-ink) 100%) !important; background-size: 360% 100% !important; background-position: 100% 50% !important; background-repeat: no-repeat !important; background-clip: text !important; -webkit-background-clip: text !important; animation: pt-aurora-wipe ${WIPE_MS}ms cubic-bezier(.18, .78, .15, 1) both !important; filter: drop-shadow(0 0 5px rgba(0, 210, 255, .92)) drop-shadow(0 0 12px rgba(150, 74, 255, .72)) !important; }`,
+    `.${WIPE_CLASS} { color: transparent !important; -webkit-text-fill-color: transparent !important; background-image: linear-gradient(105deg, var(--pt-ink) 0%, var(--pt-ink) 42%, rgba(0, 220, 255, .9) 47%, #f5ffff 49%, #9674ff 51%, #ff65c9 54%, #55ffe0 57%, var(--pt-ink) 64%, var(--pt-ink) 100%) !important; background-size: 280% 100% !important; background-position: 105% 50% !important; background-repeat: no-repeat !important; background-clip: text !important; -webkit-background-clip: text !important; animation: pt-aurora-wipe ${WIPE_MS}ms cubic-bezier(.21, .72, .23, 1) both !important; filter: drop-shadow(0 0 5px rgba(0, 210, 255, .92)) drop-shadow(0 0 12px rgba(150, 74, 255, .72)) !important; }`,
     '@keyframes pt-aurora-wipe {',
-    '0% { background-position: 100% 50%; filter: drop-shadow(0 0 3px rgba(0, 210, 255, .64)); }',
-    '30% { background-position: 72% 50%; filter: drop-shadow(0 0 9px rgba(0, 210, 255, .98)) drop-shadow(0 0 16px rgba(150, 74, 255, .82)); }',
-    '62% { background-position: 34% 50%; filter: drop-shadow(0 0 8px rgba(255, 70, 186, .78)) drop-shadow(0 0 15px rgba(72, 255, 208, .82)); }',
-    '100% { background-position: 0% 50%; filter: none; }',
+    '0% { background-position: 105% 50%; filter: drop-shadow(0 0 2px rgba(0, 210, 255, .36)); }',
+    '22% { filter: drop-shadow(0 0 9px rgba(0, 210, 255, .98)) drop-shadow(0 0 16px rgba(150, 74, 255, .82)); }',
+    '78% { filter: drop-shadow(0 0 8px rgba(255, 70, 186, .78)) drop-shadow(0 0 15px rgba(72, 255, 208, .82)); }',
+    '100% { background-position: -5% 50%; filter: none; }',
     '}',
+    `.${BEAM_CLASS} { box-sizing: border-box !important; position: fixed !important; display: block !important; z-index: 2147483647 !important; margin: 0 !important; padding: 0 !important; border: 0 !important; border-radius: 999px !important; pointer-events: none !important; background: linear-gradient(90deg, #00cfff 0%, #00cfff 18%, #ffffff 40%, #ffffff 60%, #9a56ff 82%, #ff4bcf 100%) !important; box-shadow: 0 0 3px #ffffff, 0 0 8px rgba(255, 255, 255, .98), 0 0 16px rgba(0, 220, 255, .98), 0 0 30px rgba(141, 93, 255, .9) !important; mix-blend-mode: normal !important; opacity: .98 !important; will-change: left, opacity !important; }`,
     '@media (prefers-reduced-motion: reduce) {',
     `.${PENDING_CLASS} { animation: none !important; opacity: 0.74 !important; }`,
     `.${FADE_CLASS} { animation: none !important; opacity: 1 !important; filter: none !important; }`,
     `.${SWEEP_CLASS} { display: none !important; }`,
     `.${PRISM_CLASS} { animation: none !important; color: var(--pt-ink) !important; -webkit-text-fill-color: currentColor !important; background: none !important; filter: none !important; }`,
     `.${WIPE_CLASS} { animation: none !important; color: var(--pt-ink) !important; -webkit-text-fill-color: currentColor !important; background: none !important; filter: none !important; }`,
+    `.${BEAM_CLASS} { display: none !important; }`,
     '}',
   ].join('');
   const MAX_ITEMS = 24;
@@ -184,7 +187,7 @@
   function isSkipElement(element) {
     if (!element || element.nodeType !== 1) return false;
     if (element.id === HOST_ID || element.id === STYLE_ID) return true;
-    if (classHas(element, SWEEP_CLASS) || classHas(element, 'pt-page-translator-probe')) return true;
+    if (classHas(element, SWEEP_CLASS) || classHas(element, BEAM_CLASS) || classHas(element, 'pt-page-translator-probe')) return true;
     const tag = String(element.tagName || '').toUpperCase();
     if (SKIP_TAGS.has(tag)) return true;
     if (typeof element.getAttribute === 'function' && element.getAttribute('translate') === 'no') return true;
@@ -382,7 +385,7 @@
     const done = new Set();
     const expectedWrite = new WeakMap();
     const visibility = new WeakMap();
-    const wipeToken = new WeakMap();
+    const wipeRuns = new Map();
 
     let started = false;
     let enabled = false;
@@ -417,6 +420,7 @@
     const revealWait = [];
     let wiper = null;
     let soft = null;
+    let wipeScrollBound = false;
     let sweepEpoch = 0;
     let revealFrame = 0;
     let scrollBound = false;
@@ -565,8 +569,7 @@
     function markPending(element, node) {
       if (!revealAnimation || !canDecorate(element) || !canHold(element) || tooLargeToPulse(element, node)) return;
       ensureMotionStyle();
-      if (element.classList) element.classList.remove(WIPE_CLASS);
-      wipeToken.delete(element);
+      stopAuroraWipe(element);
       const count = pendingCounts.get(element) || 0;
       pendingCounts.set(element, count + 1);
       decorated.add(element);
@@ -658,6 +661,12 @@
       if (!style) return;
       if (typeof style.setProperty === 'function') style.setProperty(name, value);
       else style[name] = value;
+    }
+
+    function setImportantStyle(element, name, value) {
+      if (!element || !element.style) return;
+      if (typeof element.style.setProperty === 'function') element.style.setProperty(name, value, 'important');
+      else element.style[name.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase())] = value;
     }
 
     function removeStyleProp(style, name) {
@@ -855,7 +864,7 @@
     function isOwnNode(node) {
       if (!node || node.nodeType !== 1) return false;
       if (node.id === HOST_ID || node.id === STYLE_ID) return true;
-      return classHas(node, SWEEP_CLASS);
+      return classHas(node, SWEEP_CLASS) || classHas(node, BEAM_CLASS);
     }
 
     function canAnimate() {
@@ -1096,23 +1105,124 @@
     function armAuroraWipe(element) {
       if (!revealAnimation || motionReduced() || !canDecorate(element) || !canHold(element)) return;
       const computed = computedStyle(element);
-      if (!backgroundIsClear(computed)) return;
+      const clearBackground = backgroundIsClear(computed);
+      if (typeof document === 'undefined' || !document.createElement) return;
+      const rawRect = typeof element.getBoundingClientRect === 'function' ? element.getBoundingClientRect() : null;
+      const rect = normalizeRect(rawRect);
+      if (!rect || Number(rawRect && rawRect.width) <= 0 || Number(rawRect && rawRect.height) <= 0
+        || rect.width > 640 || rect.height > 220) return;
+
+      stopAuroraWipe(element);
       ensureMotionStyle();
       const ink = computed && computed.color;
-      if (ink) setCssVar(element, '--pt-ink', ink);
-      element.classList.remove(WIPE_CLASS);
-      if (typeof element.offsetWidth === 'number') void element.offsetWidth;
-      element.classList.add(WIPE_CLASS);
+      if (clearBackground && ink) {
+        if (ink) setCssVar(element, '--pt-ink', ink);
+        element.classList.add(WIPE_CLASS);
+      }
+
+      const beam = document.createElement('div');
+      beam.className = BEAM_CLASS;
+      beam.setAttribute('translate', 'no');
+      beam.setAttribute('aria-hidden', 'true');
+      const beamWidth = 5;
+      const overscan = Math.max(6, Math.min(18, rect.width * 0.035));
+      const rtl = readDirection(element) === 'rtl';
+      const from = rect.left - beamWidth - overscan;
+      const rightToLeftFrom = rect.left + rect.width + overscan;
+      const start = rtl ? rightToLeftFrom : from;
+      const top = rect.top - Math.min(7, Math.max(3, rect.height * 0.18));
+      const height = rect.height + Math.min(14, Math.max(6, rect.height * 0.36));
+      for (const [name, value] of [
+        ['position', 'fixed'],
+        ['left', `${start}px`],
+        ['top', `${top}px`],
+        ['width', `${beamWidth}px`],
+        ['height', `${height}px`],
+        ['opacity', '0.22'],
+        ['z-index', '2147483647'],
+        ['pointer-events', 'none'],
+        ['border-radius', '999px'],
+        ['background', 'linear-gradient(90deg, #00cfff 0%, #00cfff 18%, #fff 40%, #fff 60%, #9a56ff 82%, #ff4bcf 100%)'],
+        ['box-shadow', '0 0 3px #fff, 0 0 8px rgba(255,255,255,.98), 0 0 16px rgba(0,220,255,.98), 0 0 30px rgba(141,93,255,.9)'],
+        ['mix-blend-mode', 'normal'],
+      ]) setImportantStyle(beam, name, value);
+      mountNode(beam);
+
+      const state = { beam, frame: null, timer: null, startedAt: nowMs(), progress: 0, rect, rtl, beamWidth, overscan };
+      state.place = (progress, nextRect) => {
+        if (nextRect) {
+          const measured = normalizeRect(nextRect);
+          if (measured) state.rect = measured;
+        }
+        const startX = state.rtl
+          ? state.rect.left + state.rect.width + state.overscan
+          : state.rect.left - state.beamWidth - state.overscan;
+        const endX = state.rtl
+          ? state.rect.left - state.beamWidth - state.overscan
+          : state.rect.left + state.rect.width + state.overscan;
+        const verticalBleed = Math.min(7, Math.max(3, state.rect.height * 0.18));
+        const beamHeight = state.rect.height + verticalBleed * 2;
+        const x = startX + (endX - startX) * progress;
+        setImportantStyle(beam, 'left', `${x.toFixed(2)}px`);
+        setImportantStyle(beam, 'top', `${(state.rect.top - verticalBleed).toFixed(2)}px`);
+        setImportantStyle(beam, 'height', `${beamHeight.toFixed(2)}px`);
+      };
+      wipeRuns.set(element, state);
       decorated.add(element);
-      const token = {};
-      wipeToken.set(element, token);
-      setTimer(() => {
-        if (wipeToken.get(element) !== token) return;
+      if (!wipeScrollBound) {
+        wipeScrollBound = true;
+        if (typeof document.addEventListener === 'function') document.addEventListener('scroll', repositionAuroraWipes, true);
+        if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') window.addEventListener('resize', repositionAuroraWipes);
+      }
+      const finishWipe = () => {
+        if (wipeRuns.get(element) !== state) return;
+        if (state.timer != null) clearTimer(state.timer);
+        if (state.frame != null) {
+          const cancel = options.cancelAnimationFrame || globalThis.cancelAnimationFrame;
+          try {
+            if (typeof cancel === 'function') cancel(state.frame);
+            else if (!options.requestAnimationFrame && typeof globalThis.requestAnimationFrame !== 'function') clearTimer(state.frame);
+          } catch { /* 이미 끝난 프레임이에요. */ }
+        }
+        removeNode(beam);
+        wipeRuns.delete(element);
         if (element.classList) element.classList.remove(WIPE_CLASS);
         clearCssVar(element, '--pt-ink');
-        wipeToken.delete(element);
         if (!pendingCounts.has(element)) decorated.delete(element);
-      }, WIPE_MS + 80);
+      };
+      state.finish = finishWipe;
+      state.timer = setTimer(finishWipe, WIPE_MS + 120);
+      const step = (time) => {
+        if (wipeRuns.get(element) !== state) return;
+        const t = clamp01((Number(time) - state.startedAt) / WIPE_MS);
+        const eased = easeInOut(t);
+        state.progress = eased;
+        const opacity = Math.min(1, 0.22 + eased * 6, 0.22 + (1 - eased) * 6);
+        state.place(eased);
+        setImportantStyle(beam, 'opacity', String(opacity));
+        if (t >= 1) finishWipe();
+        else state.frame = requestFrame(step);
+      };
+      state.frame = requestFrame(step);
+    }
+
+    function repositionAuroraWipes() {
+      for (const [element, state] of wipeRuns) {
+        if (!connected(element) || typeof element.getBoundingClientRect !== 'function') {
+          if (state.finish) state.finish();
+          continue;
+        }
+        state.place(state.progress, element.getBoundingClientRect());
+      }
+    }
+
+    function stopAuroraWipe(element) {
+      const state = element && wipeRuns.get(element);
+      if (state && typeof state.finish === 'function') state.finish();
+      else {
+        if (element && element.classList) element.classList.remove(WIPE_CLASS);
+        if (element) clearCssVar(element, '--pt-ink');
+      }
     }
 
     function releaseJob(job, commit) {
@@ -1329,7 +1439,7 @@
           element.classList.remove(HOLD_CLASS);
           element.classList.remove(PRISM_CLASS);
           element.classList.remove(WIPE_CLASS);
-          wipeToken.delete(element);
+          stopAuroraWipe(element);
         }
         clearCssVar(element, '--pt-ink');
       }
