@@ -71,6 +71,19 @@ test('재생 주소는 두고 프리롤·미드롤 표시만 끈다', () => {
   assert.equal(numeric.playerAdDisplayResponse.postRoll, false);
 });
 
+test('채널 정보의 playerAdFlag 광고 표시도 끈다', () => {
+  const response = {
+    content: {
+      channelId: 'channel-1',
+      playerAdFlag: { preRoll: true, midRoll: true, postRoll: true }
+    }
+  };
+  assert.equal(A.patchAdResponse(response), true);
+  assert.deepEqual(response.content.playerAdFlag, { preRoll: false, midRoll: false, postRoll: false });
+  assert.equal('playerAdDisplayResponse' in response.content, false);
+  assert.equal(A.patchAdResponse(response), false);
+});
+
 test('시청자 수·채팅·상품 목록은 바꾸지 않는다', () => {
   const live = { code: 200, content: { status: 'OPEN', concurrentUserCount: 3, liveId: 1, chatChannelId: 'abc' } };
   const chat = { content: { message: '안녕', userIdHash: 'u' } };
@@ -193,6 +206,9 @@ test('fetch 는 광고 일정을 막지 않고 재생 JSON 의 광고 표시만 
   // 이미 설치된 훅이 원본 fetch 를 가리키므로, 시청자 조회는 JSON.parse 경로로 확인한다.
   const status = win.JSON.parse(statusRaw);
   assert.equal(status.content.concurrentUserCount, 4);
+  const channelRaw = JSON.stringify({ content: { playerAdFlag: { preRoll: true, midRoll: true, postRoll: true } } });
+  const channel = win.JSON.parse(channelRaw);
+  assert.deepEqual(channel.content.playerAdFlag, { preRoll: false, midRoll: false, postRoll: false });
   const chat = win.JSON.parse('{"content":{"message":"안녕"}}');
   assert.equal(chat.content.message, '안녕');
 });

@@ -93,6 +93,11 @@
     try { video.muted = !!state.muted; } catch (e) {}
     return video.muted === !!state.muted;
   }
+  function audioStateMatches(video, state) {
+    if (!video || !state || video.muted !== !!state.muted) return false;
+    const volume = Number(video.volume), target = Number(state.volume);
+    return Number.isFinite(volume) && Number.isFinite(target) && Math.abs(volume - target) < 0.01;
+  }
   // 음소거·볼륨 버튼인지. 복구 중 사용자가 직접 누른 소리는 되돌리지 않기 위해 쓴다.
   function isAudioControlLabel(text) {
     return /음소거|볼륨|mute|volume/i.test(String(text || ''));
@@ -267,5 +272,5 @@
     if (tag === 'IMG') return /\/Banner_/i.test(String(info.src || '')) && /banner_(image|link)_/i.test(String(info.cls || ''));
     return false;
   }
-  root.BongPlayer = { isSkipButtonLabel, isSkipCandidate, hasAdContainer, seekEndTime, AD_CONTAINER_SEL, isAdActive, isGuideText, isPurchaseGuideDialogText, isSkipText, adTextKind, isSafeSkipLabel, isAdDuration, captureAudioState, restoreAudioState, isAudioControlLabel, audioRestoreAction, noteLiveAudio, audioAfterAd, isDisplayAdElement, countdownSeconds, skipAction, pickSkipElement, isAdChrome, pickAdConcealNode, isContentVideo, isAdVideo, isBoostTarget, resolveAdConceal, planBlackRecovery, AD_CONCEAL_CSS, AD_CONCEAL_SHADOW_CSS };
+  root.BongPlayer = { isSkipButtonLabel, isSkipCandidate, hasAdContainer, seekEndTime, AD_CONTAINER_SEL, isAdActive, isGuideText, isPurchaseGuideDialogText, isSkipText, adTextKind, isSafeSkipLabel, isAdDuration, captureAudioState, restoreAudioState, audioStateMatches, isAudioControlLabel, audioRestoreAction, noteLiveAudio, audioAfterAd, isDisplayAdElement, countdownSeconds, skipAction, pickSkipElement, isAdChrome, pickAdConcealNode, isContentVideo, isAdVideo, isBoostTarget, resolveAdConceal, planBlackRecovery, AD_CONCEAL_CSS, AD_CONCEAL_SHADOW_CSS };
 })(typeof globalThis !== 'undefined' ? globalThis : this);
