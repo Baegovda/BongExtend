@@ -2031,11 +2031,47 @@
   ns.slotRect = slotRect;
 
   function install() {
+    function sendBatchOverPort(texts) {
+      return new Promise((resolve, reject) => {
+        let port;
+        try {
+          port = chrome.runtime.connect({ name: 'bongextend-translation-batch' });
+        } catch (error) {
+          reject(error);
+          return;
+        }
+        let settled = false;
+        const finish = (callback, value) => {
+          if (settled) return;
+          settled = true;
+          port.onMessage.removeListener(onMessage);
+          port.onDisconnect.removeListener(onDisconnect);
+          callback(value);
+          try { port.disconnect(); } catch { /* The service worker may have closed the port already. */ }
+        };
+        const onMessage = (message) => {
+          if (message?.type !== 'BONGEXTEND_TRANSLATION_BATCH_RESULT') return;
+          finish(resolve, message.response);
+        };
+        const onDisconnect = () => {
+          const reason = chrome.runtime.lastError?.message;
+          finish(reject, new Error(reason || '확장 프로그램과 연결이 끊겼어요. 페이지를 새로고침한 뒤 다시 시도해 주세요.'));
+        };
+        port.onMessage.addListener(onMessage);
+        port.onDisconnect.addListener(onDisconnect);
+        try {
+          port.postMessage({ type: 'BONGEXTEND_TRANSLATION_BATCH', texts });
+        } catch (error) {
+          finish(reject, error instanceof Error ? error : new Error(String(error)));
+        }
+      });
+    }
+
     const session = createSession({
       root: document.documentElement,
       walkRoot: document.body || document.documentElement,
       sendBatch(texts) {
-        return chrome.runtime.sendMessage({ type: 'TRANSLATE_BATCH', texts });
+        return sendBatchOverPort(texts);
       },
       onStatus(status) {
         let top = true;

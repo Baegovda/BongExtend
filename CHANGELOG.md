@@ -7,6 +7,10 @@ BongExtend 변경 이력. GitHub **[Releases](https://github.com/Baegovda/BongEx
 
 ## [Unreleased]
 
+## [1.2.15] - 2026-11-05
+
+- 페이지 번역 요청과 결과를 전용 연결로 주고받아 메일·다운로드 기능의 메시지 수신기와 부딪히지 않게 해요
+
 ## [1.2.14] - 2026-11-05
 
 - Fab 페이지에서 Dark Reader가 CSP에 막히는 인라인 프록시 코드를 건너뛰어요. 다크 테마는 적용하고 동적 스타일 추적만 줄여요
