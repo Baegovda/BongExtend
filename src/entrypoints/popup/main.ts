@@ -145,6 +145,7 @@ const showTab = async (tab: TabId, persist = true) => {
     if (tab === "download" && !chronoPopupFrame.src) {
         chronoPopupFrame.src = chronoPopupFrame.dataset.src || "/pop/pop.html";
     }
+    if (tab === "download") void acknowledgeDownloads();
     if (tab === "fx") void refreshFx();
     if (tab === "update") void paintModuleOptions();
     if (persist) void effects.storageSet({[TAB_KEY]: tab});
@@ -1316,6 +1317,11 @@ effects.storageOnChanged((changes: Record<string, {newValue?: unknown}>, area: s
 
 type FxTable = {base: string; date: string; rates: Record<string, number>; fetchedAt: number};
 const downloadBadge = $("downloadBadge");
+const DOWNLOAD_SEEN_KEY = "core.downloadsLastSeen";
+async function acknowledgeDownloads() {
+    await chrome.storage.local.set({[DOWNLOAD_SEEN_KEY]: Date.now()});
+    paintDownloadBadge(0);
+}
 const paintDownloadBadge = (count: number) => {
     const text = completedDownloadsBadge(count) as string;
     downloadBadge.textContent = text;
@@ -1323,7 +1329,14 @@ const paintDownloadBadge = (count: number) => {
 };
 const refreshDownloadBadge = async () => {
     try {
-        const completed = await chrome.downloads.search({state: "complete"});
+        const stored = await chrome.storage.local.get(DOWNLOAD_SEEN_KEY);
+        let seen = Number(stored[DOWNLOAD_SEEN_KEY]);
+        if (!Number.isFinite(seen) || seen <= 0) {
+            seen = Date.now();
+            await chrome.storage.local.set({[DOWNLOAD_SEEN_KEY]: seen});
+        }
+        if (current === "download") { await acknowledgeDownloads(); return; }
+        const completed = await chrome.downloads.search({state: "complete", endedAfter: new Date(seen).toISOString()});
         paintDownloadBadge(completed.length);
     } catch {
         paintDownloadBadge(0);
