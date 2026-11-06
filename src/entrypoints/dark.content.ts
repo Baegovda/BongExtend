@@ -1,4 +1,4 @@
-import {auto, disable, enable} from "darkreader";
+import {auto, disable, enable, setFetchMethod} from "darkreader";
 // @ts-ignore settings are plain JS shared with the dark-mode popup and service worker
 import {DARK_SETTINGS_KEY, darkSiteEnabled, darkThemeForSite, normalizeDarkSettings} from "@/modules/dark/settings.js";
 // @ts-ignore original Dark Reader fixes are plain JS
@@ -21,6 +21,17 @@ export default defineContentScript({
         }
         let generation = 0;
         const hostname = location.hostname.toLowerCase();
+
+        setFetchMethod(async (resourceUrl: string) => {
+            const url = new URL(resourceUrl, location.href);
+            if ((hostname === "naver.com" || hostname.endsWith(".naver.com")) &&
+                url.protocol === "https:" && (url.hostname === "pstatic.net" || url.hostname.endsWith(".pstatic.net")) &&
+                url.pathname.toLowerCase().endsWith(".css")) {
+                const result = await chrome.runtime.sendMessage({type: "dark-fetch-naver-css", url: url.href});
+                if (result?.ok) return new Response(result.text, {headers: {"Content-Type": "text/css"}});
+            }
+            return fetch(url.href, {credentials: "omit"});
+        });
 
         const apply = async () => {
             const current = ++generation;

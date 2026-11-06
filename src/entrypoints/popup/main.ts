@@ -580,6 +580,7 @@ let darkHostLabel = "";
 let darkSiteOrigin = "";
 let darkPermissionGranted = false;
 let darkAllSitesPermissionGranted = false;
+let darkNaverCssPermissionGranted = false;
 const darkStatus = $("darkStatus");
 const darkInputs = {
     everywhere: $<HTMLInputElement>("darkEverywhere"),
@@ -649,6 +650,7 @@ const loadDarkConfig = async () => {
         if (pattern) darkPermissionGranted = await chrome.permissions.contains({origins: [pattern]});
     }
     darkAllSitesPermissionGranted = await chrome.permissions.contains({origins: ["https://*/*", "http://*/*"]});
+    darkNaverCssPermissionGranted = await chrome.permissions.contains({origins: ["https://*.pstatic.net/*"]});
     darkConfig = normalizeDarkSettings(stored[DARK_SETTINGS_KEY]) as DarkConfig;
     paintDarkValues(darkConfig);
 };
@@ -677,16 +679,20 @@ const requestDarkOrigin = async (patterns: string[]) => {
 darkInputs.currentSite.addEventListener("change", async () => {
     if (!darkHost) return;
     const enabling = darkInputs.currentSite.checked;
-    if (enabling && !darkPermissionGranted) {
+    const naverCss = darkHost === "naver.com" || darkHost.endsWith(".naver.com");
+    if (enabling && (!darkPermissionGranted || (naverCss && !darkNaverCssPermissionGranted))) {
         const protocol = new URL(darkSiteOrigin).protocol;
         const pattern = darkSitePattern(darkHost).find((item: string) => item.startsWith(`${protocol}//`));
-        const granted = pattern ? await requestDarkOrigin([pattern]) : false;
+        const origins = pattern ? [pattern] : [];
+        if (naverCss) origins.push("https://*.pstatic.net/*");
+        const granted = pattern ? await requestDarkOrigin(origins) : false;
         if (!granted) {
             darkInputs.currentSite.checked = false;
             setDarkStatus("사이트 권한을 허용하지 않아 켜지 않았어요.", true);
             return;
         }
         darkPermissionGranted = true;
+        if (naverCss) darkNaverCssPermissionGranted = true;
     }
     const enabledSites = new Set<string>(darkConfig.enabledSites);
     const disabledSites = new Set<string>(darkConfig.disabledSites);
