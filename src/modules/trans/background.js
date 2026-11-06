@@ -194,7 +194,7 @@ function readStatusInPage() {
 
 function setBadge(tabId) {
   if (tabId == null) return;
-  chrome.action.setBadgeText({ tabId, text: '' }).catch(() => {});
+  chrome.action.setBadgeText({ tabId, text: null }).catch(() => {});
   paintToolbarBadge().catch(() => {});
 }
 

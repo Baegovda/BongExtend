@@ -661,7 +661,7 @@ const saveDarkConfig = async (next: DarkConfig, applyToCurrent = true) => {
     paintDarkValues(darkConfig);
     if (applyToCurrent && darkTabId != null && darkHost) {
         try {
-            await chrome.scripting.executeScript({target: {tabId: darkTabId}, files: ["content-scripts/dark.js"]});
+            await chrome.scripting.executeScript({target: {tabId: darkTabId, allFrames: true}, files: ["content-scripts/dark.js"]});
             setDarkStatus(darkSiteEnabled(darkConfig, darkHost) ? "현재 사이트에 적용했어요." : "현재 사이트에서 껐어요.");
         } catch {
             setDarkStatus("권한을 확인하고 페이지를 새로고침해 주세요.", true);

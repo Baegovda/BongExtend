@@ -121,9 +121,35 @@ export default defineBackground(() => {
                     id: DARK_SCRIPT_ID,
                     matches: [...new Set(matches)],
                     js: [DARK_SCRIPT_FILE],
+                    allFrames: true,
+                    matchOriginAsFallback: true,
                     runAt: "document_start",
                     persistAcrossSessions: true
                 }]);
+            }
+
+            // 새로 등록한 콘텐츠 스크립트는 이미 열려 있는 탭에 자동으로 실행되지 않아요.
+            // 현재 권한과 설정이 허용하는 탭에도 즉시 적용해요.
+            if (modules.dark !== false) {
+                const tabs = await browser.tabs.query({});
+                for (const tab of tabs) {
+                    if (typeof tab.id !== "number") continue;
+                    let url: URL;
+                    try { url = new URL(tab.url || ""); } catch { continue; }
+                    if (url.protocol !== "https:" && url.protocol !== "http:") continue;
+                    if (!darkSiteEnabled(settings, url.hostname)) continue;
+                    const originPattern = darkSitePattern(url.hostname).find((pattern: string) => pattern.startsWith(`${url.protocol}//`));
+                    if (!originPattern || !await browser.permissions.contains({origins: [originPattern]})) continue;
+                    try {
+                        await browser.scripting.executeScript({
+                            target: {tabId: tab.id, allFrames: true},
+                            files: [DARK_SCRIPT_FILE]
+                        });
+                    } catch (error) {
+                        // 브라우저 내부 탭이나 권한 없는 하위 프레임은 건너뛰어요.
+                        console.debug("열린 탭에 다크 모드를 바로 적용하지 못했어요.", error);
+                    }
+                }
             }
         } catch (error) {
             console.warn("다크 모드 자동 적용 설정을 갱신하지 못했어요.", error);

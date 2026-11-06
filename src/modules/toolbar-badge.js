@@ -69,7 +69,7 @@ const clearTabBadges = async (api) => {
         const tabs = await tabsApi.query({});
         await Promise.all((tabs || []).map((tab) => {
             if (tab?.id == null) return null;
-            return api.setBadgeText({tabId: tab.id, text: ""}).catch(() => {});
+            return api.setBadgeText({tabId: tab.id, text: null}).catch(() => {});
         }));
     } catch {
         // 탭별 배지를 못 지워도 아래 공통 배지는 다시 그린다.
