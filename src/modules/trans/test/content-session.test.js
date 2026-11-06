@@ -272,21 +272,17 @@ test('pending text breathes gently and aurora gradients are reserved for the rev
   assert.match(source, /prefers-reduced-motion:\s*reduce/);
   assert.match(source, /pt-page-translator-pending/);
   assert.match(source, /pt-pending-pulse/);
-  assert.match(source, /WIPER_MS = 1380/);
-  assert.match(source, /PRISM_MS = 1340/);
-  assert.match(source, /WIPE_MS = 1800/);
+  assert.match(source, /WIPER_MS = 2480/);
+  assert.match(source, /TRAVEL_MS = 1600/);
   assert.match(source, /50% \{ opacity: 0\.72;/);
   assert.match(source, /0%, 100% \{ opacity: 0\.94;/);
   const pendingRule = source.match(/`\.\$\{PENDING_CLASS\} \{[^`]+`/)?.[0] || '';
   assert.notEqual(pendingRule, '');
   assert.doesNotMatch(pendingRule, /linear-gradient|background-image|background-clip/);
-  assert.match(source, /linear-gradient\(108deg, #46eaff/);
-  assert.match(source, /pt-aurora-polish/);
+  assert.match(source, /linear-gradient\(180deg, #ff235b/);
+  assert.match(source, /pt-afterglow/);
   assert.match(source, /pt-page-translator-wiper-beam/);
   assert.match(source, /mix-blend-mode: normal/);
-  assert.match(source, /linear-gradient\(90deg, #00cfff 0%, #00cfff 18%, #ffffff 40%/);
-  assert.match(source, /box-shadow: 0 0 3px #ffffff, 0 0 8px/);
-  assert.match(source, /#f5ffff 49%/);
   assert.doesNotMatch(source, /pt-prism-glow/);
   assert.doesNotMatch(source, /#2a6e7a|#9ad7e4|#5568b0/);
 
@@ -401,112 +397,85 @@ function revealDocument(created) {
   };
 }
 
-test('the aurora beam visibly crosses translated text and cleans up after its pass', async () => {
-  const created = [];
-  const document = revealDocument(created);
-  const timers = [];
-  const frames = [];
+function completeReveal(frames, timers, api) {
+  for (const frame of frames.splice(0)) frame(0);
+  for (const timer of timers.splice(0)) if (timer.ms === api.WIPER_MS) timer.fn();
+}
+
+function prismHarness() {
+  const created = [], frames = [], timers = [];
   let clock = 0;
-  const api = loadContent({
-    document,
-    getComputedStyle() {
-      return {
-        direction: 'ltr',
-        color: 'rgb(24, 32, 48)',
-        backgroundColor: 'rgba(0, 0, 0, 0)',
-        backgroundImage: 'none',
-      };
-    },
-  });
+  const document = revealDocument(created);
+  const api = loadContent({ document, getComputedStyle: () => ({direction: 'ltr', color: 'rgb(24, 32, 48)', font: '16px sans-serif', lineHeight: '20px'}) });
   const root = element('div');
-  const text = styleBag(element('span', {
-    rect: { left: 20, top: 50, right: 120, bottom: 70, width: 100, height: 20 },
-  }, ['Free shipping']));
+  const text = element('span', {rect: {left: 20, top: 50, right: 120, bottom: 70, width: 100, height: 20}}, ['Free shipping']);
   root.append(text);
-  const session = api.createSession({
-    root,
-    walkRoot: root,
-    enableBanner: false,
-    prefersReducedMotion: false,
-    now: () => clock,
-    requestAnimationFrame(fn) { frames.push(fn); return frames.length; },
-    measureRect(node) { return node.parentElement.getBoundingClientRect(); },
-    setTimer(fn, ms) { timers.push({ fn, ms }); return timers.length; },
-    clearTimer() {},
-    IntersectionObserver: class { observe() {} disconnect() {} },
-    MutationObserver: class { observe() {} disconnect() {} },
-    sendBatch: async (texts) => ({ ok: true, translations: texts.map(() => '무료 배송') }),
-  });
+  const session = api.createSession({ root, walkRoot: root, enableBanner: false, prefersReducedMotion: false,
+    now: () => clock, requestAnimationFrame(fn) {frames.push(fn); return frames.length;},
+    measureRect: node => node.parentElement.getBoundingClientRect(),
+    setTimer(fn, ms) {timers.push({fn, ms}); return timers.length;}, clearTimer() {},
+    IntersectionObserver: class {observe() {} disconnect() {}}, MutationObserver: class {observe() {} disconnect() {}},
+    sendBatch: async texts => ({ok: true, translations: texts.map(() => '무료 배송')}) });
+  return {created, root, text, session, document, api, timers, advance(time) {clock = time; for (const frame of frames.splice(0)) frame(time);} };
+}
 
-  session.start();
-  await session.whenIdle();
-  const beam = created.find((node) => node.className === 'pt-page-translator-wiper-beam');
-  assert.ok(beam, 'a foreground wiper element is created');
-  assert.equal(text.childNodes[0].nodeValue, '무료 배송');
-  assert.equal(text.classList.contains('pt-page-translator-aurora-wipe'), true);
-  assert.equal(beam.style.getPropertyValue('position'), 'fixed');
-  assert.equal(beam.style.getPropertyValue('z-index'), '2147483647');
-  assert.equal(beam.style.getPropertyValue('width'), '5px');
-  assert.equal(beam.style.getPropertyValue('left'), '9px');
-  assert.match(beam.style.getPropertyValue('background'), /#00cfff.*#9a56ff/);
-  assert.equal(beam.style.getPropertyValue('mix-blend-mode'), 'normal');
-
-  const firstFrame = frames.shift();
-  clock = 900;
-  firstFrame(clock);
-  const middle = Number.parseFloat(beam.style.getPropertyValue('left'));
-  assert.ok(middle > 55 && middle < 80, `beam is over the sentence at midpoint (${middle}px)`);
-  assert.equal(beam.style.getPropertyValue('opacity'), '1');
-
-  text.rect = { left: 200, top: 80, right: 300, bottom: 100, width: 100, height: 20 };
-  document.dispatch('scroll');
-  assert.equal(Number.parseFloat(beam.style.getPropertyValue('left')), 247.5);
-  assert.equal(Number.parseFloat(beam.style.getPropertyValue('top')), 76.4);
-
-  const finalFrame = frames.shift();
-  clock = 1800;
-  finalFrame(clock);
-  assert.equal(beam.parentNode, null);
-  assert.equal(text.classList.contains('pt-page-translator-aurora-wipe'), false);
-  assert.equal(text.ink['--pt-ink'], undefined);
+test('prism edge owns the exact original/translated boundary and the pastel trail settles behind it', async () => {
+  const h = prismHarness();
+  h.session.start(); await h.session.whenIdle(); h.advance(0);
+  const box = h.created.find(node => node.className === 'pt-page-translator-sweep');
+  assert.ok(box);
+  assert.equal(h.text.childNodes[0].nodeValue, 'Free shipping', 'source layout stays reserved during the pass');
+  assert.equal(h.text.classList.contains('pt-page-translator-hold'), true);
+  assert.equal(box.children[0].children[0].nodeValue, 'Free shipping');
+  assert.equal(box.children[1].children[0].nodeValue, '무료 배송');
+  assert.equal(box.style.getPropertyValue('--pt-progress'), '0%');
+  h.advance(180);
+  assert.equal(box.style.getPropertyValue('--pt-progress'), '0%');
+  assert.equal(box.style.getPropertyValue('--pt-beam-opacity'), '1');
+  h.advance(980);
+  assert.equal(box.style.getPropertyValue('--pt-progress'), '50%');
+  assert.equal(box.style.getPropertyValue('--pt-glow-head'), '50%');
+  assert.equal(box.style.getPropertyValue('--pt-glow-tail'), '5%');
+  h.text.rect = {left: 200, top: 80, width: 100, height: 20};
+  h.document.dispatch('scroll'); h.advance(980);
+  assert.equal(box.style.left, '200px', 'scroll moves the whole clipped stack together');
+  h.advance(1780);
+  assert.equal(box.style.getPropertyValue('--pt-progress'), '100%');
+  h.advance(2130);
+  assert.equal(box.style.getPropertyValue('--pt-beam-opacity'), '0');
+  assert.equal(box.style.getPropertyValue('--pt-glow-tail'), '77.5%');
+  assert.ok(box.parentNode, 'pastel trail outlives the beam');
+  h.advance(2480);
+  assert.equal(box.parentNode, null);
+  assert.equal(h.text.childNodes[0].nodeValue, '무료 배송');
+  assert.equal(h.text.classList.contains('pt-page-translator-hold'), false);
 });
 
-test('turning translation off during the aurora pass removes its beam and restores the source', async () => {
-  const created = [];
-  const frames = [];
-  const api = loadContent({
-    document: revealDocument(created),
-    getComputedStyle() {
-      return { direction: 'ltr', color: 'black', backgroundColor: 'transparent', backgroundImage: 'none' };
-    },
-  });
-  const root = element('div');
-  const text = styleBag(element('span', {}, ['Free shipping']));
-  root.append(text);
-  const session = api.createSession({
-    root,
-    walkRoot: root,
-    enableBanner: false,
-    prefersReducedMotion: false,
-    requestAnimationFrame(fn) { frames.push(fn); return frames.length; },
-    measureRect(node) { return node.parentElement.getBoundingClientRect(); },
-    setTimer() { return 1; },
-    clearTimer() {},
-    IntersectionObserver: class { observe() {} disconnect() {} },
-    MutationObserver: class { observe() {} disconnect() {} },
-    sendBatch: async (texts) => ({ ok: true, translations: texts.map(() => '무료 배송') }),
-  });
+test('cancelling midway removes both clipped layers and restores the original immediately', async () => {
+  const h = prismHarness();
+  h.session.start(); await h.session.whenIdle(); h.advance(0); h.advance(980);
+  const box = h.created.find(node => node.className === 'pt-page-translator-sweep');
+  h.session.setEnabled(false);
+  assert.equal(box.parentNode, null);
+  assert.equal(h.text.classList.contains('pt-page-translator-hold'), false);
+  assert.equal(h.text.childNodes[0].nodeValue, 'Free shipping');
+  h.advance(2480);
+  assert.equal(h.text.childNodes[0].nodeValue, 'Free shipping');
+});
 
-  session.start();
-  await session.whenIdle();
-  const beam = created.find((node) => node.className === 'pt-page-translator-wiper-beam');
-  assert.ok(beam);
-  session.setEnabled(false);
-  assert.equal(text.childNodes[0].nodeValue, 'Free shipping');
-  assert.equal(beam.parentNode, null);
-  assert.equal(text.classList.contains('pt-page-translator-aurora-wipe'), false);
-  frames.shift()(500); // 취소한 프레임이 늦게 와도 다시 켜지면 안 돼요.
-  assert.equal(beam.parentNode, null);
+test('a late response starts a fresh prism at zero without jumping to the current batch boundary', async () => {
+  const h = prismHarness();
+  h.session.start(); await h.session.whenIdle(); h.advance(0); h.advance(980);
+  const added = element('span', {}, ['New arrivals']);
+  h.root.append(added);
+  h.session.emitMutations([{type: 'childList', addedNodes: [added]}]);
+  await h.session.whenIdle(); h.advance(980);
+  const boxes = h.created.filter(node => node.className === 'pt-page-translator-sweep');
+  assert.equal(boxes.length, 2);
+  assert.equal(boxes[0].style.getPropertyValue('--pt-progress'), '50%');
+  assert.equal(boxes[1].style.getPropertyValue('--pt-progress'), '0%');
+  h.session.setEnabled(false);
+  assert.equal(boxes.every(box => !box.parentNode), true);
 });
 
 test('wiper order follows the line and finishes every box on one clock', () => {
@@ -590,17 +559,19 @@ test('each text box wipes horizontally without a page-wide scan line', async () 
   });
   session.start();
   await session.whenIdle();
+  completeReveal(frames, timers, api);
   for (const node of nodes) {
     assert.match(node.childNodes[0].nodeValue, /^더긴번역글/);
     assert.equal(node.classList.contains('pt-page-translator-pending'), false);
     assert.equal(node.classList.contains('pt-page-translator-hold'), false);
   }
-  assert.equal(created.some((node) => String(node.className).includes('pt-page-translator-sweep')), false);
+  assert.equal(created.some((node) => String(node.className).includes('pt-page-translator-sweep') && node.parentNode), false);
 
   session.toggleOriginal();
   assert.equal(nodes[0].childNodes[0].nodeValue, '글0');
   session.setEnabled(true);
   await session.whenIdle();
+  completeReveal(frames, timers, api);
   assert.match(nodes[0].childNodes[0].nodeValue, /^더긴번역글/);
 });
 
@@ -676,7 +647,8 @@ test('the sweep edge stays inside the sentence and the new text settles to its o
   });
   session.start();
   await session.whenIdle();
-  assert.equal(created.some((node) => String(node.className).includes('pt-page-translator-sweep')), false);
+  completeReveal(frames, timers, api);
+  assert.equal(created.some((node) => String(node.className).includes('pt-page-translator-sweep') && node.parentNode), false);
   assert.equal(link.childNodes[0].nodeValue, '번역:Free shipping');
   assert.equal(link.classList.contains('pt-page-translator-pending'), false);
   assert.equal(link.classList.contains('pt-page-translator-prism'), false);
@@ -719,7 +691,7 @@ test('the sweep edge stays inside the sentence and the new text settles to its o
   assert.equal(reduced.classList.contains('pt-page-translator-prism'), false);
   assert.equal(reduced.classList.contains('pt-page-translator-fade'), true);
   assert.equal(reduced.classList.contains('pt-page-translator-pending'), false);
-  assert.equal(quiet.some((node) => String(node.className).includes('pt-page-translator-sweep')), false);
+  assert.equal(quiet.some((node) => String(node.className).includes('pt-page-translator-sweep') && node.parentNode), false);
   assert.equal(reduced.ink['--pt-ink'], undefined);
 
   const offCreated = [];
@@ -785,10 +757,11 @@ test('the sweep edge stays inside the sentence and the new text settles to its o
   });
   settleSession.start();
   await settleSession.whenIdle();
+  completeReveal(settleFrames, settleTimers, settleApi);
   assert.equal(settle.classList.contains('pt-page-translator-prism'), false);
   assert.equal(settle.classList.contains('pt-page-translator-pending'), false);
   assert.equal(settle.childNodes[0].nodeValue, '번역:Welcome');
-  assert.equal(settleCreated.some((node) => String(node.className).includes('pt-page-translator-sweep')), false);
+  assert.equal(settleCreated.some((node) => String(node.className).includes('pt-page-translator-sweep') && node.parentNode), false);
 });
 
 test('a later chunk uses the same clip instead of popping into place', async () => {
@@ -821,6 +794,7 @@ test('a later chunk uses the same clip instead of popping into place', async () 
   });
   session.start();
   await session.whenIdle();
+  completeReveal([], timers, api);
   assert.equal(first.childNodes[0].nodeValue, '번역包邮');
   const added = element('span', {
     rect: { top: 400, bottom: 418, left: 0, right: 40, width: 40, height: 18 },
@@ -830,9 +804,10 @@ test('a later chunk uses the same clip instead of popping into place', async () 
   await Promise.resolve();
   release();
   await session.whenIdle();
+  completeReveal([], timers, api);
   assert.equal(added.childNodes[0].nodeValue, '번역新款');
   assert.equal(first.childNodes[0].nodeValue, '번역包邮');
-  assert.equal(created.some((node) => String(node.className).includes('pt-page-translator-sweep')), false);
+  assert.equal(created.some((node) => String(node.className).includes('pt-page-translator-sweep') && node.parentNode), false);
 });
 
 test('pending animation measures the text bounds once and does not follow the parent box', async () => {
@@ -869,10 +844,11 @@ test('pending animation measures the text bounds once and does not follow the pa
   });
   session.start();
   await session.whenIdle();
+  completeReveal([], timers, api);
   assert.equal(block.childNodes[0].nodeValue, '번역包邮AB');
   assert.equal(block.classList.contains('pt-page-translator-pending'), false);
-  assert.equal(created.some((node) => String(node.className).includes('pt-page-translator-sweep')), false);
-  assert.equal(rangeReads, 1);
+  assert.equal(created.some((node) => String(node.className).includes('pt-page-translator-sweep') && node.parentNode), false);
+  assert.equal(rangeReads, 2);
 });
 
 test('turning translation off restores originals and stops new batches', async () => {
@@ -1264,7 +1240,8 @@ test('the prism sweep keeps single-line slots and does not open a clamped title'
   });
   session.start();
   await session.whenIdle();
-  assert.equal(created.some((node) => String(node.className).includes('pt-page-translator-sweep')), false);
+  completeReveal(frames, timers, api);
+  assert.equal(created.some((node) => String(node.className).includes('pt-page-translator-sweep') && node.parentNode), false);
   assert.equal(shop.childNodes[0].nodeValue, '플래그십 스토어');
   assert.equal(shop.locks['white-space'], 'nowrap');
   assert.equal(shop.locks['min-width'], '0');

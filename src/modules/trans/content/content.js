@@ -15,10 +15,10 @@
   const BEAM_CLASS = 'pt-page-translator-wiper-beam';
   const MAX_LIVE_PENDING = 8;
   const FADE_MS = 880;
-  const WIPER_MS = 1380;
-  const SOFT_MS = 460;
-  const PRISM_MS = 1340;
-  const WIPE_MS = 1800;
+  const WIPER_MS = 2480;
+  const APPEAR_MS = 180;
+  const TRAVEL_MS = 1600;
+  const SETTLE_MS = 700;
   // 번역 대기 중에는 얕게 숨 쉬고, 결과는 오로라 와이퍼가 쓸고 지나가요.
   const MOTION_CSS = [
     `.pt-page-translator-dup { visibility: hidden !important; }`,
@@ -34,35 +34,21 @@
     '42% { opacity: 0.92; filter: blur(0.35px) drop-shadow(0 0 5px rgba(181, 128, 255, 0.48)); transform: translateY(0); }',
     '100% { opacity: 1; filter: none; transform: none; }',
     '}',
-    `.${SWEEP_CLASS} { --pt-p: 0; --pt-progress: 0%; z-index: 2147483646 !important; pointer-events: none !important; isolation: isolate !important; }`,
-    `.${SWEEP_CLASS} .pt-prev, .${SWEEP_CLASS} .pt-next { position: absolute !important; z-index: 1 !important; inset: 0 !important; display: block !important; box-sizing: border-box !important; width: 100% !important; height: 100% !important; margin: 0 !important; padding: 0 !important; border: 0 !important; }`,
-    `.${SWEEP_CLASS} .pt-prev { z-index: 0 !important; opacity: calc(1 - var(--pt-p)) !important; filter: blur(.35px) !important; }`,
-    `.${SWEEP_CLASS} .pt-next { color: transparent !important; -webkit-text-fill-color: transparent !important; background-color: transparent !important; background-image: linear-gradient(108deg, #46eaff 0%, #8f86ff 22%, #ff89d8 43%, #70ffd4 64%, #f9f39c 82%, #51dfff 100%) !important; background-size: 220% 100% !important; background-position: calc(100% - var(--pt-progress)) 50% !important; background-repeat: no-repeat !important; background-clip: text !important; -webkit-background-clip: text !important; clip-path: inset(0 calc(100% - var(--pt-progress)) 0 0) !important; filter: drop-shadow(0 0 5px rgba(89, 239, 255, .62)) !important; }`,
-    `.${SWEEP_CLASS}.pt-sweep-rtl .pt-next { background-position: var(--pt-progress) 50% !important; clip-path: inset(0 0 0 calc(100% - var(--pt-progress))) !important; }`,
-    `.${SWEEP_CLASS} .${EDGE_CLASS} { position: absolute !important; z-index: 3 !important; top: -34% !important; bottom: -34% !important; left: var(--pt-progress) !important; width: 14px !important; margin-left: -7px !important; pointer-events: none !important; background: linear-gradient(90deg, transparent 0%, rgba(64, 229, 255, .2) 24%, rgba(245, 255, 255, .98) 50%, rgba(196, 128, 255, .72) 74%, transparent 100%) !important; filter: drop-shadow(0 0 7px rgba(79, 241, 255, .9)) blur(.25px) !important; opacity: .98 !important; }`,
-    `.${SWEEP_CLASS} .${EDGE_CLASS}::before { content: "" !important; position: absolute !important; inset: -18px -26px !important; border-radius: 50% !important; background: radial-gradient(ellipse, rgba(115, 255, 239, .62), rgba(186, 125, 255, .3) 46%, transparent 76%) !important; filter: blur(8px) !important; }`,
-    `.${SWEEP_CLASS}.pt-sweep-rtl .${EDGE_CLASS} { left: auto !important; right: var(--pt-progress) !important; margin-left: 0 !important; margin-right: -7px !important; }`,
-    `.${PRISM_CLASS} { color: transparent !important; -webkit-text-fill-color: transparent !important; background-image: linear-gradient(102deg, var(--pt-ink) 0%, var(--pt-ink) 30%, #52e8ff 40%, #a789ff 48%, #ff91d4 55%, #74ffd4 63%, var(--pt-ink) 75%, var(--pt-ink) 100%) !important; background-size: 320% 100% !important; background-position: 100% 50% !important; background-repeat: no-repeat !important; background-clip: text !important; -webkit-background-clip: text !important; animation: pt-aurora-polish ${PRISM_MS}ms cubic-bezier(.18, .78, .15, 1) both !important; filter: drop-shadow(0 0 4px rgba(121, 244, 255, .62)) !important; }`,
-    '@keyframes pt-aurora-polish {',
-    '0% { background-position: 100% 50%; filter: drop-shadow(0 0 5px rgba(90, 239, 255, .86)); }',
-    '38% { background-position: 53% 50%; filter: drop-shadow(0 0 8px rgba(172, 133, 255, .58)); }',
-    '100% { background-position: 0% 50%; filter: none; }',
-    '}',
-    `.${WIPE_CLASS} { color: transparent !important; -webkit-text-fill-color: transparent !important; background-image: linear-gradient(105deg, var(--pt-ink) 0%, var(--pt-ink) 42%, rgba(0, 220, 255, .9) 47%, #f5ffff 49%, #9674ff 51%, #ff65c9 54%, #55ffe0 57%, var(--pt-ink) 64%, var(--pt-ink) 100%) !important; background-size: 280% 100% !important; background-position: 105% 50% !important; background-repeat: no-repeat !important; background-clip: text !important; -webkit-background-clip: text !important; animation: pt-aurora-wipe ${WIPE_MS}ms cubic-bezier(.21, .72, .23, 1) both !important; filter: drop-shadow(0 0 5px rgba(0, 210, 255, .92)) drop-shadow(0 0 12px rgba(150, 74, 255, .72)) !important; }`,
-    '@keyframes pt-aurora-wipe {',
-    '0% { background-position: 105% 50%; filter: drop-shadow(0 0 2px rgba(0, 210, 255, .36)); }',
-    '22% { filter: drop-shadow(0 0 9px rgba(0, 210, 255, .98)) drop-shadow(0 0 16px rgba(150, 74, 255, .82)); }',
-    '78% { filter: drop-shadow(0 0 8px rgba(255, 70, 186, .78)) drop-shadow(0 0 15px rgba(72, 255, 208, .82)); }',
-    '100% { background-position: -5% 50%; filter: none; }',
-    '}',
-    `.${BEAM_CLASS} { box-sizing: border-box !important; position: fixed !important; display: block !important; z-index: 2147483647 !important; margin: 0 !important; padding: 0 !important; border: 0 !important; border-radius: 999px !important; pointer-events: none !important; background: linear-gradient(90deg, #00cfff 0%, #00cfff 18%, #ffffff 40%, #ffffff 60%, #9a56ff 82%, #ff4bcf 100%) !important; box-shadow: 0 0 3px #ffffff, 0 0 8px rgba(255, 255, 255, .98), 0 0 16px rgba(0, 220, 255, .98), 0 0 30px rgba(141, 93, 255, .9) !important; mix-blend-mode: normal !important; opacity: .98 !important; will-change: left, opacity !important; }`,
+    `.${HOLD_CLASS} { color: transparent !important; -webkit-text-fill-color: transparent !important; text-shadow: none !important; }`,
+    `.${SWEEP_CLASS} { --pt-progress: 0%; z-index: 2147483646 !important; pointer-events: none !important; mix-blend-mode: normal !important; isolation: isolate !important; overflow: visible !important; text-shadow: none !important; }`,
+    `.${SWEEP_CLASS} .pt-prev, .${SWEEP_CLASS} .pt-next, .${SWEEP_CLASS} .pt-afterglow { position: absolute !important; inset: 0 !important; display: block !important; box-sizing: border-box !important; width: 100% !important; height: 100% !important; margin: 0 !important; padding: 0 !important; border: 0 !important; -webkit-text-fill-color: currentColor !important; }`,
+    `.${SWEEP_CLASS} .pt-prev { clip-path: inset(0 0 0 var(--pt-progress)) !important; }`,
+    `.${SWEEP_CLASS} .pt-next, .${SWEEP_CLASS} .pt-afterglow { clip-path: inset(0 calc(100% - var(--pt-progress)) 0 0) !important; }`,
+    `.${SWEEP_CLASS} .pt-afterglow { z-index: 2 !important; color: transparent !important; -webkit-text-fill-color: transparent !important; background: linear-gradient(180deg, #ffbdd7, #eed0ff 24%, #b9d9ff 46%, #b7f4e1 70%, #fff0bc) !important; background-clip: text !important; -webkit-background-clip: text !important; mask-image: linear-gradient(90deg, transparent var(--pt-glow-tail), #000 var(--pt-glow-head)) !important; opacity: .88 !important; }`,
+    `.${SWEEP_CLASS}.pt-sweep-rtl .pt-prev { clip-path: inset(0 var(--pt-progress) 0 0) !important; }`,
+    `.${SWEEP_CLASS}.pt-sweep-rtl .pt-next, .${SWEEP_CLASS}.pt-sweep-rtl .pt-afterglow { clip-path: inset(0 0 0 calc(100% - var(--pt-progress))) !important; }`,
+    `.${SWEEP_CLASS}.pt-sweep-rtl .pt-afterglow { mask-image: linear-gradient(270deg, transparent var(--pt-glow-tail), #000 var(--pt-glow-head)) !important; }`,
+    `.${SWEEP_CLASS} .${EDGE_CLASS} { position: absolute !important; z-index: 3 !important; top: -3px !important; bottom: -3px !important; left: var(--pt-progress) !important; width: 4px !important; margin-left: -2px !important; border-radius: 2px !important; pointer-events: none !important; background: linear-gradient(180deg, #ff235b, #ff9a28 18%, #ffe54b 33%, #28f5ad 50%, #26cfff 66%, #7850ff 83%, #ef36e3) !important; box-shadow: 0 0 3px #fff, 0 0 8px #67cfff, 0 0 16px #935bff99 !important; opacity: var(--pt-beam-opacity, 0) !important; }`,
+    `.${SWEEP_CLASS}.pt-sweep-rtl .${EDGE_CLASS} { left: auto !important; right: var(--pt-progress) !important; margin-left: 0 !important; margin-right: -2px !important; }`,
     '@media (prefers-reduced-motion: reduce) {',
     `.${PENDING_CLASS} { animation: none !important; opacity: 0.74 !important; }`,
     `.${FADE_CLASS} { animation: none !important; opacity: 1 !important; filter: none !important; }`,
     `.${SWEEP_CLASS} { display: none !important; }`,
-    `.${PRISM_CLASS} { animation: none !important; color: var(--pt-ink) !important; -webkit-text-fill-color: currentColor !important; background: none !important; filter: none !important; }`,
-    `.${WIPE_CLASS} { animation: none !important; color: var(--pt-ink) !important; -webkit-text-fill-color: currentColor !important; background: none !important; filter: none !important; }`,
-    `.${BEAM_CLASS} { display: none !important; }`,
     '}',
   ].join('');
   const MAX_ITEMS = 24;
@@ -385,7 +371,6 @@
     const done = new Set();
     const expectedWrite = new WeakMap();
     const visibility = new WeakMap();
-    const wipeRuns = new Map();
 
     let started = false;
     let enabled = false;
@@ -419,8 +404,6 @@
     let attrTimer = null;
     const revealWait = [];
     let wiper = null;
-    let soft = null;
-    let wipeScrollBound = false;
     let sweepEpoch = 0;
     let revealFrame = 0;
     let scrollBound = false;
@@ -569,7 +552,6 @@
     function markPending(element, node) {
       if (!revealAnimation || !canDecorate(element) || !canHold(element) || tooLargeToPulse(element, node)) return;
       ensureMotionStyle();
-      stopAuroraWipe(element);
       const count = pendingCounts.get(element) || 0;
       pendingCounts.set(element, count + 1);
       decorated.add(element);
@@ -799,20 +781,6 @@
       }
     }
 
-    // background-clip 과 -webkit-line-clamp 를 같은 요소에 쓰면 줄 제한이 풀린다.
-    function prismBreaksClamp(element) {
-      let node = element;
-      for (let depth = 0; depth < 6 && node && node.nodeType === 1; depth += 1) {
-        const style = computedStyle(node);
-        const display = String((style && style.display) || '');
-        if (display.includes('webkit-box') || lineClampOf(style) > 0) return true;
-        const tag = String(node.tagName || '').toUpperCase();
-        if (tag === 'BODY' || tag === 'HTML') break;
-        node = node.parentElement;
-      }
-      return false;
-    }
-
     function measureLine(job) {
       const line = findLineBox(job.element);
       const lineMode = line ? line.mode : 'flow';
@@ -939,20 +907,6 @@
       else delete node.style[name];
     }
 
-    // 배경색이 있는 칸에 글자 클립을 씌우면 배경이 사라진다.
-    function backgroundIsClear(computed) {
-      if (!computed) return true;
-      const image = computed.backgroundImage;
-      if (image && image !== 'none') return false;
-      const color = String(computed.backgroundColor || '').replace(/\s+/g, '').toLowerCase();
-      if (!color || color === 'transparent' || color === 'rgba(0,0,0,0)') return true;
-      if (color.startsWith('rgba(')) {
-        const parts = color.slice(5, -1).split(',');
-        if (parts.length === 4) return Number(parts[3]) === 0;
-      }
-      return false;
-    }
-
     function placeBox(node, rect) {
       if (!node || !node.style || !rect) return;
       node.style.position = 'fixed';
@@ -968,6 +922,10 @@
       node.style.letterSpacing = computed.letterSpacing || '';
       node.style.color = computed.color || '';
       node.style.lineHeight = computed.lineHeight || '';
+      node.style.whiteSpace = computed.whiteSpace || 'normal';
+      node.style.wordBreak = computed.wordBreak || 'normal';
+      node.style.overflowWrap = computed.overflowWrap || 'normal';
+      node.style.textAlign = computed.textAlign || 'start';
       if (rtl) node.style.direction = 'rtl';
       if (lineMode === 'single') {
         node.style.whiteSpace = 'nowrap';
@@ -1021,10 +979,13 @@
 
     function setProgress(job, value) {
       const next = Math.round(clamp01(value) * 1000) / 1000;
-      if (job.shown === next) return;
       job.shown = next;
       setCssVar(job.box, '--pt-p', String(next));
       setCssVar(job.box, '--pt-progress', `${next * 100}%`);
+      const head = job.glowHead == null ? next * 100 : job.glowHead;
+      setCssVar(job.box, '--pt-glow-head', `${head}%`);
+      setCssVar(job.box, '--pt-glow-tail', `${head - 45}%`);
+      setCssVar(job.box, '--pt-beam-opacity', String(job.beamOpacity == null ? 1 : job.beamOpacity));
       if (!job.box || !job.box.style) return;
       job.box.style.willChange = next > 0 && next < 1 ? 'clip-path' : '';
     }
@@ -1036,6 +997,7 @@
         const box = document.createElement('div');
         box.className = row.rtl ? `${SWEEP_CLASS} pt-sweep-rtl` : SWEEP_CLASS;
         box.setAttribute('translate', 'no');
+        box.setAttribute('aria-hidden', 'true');
         placeBox(box, row.rect);
         copyTextStyle(box, row.style, row.rtl, row.lineMode);
         const prev = document.createElement('div');
@@ -1044,18 +1006,24 @@
         next.className = 'pt-next';
         copyTextStyle(prev, row.style, row.rtl, row.lineMode);
         copyTextStyle(next, row.style, row.rtl, row.lineMode);
-        appendText(prev, job.original);
-        appendText(next, job.translated);
+        appendText(prev, job.node.nodeValue);
+        appendText(next, job.target);
+        const glow = document.createElement('div');
+        glow.className = 'pt-afterglow';
+        copyTextStyle(glow, row.style, row.rtl, row.lineMode);
+        appendText(glow, job.target);
         const edge = document.createElement('div');
         edge.className = EDGE_CLASS;
         box.appendChild(prev);
         box.appendChild(next);
+        box.appendChild(glow);
         box.appendChild(edge);
         mountNode(box);
         if (row.hold) job.element.classList.add(HOLD_CLASS);
         clearPending(job.element, 'reveal');
         const painted = {
           node: job.node,
+          slot: job.slot,
           element: job.element,
           target: job.target,
           original: job.original,
@@ -1075,153 +1043,15 @@
         writeNode(job.node, job.target);
         clearPending(job.element, false);
         if (job.element && job.element.classList) job.element.classList.remove(HOLD_CLASS);
+        unwrapSlot(job);
         return null;
       }
     }
 
-    // 자식 태그가 있으면 색이 안으로 번지고, 배경이 있으면 배경이 잘린다.
-    // 그래서 글자만 있는 투명한 요소에만 잠깐 프리즘을 입힌 뒤 클래스와 변수를 지운다.
-    function armPrism(element) {
-      if (!revealAnimation || motionReduced() || !element || !element.classList || !canHold(element)) return;
-      if (prismBreaksClamp(element)) return;
-      const computed = computedStyle(element);
-      if (!backgroundIsClear(computed)) return;
-      const ink = computed && computed.color;
-      if (ink) setCssVar(element, '--pt-ink', ink);
-      element.classList.remove(PRISM_CLASS);
-      if (typeof element.offsetWidth === 'number') void element.offsetWidth;
-      element.classList.add(PRISM_CLASS);
-      decorated.add(element);
-      const token = {};
-      effectToken.set(element, token);
-      setTimer(() => {
-        if (effectToken.get(element) !== token) return;
-        if (element.classList) element.classList.remove(PRISM_CLASS);
-        clearCssVar(element, '--pt-ink');
-        if (!pendingCounts.has(element)) decorated.delete(element);
-      }, PRISM_MS);
-    }
-
-    function armAuroraWipe(element) {
-      if (!revealAnimation || motionReduced() || !canDecorate(element) || !canHold(element)) return;
-      const computed = computedStyle(element);
-      const clearBackground = backgroundIsClear(computed);
-      if (typeof document === 'undefined' || !document.createElement) return;
-      const rawRect = typeof element.getBoundingClientRect === 'function' ? element.getBoundingClientRect() : null;
-      const rect = normalizeRect(rawRect);
-      if (!rect || Number(rawRect && rawRect.width) <= 0 || Number(rawRect && rawRect.height) <= 0
-        || rect.width > 640 || rect.height > 220) return;
-
-      stopAuroraWipe(element);
-      ensureMotionStyle();
-      const ink = computed && computed.color;
-      if (clearBackground && ink) {
-        if (ink) setCssVar(element, '--pt-ink', ink);
-        element.classList.add(WIPE_CLASS);
-      }
-
-      const beam = document.createElement('div');
-      beam.className = BEAM_CLASS;
-      beam.setAttribute('translate', 'no');
-      beam.setAttribute('aria-hidden', 'true');
-      const beamWidth = 5;
-      const overscan = Math.max(6, Math.min(18, rect.width * 0.035));
-      const rtl = readDirection(element) === 'rtl';
-      const from = rect.left - beamWidth - overscan;
-      const rightToLeftFrom = rect.left + rect.width + overscan;
-      const start = rtl ? rightToLeftFrom : from;
-      const top = rect.top - Math.min(7, Math.max(3, rect.height * 0.18));
-      const height = rect.height + Math.min(14, Math.max(6, rect.height * 0.36));
-      for (const [name, value] of [
-        ['position', 'fixed'],
-        ['left', `${start}px`],
-        ['top', `${top}px`],
-        ['width', `${beamWidth}px`],
-        ['height', `${height}px`],
-        ['opacity', '0.22'],
-        ['z-index', '2147483647'],
-        ['pointer-events', 'none'],
-        ['border-radius', '999px'],
-        ['background', 'linear-gradient(90deg, #00cfff 0%, #00cfff 18%, #fff 40%, #fff 60%, #9a56ff 82%, #ff4bcf 100%)'],
-        ['box-shadow', '0 0 3px #fff, 0 0 8px rgba(255,255,255,.98), 0 0 16px rgba(0,220,255,.98), 0 0 30px rgba(141,93,255,.9)'],
-        ['mix-blend-mode', 'normal'],
-      ]) setImportantStyle(beam, name, value);
-      mountNode(beam);
-
-      const state = { beam, frame: null, timer: null, startedAt: nowMs(), progress: 0, rect, rtl, beamWidth, overscan };
-      state.place = (progress, nextRect) => {
-        if (nextRect) {
-          const measured = normalizeRect(nextRect);
-          if (measured) state.rect = measured;
-        }
-        const startX = state.rtl
-          ? state.rect.left + state.rect.width + state.overscan
-          : state.rect.left - state.beamWidth - state.overscan;
-        const endX = state.rtl
-          ? state.rect.left - state.beamWidth - state.overscan
-          : state.rect.left + state.rect.width + state.overscan;
-        const verticalBleed = Math.min(7, Math.max(3, state.rect.height * 0.18));
-        const beamHeight = state.rect.height + verticalBleed * 2;
-        const x = startX + (endX - startX) * progress;
-        setImportantStyle(beam, 'left', `${x.toFixed(2)}px`);
-        setImportantStyle(beam, 'top', `${(state.rect.top - verticalBleed).toFixed(2)}px`);
-        setImportantStyle(beam, 'height', `${beamHeight.toFixed(2)}px`);
-      };
-      wipeRuns.set(element, state);
-      decorated.add(element);
-      if (!wipeScrollBound) {
-        wipeScrollBound = true;
-        if (typeof document.addEventListener === 'function') document.addEventListener('scroll', repositionAuroraWipes, true);
-        if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') window.addEventListener('resize', repositionAuroraWipes);
-      }
-      const finishWipe = () => {
-        if (wipeRuns.get(element) !== state) return;
-        if (state.timer != null) clearTimer(state.timer);
-        if (state.frame != null) {
-          const cancel = options.cancelAnimationFrame || globalThis.cancelAnimationFrame;
-          try {
-            if (typeof cancel === 'function') cancel(state.frame);
-            else if (!options.requestAnimationFrame && typeof globalThis.requestAnimationFrame !== 'function') clearTimer(state.frame);
-          } catch { /* 이미 끝난 프레임이에요. */ }
-        }
-        removeNode(beam);
-        wipeRuns.delete(element);
-        if (element.classList) element.classList.remove(WIPE_CLASS);
-        clearCssVar(element, '--pt-ink');
-        if (!pendingCounts.has(element)) decorated.delete(element);
-      };
-      state.finish = finishWipe;
-      state.timer = setTimer(finishWipe, WIPE_MS + 120);
-      const step = (time) => {
-        if (wipeRuns.get(element) !== state) return;
-        const t = clamp01((Number(time) - state.startedAt) / WIPE_MS);
-        const eased = easeInOut(t);
-        state.progress = eased;
-        const opacity = Math.min(1, 0.22 + eased * 6, 0.22 + (1 - eased) * 6);
-        state.place(eased);
-        setImportantStyle(beam, 'opacity', String(opacity));
-        if (t >= 1) finishWipe();
-        else state.frame = requestFrame(step);
-      };
-      state.frame = requestFrame(step);
-    }
-
-    function repositionAuroraWipes() {
-      for (const [element, state] of wipeRuns) {
-        if (!connected(element) || typeof element.getBoundingClientRect !== 'function') {
-          if (state.finish) state.finish();
-          continue;
-        }
-        state.place(state.progress, element.getBoundingClientRect());
-      }
-    }
-
-    function stopAuroraWipe(element) {
-      const state = element && wipeRuns.get(element);
-      if (state && typeof state.finish === 'function') state.finish();
-      else {
-        if (element && element.classList) element.classList.remove(WIPE_CLASS);
-        if (element) clearCssVar(element, '--pt-ink');
+    function unwrapSlot(job) {
+      const slot = job.slot;
+      if (slot && slot.parentNode && job.node.parentNode === slot && slot.childNodes.length === 1) {
+        slot.parentNode.replaceChild(job.node, slot);
       }
     }
 
@@ -1229,7 +1059,7 @@
       if (!job || job.settled) return;
       job.settled = true;
       activeJobs.delete(job);
-      let wroteTranslation = false;
+
       if (commit && job.epoch === sweepEpoch && connected(job.node)) {
         const current = job.node.nodeValue;
         const known = current === job.original
@@ -1237,7 +1067,7 @@
           || expectedWrite.get(job.node) === current;
         if (known) {
           writeNode(job.node, job.target);
-          wroteTranslation = job.target === job.translated;
+
         }
       }
       if (job.element && job.element.classList) {
@@ -1246,7 +1076,8 @@
         if (!pendingCounts.has(job.element)) decorated.delete(job.element);
       }
       removeNode(job.box);
-      if (wroteTranslation) armPrism(job.element);
+      unwrapSlot(job);
+
     }
 
     // nodeValue changes only after the clip finishes, in one write batch.
@@ -1282,14 +1113,19 @@
         settled: false,
       };
       wiper = pass;
-      for (const job of jobs) setProgress(job, pass.reverse ? 1 : 0);
+      for (const job of jobs) { job.beamOpacity = 0; setProgress(job, 0); }
       bindSweepScroll();
       const step = (time) => {
-        if (pass.settled || pass.epoch !== sweepEpoch || wiper !== pass) return;
+        if (pass.settled || pass.epoch !== sweepEpoch) return;
         const sample = lineSample({ lineStart: 0, lineEnd: 1, from: 0, to: 1 }, time - pass.startedAt, WIPER_MS);
-        pass.shown = sample.eased;
+        const elapsed = Math.max(0, time - pass.startedAt);
+        const travel = clamp01((elapsed - APPEAR_MS) / TRAVEL_MS);
+        const progress = easeInOut(travel);
+        pass.shown = progress;
         for (const job of pass.jobs) {
-          if (!job.settled) setProgress(job, pass.reverse ? 1 - sample.eased : sample.eased);
+          job.glowHead = progress * 100 + clamp01((elapsed - APPEAR_MS - TRAVEL_MS) / SETTLE_MS) * 45;
+          job.beamOpacity = elapsed < APPEAR_MS ? elapsed / APPEAR_MS : travel < 1 ? 1 : Math.max(0, 1 - (elapsed - APPEAR_MS - TRAVEL_MS) / 100);
+          if (!job.settled) setProgress(job, progress);
         }
         if (sample.t < 1) pass.raf = requestFrame(step);
         else {
@@ -1300,57 +1136,6 @@
       startClock(pass, WIPER_MS, step);
     }
 
-    function beginSoft(rows) {
-      const jobs = [];
-      for (const row of rows) {
-        const painted = paintBox(row, { at: 0, band: 1 });
-        if (painted) jobs.push(painted);
-      }
-      if (!jobs.length) return;
-      if (soft && !soft.settled && soft.epoch === sweepEpoch) {
-        const shown = soft.reverse ? 1 - (soft.shown || 0) : (soft.shown || 0);
-        for (const job of jobs) {
-          setProgress(job, shown);
-          soft.jobs.push(job);
-        }
-        return;
-      }
-      const pass = {
-        epoch: sweepEpoch,
-        jobs,
-        reverse: showOriginal,
-        shown: 0,
-        settled: false,
-      };
-      soft = pass;
-      for (const job of jobs) setProgress(job, pass.reverse ? 1 : 0);
-      const step = (time) => {
-        if (pass.settled || pass.epoch !== sweepEpoch || soft !== pass) return;
-        const sample = lineSample({ lineStart: 0, lineEnd: 1, from: 0, to: 1 }, time - pass.startedAt, SOFT_MS);
-        pass.shown = sample.eased;
-        for (const job of pass.jobs) {
-          if (!job.settled) setProgress(job, pass.reverse ? 1 - sample.eased : sample.eased);
-        }
-        if (sample.t < 1) pass.raf = requestFrame(step);
-        else {
-          if (soft === pass) soft = null;
-          finishPass(pass, true);
-        }
-      };
-      startClock(pass, SOFT_MS, step);
-    }
-
-    function adoptIntoWiper(rows) {
-      const sample = lineSample({ lineStart: 0, lineEnd: 1, from: 0, to: 1 }, nowMs() - wiper.startedAt, WIPER_MS);
-      wiper.shown = sample.eased;
-      for (const row of rows) {
-        const painted = paintBox(row, { at: 0, band: 1 });
-        if (!painted) continue;
-        setProgress(painted, wiper.reverse ? 1 - sample.eased : sample.eased);
-        wiper.jobs.push(painted);
-      }
-    }
-
     function paintMeasured(measured) {
       const ready = [];
       for (const row of measured) {
@@ -1359,13 +1144,13 @@
             writeNode(row.job.node, row.job.target);
           }
           clearPending(row.job.element, false);
+          unwrapSlot(row.job);
           continue;
         }
         ready.push(row);
       }
       if (!ready.length) return;
-      if (wiper && !wiper.settled && wiper.epoch === sweepEpoch) adoptIntoWiper(ready);
-      else beginWiper(ready);
+      beginWiper(ready);
     }
 
     function drainReveal() {
@@ -1391,13 +1176,20 @@
       run();
     }
 
-    function queueReveal() {
-      // 덮개·무지개 막대는 글자 뒤에 남는다. 번역이 오면 글만 바꾸고 표시는 바로 걷는다.
-      return false;
-    }
-
-    function queueRevealUnused(job) {
-      if (!canAnimate() || !canDecorate(job.element)) return false;
+    function queueReveal(job) {
+      if (!enabled || showOriginal || !canAnimate() || !canDecorate(job.element)) return false;
+      if (!canHold(job.element)) {
+        const parent = job.node.parentNode;
+        if (!parent || typeof parent.insertBefore !== 'function') return false;
+        const slot = document.createElement('span');
+        slot.style.display = 'inline';
+        parent.insertBefore(slot, job.node);
+        slot.appendChild(job.node);
+        job.slot = slot;
+        job.element = slot;
+      }
+      // Hiding a text-only parent must never hide a sibling text run.
+      if ([...job.element.childNodes].filter(node => node.nodeType === 3 && String(node.nodeValue || '').trim()).length !== 1) return false;
       if (job.target == null) job.target = showOriginal ? job.original : job.translated;
       job.epoch = sweepEpoch;
       revealWait.push(job);
@@ -1407,15 +1199,14 @@
 
     function cancelMotion() {
       sweepEpoch += 1;
+      for (const job of revealWait) unwrapSlot(job);
       revealWait.length = 0;
       const frame = revealFrame;
       revealFrame = 0;
       const currentWiper = wiper;
-      const currentSoft = soft;
       wiper = null;
-      soft = null;
       finishPass(currentWiper, false);
-      finishPass(currentSoft, false);
+      for (const job of [...activeJobs]) releaseJob(job, false);
       if (frame && typeof options.cancelAnimationFrame === 'function') {
         try { options.cancelAnimationFrame(frame); } catch { /* already run */ }
       }
@@ -1439,7 +1230,6 @@
           element.classList.remove(HOLD_CLASS);
           element.classList.remove(PRISM_CLASS);
           element.classList.remove(WIPE_CLASS);
-          stopAuroraWipe(element);
         }
         clearCssVar(element, '--pt-ink');
       }
@@ -2018,7 +1808,6 @@
             } else if (motionReduced()) {
               writeNode(item.node, translated);
               clearPending(parent, 'fade');
-              armAuroraWipe(parent);
             } else if (!queueReveal({
               node: item.node,
               element: parent,
@@ -2027,7 +1816,6 @@
             })) {
               writeNode(item.node, translated);
               clearPending(parent, 'fade');
-              armAuroraWipe(parent);
             }
           });
           error = null;
@@ -2186,8 +1974,6 @@
   ns.easeInOut = easeInOut;
   ns.lineSample = lineSample;
   ns.WIPER_MS = WIPER_MS;
-  ns.SOFT_MS = SOFT_MS;
-  ns.PRISM_MS = PRISM_MS;
   ns.hasHardBreak = hasHardBreak;
   ns.flattenHardBreaks = flattenHardBreaks;
   ns.textLineMode = textLineMode;
