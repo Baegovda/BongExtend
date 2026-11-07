@@ -77,6 +77,21 @@ function convertGmailPrintHtmlToText(node) {
 }
 
 globalThis.myOffscreenListener = (message, sender, sendResponse) => {
+    if (message.target === "offscreen" && message.type === "bongextend-copy-otp") {
+        if (sender !== "firefox-manual-send" && sender.id !== chrome.runtime.id) return false;
+        const code = message.data?.code;
+        if (typeof code !== "string" || !/^[A-Z0-9-]{4,11}$/i.test(code)) { sendResponse({ok: false}); return false; }
+        const field = document.createElement("textarea");
+        field.value = code;
+        document.body.appendChild(field);
+        field.select();
+        let ok = false;
+        try { ok = document.execCommand("copy"); } catch { /* 응답으로 실패를 알려요. */ }
+        field.remove();
+        sendResponse({ok});
+        return false;
+    }
+
     try {
         if (message.type != "htmlToText") {
             console.log("message", message);

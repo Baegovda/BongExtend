@@ -3563,6 +3563,7 @@ async function setupOffscreenDocument(secondAttempt) {
             url: path,
             reasons: [
                 chrome.offscreen.Reason.DOM_PARSER,
+                chrome.offscreen.Reason.CLIPBOARD,
                 chrome.offscreen.Reason.AUDIO_PLAYBACK,
                 chrome.offscreen.Reason.WORKERS
             ],

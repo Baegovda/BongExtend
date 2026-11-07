@@ -589,6 +589,7 @@ async function setUninstallUrl(email) {
 }
 
 async function onButtonClicked(notificationId, buttonIndex) {
+    if (notificationId.startsWith("bongextend-otp-")) return;
 	console.log("onbuttonclicked", notificationId, buttonIndex);
     // only load initMisc if needed because it might throw corrupt errors
 	if (notificationId == "extensionUpdate") {
@@ -673,6 +674,7 @@ if (chrome.notifications) {
 	
 	// closed notif
 	chrome.notifications.onClosed.addListener(async (notificationId, byUser) => {
+        if (notificationId.startsWith("bongextend-otp-")) return;
 		console.log("notif onclose", notificationId, byUser, new Date());
         
 		if (notificationId == "extensionUpdate") {
@@ -1065,6 +1067,11 @@ async function showNotification(params = {}) {
     
     params.unsnoozedEmails ||= [];
     params.newEmails ||= [];
+    if (params.bongOtpMailIds?.length) {
+        params.newEmails = params.newEmails.filter(mail => !params.bongOtpMailIds.includes(`${mail.account?.id}:${mail.id}`));
+        if (!params.newEmails.length && !params.unsnoozedEmails.length) return;
+    }
+
 
     if (params.unsnoozedEmails.length) {
         params.emails = params.unsnoozedEmails.concat(params.newEmails);
@@ -3098,6 +3105,11 @@ async function mailUpdate(params = {}) {
 	   return 0;
 	});
 	
+    if (typeof globalThis.BongExtendHandleOtpMails === "function") {
+        try { params.bongOtpMailIds = await globalThis.BongExtendHandleOtpMails(newEmails, {baseline: params.source === Source.STARTUP}); }
+        catch { console.warn("인증번호 처리를 완료하지 못했어요."); }
+    }
+
     let accountWithNewestMail;
 
 	if (newEmails.length || unsnoozedEmails.length) {

@@ -32,7 +32,28 @@ import {DARK_SCRIPT_FILE, DARK_SCRIPT_ID, DARK_SETTINGS_KEY, darkSiteEnabled, da
 // @ts-ignore download helpers are plain JS shared with the manager page
 import {DOWNLOAD_SETTINGS_KEY, cleanSuggestedFilename, makeDownloadFilename, normalizeDownloadSettings} from "@/modules/downloads/settings.js";
 
+// @ts-ignore 순수 JS 인증번호 처리기
+import {createMailOtpHandler} from "@/modules/gmail/otp.js";
+
 export default defineBackground(() => {
+    const otpHandler = createMailOtpHandler({
+        load: async () => {
+            const stored = await chrome.storage.local.get(["core.mailOtpSeen", MODULES_KEY]);
+            return {seen: stored["core.mailOtpSeen"], enabled: (stored[MODULES_KEY] as Record<string, unknown> | undefined)?.gmail !== false};
+        },
+        save: (seen: unknown) => chrome.storage.local.set({"core.mailOtpSeen": seen}),
+        copy: async (code: string) => {
+            const send = (globalThis as any).sendToOffscreenDoc;
+            if (typeof send !== "function") throw new Error("clipboard unavailable");
+            const result = await send("bongextend-copy-otp", {code});
+            if (!result?.ok) throw new Error("clipboard copy failed");
+        },
+        notify: (key: string, code: string) => chrome.notifications.create(`bongextend-otp-${key}`, {
+            type: "basic", iconUrl: chrome.runtime.getURL("icons/128.png"), title: code, message: ""
+        })
+    });
+    (globalThis as any).BongExtendHandleOtpMails = otpHandler;
+
     // CheckPlus 이전 버전이 저장한 도구막대 덮어쓰기를 복구한다.
     const rootManifest = chrome.runtime.getManifest() as {
         action?: {default_popup?: string; default_title?: string; default_icon?: Record<string, string>};
