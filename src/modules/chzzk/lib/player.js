@@ -273,4 +273,8 @@
     return false;
   }
   root.BongPlayer = { isSkipButtonLabel, isSkipCandidate, hasAdContainer, seekEndTime, AD_CONTAINER_SEL, isAdActive, isGuideText, isPurchaseGuideDialogText, isSkipText, adTextKind, isSafeSkipLabel, isAdDuration, captureAudioState, restoreAudioState, audioStateMatches, isAudioControlLabel, audioRestoreAction, noteLiveAudio, audioAfterAd, isDisplayAdElement, countdownSeconds, skipAction, pickSkipElement, isAdChrome, pickAdConcealNode, isContentVideo, isAdVideo, isBoostTarget, resolveAdConceal, planBlackRecovery, AD_CONCEAL_CSS, AD_CONCEAL_SHADOW_CSS };
+  root.BongPlayer.isAdBlockNoticeText = t => {
+    const s = String(t || '').replace(/\s+/g, ' ');
+    return /광고 차단 프로그램을 사용 중이신가요\?/.test(s) && /확장 프로그램/.test(s) && /재생 환경/.test(s);
+  };
 })(typeof globalThis !== 'undefined' ? globalThis : this);

@@ -463,6 +463,50 @@ test('cancelling midway removes both clipped layers and restores the original im
   assert.equal(h.text.childNodes[0].nodeValue, 'Free shipping');
 });
 
+test('dense cached results bound prism layers without dropping translations', async () => {
+  const h = prismHarness();
+  for (let i = 0; i < 100; i++) h.root.append(element('span', {}, [`New arrival ${i}`]));
+  h.session.start(); await h.session.whenIdle(); h.advance(0);
+  const boxes = h.created.filter(node => node.className === 'pt-page-translator-sweep');
+  assert.equal(boxes.length, 16);
+  assert.equal(h.root.childNodes.filter(node => node.childNodes[0].nodeValue === '무료 배송').length, 85);
+  h.advance(2480);
+  assert.equal(h.root.childNodes.every(node => node.childNodes[0].nodeValue === '무료 배송'), true);
+  assert.equal(boxes.every(box => !box.parentNode), true);
+});
+
+test('overlay insertions, descendants and removals never rescan the page; real reused text still does', async () => {
+  const h = prismHarness();
+  h.session.start(); await h.session.whenIdle(); h.advance(0);
+  let reads = 0;
+  const children = h.root.childNodes;
+  Object.defineProperty(h.root, 'childNodes', {get() {reads++; return children;}});
+  const box = element('div'); box.className = 'pt-page-translator-sweep';
+  const layer = element('div'); box.append(layer);
+  h.session.emitMutations([
+    {type:'childList', target:h.root, addedNodes:[box], removedNodes:[]},
+    {type:'childList', target:layer, addedNodes:[textNode('Overlay copy')], removedNodes:[]},
+    {type:'childList', target:h.root, addedNodes:[], removedNodes:[box]},
+  ]);
+  assert.equal(reads, 0, 'own overlay mutations must not traverse the website');
+  h.advance(2480);
+  h.text.childNodes[0].nodeValue = 'A different product';
+  h.session.emitMutations([{type:'childList',target:h.root,addedNodes:[],removedNodes:[]}]);
+  await h.session.whenIdle(); h.advance(2480); h.advance(4960);
+  assert.equal(h.text.childNodes[0].nodeValue,'무료 배송');
+});
+
+test('many scroll events coalesce into one geometry read per active text', async () => {
+  const h = prismHarness();
+  h.session.start(); await h.session.whenIdle(); h.advance(0);
+  let reads = 0;
+  h.text.getBoundingClientRect = () => {reads++; return h.text.rect;};
+  for (let i=0;i<30;i++) h.document.dispatch('scroll');
+  h.advance(180);
+  assert.equal(reads, 1);
+  h.session.setEnabled(false);
+});
+
 test('a late response starts a fresh prism at zero without jumping to the current batch boundary', async () => {
   const h = prismHarness();
   h.session.start(); await h.session.whenIdle(); h.advance(0); h.advance(980);

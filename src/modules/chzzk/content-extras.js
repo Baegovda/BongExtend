@@ -636,6 +636,13 @@
   function adTick() {
     clearTimeout(adTimer);
     if (!chrome.runtime?.id) return;
+    if (cfg.adBlock !== false) {
+      for (const dialog of document.querySelectorAll('[role="alertdialog"]')) {
+        if (!P.isAdBlockNoticeText(dialog.textContent)) continue;
+        const confirm = [...dialog.querySelectorAll('button')].find(button => button.textContent.trim() === '확인');
+        if (confirm && !confirm.disabled) confirm.click();
+      }
+    }
     // 라이브 시청 중이 아니거나 방송이 꺼져 있으면 건너뛰기 루프를 돌리지 않는다.
     if (!adScope()) {
       if (adWasActive) endAd(false);
@@ -644,7 +651,9 @@
       adTimer = setTimeout(adTick, 1000);
       return;
     }
-    const container = cfg.adSkip ? playerElements(document.querySelector(ROOT) || document.querySelector('div.pzp') || document.getElementById('live_player_layout'), P.AD_CONTAINER_SEL).find(visible) || null : null;
+    // 새 플레이어의 전/중간 광고는 본영상 .pzp의 형제 칸에 붙어요.
+    const wrapper = [...document.querySelectorAll('#preAdPlayerWrapper, #midAdPlayerWrapper')].find(visible);
+    const container = cfg.adSkip ? playerElements(wrapper || playerBox(), P.AD_CONTAINER_SEL).find(visible) || null : null;
     const root = cfg.adSkip ? (document.querySelector(ROOT) || document.querySelector('div.pzp') || document.getElementById('live_player_layout')) : null;
     let active = !!container, hits = [];
     if (root) {
@@ -662,7 +671,7 @@
       if (container) {
         for (const v of container.querySelectorAll('video')) boostAdVideo(v);
       }
-      const skipScope = root || (container ? naverAdRoot(container) : null);
+      const skipScope = container ? naverAdRoot(container) : root;
       if (skipScope) clickReadySkip(skipScope);
       if (root) {
         for (const v of adVideos(root)) {

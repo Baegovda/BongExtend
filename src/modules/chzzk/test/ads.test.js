@@ -220,6 +220,47 @@ test('광고 차단이 꺼지면 응답을 바꾸지 않는다', () => {
   assert.equal(win.JSON.parse(JSON.stringify(schedule)).adBreaks.length, 1);
 });
 
+test('새 광고 결정 응답의 이름이 바뀐 플래그도 JSON.parse 단계에서 차단한다', () => {
+  const win = makeWin(async () => new FakeResponse('{}'));
+  let enabled = true;
+  A.installAdHooks(win, () => enabled);
+  const raw = '{"livePlaybackJson":{"liveId":true,"chatChannelId":true}}';
+  const result = win.JSON.parse(raw);
+  assert.equal(result.playerAdDisplayResponse.preRoll, false);
+  assert.equal(result.playerAdDisplayResponse.midRoll, false);
+  assert.equal(result.livePlaybackJson.liveId, true, '원본 데이터는 보존한다');
+  enabled = false;
+  assert.equal('playerAdDisplayResponse' in win.JSON.parse(raw), false);
+});
+
+test('중첩된 광고 신호를 중단하고 채팅과 재생 주소는 보존한다', () => {
+  const response = {data:{items:[{body:{adControlType:'INTEGRATION_CONTROL',event:'START',adCount:2}}]},chat:{message:'광고 START'}, livePlaybackJson:playback};
+  assert.equal(A.patchAdResponse(response),true);
+  assert.equal(response.data.items[0].body.event,'ABORT');
+  assert.equal(response.data.items[0].body.adCount,0);
+  assert.equal(response.chat.message,'광고 START');
+  assert.equal(response.livePlaybackJson,playback);
+  assert.equal(A.isAdEndpoint('https://api.chzzk.naver.com/service/v1.1/lives/a/ads/current'),true);
+});
+
+test('터널 복호화 뒤 자체 JSON 파서가 읽기 전에 광고 결정만 바꾼다', async () => {
+  const win = makeWin(async () => new FakeResponse('{}'));
+  let enabled = true, result = new TextEncoder().encode('{"livePlaybackJson":{"liveId":true,"chatChannelId":true}}').buffer;
+  win.TextDecoder = TextDecoder; win.TextEncoder = TextEncoder;
+  win.crypto = {subtle:{async decrypt() {assert.equal(this,win.crypto.subtle); return result;}}};
+  A.installAdHooks(win, () => enabled);
+  const patched = JSON.parse(new TextDecoder().decode(await win.crypto.subtle.decrypt({name:'AES-GCM'})));
+  assert.equal(patched.playerAdDisplayResponse.preRoll,false);
+  assert.equal(patched.playerAdDisplayResponse.midRoll,false);
+  result = new Uint8Array([0,1,2,3]).buffer;
+  assert.equal(await win.crypto.subtle.decrypt({name:'AES-GCM'}),result, '미디어 바이트는 보존한다');
+  result = new TextEncoder().encode('{"content":{"message":"채팅"}}').buffer;
+  assert.equal(await win.crypto.subtle.decrypt({name:'AES-GCM'}),result);
+  enabled=false;
+  result = new TextEncoder().encode('{"livePlaybackJson":{"liveId":true}}').buffer;
+  assert.equal(await win.crypto.subtle.decrypt({name:'AES-GCM'}),result);
+});
+
 test('XHR 재생 응답은 광고 표시만 끄고 미드롤 신호만 요청하지 않는다', async () => {
   const win = makeWin(async () => new FakeResponse('{}'));
   A.installAdHooks(win, () => true);

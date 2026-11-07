@@ -14,6 +14,7 @@
   const WIPE_CLASS = 'pt-page-translator-aurora-wipe';
   const BEAM_CLASS = 'pt-page-translator-wiper-beam';
   const MAX_LIVE_PENDING = 8;
+  const MAX_ACTIVE_SWEEPS = 16;
   const FADE_MS = 880;
   const WIPER_MS = 2480;
   const APPEAR_MS = 180;
@@ -406,6 +407,7 @@
     let wiper = null;
     let sweepEpoch = 0;
     let revealFrame = 0;
+    let repositionFrame = 0;
     let scrollBound = false;
     let mutationLock = 0;
     let frameNotice = null;
@@ -830,9 +832,11 @@
     }
 
     function isOwnNode(node) {
-      if (!node || node.nodeType !== 1) return false;
-      if (node.id === HOST_ID || node.id === STYLE_ID) return true;
-      return classHas(node, SWEEP_CLASS) || classHas(node, BEAM_CLASS);
+      for (let element = node; element && element.nodeType === 1; element = element.parentElement) {
+        if (element.id === HOST_ID || element.id === STYLE_ID
+          || classHas(element, SWEEP_CLASS) || classHas(element, BEAM_CLASS)) return true;
+      }
+      return false;
     }
 
     function canAnimate() {
@@ -964,8 +968,9 @@
     }
 
     function repositionSweeps() {
-      if (!activeJobs.size) return;
-      requestFrame(() => {
+      if (!activeJobs.size || repositionFrame) return;
+      repositionFrame = requestFrame(() => {
+        repositionFrame = 0;
         const rows = [];
         for (const job of activeJobs) {
           if (!job.box || !connected(job.node)) continue;
@@ -979,15 +984,21 @@
 
     function setProgress(job, value) {
       const next = Math.round(clamp01(value) * 1000) / 1000;
-      job.shown = next;
-      setCssVar(job.box, '--pt-p', String(next));
-      setCssVar(job.box, '--pt-progress', `${next * 100}%`);
+      if (job.shown !== next) {
+        job.shown = next;
+        setCssVar(job.box, '--pt-progress', `${next * 100}%`);
+      }
       const head = job.glowHead == null ? next * 100 : job.glowHead;
-      setCssVar(job.box, '--pt-glow-head', `${head}%`);
-      setCssVar(job.box, '--pt-glow-tail', `${head - 45}%`);
-      setCssVar(job.box, '--pt-beam-opacity', String(job.beamOpacity == null ? 1 : job.beamOpacity));
-      if (!job.box || !job.box.style) return;
-      job.box.style.willChange = next > 0 && next < 1 ? 'clip-path' : '';
+      if (job.lastGlowHead !== head) {
+        job.lastGlowHead = head;
+        setCssVar(job.box, '--pt-glow-head', `${head}%`);
+        setCssVar(job.box, '--pt-glow-tail', `${head - 45}%`);
+      }
+      const opacity = job.beamOpacity == null ? 1 : job.beamOpacity;
+      if (job.lastBeamOpacity !== opacity) {
+        job.lastBeamOpacity = opacity;
+        setCssVar(job.box, '--pt-beam-opacity', String(opacity));
+      }
     }
 
     function paintBox(row, spot) {
@@ -1139,7 +1150,13 @@
     function paintMeasured(measured) {
       const ready = [];
       for (const row of measured) {
-        if (!row.rect || row.job.epoch !== sweepEpoch || !connected(row.job.node)) {
+        const viewHeight = typeof window !== 'undefined' ? window.innerHeight : 0;
+        const viewWidth = typeof window !== 'undefined' ? window.innerWidth : 0;
+        const offscreen = row.rect && viewHeight > 0 && viewWidth > 0 && (
+          row.rect.top + row.rect.height <= 0 || row.rect.top >= viewHeight
+          || row.rect.left + row.rect.width <= 0 || row.rect.left >= viewWidth
+          || row.rect.width * row.rect.height > viewHeight * viewWidth / 3);
+        if (!row.rect || offscreen || row.job.epoch !== sweepEpoch || !connected(row.job.node)) {
           if (row.job.epoch === sweepEpoch && connected(row.job.node)) {
             writeNode(row.job.node, row.job.target);
           }
@@ -1178,6 +1195,9 @@
 
     function queueReveal(job) {
       if (!enabled || showOriginal || !canAnimate() || !canDecorate(job.element)) return false;
+      // Cached responses can finish hundreds of labels before the next frame.
+      // Keep a few visible prisms; overflow commits immediately without blur layers.
+      if (job.original === job.translated || activeJobs.size + revealWait.length >= MAX_ACTIVE_SWEEPS) return false;
       if (!canHold(job.element)) {
         const parent = job.node.parentNode;
         if (!parent || typeof parent.insertBefore !== 'function') return false;
@@ -1668,6 +1688,7 @@
       // Deliveries are async, so a lock around our write is not enough on its
       // own. Overlay nodes are skipped by class; our nodeValue writes match expectedWrite.
       if (!started || mutationLock > 0) return;
+      const resyncTargets = new Set();
       for (const mutation of mutations) {
         if (mutation.type === 'attributes') {
           const element = mutation.target;
@@ -1680,6 +1701,9 @@
           continue;
         }
         if (mutation.type !== 'childList' || isOwnNode(mutation.target)) continue;
+        const changed = [...(mutation.addedNodes || []), ...(mutation.removedNodes || [])];
+        // Appending/removing our fixed overlays must not rescan the entire page.
+        if (changed.length && changed.every(isOwnNode)) continue;
         for (const node of mutation.addedNodes || []) {
           if (isOwnNode(node)) continue;
           if (node.nodeType === 3) considerText(node);
@@ -1695,9 +1719,10 @@
             watchShadow(shadow);
             walk(shadow);
           }
-          resyncElement(mutation.target);
+          resyncTargets.add(mutation.target);
         }
       }
+      for (const target of resyncTargets) resyncElement(target);
     }
 
     function recheck() {
@@ -1757,8 +1782,14 @@
       if (pumping || pausedForError || !started || !enabled) return;
       pumping = true;
       notify();
+      let sliceStart = nowMs();
       try {
         while (queue.length && started && enabled && !pausedForError) {
+          if (nowMs() - sliceStart > 8) {
+            await new Promise(resolve => setTimer(resolve, 0));
+            sliceStart = nowMs();
+            if (!started || !enabled || pausedForError) break;
+          }
           const batch = takeBatch();
           if (!batch.length) break;
           for (const item of batch) markPending(item.node && item.node.parentElement, item.node);
@@ -1815,7 +1846,7 @@
               translated,
             })) {
               writeNode(item.node, translated);
-              clearPending(parent, 'fade');
+              clearPending(parent, canAnimate() ? false : 'fade');
             }
           });
           error = null;

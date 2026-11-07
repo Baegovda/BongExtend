@@ -38,8 +38,8 @@ import {createMailOtpHandler} from "@/modules/gmail/otp.js";
 export default defineBackground(() => {
     const otpHandler = createMailOtpHandler({
         load: async () => {
-            const stored = await chrome.storage.local.get(["core.mailOtpSeen", MODULES_KEY]);
-            return {seen: stored["core.mailOtpSeen"], enabled: (stored[MODULES_KEY] as Record<string, unknown> | undefined)?.gmail !== false};
+            const stored = await chrome.storage.local.get(["core.mailOtpSeen", "core.mailOtpEnabled", MODULES_KEY]);
+            return {seen: stored["core.mailOtpSeen"], enabled: stored["core.mailOtpEnabled"] !== false && (stored[MODULES_KEY] as Record<string, unknown> | undefined)?.gmail !== false};
         },
         save: (seen: unknown) => chrome.storage.local.set({"core.mailOtpSeen": seen}),
         copy: async (code: string) => {
@@ -97,6 +97,7 @@ export default defineBackground(() => {
     const syncChronoSites = async () => {
         const stored = await browser.storage.local.get(CHRONO_SITE_ACCESS_KEY);
         await syncChronoContentScripts(stored[CHRONO_SITE_ACCESS_KEY] === true);
+        await (globalThis as any).BongExtendSyncDownloadAccess?.();
     };
     void syncChronoSites();
     browser.storage.onChanged.addListener((changes, area) => {
@@ -224,7 +225,9 @@ export default defineBackground(() => {
                 const modules = (stored[MODULES_KEY] && typeof stored[MODULES_KEY] === "object" ? stored[MODULES_KEY] : {}) as Record<string, unknown>;
                 if (modules.download === false || (!settings.filenameMask && !settings.folder && !settings.routeByType && !settings.rules.length)) {
                     if (nameHint) suggest({filename: nameHint, conflictAction: "uniquify"});
-                    else suggest();
+                    else if (modules.download !== false && (globalThis as any).BongExtendChronoAction?.suggestFilename) {
+                        (globalThis as any).BongExtendChronoAction.suggestFilename(item, suggest);
+                    } else suggest();
                     return;
                 }
                 suggest({filename: makeDownloadFilename(item, settings, new Date(), nameHint), conflictAction: "uniquify"});

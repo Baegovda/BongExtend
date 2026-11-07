@@ -196,3 +196,10 @@ html.bongextend-checkerplus-embedded .accountErrorWrapper {
   background: color-mix(in srgb, var(--be-error) 18%, var(--be-surface)) !important;
   color: var(--be-text) !important;
 }
+
+/* 메일 공통 작업과 설정은 부모 앱에서 표시해요. */
+html.bongextend-checkerplus-embedded .site-header { display: none !important; }
+html.bongextend-checkerplus-embedded #options-menu,
+html.bongextend-checkerplus-embedded j-listbox[popover] { background: var(--be-surface) !important; color: var(--be-text) !important; border: 1px solid var(--be-border) !important; border-radius: 14px !important; }
+html.bongextend-checkerplus-embedded j-listbox[popover] :is(j-item, j-icon-item, span, j-icon) { color: var(--be-text) !important; background-color: transparent !important; }
+html.bongextend-checkerplus-embedded :is(.contribute, .discoverMyApps, .aboutMe, .share) { display: none !important; }

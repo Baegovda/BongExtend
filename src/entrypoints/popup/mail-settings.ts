@@ -1,0 +1,65 @@
+const MAIL_ORIGIN = new URL(chrome.runtime.getURL("/")).origin;
+export function setupMailSettings() {
+    const dialog = document.getElementById("mailSettingsDialog") as HTMLDialogElement;
+    const form = document.getElementById("mailSettingsForm") as HTMLFormElement;
+    const status = document.getElementById("mailSettingsStatus")!;
+    const accounts = document.getElementById("mailSettingsAccounts")!;
+    const button = document.getElementById("mailSettingsSave") as HTMLButtonElement;
+    const request = async (command: string, params = {}) => {
+        let timer: ReturnType<typeof setTimeout> | undefined;
+        try {
+            const response = await Promise.race([chrome.runtime.sendMessage({command, params}), new Promise<never>((_, reject) => {timer = setTimeout(() => reject(Error("메일 모듈을 준비하고 있어요. 잠시 후 다시 시도해 주세요.")), 12000);})]);
+            if (response?.error) throw Error(response.error.message || "설정을 저장하지 못했어요.");
+            return response;
+        } finally { if (timer) clearTimeout(timer); }
+    };
+    const open = async () => {
+        if (!dialog.open) dialog.showModal();
+        status.textContent = "설정을 불러오고 있어요…";
+        button.disabled = true;
+        try {
+            const result = await request("BongExtendMailOptions");
+            for (const [name, value] of Object.entries(result.values)) {
+                const field = form.elements.namedItem(name) as HTMLInputElement | HTMLSelectElement | null;
+                if (!field) continue;
+                if (field instanceof HTMLInputElement && field.type === "checkbox") field.checked = Boolean(value);
+                else field.value = String(value ?? "");
+            }
+            accounts.replaceChildren();
+            if (!result.accounts.length) accounts.textContent = "연결된 Gmail 계정이 없어요. Gmail에 로그인한 뒤 다시 확인해 주세요.";
+            for (const account of result.accounts) {
+                const row = document.createElement("div"); row.className = "mail-settings-account"; row.textContent = account.email; accounts.appendChild(row);
+            }
+            status.textContent = "변경한 뒤 설정 저장을 눌러주세요.";
+            button.disabled = false;
+        } catch (error) { status.textContent = (error as Error).message; }
+    };
+    const refresh = async () => {
+        try { await request("BongExtendMailSessionChanged"); if (dialog.open) await open(); }
+        catch (error) { status.textContent = (error as Error).message; }
+    };
+    document.getElementById("mailSettingsOpen")!.addEventListener("click", () => {void open();});
+    document.getElementById("mailSettingsClose")!.addEventListener("click", () => dialog.close());
+    document.getElementById("mailSessionRefresh")!.addEventListener("click", () => {void refresh();});
+    document.getElementById("mailRefreshNow")!.addEventListener("click", () => {void refresh();});
+    form.addEventListener("submit", async event => {
+        event.preventDefault(); button.disabled = true;
+        const values: Record<string, unknown> = {};
+        for (const field of [...form.elements]) {
+            if (!(field instanceof HTMLInputElement || field instanceof HTMLSelectElement) || !field.name) continue;
+            values[field.name] = field instanceof HTMLInputElement && field.type === "checkbox" ? field.checked : field.name === "notificationSoundVolume" ? Number(field.value) : field.value;
+        }
+        try {
+            await request("BongExtendMailOptions", {values});
+            status.textContent = "설정을 저장했어요.";
+            const frame = document.getElementById("checkerPlusMailFrame") as HTMLIFrameElement;
+            if (frame.contentWindow) frame.contentWindow.location.reload();
+        } catch (error) { status.textContent = (error as Error).message; }
+        finally { button.disabled = false; }
+    });
+    window.addEventListener("message", event => {
+        const frame = document.getElementById("checkerPlusMailFrame") as HTMLIFrameElement;
+        if (event.origin === MAIL_ORIGIN && event.source === frame.contentWindow && event.data?.type === "bongextend-mail-settings") void open();
+    });
+    if (new URLSearchParams(location.search).has("mailSettings")) void open();
+}

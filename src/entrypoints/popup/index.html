@@ -65,11 +65,13 @@
         <p class="be-hint dark-credit">색상 변환 엔진은 MIT 라이선스의 <a href="https://github.com/darkreader/darkreader" target="_blank" rel="noopener">Dark Reader</a>를 사용해요. <a href="/licenses/DarkReader-MIT.txt" target="_blank" rel="noopener">Dark Reader 라이선스</a> · <a href="/licenses/Malevic-MIT.txt" target="_blank" rel="noopener">Malevic 라이선스</a></p>
     </section>
     <section class="panel be-shell chrono-download-panel" data-frame="download" hidden>
-        <iframe id="chronoPopupFrame" title="Chrono 다운로드" data-src="/pop/pop.html"></iframe>
+        <nav class="download-module-toolbar" aria-label="다운로드 도구"><button data-download-view="/pop/pop.html" type="button">최근 다운로드</button><button data-download-view="/pop/sniffer.html" type="button">페이지 파일 찾기</button><button data-download-view="/ui/index.html" type="button">다운로드 관리자</button><button data-download-view="/ui/options.html" type="button">다운로드 설정</button></nav>
+        <iframe id="chronoPopupFrame" title="다운로드" data-src="/pop/pop.html"></iframe>
     </section>
     <section class="panel be-shell mail-panel" data-frame="gmail" hidden>
+        <div class="mail-module-toolbar"><div><strong>메일</strong><small>Gmail 세션 자동 확인</small></div><div class="be-actions"><button id="mailRefreshNow" type="button">새로고침</button><button id="mailSettingsOpen" type="button">메일 설정</button></div></div>
         <button id="checkerPlusMailHome" class="checkerplus-mail-home" type="button" hidden>메일함으로 돌아가기</button>
-        <iframe id="checkerPlusMailFrame" class="checkerplus-mail-frame" title="Checker Plus for Gmail" data-src="/checkerplus-popup.html?source=bongextend"></iframe>
+        <iframe id="checkerPlusMailFrame" class="checkerplus-mail-frame" title="메일" data-src="/checkerplus-popup.html?source=bongextend"></iframe>
         <div id="legacyGmailPanel" hidden aria-hidden="true">
         <div class="be-title mail-title">
             <h3>메일</h3>
@@ -176,7 +178,7 @@
                         <label class="be-row"><span class="be-row-text"><span>메일</span><small>메일 확인과 알림</small></span><input type="checkbox" role="switch" data-module-toggle="gmail" aria-label="메일 모듈 사용"></label>
                         <label class="be-row"><span class="be-row-text"><span>환율</span><small>환율 계산 기능</small></span><input type="checkbox" role="switch" data-module-toggle="fx" aria-label="환율 모듈 사용"></label>
                         <label class="be-row"><span class="be-row-text"><span>다크 모드</span><small>웹페이지 색상 변환 기능</small></span><input type="checkbox" role="switch" data-module-toggle="dark" aria-label="다크 모드 모듈 사용"></label>
-                        <label class="be-row"><span class="be-row-text"><span>다운로드</span><small>Chrono 및 다운로드 도구</small></span><input type="checkbox" role="switch" data-module-toggle="download" aria-label="다운로드 모듈 사용"></label>
+                        <label class="be-row"><span class="be-row-text"><span>다운로드</span><small>파일 받기 · 목록 · 저장 규칙</small></span><input type="checkbox" role="switch" data-module-toggle="download" aria-label="다운로드 모듈 사용"></label>
                     </div>
                     <p id="moduleStatus" class="be-hint" role="status"></p>
                 </section>
@@ -229,5 +231,19 @@
     <span id="updateDot" class="gear-dot" hidden></span>
 </button>
 <script src="./main.ts" type="module"></script>
+
+<dialog id="mailSettingsDialog" class="mail-settings-dialog be-page" aria-labelledby="mailSettingsTitle">
+  <header class="mail-settings-header"><div><h2 id="mailSettingsTitle">메일 설정</h2><p>메일 확인부터 알림까지 한곳에서 관리해요.</p></div><button id="mailSettingsClose" type="button" aria-label="메일 설정 닫기">닫기</button></header>
+  <form id="mailSettingsForm">
+    <div class="mail-settings-grid">
+      <section class="be-card"><h3>연결된 계정</h3><p class="be-hint">크롬에 로그인된 Gmail 계정을 사용해요. 별도 앱 승인 없이 약 10초마다 새 메일을 확인해요.</p><div id="mailSettingsAccounts" class="mail-settings-accounts"></div><button id="mailSessionRefresh" type="button">계정 · 메일 다시 확인</button></section>
+      <section class="be-card"><h3>새 메일 알림</h3><label class="be-row"><span>데스크톱 알림</span><input name="desktopNotification" type="checkbox" role="switch"></label><label class="be-row"><span>알림 소리</span><select name="notificationSound"><option value="chime.mp3">기본 알림음</option><option value="bell.mp3">종소리</option><option value="">소리 없음</option></select></label><label class="be-row"><span>소리 크기</span><input name="notificationSoundVolume" type="range" min="0" max="100" aria-label="알림 소리 크기"></label></section>
+      <section class="be-card"><h3>인증번호</h3><label class="be-row"><span>번호 알림 · 자동 복사</span><input name="otp" type="checkbox" role="switch"></label><p class="be-hint">새 메일의 인증번호를 찾으면 번호만 알림으로 표시하고 바로 붙여넣을 수 있게 복사해요.</p></section>
+      <section class="be-card"><h3>메일함 표시</h3><label class="be-row"><span>목록 간격</span><select name="displayDensity"><option value="comfortable">넉넉하게</option><option value="cozy">보통</option><option value="compact">촘촘하게</option></select></label><label class="be-row"><span>미리 보면 읽음 처리</span><input name="previewing_marks_as_read" type="checkbox" role="switch"></label><label class="be-row"><span>별표 버튼</span><input name="showStar" type="checkbox" role="switch"></label><label class="be-row"><span>보관 버튼</span><input name="showArchive" type="checkbox" role="switch"></label><label class="be-row"><span>삭제 버튼</span><input name="showDelete" type="checkbox" role="switch"></label></section>
+    </div>
+    <footer class="mail-settings-footer"><p id="mailSettingsStatus" role="status" aria-live="polite"></p><button id="mailSettingsSave" type="submit">설정 저장</button></footer>
+  </form>
+</dialog>
+
 </body>
 </html>

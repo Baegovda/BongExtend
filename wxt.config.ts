@@ -44,6 +44,10 @@ export default defineConfig({
     ],
     manifest: {
         name: "BongExtend",
+        homepage_url: "https://github.com/Baegovda/BongExtend",
+        content_security_policy: {
+            extension_pages: "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
+        },
         description: "치지직·디시인사이드 개선, Gemini 번역, 다크 모드, 다운로드 관리 기능을 담은 확장 프로그램",
         minimum_chrome_version: "109",
         default_locale: "en",

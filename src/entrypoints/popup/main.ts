@@ -1,3 +1,4 @@
+import {setupMailSettings} from "./mail-settings";
 // BongExtend 팝업: 탭 하나에 모듈 화면 하나. 각 모듈 화면은 옛 확장 팝업을 그대로 iframe으로 띄운다.
 import "@/modules/theme/theme.css";
 import {sendMessage} from "@/http/messaging";
@@ -119,9 +120,6 @@ for (const input of moduleOptions) {
 
 const embed = new URLSearchParams(location.search).get("embed");
 const embedded = embed === "gmail" || embed === "fx" || embed === "update";
-const CHECKER_PLUS_PERMISSIONS: chrome.runtime.ManifestPermission[] = ["identity", "cookies", "gcm", "system.display"];
-const CHECKER_PLUS_ORIGINS = ["https://www.googleapis.com/*", "https://gmail.googleapis.com/*", "https://*.googleusercontent.com/*"];
-const requestCheckerPlusPermissions = () => chrome.permissions.request({permissions: CHECKER_PLUS_PERMISSIONS, origins: CHECKER_PLUS_ORIGINS}).catch(() => false);
 
 const showTab = async (tab: TabId, persist = true) => {
     if (tab === "update" && current !== "update") pageBeforeSettings = current;
@@ -142,8 +140,11 @@ const showTab = async (tab: TabId, persist = true) => {
     if (tab === "gmail") {
         if (!checkerPlusMailFrame.src) checkerPlusMailFrame.src = checkerPlusMailFrame.dataset.src || "/checkerplus-popup.html?source=bongextend";
     }
-    if (tab === "download" && !chronoPopupFrame.src) {
-        chronoPopupFrame.src = chronoPopupFrame.dataset.src || "/pop/pop.html";
+    if (tab === "download") {
+        const stored = await chrome.storage.local.get("core.chronoPopup");
+        const popup = typeof stored["core.chronoPopup"] === "string" && /^\/(?:(?:pop\/(?:pop|sniffer))|(?:ui\/(?:index|options)))\.html(?:\?mnu=1)?$/.test(stored["core.chronoPopup"])
+            ? stored["core.chronoPopup"] : "/pop/pop.html";
+        if (chronoPopupFrame.src !== chrome.runtime.getURL(popup)) chronoPopupFrame.src = popup;
     }
     if (tab === "download") void acknowledgeDownloads();
     if (tab === "fx") void refreshFx();
@@ -324,10 +325,6 @@ const bindPointerReorder = (opts: {
 tabButtons().forEach((b) => {
     b.addEventListener("click", (e) => {
         if (suppressClick) { e.preventDefault(); e.stopImmediatePropagation(); suppressClick = false; return; }
-        if (b.dataset.tab === "gmail") {
-            void requestCheckerPlusPermissions().then(() => showTab("gmail"));
-            return;
-        }
         void showTab(b.dataset.tab as TabId);
     });
     b.addEventListener("keydown", (e) => {
@@ -568,7 +565,7 @@ if (embedded) {
     applyOrder(normalizeTabOrder(v[ORDER_KEY], DEFAULT_ORDER));
     tabsNav.classList.remove("order-pending");
     const saved = v[TAB_KEY] as TabId | undefined;
-    void showTab(saved && TAB_IDS.includes(saved) ? saved : "chzzk");
+    void showTab(new URLSearchParams(location.search).has("mailSettings") ? "gmail" : saved && TAB_IDS.includes(saved) ? saved : "chzzk");
 });
 
 // ===== 다크 모드 설정 =====
@@ -1603,4 +1600,24 @@ effects.storageGet([FX_KEY, FX_ORDER_KEY, FX_FORM_KEY]).then((stored: Record<str
         fillFxSelects(Object.keys(fxTable.rates).sort());
         renderFx();
     }
+});
+
+setupMailSettings();
+
+for (const button of document.querySelectorAll<HTMLButtonElement>("[data-download-view]")) {
+    button.addEventListener("click", async () => {
+        if (button.dataset.downloadView === "/pop/sniffer.html") {
+            const granted = await chrome.permissions.request({permissions: ["webRequest"], origins: ["http://*/*", "https://*/*"]}).catch(() => false);
+            if (!granted) return;
+            await chrome.storage.local.set({"chrono.siteAccess": true});
+        }
+        await chrome.storage.local.set({"core.chronoPopup": button.dataset.downloadView});
+        await showTab("download", false);
+    });
+}
+chrome.storage.onChanged.addListener((changes, area) => {
+    if (area !== "local") return;
+    if (changes["core.chronoPopup"] && current === "download") void showTab("download", false);
+    const next = changes["core.popupTab"]?.newValue;
+    if (typeof next === "string" && next !== current && TAB_IDS.includes(next as TabId)) void showTab(next as TabId, false);
 });

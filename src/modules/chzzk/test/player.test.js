@@ -8,6 +8,12 @@ vm.runInNewContext(readFileSync(new URL('../lib/player.js', import.meta.url), 'u
 vm.runInNewContext(readFileSync(new URL('../lib/extras.js', import.meta.url), 'utf8'), ctx);
 const P = ctx.BongPlayer, X = ctx.BongExtras;
 
+test('광고 차단 안내만 고르고 일반 확인창은 건드리지 않는다', () => {
+  assert.equal(P.isAdBlockNoticeText('광고 차단 프로그램을 사용 중이신가요? 광고 차단 프로그램 사용 시 재생 환경에 영향을 미칠 수 있으니 사용 중인 확장 프로그램이 있다면 삭제 후 서비스를 이용해 주세요.'),true);
+  assert.equal(P.isAdBlockNoticeText('구독을 취소하시겠어요? 확인'),false);
+  assert.equal(P.isAdBlockNoticeText('확장 프로그램 권한을 확인하세요'),false);
+});
+
 test('isAdActive', () => {
   assert.equal(P.isAdActive({ adUiExists: true, adUiHidden: true, indicatorVisible: false }), false);
   assert.equal(P.isAdActive({ adUiExists: true, adUiHidden: false }), true);

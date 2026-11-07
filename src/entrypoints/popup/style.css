@@ -212,3 +212,30 @@ iframe.active { display: block; }
     .mail-list-toolbar select { flex-basis: 104px; }
     .mail-title .be-sub { display: none; }
 }
+
+.mail-module-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 10px 16px; border-bottom: 1px solid var(--be-border); background: var(--be-surface); }
+.mail-module-toolbar small { display: block; margin-top: 3px; color: var(--be-muted); font-size: 11px; }
+.mail-module-toolbar button { padding: 8px 12px; }
+.mail-settings-dialog { margin: auto; width: min(920px, calc(100% - 32px)); max-height: calc(100% - 32px); padding: 0; border: 1px solid var(--be-border); border-radius: 22px; color: var(--be-text); background: var(--be-bg); box-shadow: var(--be-shadow); overflow: auto; }
+.mail-settings-dialog::backdrop { background: rgba(0,0,0,.65); backdrop-filter: blur(6px); }
+.mail-settings-header { display: flex; justify-content: space-between; align-items: center; gap: 20px; padding: 24px; border-bottom: 1px solid var(--be-border); }
+.mail-settings-header h2 { margin: 0; font-size: 23px; }
+.mail-settings-header p { margin: 7px 0 0; color: var(--be-muted); }
+.mail-settings-grid { display: grid; grid-template-columns: 1fr 1fr; align-items: start; gap: 16px; padding: 24px; }
+.mail-settings-grid .be-card { padding: 20px; margin: 0; min-width: 0; }
+.mail-settings-grid .be-row { gap: 10px; }
+.mail-settings-grid select { max-width: 160px; }
+.mail-settings-accounts { display: grid; gap: 8px; margin: 18px 0; color: var(--be-muted); }
+.mail-settings-account { border-radius: 10px; padding: 12px; background: var(--be-surface-2); color: var(--be-text); overflow-wrap: anywhere; font-size: 13px; }
+.mail-settings-footer { display: flex; gap: 20px; align-items: center; justify-content: space-between; padding: 0 24px 24px; }
+.mail-settings-footer p { color: var(--be-muted); font-size: 13px; }
+#mailSettingsSave { background: var(--be-accent); color: var(--be-accent-ink); white-space: nowrap; }
+@media(max-width:650px) { .mail-settings-grid { grid-template-columns: 1fr; padding: 16px; } .mail-settings-header { padding: 18px; } }
+
+.panel.be-shell.mail-panel:not([hidden]) { display: flex; flex-direction: column; }
+.mail-module-toolbar { flex: 0 0 auto; }
+.checkerplus-mail-frame { flex: 1 1 0; height: 0; }
+
+.download-module-toolbar { display: flex; flex-wrap: wrap; flex: 0 0 auto; gap: 8px; padding: 10px 14px; background: var(--be-surface); border-bottom: 1px solid var(--be-border); }
+.download-module-toolbar button { font-size: 12px; padding: 8px 12px; }
+.chrono-download-panel #chronoPopupFrame { flex: 1 1 0; min-height: 0; height: 0; }

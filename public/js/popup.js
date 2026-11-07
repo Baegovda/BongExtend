@@ -7187,6 +7187,7 @@ async function init() {
     });
         
     onClick(".displayDensity", async function() {
+        if (new URLSearchParams(location.search).get("source") === "bongextend") { closeMenu(this); openUrl("checkerplus-options.html"); return; }
         closeMenu(this);
         
         const $dialog = initTemplate("displayDensityDialogTemplate");
@@ -7210,6 +7211,7 @@ async function init() {
     });
     
     onClick(".skins", function() {
+        if (new URLSearchParams(location.search).get("source") === "bongextend") { closeMenu(this); openUrl("checkerplus-options.html"); return; }
         closeMenu(this);
         showSkinsDialog();
         sendGA('topbar', 'skins');

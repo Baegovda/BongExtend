@@ -306,7 +306,7 @@ $<HTMLButtonElement>("downloadSelected").addEventListener("click", async () => {
 $<HTMLButtonElement>("refresh").addEventListener("click", () => void refresh());
 $<HTMLButtonElement>("openChromeDownloads").addEventListener("click", () => void chrome.tabs.create({url: "chrome://downloads/"}));
 $<HTMLButtonElement>("openChronoManager").addEventListener("click", async () => {
-    await chrome.windows.create({url: chrome.runtime.getURL("/pop/pop.html"), type: "popup", width: 960, height: 700});
+    await chrome.runtime.sendMessage({cmd: "open_ui"});
 });
 $<HTMLButtonElement>("openChronoSettings").addEventListener("click", async () => {
     await chrome.tabs.create({url: chrome.runtime.getURL("/ui/options.html")});
@@ -324,8 +324,8 @@ chronoAccessButton.addEventListener("click", async () => {
         await chrome.storage.local.set({[CHRONO_ACCESS_KEY]: false});
         const result = await chrome.runtime.sendMessage({type: "chrono-sync-sites"});
         await chrome.permissions.remove({permissions: CHRONO_SITE_PERMISSION});
-        if (!result?.ok) { setStatus(result?.error || "Chrono 사이트 연결을 끄지 못했어요.", true); return; }
-        setStatus("Chrono 사이트 연결을 껐어요. 확장 프로그램을 새로 시작하고 있어요.");
+        if (!result?.ok) { setStatus(result?.error || "다운로드 사이트 연결을 끄지 못했어요.", true); return; }
+        setStatus("다운로드 사이트 연결을 껐어요. 확장 프로그램을 새로 시작하고 있어요.");
         window.setTimeout(() => chrome.runtime.reload(), 400);
         return;
     }
@@ -334,12 +334,12 @@ chronoAccessButton.addEventListener("click", async () => {
         if (!granted) { setStatus("권한을 허용하지 않아 페이지 감지를 켜지 않았어요.", true); return; }
         await chrome.storage.local.set({[CHRONO_ACCESS_KEY]: true});
         const result = await chrome.runtime.sendMessage({type: "chrono-sync-sites"});
-        if (!result?.ok) throw new Error(result?.error || "Chrono 페이지 연결을 등록하지 못했어요.");
+        if (!result?.ok) throw new Error(result?.error || "다운로드 페이지 연결을 등록하지 못했어요.");
         await syncChronoAccessButton();
         setStatus("페이지 자동 감지를 켰어요. 확장 프로그램을 새로 시작할게요.");
         window.setTimeout(() => chrome.runtime.reload(), 500);
     } catch (error) {
-        setStatus(`Chrono 사이트 권한을 바꾸지 못했어요: ${(error as Error)?.message || "권한을 확인해 주세요."}`, true);
+        setStatus(`다운로드 사이트 권한을 바꾸지 못했어요: ${(error as Error)?.message || "권한을 확인해 주세요."}`, true);
     }
 });
 void syncChronoAccessButton();

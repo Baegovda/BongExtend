@@ -79,22 +79,18 @@
   }
 
   function patchAdResponse(value) {
-    if (Array.isArray(value)) {
-      let changed = false;
-      for (const item of value) if (patchAdPayload(item)) changed = true;
-      return changed;
+    let changed = false;
+    const stack = [{value, depth: 0}], seen = new Set();
+    while (stack.length && seen.size < 2000) {
+      const item = stack.pop(), current = item.value;
+      if ((!isObj(current) && !Array.isArray(current)) || seen.has(current)) continue;
+      seen.add(current);
+      if (isObj(current) && patchAdPayload(current)) changed = true;
+      if (item.depth >= 8) continue;
+      for (const child of Object.values(current)) {
+        if (child && typeof child === 'object') stack.push({value: child, depth: item.depth + 1});
+      }
     }
-    if (!isObj(value)) return false;
-    let changed = patchAdPayload(value);
-    const nests = [];
-    if (isObj(value.content)) nests.push(value.content);
-    if (isObj(value.live)) nests.push(value.live);
-    if (isObj(value.video)) nests.push(value.video);
-    if (isObj(value.content)) {
-      if (isObj(value.content.live)) nests.push(value.content.live);
-      if (isObj(value.content.video)) nests.push(value.content.video);
-    }
-    for (const nest of nests) if (patchAdPayload(nest)) changed = true;
     return changed;
   }
 
@@ -106,6 +102,9 @@
       || text.indexOf('adBreaks') !== -1
       || text.indexOf('videoAdScheduleId') !== -1
       || text.indexOf('skipPreRollAd') !== -1
+      // 새 seoraksan 응답은 이 객체 안의 liveId/chatChannelId를 광고 플래그로 사용해요.
+      // 실제 재생 주소는 건드리지 않고 명시적인 광고 꺼짐 항목을 추가해요.
+      || text.indexOf('livePlaybackJson') !== -1
       || text.indexOf('adControlType') !== -1
       || text.indexOf('Naver SSP') !== -1
       || text.indexOf('GFP Video Ad Schedule') !== -1
@@ -118,8 +117,8 @@
   function isAdEndpoint(url, method) {
     if (String(method || 'GET').toUpperCase() === 'OPTIONS') return false;
     const u = String(url || '');
-    if (/^https:\/\/api\.chzzk\.naver\.com\/ad-polling\/v\d+\/lives\/[^/?#]+\/ads?(?:\/|\?|$)/.test(u)) return true;
-    if (/^https:\/\/api\.chzzk\.naver\.com\/service\/v\d+\/lives\/[^/?#]+\/ads\/current(?:\/|\?|$)/.test(u)) return true;
+    if (/^https:\/\/api\.chzzk\.naver\.com\/ad-polling\/v\d+(?:\.\d+)*\/lives\/[^/?#]+\/ads?(?:\/|\?|$)/.test(u)) return true;
+    if (/^https:\/\/api\.chzzk\.naver\.com\/service\/v\d+(?:\.\d+)*\/lives\/[^/?#]+\/ads\/current(?:\/|\?|$)/.test(u)) return true;
     return false;
   }
 
@@ -210,6 +209,32 @@
         if (!patchAdResponse(value)) return null;
         return win.JSON.stringify(value);
       } catch (e) { return null; }
+    }
+
+    // 새 터널 응답은 복호화한 바이트를 자체 JSON 파서로 읽어서 fetch/json 훅을 지나치지 않아요.
+    // 브라우저가 정상 복호화한 뒤 광고 결정 JSON만 바꾸고, 키와 미디어 바이트는 그대로 둬요.
+    const subtle = win.crypto && win.crypto.subtle;
+    const decrypt = subtle && subtle.decrypt;
+    if (typeof decrypt === 'function' && win.TextDecoder && win.TextEncoder) {
+      try {
+        subtle.decrypt = function (algorithm) {
+          return decrypt.apply(this, arguments).then(raw => {
+            const name = typeof algorithm === 'string' ? algorithm : algorithm && algorithm.name;
+            if (!on() || String(name).toUpperCase() !== 'AES-GCM' || !raw || raw.byteLength > 2000000) return raw;
+            try {
+              const bytes = new Uint8Array(raw);
+              let first = bytes[0];
+              for (let i = 0; i < Math.min(bytes.length, 16); i++) {
+                first = bytes[i];
+                if (first !== 32 && first !== 10 && first !== 13 && first !== 9) break;
+              }
+              if (first !== 123 && first !== 91 && first !== 239) return raw;
+              const next = rewriteText(new win.TextDecoder('utf-8', {fatal: true}).decode(raw));
+              return next == null ? raw : new win.TextEncoder().encode(next).buffer;
+            } catch (e) { return raw; }
+          });
+        };
+      } catch (e) { /* 읽기 전용 구현이면 다른 응답 훅을 유지해요. */ }
     }
 
     win.JSON.parse = function (text, reviver) {

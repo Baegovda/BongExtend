@@ -2290,6 +2290,9 @@ if (chrome.commands) {
 }
 
 chrome.runtime.onMessage.addListener(/* DONT USE ASYNC HERE because of return true */ (message, sender, sendResponse) => {
+    if (typeof message?.command !== "string") return false;
+    if (message.command.startsWith("BongExtend") &&
+        (sender.id !== chrome.runtime.id || !sender.url?.startsWith(chrome.runtime.getURL("/")))) return false;
     (async function() {
         try {
             // reconstruct params to because of firefox issue "The object could not be cloned."
@@ -2722,6 +2725,9 @@ async function init(source) {
         // END LAGACY
 
         await storage.set("unreadCount", 0);
+        // 이 모듈은 브라우저의 Gmail 로그인 세션을 사용해요. 별도 OAuth 승인을 요청하지 않아요.
+        await storage.set("accountAddingMethod", "autoDetect");
+        if (await storage.get("poll") === "realtime") await storage.set("poll", 30000);
         await initMisc({skipStorageInit: true});
 
         // begin small Sep 2024
@@ -2760,7 +2766,8 @@ async function init(source) {
         buttonIcon.setIcon({signedOut: true});
         
         initContextMenus();
-        initRealtimeSync();
+        // Gmail 세션 감시는 로컬 오프스크린 문서에서 처리해요.
+        await setupOffscreenDocument();
 
         // call poll accounts initially then set it as interval below
         pollAccounts({showNotification:true, source:Source.STARTUP, refresh:true}).then(() => {
@@ -3737,3 +3744,34 @@ async function offlineOnlineChanged(e) {
 
 globalThis.addEventListener('offline', offlineOnlineChanged);
 globalThis.addEventListener('online', offlineOnlineChanged);
+
+// BongExtend 인앱 메일 설정과 세션 감시 전용 인터페이스예요.
+async function BongExtendMailOptions(params = {}) {
+    await initMisc();
+    const keys = ["desktopNotification", "notificationSound", "notificationSoundVolume", "previewing_marks_as_read", "displayDensity", "showStar", "showArchive", "showDelete"];
+    if (params.values) {
+        const v = params.values;
+        if (typeof v.desktopNotification === "boolean") await storage.set("desktopNotification", v.desktopNotification ? "rich" : "");
+        if (["", "chime.mp3", "bell.mp3"].includes(v.notificationSound)) await storage.set("notificationSound", v.notificationSound);
+        if (Number.isFinite(v.notificationSoundVolume)) await storage.set("notificationSoundVolume", Math.max(0, Math.min(100, v.notificationSoundVolume)));
+        if (["comfortable", "cozy", "compact"].includes(v.displayDensity)) await storage.set("displayDensity", v.displayDensity);
+        for (const key of ["previewing_marks_as_read", "showStar", "showArchive", "showDelete"]) if (typeof v[key] === "boolean") await storage.set(key, v[key]);
+        if (typeof v.otp === "boolean") await chrome.storage.local.set({"core.mailOtpEnabled": v.otp});
+    }
+    const values = {};
+    for (const key of keys) values[key] = await storage.get(key);
+    values.desktopNotification = Boolean(values.desktopNotification);
+    values.otp = (await chrome.storage.local.get("core.mailOtpEnabled"))["core.mailOtpEnabled"] !== false;
+    return {values, accounts: accounts.filter(a => !a.error).map(a => ({email: a.getEmail(), index: a.id}))};
+}
+async function BongExtendGetSessionWatchConfig() {
+    const stored = await chrome.storage.local.get("core.modules");
+    return {enabled: stored["core.modules"]?.gmail !== false, accounts: accounts.filter(a => !a.error).map(a => a.id)};
+}
+let bongSessionRefresh;
+async function BongExtendMailSessionChanged() {
+    if ((await BongExtendGetSessionWatchConfig()).enabled === false) return;
+    if (!bongSessionRefresh) bongSessionRefresh = checkEmails("session-watch").finally(() => {bongSessionRefresh = null;});
+    await bongSessionRefresh;
+    return {ok: true};
+}

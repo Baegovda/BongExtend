@@ -1,0 +1,9 @@
+/* 다운로드 모듈은 BongExtend 공통 색과 글꼴을 사용해요. */
+html, body { background: var(--be-bg) !important; color: var(--be-text) !important; font-family: var(--be-font) !important; }
+#header_wrap, #header, header, .mdl-layout__header, #statusbar, .statusbar, #left, #left_panel { background: var(--be-surface) !important; color: var(--be-text) !important; }
+#toolbtn_rate, #product-description + a { display: none !important; }
+.mdl-menu, .mdlx-menu, .mdl-menu__container, .mdl-dialog, .slick-header-columns, .slick-row, .slick-cell, .content, .content-wrapper { background-color: var(--be-surface) !important; color: var(--be-text) !important; }
+input:not([type=checkbox]):not([type=radio]), select, textarea { background-color: var(--be-surface-2); color: var(--be-text); border-color: var(--be-border); }
+a { color: var(--be-link); }
+.mdl-menu__item, .mdl-button, .material-icons, label, .slick-header-column { color: inherit !important; }
+.mdl-menu__item:hover, .slick-row:hover { background-color: var(--be-surface-3) !important; }

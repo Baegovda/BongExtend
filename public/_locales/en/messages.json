@@ -317,7 +317,7 @@
   },
   "extName": {
     "description": "Extension name",
-    "message": "Chrono Download Manager"
+    "message": "BongExtend 다운로드"
   },
   "extsAll": {
     "description": "File type, displayed as tab in Chrono Sniffer",

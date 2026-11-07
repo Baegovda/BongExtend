@@ -2418,7 +2418,16 @@ async function findTab(url) {
 
 //usage: openUrl(url, {urlToFind:""})
 async function openUrl(url, params = {}) {
-    // Keep Checker Plus internal pages, including its full options page, inside BongExtend's Mail tab.
+    const internalTarget = new URL(String(url), location.href);
+    if (internalTarget.origin === location.origin && internalTarget.pathname.endsWith("/checkerplus-options.html")) {
+        if (typeof window !== "undefined" && window.parent !== window) {
+            window.parent.postMessage({type: "bongextend-mail-settings"}, location.origin);
+            return;
+        }
+        return chrome.windows.create({url: chrome.runtime.getURL("popup.html?mailSettings=1"), type: "popup", width: 1000, height: 760});
+    }
+    // 그 밖의 내부 화면은 메일 탭에서 열어요.
+
     if (new URLSearchParams(location.search).get("source") === "bongextend") {
         const target = new URL(String(url), location.href);
         if (target.origin === location.origin) {
