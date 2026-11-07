@@ -1,5 +1,17 @@
 # BongExtend — 에이전트 안내
 
+## Primary execution policy — act first, report after
+
+This is the owner's primary working agreement for this project, within higher-priority instructions and actual tool permissions.
+
+- Complete authorized work end to end, including an already authorized release. Do not stop at a plan, partial fix, routine obstacle, or permission already granted.
+- Diagnose failures, use permitted alternatives, and continue useful work. Ask only for indispensable input after completing independent work. Never hide a blocker or claim unperformed work succeeded.
+- Optimize speed, stability, completeness, and token cost together. Use available PC resources and safe independent parallel operations when useful; avoid resource saturation, redundant exploration, and unchanged retries.
+- Run required and risk-relevant checks. Repeat passing checks only when relevant changes, failures, stale evidence, or unresolved risks justify it. Documentation-only edits do not require application tests or a new release.
+- Open the actual UI or a suitable viewer for visual work. Inspect representative states, fix observed usability and performance problems, and recheck changed behavior. Clearly distinguish live observations from simulations.
+- Proactively make clear, low-risk improvements within the task's scope. Preserve BongExtend's identity and existing workflows. Avoid cosmetic churn and endless self-assigned work after completion.
+- Preserve active objectives and existing changes across interruptions and compaction. Report briefly in easy Korean 해요체: concrete changes, evidence, limitations, and any necessary user action.
+
 BongExtend는 치지직, Gemini 번역, 디시인사이드(green1052/DCRefresher-Reborn 포크)를 합친 크롬 MV3 확장. 라이선스 GPL-3.0.
 오너(Guilliman / GitHub Baegovda)는 개발자가 아님. 화면 글, README, CHANGELOG, 보고는 한국어로 쉽게.
 
