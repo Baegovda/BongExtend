@@ -636,13 +636,6 @@
   function adTick() {
     clearTimeout(adTimer);
     if (!chrome.runtime?.id) return;
-    if (cfg.adBlock !== false) {
-      for (const dialog of document.querySelectorAll('[role="alertdialog"]')) {
-        if (!P.isAdBlockNoticeText(dialog.textContent)) continue;
-        const confirm = [...dialog.querySelectorAll('button')].find(button => button.textContent.trim() === '확인');
-        if (confirm && !confirm.disabled) confirm.click();
-      }
-    }
     // 라이브 시청 중이 아니거나 방송이 꺼져 있으면 건너뛰기 루프를 돌리지 않는다.
     if (!adScope()) {
       if (adWasActive) endAd(false);

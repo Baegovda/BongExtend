@@ -261,6 +261,23 @@ test('터널 복호화 뒤 자체 JSON 파서가 읽기 전에 광고 결정만 
   assert.equal(await win.crypto.subtle.decrypt({name:'AES-GCM'}),result);
 });
 
+test('이전 버전이 남은 열린 탭을 업그레이드하고 같은 버전은 중복 설치하지 않는다', async () => {
+  const win = makeWin(async () => new FakeResponse('{}'));
+  win.__bongAdHook = true;
+  const parse = win.JSON.parse;
+  win.JSON.parse = text => {const value=parse(text); A.patchAdResponse(value); return value;};
+  const raw = new TextEncoder().encode('{"content":{"playerAdDisplayResponse":{"preRoll":true,"midRoll":true}}}').buffer;
+  win.TextDecoder=TextDecoder; win.TextEncoder=TextEncoder;
+  win.crypto={subtle:{async decrypt() {return raw;}}};
+  assert.equal(A.installAdHooks(win,()=>true),true);
+  const patched=JSON.parse(new TextDecoder().decode(await win.crypto.subtle.decrypt({name:'AES-GCM'})));
+  assert.equal(patched.content.playerAdDisplayResponse.preRoll,false);
+  assert.equal(patched.content.playerAdDisplayResponse.midRoll,false);
+  const installed=win.crypto.subtle.decrypt;
+  assert.equal(A.installAdHooks(win,()=>true),false);
+  assert.equal(win.crypto.subtle.decrypt,installed);
+});
+
 test('XHR 재생 응답은 광고 표시만 끄고 미드롤 신호만 요청하지 않는다', async () => {
   const win = makeWin(async () => new FakeResponse('{}'));
   A.installAdHooks(win, () => true);

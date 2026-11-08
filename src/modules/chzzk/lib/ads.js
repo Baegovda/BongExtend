@@ -4,6 +4,7 @@
 (function (root) {
   'use strict';
   const isObj = v => v !== null && typeof v === 'object' && !Array.isArray(v);
+  const HOOK_VERSION = 2;
   const PLAYBACK_KEYS = ['livePlaybackJson', 'liveRewindPlaybackJson', 'radioModePlaybackJson', 'previewPlaybackJson', 'playbackJson'];
 
   function isMediaPayload(payload) {
@@ -196,8 +197,10 @@
   }
 
   function installAdHooks(win, isEnabled) {
-    if (!win || win.__bongAdHook || !win.JSON || typeof win.JSON.parse !== 'function') return false;
+    if (!win || (win.__bongAdHook && win.__bongAdHookVersion === HOOK_VERSION)
+      || !win.JSON || typeof win.JSON.parse !== 'function') return false;
     win.__bongAdHook = true;
+    win.__bongAdHookVersion = HOOK_VERSION;
     const on = () => !isEnabled || isEnabled() !== false;
     const nativeParse = win.JSON.parse;
 
@@ -206,8 +209,11 @@
       if (!looksLikeAdJson(text)) return null;
       try {
         const value = nativeParse(text);
-        if (!patchAdResponse(value)) return null;
-        return win.JSON.stringify(value);
+        const changed = patchAdResponse(value);
+        const next = win.JSON.stringify(value);
+        // An older installed parser may already have patched the object in memory.
+        // Preserve that change when returning decrypted bytes to the custom parser.
+        return changed || next !== text ? next : null;
       } catch (e) { return null; }
     }
 
@@ -359,6 +365,7 @@
   }
 
   root.BongAds = {
+    HOOK_VERSION,
     patchAdPayload, patchAdResponse, looksLikeAdJson, isAdEndpoint, emptyBodyFor, shouldInspectUrl,
     CHZZK_AD_RULE_IDS, chzzkAdRules, installAdHooks
   };

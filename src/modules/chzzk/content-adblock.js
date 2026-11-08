@@ -2,7 +2,7 @@
 (() => {
   'use strict';
   const A = globalThis.BongAds;
-  if (!A || globalThis.__bongAdHook) return;
+  if (!A) return;
   const enabled = () => {
     const root = document.documentElement;
     const flag = root && root.getAttribute('data-bong-adblock');

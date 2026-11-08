@@ -3,6 +3,52 @@
 // 광고 막은 플레이어 그림자 루트 안에 있어서, 문서 CSS 만으로는 검게 덮인 채 남는다.
 (() => {
   'use strict';
+  // This upgrade also runs on already-open tabs, independently of the old style guard.
+  if (!globalThis.__bongAdNoticeCleanup) {
+    globalThis.__bongAdNoticeCleanup = true;
+    const hiddenNotices = new Map();
+    const restoreNotices = () => {
+      for (const [layer, original] of hiddenNotices) {
+        if (original.display) layer.style.setProperty('display', original.display, original.priority);
+        else layer.style.removeProperty('display');
+        if (original.ariaHidden == null) layer.removeAttribute('aria-hidden');
+        else layer.setAttribute('aria-hidden', original.ariaHidden);
+        layer.inert = original.inert;
+      }
+      hiddenNotices.clear();
+    };
+    const dismissNotices = node => {
+      if (document.documentElement?.getAttribute('data-bong-adblock') === '0') { restoreNotices(); return; }
+      const element = node?.nodeType === 1 ? node : node?.parentElement;
+      if (!element) return;
+      const dialog = element.closest('[role="alertdialog"]');
+      const dialogs = dialog ? [dialog] : [...element.querySelectorAll('[role="alertdialog"]')];
+      for (const candidate of dialogs) {
+        if (!globalThis.BongPlayer?.isAdBlockNoticeText(candidate.textContent)) continue;
+        // The real confirmation handler rejects synthetic clicks (event.isTrusted).
+        // Hide only this notice and its dedicated body-level backdrop, never the player.
+        const parent = candidate.parentElement;
+        const layer = parent?.parentElement === document.body && parent.childElementCount === 1
+          && !parent.querySelector('video, main, #root, #aside-chatting') ? parent : candidate;
+        if (hiddenNotices.has(layer)) continue;
+        hiddenNotices.set(layer, {display: layer.style.getPropertyValue('display'), priority: layer.style.getPropertyPriority('display'), ariaHidden: layer.getAttribute('aria-hidden'), inert: layer.inert});
+        layer.style.setProperty('display', 'none', 'important');
+        layer.setAttribute('aria-hidden', 'true');
+        layer.inert = true;
+      }
+    };
+    const noticeObserver = new MutationObserver(records => {
+      try { if (!chrome.runtime?.id) { noticeObserver.disconnect(); return; } }
+      catch { noticeObserver.disconnect(); return; }
+      for (const layer of hiddenNotices.keys()) if (!layer.isConnected) hiddenNotices.delete(layer);
+      for (const record of records) {
+        dismissNotices(record.target);
+        for (const node of record.addedNodes || []) dismissNotices(node);
+      }
+    });
+    noticeObserver.observe(document, {childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['role', 'data-bong-adblock']});
+    dismissNotices(document.documentElement);
+  }
   if (globalThis.__bongAdFlagHook) return;
   globalThis.__bongAdFlagHook = true;
   const STYLE_ID = 'bex-adconceal';
