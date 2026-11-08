@@ -5,13 +5,16 @@
   const D = globalThis.BongWide;
   const RETRY_MS = 1200;
   const MAX_CLICKS = 5;
-  let enabled = true, route = '', clicks = 0, timer = 0, lastClickAt = 0, settledRoute = '';
+  let enabled = true, wideFullscreen = true, route = '', clicks = 0, timer = 0, lastClickAt = 0, settledRoute = '';
 
-  BCStore.sync.get({ autoWide: true }, value => { enabled = value.autoWide !== false; start(true); });
+  BCStore.sync.get({ autoWide: true, wideFullscreen: true }, value => {
+    enabled = value.autoWide !== false; wideFullscreen = value.wideFullscreen !== false;
+    start(true); checkWide();
+  });
   BCStore.onChanged.addListener((changes, area) => {
-    if (area !== 'sync' || !changes.autoWide) return;
-    enabled = changes.autoWide.newValue !== false;
-    start(true);
+    if (area !== 'sync') return;
+    if (changes.autoWide) { enabled = changes.autoWide.newValue !== false; start(true); }
+    if (changes.wideFullscreen) { wideFullscreen = changes.wideFullscreen.newValue !== false; checkWide(); }
   });
 
   const pageKey = () => /^\/(live|video)\/[^/]+/.test(location.pathname) ? location.pathname : '';
@@ -86,30 +89,39 @@
   }
 
 
-  // 브라우저 자체 단축키는 페이지의 합성 keydown으로 실행되지 않으므로 PC 보조 프로그램에 전달해요.
-  let immersiveSeen=false,lastCollapse=0;
-  function collapseTabs(){
-    if(!pageKey()||Date.now()-lastCollapse<1500)return;
-    lastCollapse=Date.now();
-    void chrome.runtime.sendMessage({type:'BONG_COLLAPSE_VERTICAL_TABS',expandedHint:window.outerWidth-window.innerWidth>=100}).catch(()=>{});
+  // Only an actual wide-layout transition controls browser fullscreen, never a predicted button click.
+  let lastWide = null, observedLayout = null, observedButton = null, frame = 0;
+  const wideObserver = new MutationObserver(() => {
+    if (!frame) frame = requestAnimationFrame(() => {frame = 0; checkWide();});
+  });
+  function checkWide(force = false) {
+    const root = playerRoot(), button = findButton(root);
+    if (root !== observedLayout || button !== observedButton) {
+      wideObserver.disconnect(); observedLayout = root; observedButton = button;
+      if (root) wideObserver.observe(root, {attributes:true, attributeFilter:['class']});
+      if (button && button !== root) wideObserver.observe(button, {attributes:true, attributeFilter:['class','aria-pressed','aria-checked','aria-label','title']});
+    }
+    const wide = wideFullscreen && !!pageKey() && D.wideState(info(button)) === true;
+    if (!force && wide === lastWide) return;
+    lastWide = wide;
+    void chrome.runtime.sendMessage({type:'BONG_CHZZK_WIDE_FULLSCREEN', wide}).catch(() => {});
   }
-  function checkImmersive(){
-    const active=!!document.fullscreenElement || info(findButton(playerRoot())).layoutWide;
-    if(active&&!immersiveSeen)collapseTabs();immersiveSeen=active;
-  }
-  document.addEventListener('fullscreenchange',checkImmersive);
-  window.addEventListener('focus',()=>{if(document.fullscreenElement || info(findButton(playerRoot())).layoutWide)collapseTabs();});
-  document.addEventListener('click',event=>{
-    const button=event.target.closest?.('.pzp-viewmode-button,.pzp-pc-viewmode-button,.pzp-pc-fullscreen-button,.pzp-fullscreen-button');
-    if(button&&!document.fullscreenElement&&!info(button).layoutWide)collapseTabs();
-  },true);
+  window.addEventListener('focus', () => checkWide(true));
+  chrome.runtime.onMessage.addListener((message, sender) => {
+    if (message?.type === 'BONG_CHZZK_WIDE_REFRESH' && sender.id === chrome.runtime.id) checkWide(true);
+  });
+  document.addEventListener('visibilitychange', () => {if (!document.hidden) checkWide(true);});
+  window.addEventListener('pageshow', () => checkWide(true));
+  window.addEventListener('pagehide', () => {
+    void chrome.runtime.sendMessage({type:'BONG_CHZZK_WIDE_FULLSCREEN', wide:false}).catch(() => {});
+  });
 
   let lastPath = location.pathname;
   setInterval(() => {
-    checkImmersive();
-    if (location.pathname !== lastPath) { lastPath = location.pathname; start(true); }
+    checkWide();
+    if (location.pathname !== lastPath) { lastPath = location.pathname; start(true); checkWide(true); }
     else if (enabled && pageKey() && settledRoute !== pageKey() && !timer) schedule(0);
   }, 1000);
   document.addEventListener('playing', () => { if (enabled && pageKey() && settledRoute !== pageKey()) schedule(0); }, true);
-  window.addEventListener('popstate', () => setTimeout(() => { lastPath = location.pathname; start(true); }, 200));
+  window.addEventListener('popstate', () => setTimeout(() => { lastPath = location.pathname; start(true); checkWide(true); }, 200));
 })();

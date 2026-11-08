@@ -18,4 +18,4 @@ https://github.com/denoland/deno (MIT)
 BongExtend 보조 프로그램: GPL-3.0-only, 동봉 LICENSE 참고
 전체 소스와 빌드 스크립트: https://github.com/Baegovda/BongExtend/tree/main/native/video
 
-세로 탭 기능: 치지직의 활성 Chrome 창에서만 Ctrl+Shift+L을 전달해요. 창을 활성화하거나 이동하지 않아요. 이미 접힌 상태가 확인되면 건너뛰고, 사용자가 다른 키를 누르는 중이면 입력하지 않아요. 이 기능을 사용하려면 이번 보조 프로그램으로 다시 설치해 주세요.
+치지직 넓은 화면의 Chrome 전체화면 연동은 확장 프로그램에서 직접 처리해요. 이 영상 보조 프로그램과 별개로 동작해요.

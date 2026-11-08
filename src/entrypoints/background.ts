@@ -3,7 +3,7 @@ import {startVideoHost} from "@/modules/downloads/video.js";
 // @ts-ignore pure JS
 import {videoSaveTarget} from "@/modules/downloads/video-menu.js";
 // @ts-ignore pure JS
-import {startVerticalTabBridge} from "@/modules/chzzk/vertical-tabs.js";
+import {startWideFullscreenBridge} from "@/modules/chzzk/wide-fullscreen.js";
 import {onMessage, sendMessage, sendToContentTab} from "@/http/messaging";
 import {migrateLocalStorageData} from "@/storage/migration";
 import {databaseStorage, moduleSchemaStorage} from "@/storage/wxtStorage";
@@ -45,7 +45,7 @@ import {createOtpToast} from "@/modules/gmail/otp-toast.js";
 
 export default defineBackground(() => {
     startVideoHost();
-    startVerticalTabBridge();
+    startWideFullscreenBridge();
     const showOtpToast=createOtpToast();
     const otpHandler = createMailOtpHandler({
         load: async () => {

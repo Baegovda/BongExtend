@@ -11,7 +11,6 @@ New-Item -ItemType Directory -Force -Path $dest | Out-Null
 $python=(Get-Command python -ErrorAction Stop).Source
 & $python -c "import sys; assert sys.version_info >= (3,10)"
 if ($LASTEXITCODE -ne 0) {throw 'Python 3.10 or newer is required.'}
-Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'BongExtendBrowser.exe') -Destination $dest -Force
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'host.py') -Destination $dest -Force
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'BongExtendVideo.exe') -Destination $dest -Force
 [IO.File]::WriteAllText((Join-Path $dest 'python.txt'),$python)

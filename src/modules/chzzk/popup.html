@@ -44,6 +44,8 @@ select{min-width:76px}
 <h4>화면</h4>
 <label>화질 고정 <span class="inline"><select id="targetQuality" aria-label="고정할 화질"><option value="1080">1080p</option><option value="720">720p</option><option value="480">480p</option><option value="360">360p</option></select><input type="checkbox" id="lockQuality" aria-label="화질 고정"></span></label>
 <label>방송에 들어가면 넓은 화면으로<input type="checkbox" id="autoWide"></label>
+<label>넓은 화면에서 Chrome도 전체화면으로<input type="checkbox" id="wideFullscreen"></label>
+<p class="hint">F11처럼 브라우저 테두리를 숨겨요. 넓은 화면을 끄거나 다른 탭으로 이동하면 이전 창 상태로 돌아와요.</p>
 <label>들어가거나 새로고침하면 자동 재생<input type="checkbox" id="autoPlay"></label>
 <label>선명한 화면 항상 켜기<input type="checkbox" id="vivid"></label>
 <label title="'실시간' 버튼을 눌렀을 때 뜨는 치트키·타임머신 안내창을 자동으로 닫아요">치트키 안내창 숨기기<input type="checkbox" id="hideTimeGuide"></label>
@@ -79,7 +81,6 @@ select{min-width:76px}
 <p id="watchMsg"></p>
 <ul id="watchListEl"></ul>
 </section>
-<section class="be-card"><h4>Chrome 세로 탭 자동 접기</h4><p>넓은 화면·전체화면 진입 시 PC 보조 프로그램이 Ctrl+Shift+L을 전달해요. Chrome 세로 탭의 현재 상태를 확인하고 이미 접혔으면 건너뛰어요.</p><p id="verticalTabsStatus">Windows 보조 프로그램 연결이 필요해요.</p><button id="verticalTabsSetup" type="button">PC 연결 설정</button></section>
 </div>
 </div>
 <script src="lib/ns.js"></script>
