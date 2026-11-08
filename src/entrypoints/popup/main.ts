@@ -392,7 +392,7 @@ const renderUpdate = (s: UpdateStatus | null | undefined) => {
     notice.textContent = available ? `새 버전 ${s.latestVersion}이 있어요. 아래에서 받을 수 있어요.` : "";
     if (s.error) setStatus(s.error, "error");
     else if (available) setStatus(`${cur} → ${s.latestVersion} 업데이트할 수 있어요`, "ok");
-    else if (s.latestVersion) setStatus("최신 버전이에요.");
+    else if (s.latestVersion) setStatus("최신 버전이에요.", "be-prism-current");
     if (typeof s.autoCheck === "boolean") autoCheck.checked = s.autoCheck;
     lastChecked.textContent = s.lastCheckedAt ? new Date(s.lastCheckedAt).toLocaleString("ko-KR") : "아직 확인하지 않음";
     doUpdate.hidden = firefoxBuild || !available || !s.downloadUrl;

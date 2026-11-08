@@ -14,7 +14,7 @@ const startButton = $("start") as HTMLButtonElement | null;
 const resumeButton = $("resume") as HTMLButtonElement | null;
 
 const setStatus = (text: string) => {
-    if (statusEl) statusEl.textContent = text;
+    if (statusEl) { statusEl.textContent = text; statusEl.classList.toggle("be-prism-current", text.startsWith("최신 버전이에요.")); }
 };
 
 const progressWrap = $("progress");
