@@ -4,6 +4,7 @@ import {installSession, pendingDecision, shouldAutoStartInstall, versionLine, ty
 import {fileKey, type PendingUpdate, type ZipFile} from "@/core/update/types";
 import {extractAll} from "@/core/update/zip";
 import {computeProgress, createMonotonic, pickTotalBytes, readAllWithProgress, type ProgressStage} from "@/core/update/progress";
+import {INSTALL_STATE_KEY, withInstallLock, type InstallState} from "@/core/update/autoInstall";
 
 const $ = (id: string) => document.getElementById(id);
 const statusEl = $("status");
@@ -58,6 +59,18 @@ if (import.meta.env.FIREFOX) {
 } else {
     const running = browser.runtime.getManifest().version;
     let release: LatestRelease | null = null;
+    const automatic = new URLSearchParams(location.search).has('auto');
+    const publishInstall = async (phase: InstallState['phase'], message: string, version = release?.latest || running) => {
+        await browser.storage.local.set({[INSTALL_STATE_KEY]: {version, phase, message}});
+    };
+    const needFolder = async (version: string) => {
+        const message = '자동 업데이트를 위해 설치 폴더를 한 번 지정해 주세요. 저장된 권한이 만료된 경우에도 다시 선택해야 해요.';
+        setStatus(message);
+        await publishInstall('blocked', message, version);
+        if (automatic) await browser.notifications.create('refresher-update-available', {
+            type: 'basic', iconUrl: browser.runtime.getURL('/icons/128.png'), title: 'BongExtend 설치 폴더 설정', message
+        }).catch(() => {});
+    };
 
     const openDb = (): Promise<IDBDatabase> => new Promise((resolve, reject) => {
         const request = indexedDB.open("bongextend-install", 1);
@@ -76,8 +89,8 @@ if (import.meta.env.FIREFOX) {
         return new Promise((resolve, reject) => {
             const tx = db.transaction(store, mode);
             const request = fn(tx.objectStore(store));
-            tx.oncomplete = () => resolve(request.result);
-            tx.onerror = () => reject(tx.error);
+            tx.oncomplete = () => {db.close(); resolve(request.result);};
+            tx.onerror = () => {db.close(); reject(tx.error);};
         });
     };
 
@@ -222,20 +235,28 @@ if (import.meta.env.FIREFOX) {
     };
 
     const installFiles = async (dir: FileSystemDirectoryHandle, files: ZipFile[], to: string) => {
-        const result = await installSession({
-            files,
-            toVersion: to,
-            savePending,
-            clearPending,
-            readExisting: (path) => readExisting(dir, path),
-            writeOne: (file) => writeOne(dir, file),
-            onProgress: reportProgress
-        });
-        if (result.aborted) return;
+        if (manifestVersionOf(files) !== to || !files.some(file => fileKey(file) === 'manifest.json' && isBongExtendManifest(new TextDecoder().decode(file.data)))) {
+            throw new Error('저장된 업데이트 파일의 버전과 내용을 확인하지 못했어요. 새로 업데이트해 주세요.');
+        }
+        await withInstallLock(navigator.locks, async () => {
+            await verifyDir(dir);
+            await publishInstall('working', `${to} 파일을 설치하고 있어요.`, to);
+            const result = await installSession({
+                files,
+                toVersion: to,
+                savePending,
+                clearPending,
+                readExisting: (path) => readExisting(dir, path),
+                writeOne: (file) => writeOne(dir, file),
+                onProgress: reportProgress
+            });
+            if (result.aborted) return;
 
-        showProgress("done");
-        setStatus(`${versionLine(running, to)} 업데이트 완료, 다시 로드해요`);
-        setTimeout(() => browser.runtime.reload(), 800);
+            showProgress("done");
+            setStatus(`${versionLine(running, to)} 업데이트 완료, 다시 로드해요`);
+            await publishInstall('done', `${to} 업데이트를 마쳤어요. 확장을 다시 불러와요.`, to);
+            setTimeout(() => browser.runtime.reload(), 800);
+        }, () => setStatus('다른 업데이트 화면에서 이미 설치 중이에요. 완료될 때까지 기다려 주세요.'));
     };
 
     const normalizePending = (value: PendingUpdate | null | undefined): PendingUpdate | null => {
@@ -250,6 +271,10 @@ if (import.meta.env.FIREFOX) {
     };
 
     const init = async () => {
+        if (automatic && (await browser.storage.local.get('core.update:autoCheck'))['core.update:autoCheck'] === false) {
+            setStatus('자동 업데이트가 꺼져 있어요. 설정에서 다시 켤 수 있어요.');
+            return;
+        }
         const pending = normalizePending(await loadPending());
         const decision = pendingDecision(pending, running);
         if (decision === "clear") await clearPending();
@@ -257,19 +282,26 @@ if (import.meta.env.FIREFOX) {
             versionEl.textContent = versionLine(running, pending.version);
             setStatus("이전 업데이트가 중간에 멈췄어요. 아래 버튼을 눌러 마저 설치해 주세요.");
             resumeButton.hidden = false;
+            const dir = await findGrantedInstallDir();
+            if (dir) {
+                resumeButton.disabled = true;
+                try {await installFiles(dir, pending.files, pending.version);} catch (error) {showFail(error); resumeButton.disabled = false;}
+            } else await needFolder(pending.version);
+            return;
         }
 
         try {
             release = await checkLatestRelease(running);
-            if (decision === "resume") return;
             if (versionEl) versionEl.textContent = release.upToDate ? running : versionLine(running, release.latest);
             if (release.upToDate) {
                 setStatus(release.message);
+                await publishInstall('done', release.message);
                 return;
             }
             if (!release.assetUrl) {
                 setStatus(release.message);
                 setError("릴리스에 Chrome용 zip(*-chrome.zip)이 없어요.");
+                await publishInstall('error', 'Chrome용 설치 파일이 아직 없어요. 다음 확인 때 다시 시도해요.');
                 return;
             }
             setStatus("업데이트를 확인했어요.");
@@ -279,12 +311,13 @@ if (import.meta.env.FIREFOX) {
                 setStatus("저장된 BongExtend 폴더를 확인했어요. 업데이트를 바로 설치해요.");
                 void runUpdate(savedDir!);
             } else {
-                setStatus("폴더를 고르고 업데이트 시작을 누르면 바로 설치해요.");
+                await needFolder(release.latest);
             }
         } catch (error) {
             if (decision !== "resume") {
                 setStatus("업데이트 정보를 가져오지 못했어요.");
                 setError(error instanceof Error ? error.message : "");
+                await publishInstall('error', error instanceof Error ? error.message : '업데이트 확인에 실패했어요.');
             }
         }
     };
@@ -296,6 +329,7 @@ if (import.meta.env.FIREFOX) {
         if (!cancel) {
             setError(error instanceof Error ? error.message : String(error));
         }
+        void publishInstall(cancel ? 'blocked' : 'error', cancel ? '폴더 선택을 기다리고 있어요.' : '업데이트에 실패했어요. 다음 자동 확인 때 다시 시도해요.').catch(() => {});
     };
 
     const runUpdate = async (savedDir?: FileSystemDirectoryHandle, selectedDir?: Promise<FileSystemDirectoryHandle>) => {
@@ -310,10 +344,11 @@ if (import.meta.env.FIREFOX) {
                 await saveDir(dir);
             }
             resetProgress();
+            await publishInstall('working', `${release.latest} 새 버전을 내려받고 있어요.`);
             showProgress("download", 0, release.assetSize);
             let bytes: ArrayBuffer;
             try {
-                const response = await fetch(release.assetUrl);
+                const response = await fetch(release.assetUrl, {signal: AbortSignal.timeout(120_000)});
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const total = pickTotalBytes(response.headers.get("content-length"), release.assetSize);
                 if (response.body) {

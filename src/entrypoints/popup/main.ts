@@ -4,6 +4,7 @@ import "@/modules/theme/theme.css";
 import {sendMessage} from "@/http/messaging";
 import {isNewerVersion} from "@/core/update/availability";
 import {isBongExtendManifest} from "@/core/update/release";
+import {AUTO_ATTEMPT_KEY, INSTALL_STATE_KEY, type InstallState} from "@/core/update/autoInstall";
 import {describeUpdateError, promiseWithTimeout, UPDATE_TIMEOUT_MESSAGE, UPDATE_UI_TIMEOUT_MS, UPDATE_UNKNOWN_MESSAGE} from "@/core/update/timeout";
 // @ts-ignore 순수 JS
 import {getModules, setModuleEnabled} from "@/modules/core-modules.js";
@@ -451,6 +452,38 @@ const validInstallDir = async (handle: FileSystemDirectoryHandle) => {
         return false;
     }
 };
+
+const autoInstallStatus = $('autoInstallStatus');
+const renderInstallState = (state?: InstallState) => {
+    autoInstallStatus.textContent = state?.message || (localStorage.getItem('bongextend.installDirSaved') === '1'
+        ? '저장된 폴더 권한이 있으면 새 버전을 자동 설치해요.' : '자동 설치를 위해 설치 폴더를 한 번 지정해 주세요.');
+};
+void browser.storage.local.get(INSTALL_STATE_KEY).then(value => renderInstallState(value[INSTALL_STATE_KEY] as InstallState | undefined));
+browser.storage.onChanged.addListener((changes, area) => {
+    if (area === 'local' && changes[INSTALL_STATE_KEY]) renderInstallState(changes[INSTALL_STATE_KEY].newValue as InstallState | undefined);
+});
+$('chooseUpdateFolder').addEventListener('click', async () => {
+    try {
+        if (!window.showDirectoryPicker) throw new Error('폴더 선택을 지원하는 Chrome에서 설정해 주세요.');
+        const dir = await window.showDirectoryPicker({mode:'readwrite', id:'bongextend-install'});
+        if (!(await validInstallDir(dir))) throw new Error('manifest.json이 있는 BongExtend 설치 폴더를 선택해 주세요.');
+        await saveInstallDirHandle(dir);
+        await browser.storage.local.remove([INSTALL_STATE_KEY, AUTO_ATTEMPT_KEY]);
+        renderInstallState();
+        await check(true);
+        const saved = await browser.storage.local.get(['core.update:available', 'core.update:autoCheck', INSTALL_STATE_KEY]);
+        if (saved['core.update:available'] && saved['core.update:autoCheck'] !== false && !saved[INSTALL_STATE_KEY]) {
+            // Reuse a page that was waiting for permission; do not interrupt a
+            // download already launched by check(), or steal the current focus.
+            const [tab] = await browser.tabs.query({url: effects.getURL('/update.html') + '*'});
+            const url = effects.getURL('/update.html?auto=1');
+            if (tab?.id != null) await browser.tabs.update(tab.id, {url});
+            else await browser.tabs.create({url, active:false});
+        }
+    } catch(error) {
+        autoInstallStatus.textContent = (error as Error)?.name === 'AbortError' ? '폴더 선택을 취소했어요.' : (error as Error).message;
+    }
+});
 
 doUpdate.addEventListener("click", async () => {
     doUpdate.disabled = true;

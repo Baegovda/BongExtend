@@ -3,6 +3,7 @@ import {compareVersions, parseSemver} from "@/core/semver";
 import {GITHUB_RELEASE_REPO, pickReleaseZip} from "@/core/update/release";
 import {deriveUpdateAvailable} from "@/core/update/availability";
 import {isTimeoutError, UPDATE_FETCH_TIMEOUT_MS, UPDATE_TIMEOUT_MESSAGE} from "@/core/update/timeout";
+import {AUTO_ATTEMPT_KEY, INSTALL_STATE_KEY, shouldLaunchUpdater, type AutoAttempt, type InstallState} from "@/core/update/autoInstall";
 // @ts-ignore 순수 JS
 import {paintToolbarBadge} from "@/modules/toolbar-badge.js";
 
@@ -174,7 +175,7 @@ const publishAvailability = async (updateAvailable: boolean, notify: boolean, ve
             type: "basic",
             iconUrl: browser.runtime.getURL("/icons/128.png"),
             title: "BongExtend 업데이트",
-            message: `새 버전 ${version}이 있어요. 설정에서 받을 수 있어요.`
+            message: `새 버전 ${version}이 있어요. 자동 업데이트를 준비해요. 설치 폴더 설정이 필요하면 알려 드려요.`
         });
     } catch (error) {
         console.error("업데이트 알림 표시 실패:", error);
@@ -247,6 +248,35 @@ export const getExtensionUpdateStatus = async (): Promise<ExtensionUpdateStatus>
 
 const MISSING_CHROME_ZIP = "Chrome용 설치 파일(*-chrome.zip)을 찾지 못했어요.";
 
+let autoLaunch: Promise<void> | null = null;
+const launchAutomaticInstall = async (status: ExtensionUpdateStatus): Promise<void> => {
+    if (getUpdateBrowser() !== 'chrome' || !status.downloadUrl) return;
+    if (autoLaunch) return autoLaunch;
+    autoLaunch = (async () => {
+        const saved = await browser.storage.local.get([AUTO_ATTEMPT_KEY, INSTALL_STATE_KEY]);
+        const tabs = await browser.tabs.query({url: browser.runtime.getURL('/update.html') + '*'});
+        const attempt = saved[AUTO_ATTEMPT_KEY] as AutoAttempt | undefined;
+        if (!shouldLaunchUpdater({enabled: status.autoCheck, available: status.updateAvailable, version: status.latestVersion,
+            now: Date.now(), state: saved[INSTALL_STATE_KEY] as InstallState | undefined, attempt, hasUpdater: tabs.length > 0})) return;
+        await browser.storage.local.set({
+            [AUTO_ATTEMPT_KEY]: {version: status.latestVersion, at: Date.now(), count: attempt?.version === status.latestVersion ? attempt.count + 1 : 1},
+            [INSTALL_STATE_KEY]: {version: status.latestVersion, phase: 'launching', message: '자동 업데이트를 시작하고 있어요.'}
+        });
+        const url = browser.runtime.getURL('/update.html?auto=1');
+        if (tabs[0]?.id != null) await browser.tabs.update(tabs[0].id, {url});
+        else await browser.tabs.create({url, active: false});
+    })().catch(async () => {
+        await browser.storage.local.set({[INSTALL_STATE_KEY]: {version: status.latestVersion, phase: 'error', message: '업데이트 화면을 열지 못했어요. 다음 확인 때 다시 시도해요.'}});
+    }).finally(() => {autoLaunch = null;});
+    return autoLaunch;
+};
+
+const statusAndInstall = async (version: string) => {
+    const status = await buildStatus(version);
+    await launchAutomaticInstall(status);
+    return status;
+};
+
 export const checkExtensionUpdate = async (force = false): Promise<ExtensionUpdateStatus> => {
     const currentVersion = getCurrentExtensionVersion();
     const autoCheck = await updateStorage.autoCheck.getValue();
@@ -259,7 +289,7 @@ export const checkExtensionUpdate = async (force = false): Promise<ExtensionUpda
     const elapsed = Date.now() - lastCheckedAt;
 
     if (!force && elapsed >= 0 && elapsed < CHECK_INTERVAL_MS - CHECK_INTERVAL_SLACK_MS) {
-        return buildStatus(currentVersion);
+        return statusAndInstall(currentVersion);
     }
 
     const wasAvailable = await updateStorage.updateAvailable.getValue();
@@ -288,7 +318,7 @@ export const checkExtensionUpdate = async (force = false): Promise<ExtensionUpda
         ]);
 
         await publishAvailability(updateAvailable, !force && updateAvailable && !wasAvailable, latest.version);
-        return buildStatus(currentVersion);
+        return statusAndInstall(currentVersion);
     } catch (error) {
         const message = error instanceof UpdateCheckError
             ? error.message
@@ -379,8 +409,7 @@ const bindUpdateListeners = () => {
         if (notificationId !== UPDATE_NOTIFICATION_ID) return;
 
         void (async () => {
-            const releaseUrl = await updateStorage.releaseUrl.getValue();
-            if (releaseUrl) await browser.tabs.create({url: releaseUrl});
+            await browser.tabs.create({url: browser.runtime.getURL('/update.html')});
         })();
     });
 };
