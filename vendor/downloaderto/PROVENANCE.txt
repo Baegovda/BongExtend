@@ -1,0 +1,10 @@
+Downloaderto public browser client reference
+Source: https://downloaderto.com/js/shared/savenow-api.js
+Retrieved: 2026-11-08
+SHA-256: 28213e1e32b87d8f9124c7d95828e3e78ac636a5d5099f5938988c735a1a4c02
+Client logic is unmodified; Windows text downloads may normalize line endings.
+Copied under the owner permission stated by the requesting user.
+This directory is not included in the extension build and is not executed.
+The original download client returned HTTP 403 from https://p.savenow.to in an isolated Chrome extension test.
+Integration requires an authorized extension-compatible API connection from the service operator.
+The website does not provide its server implementation in the page source.

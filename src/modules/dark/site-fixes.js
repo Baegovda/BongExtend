@@ -56,3 +56,10 @@ export const darkReaderFixesForSite = (hostname) => {
   if (host === "taobao.com" || host.endsWith(".taobao.com")) return TAOBAO_CSP_FIXES;
   return undefined;
 };
+
+// The page's native text is already themed before translation reads its colors.
+// Preserve the deliberate pastel/prism colors in the temporary effect layers.
+export const withTranslationColors = (fixes) => ({
+  ...fixes,
+  ignoreInlineStyle: [...(fixes?.ignoreInlineStyle || []), '.pt-page-translator-sweep', '.pt-page-translator-sweep *'],
+});

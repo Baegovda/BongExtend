@@ -16,15 +16,17 @@
   const MAX_LIVE_PENDING = 8;
   const MAX_ACTIVE_SWEEPS = 16;
   const FADE_MS = 880;
-  const WIPER_MS = 2480;
-  const APPEAR_MS = 180;
-  const TRAVEL_MS = 1600;
-  const SETTLE_MS = 700;
+  const APPEAR_MS = 100;
+  const TRAVEL_MS = 800;
+  const SETTLE_MS = 400;
+  const WIPER_MS = APPEAR_MS + TRAVEL_MS + SETTLE_MS;
+  const PASTEL = 'linear-gradient(180deg, #ffc4dd, #e8caff 24%, #b9d9ff 46%, #b7f4e1 70%, #fff0bc)';
+  const PRISM = 'linear-gradient(180deg, #ff235b, #ff9a28 18%, #ffe54b 33%, #28f5ad 50%, #26cfff 66%, #7850ff 83%, #ef36e3)';
   // 번역 대기 중에는 얕게 숨 쉬고, 결과는 오로라 와이퍼가 쓸고 지나가요.
   const MOTION_CSS = [
     `.pt-page-translator-dup { visibility: hidden !important; }`,
     `.pt-page-translator-nops::before, .pt-page-translator-nops::after { content: none !important; }`,
-    `.${PENDING_CLASS} { animation: pt-pending-pulse 1.12s ease-in-out infinite !important; }`,
+    `.${PENDING_LIVE_CLASS} { animation: pt-pending-pulse 1.12s ease-in-out infinite !important; }`,
     '@keyframes pt-pending-pulse {',
     '0%, 100% { opacity: 0.94; filter: drop-shadow(0 0 0 rgba(94, 242, 255, 0)); }',
     '50% { opacity: 0.72; filter: drop-shadow(0 0 3px rgba(94, 242, 255, 0.28)); }',
@@ -40,10 +42,12 @@
     `.${SWEEP_CLASS} .pt-prev, .${SWEEP_CLASS} .pt-next, .${SWEEP_CLASS} .pt-afterglow { all: initial !important; position: absolute !important; inset: 0 !important; display: block !important; box-sizing: border-box !important; width: 100% !important; height: 100% !important; margin: 0 !important; padding: 0 !important; border: 0 !important; -webkit-text-fill-color: currentColor !important; }`,
     `.${SWEEP_CLASS} .pt-prev { clip-path: inset(0 0 0 var(--pt-progress)) !important; }`,
     `.${SWEEP_CLASS} .pt-next, .${SWEEP_CLASS} .pt-afterglow { clip-path: inset(0 calc(100% - var(--pt-progress)) 0 0) !important; }`,
-    `.${SWEEP_CLASS} .pt-afterglow { z-index: 2 !important; color: transparent !important; -webkit-text-fill-color: transparent !important; background: linear-gradient(180deg, #ffbdd7, #eed0ff 24%, #b9d9ff 46%, #b7f4e1 70%, #fff0bc) !important; background-clip: text !important; -webkit-background-clip: text !important; mask-image: linear-gradient(90deg, transparent var(--pt-glow-tail), #000 var(--pt-glow-head)) !important; opacity: .88 !important; }`,
+    `.${SWEEP_CLASS} .pt-next { mask-image: linear-gradient(90deg, #000 var(--pt-glow-tail), transparent var(--pt-glow-head)) !important; }`,
+    `.${SWEEP_CLASS} .pt-afterglow { z-index: 2 !important; color: transparent !important; -webkit-text-fill-color: transparent !important; background: ${PASTEL} !important; background-clip: text !important; -webkit-background-clip: text !important; mask-image: linear-gradient(90deg, transparent var(--pt-glow-tail), #000 var(--pt-glow-head)) !important; opacity: 1 !important; }`,
     `.${SWEEP_CLASS}.pt-sweep-rtl .pt-prev { clip-path: inset(0 var(--pt-progress) 0 0) !important; }`,
     `.${SWEEP_CLASS}.pt-sweep-rtl .pt-next, .${SWEEP_CLASS}.pt-sweep-rtl .pt-afterglow { clip-path: inset(0 0 0 calc(100% - var(--pt-progress))) !important; }`,
     `.${SWEEP_CLASS}.pt-sweep-rtl .pt-afterglow { mask-image: linear-gradient(270deg, transparent var(--pt-glow-tail), #000 var(--pt-glow-head)) !important; }`,
+    `.${SWEEP_CLASS}.pt-sweep-rtl .pt-next { mask-image: linear-gradient(270deg, #000 var(--pt-glow-tail), transparent var(--pt-glow-head)) !important; }`,
     `.${SWEEP_CLASS} .${EDGE_CLASS} { position: absolute !important; z-index: 3 !important; top: -3px !important; bottom: -3px !important; left: var(--pt-progress) !important; width: 4px !important; margin-left: -2px !important; border-radius: 2px !important; pointer-events: none !important; background: linear-gradient(180deg, #ff235b, #ff9a28 18%, #ffe54b 33%, #28f5ad 50%, #26cfff 66%, #7850ff 83%, #ef36e3) !important; box-shadow: 0 0 3px #fff, 0 0 8px #67cfff, 0 0 16px #935bff99 !important; opacity: var(--pt-beam-opacity, 0) !important; }`,
     `.${SWEEP_CLASS}.pt-sweep-rtl .${EDGE_CLASS} { left: auto !important; right: var(--pt-progress) !important; margin-left: 0 !important; margin-right: -2px !important; }`,
     '@media (prefers-reduced-motion: reduce) {',
@@ -700,13 +704,13 @@
       if (!style || mode === 'flow') return 'flow';
       const display = String(style.display || '');
       if (mode === 'clamp' || lineClampOf(style) > 0 || display.includes('webkit-box')) {
-        const clippedVertically = Number(element && element.clientHeight) > 0
-          && Number(element && element.scrollHeight) > Number(element.clientHeight) + 2;
-        return clippedVertically ? 'grow' : 'clamp';
+        return 'clamp';
       }
-      if (mode === 'grow') return 'grow';
-      if (mode === 'single' && Number(element && element.clientWidth) > 0
-        && Number(element && element.scrollWidth) > Number(element.clientWidth) + 2) return 'grow';
+      if (mode === 'grow') {
+        const parent = element?.parentElement && computedStyle(element.parentElement);
+        const fixedRow = parent && flexLike(parent) && !String(parent.flexDirection || 'row').startsWith('column') && parent.flexWrap !== 'wrap';
+        return isInlineBox(style, element) || display === 'inline-block' || flexLike(style) || /^(A|LI|BUTTON)$/.test(element?.tagName || '') || fixedRow ? 'single' : 'grow';
+      }
       if (mode === 'single') return 'single';
       return 'flow';
     }
@@ -1092,9 +1096,11 @@
         setImportantStyle(glow, 'color', 'transparent');
         setImportantStyle(glow, '-webkit-text-fill-color', 'transparent');
         setImportantStyle(glow, 'text-shadow', 'none');
+        setImportantStyle(glow, 'background-image', PASTEL);
         appendText(glow, job.target);
         const edge = document.createElement('div');
         edge.className = EDGE_CLASS;
+        setImportantStyle(edge, 'background-image', PRISM);
         if (row.glyph) {
           setImportantStyle(edge, 'top', `${row.glyph.top - row.rect.top - 3}px`);
           setImportantStyle(edge, 'height', `${row.glyph.height + 6}px`);
@@ -1105,7 +1111,6 @@
         box.appendChild(glow);
         box.appendChild(edge);
         mountNode(box);
-        if (row.hold) job.element.classList.add(HOLD_CLASS);
         clearPending(job.element, 'reveal');
         const painted = {
           node: job.node,
@@ -1125,8 +1130,15 @@
           shown: null,
           settled: false,
         };
-        activeJobs.add(painted);
         clipBox(painted, row.rect);
+        if (row.hold) {
+          if (job.element.style) painted.hiddenProps = ['-webkit-text-fill-color', 'text-shadow'].map(name => ({name,
+            value: inlineStyleValue(job.element.style, name), priority: job.element.style.getPropertyPriority?.(name) || ''}));
+          job.element.classList.add(HOLD_CLASS);
+          setImportantStyle(job.element, '-webkit-text-fill-color', 'transparent');
+          setImportantStyle(job.element, 'text-shadow', 'none');
+        }
+        activeJobs.add(painted);
         return painted;
       } catch {
         writeNode(job.node, job.target);
@@ -1164,6 +1176,12 @@
         job.element.classList.remove(REVEAL_CLASS);
         if (!pendingCounts.has(job.element)) decorated.delete(job.element);
       }
+      for (const saved of job.hiddenProps || []) {
+        const style = job.element.style, expected = saved.name === 'text-shadow' ? 'none' : 'transparent';
+        if (inlineStyleValue(style, saved.name) !== expected) continue;
+        if (saved.value) style.setProperty(saved.name, saved.value, saved.priority);
+        else removeStyleProp(style, saved.name);
+      }
       removeNode(job.box);
       unwrapSlot(job);
 
@@ -1178,6 +1196,7 @@
       lockMutations(() => {
         for (const job of pass.jobs || []) releaseJob(job, commit);
       });
+      if (commit && revealWait.length && enabled && pass.epoch === sweepEpoch) scheduleReveal();
     }
 
     function startClock(pass, duration, step) {
@@ -1250,7 +1269,9 @@
     }
 
     function drainReveal() {
-      const batch = revealWait.splice(0);
+      const capacity = Math.max(0, MAX_ACTIVE_SWEEPS - activeJobs.size);
+      if (!capacity) return;
+      const batch = revealWait.splice(0, capacity);
       if (!batch.length) return;
       // Commit all final strings first, then measure all of them in that layout.
       // This also accounts for earlier paragraphs moving the later text down.
@@ -1260,10 +1281,13 @@
       const measured = [];
       for (const job of batch) {
         if (!connected(job.node)) continue;
-        if (!preciseLayout(job.element)) {clearPending(job.element, false); continue;}
+        if (!preciseLayout(job.element)) {clearPending(job.element, false); unwrapSlot(job); continue;}
         measured.push(measureLine(job));
       }
       lockMutations(() => paintMeasured(measured));
+      // Offscreen/unsupported runs can consume a queue slice without creating a
+      // pass. Continue draining those slices instead of waiting for a nonexistent timer.
+      if (revealWait.length && activeJobs.size < MAX_ACTIVE_SWEEPS) scheduleReveal();
     }
 
     function scheduleReveal() {
@@ -1283,10 +1307,18 @@
 
     function queueReveal(job) {
       if (!enabled || showOriginal || !canAnimate() || !canDecorate(job.element)) return false;
-      // Cached responses can finish hundreds of labels before the next frame.
-      // Keep a few visible prisms; overflow commits immediately without blur layers.
-      if (job.original === job.translated || activeJobs.size + revealWait.length >= MAX_ACTIVE_SWEEPS) return false;
-      if (!canHold(job.element)) return false;
+      // Keep overflow in its original language until a prism slot is free.
+      // A concurrency limit must never turn the rest of a visible page into an instant swap.
+      if (job.original === job.translated) return false;
+      if (!canHold(job.element) || [...job.element.childNodes].filter(node => node.nodeType === 3 && String(node.nodeValue || '').trim()).length !== 1) {
+        const parent = job.node.parentNode;
+        if (!parent || typeof parent.insertBefore !== 'function') return false;
+        const slot = document.createElement('span');
+        setImportantStyle(slot, 'all', 'unset');
+        setImportantStyle(slot, 'display', 'inline');
+        parent.insertBefore(slot, job.node); slot.appendChild(job.node);
+        job.slot = slot; job.element = slot;
+      }
       // Hiding a text-only parent must never hide a sibling text run.
       if ([...job.element.childNodes].filter(node => node.nodeType === 3 && String(node.nodeValue || '').trim()).length !== 1) return false;
       if (job.target == null) job.target = showOriginal ? job.original : job.translated;
@@ -1404,16 +1436,13 @@
         }
         for (const child of [...(current.childNodes || [])]) {
           if (child.nodeType === 3 && child !== node && originalCore && String(child.nodeValue || '').includes(originalCore)) {
-            const next = String(child.nodeValue || '').replaceAll(originalCore, translatedCore);
             const parent = child.parentElement;
             const style = parent && computedStyle(parent);
             const pos = style && style.position;
             const ghost = pos === 'absolute' || pos === 'fixed' || (parent && parent.getAttribute && parent.getAttribute('aria-hidden') === 'true');
             if (ghost && parent && parent.classList) parent.classList.add('pt-page-translator-dup');
-            else if (child.nodeValue !== next) {
-              expectedWrite.set(child, next);
-              child.nodeValue = next;
-            }
+            // Ordinary siblings own their own translation and wipe. Never
+            // partially translate them as a side effect of another label.
           } else if (child.nodeType === 3 && child !== node && translatedCore && String(child.nodeValue || '').includes(translatedCore)) {
             const parent = child.parentElement;
             const style = parent && computedStyle(parent);
@@ -1434,6 +1463,7 @@
     }
 
     function nodeBusy(node) {
+      if (revealWait.some(job => job.node === node)) return true;
       for (const job of activeJobs) {
         if (job.node === node && !job.settled) return true;
       }

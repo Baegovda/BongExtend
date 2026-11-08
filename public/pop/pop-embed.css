@@ -11,6 +11,20 @@ html.bongextend-chrono-embedded body {
   font-family: var(--be-font) !important;
 }
 
+/* The original options view assumes a standalone window. Its absolutely
+   positioned pages otherwise leave the nested scroll container at height 0. */
+html.bongextend-chrono-embedded body.chrome-bootstrap .frame { height: 100% !important; min-height: 0 !important; }
+html.bongextend-chrono-embedded body.chrome-bootstrap .mainview {
+  position: relative !important; height: 100% !important; width: calc(100% - 155px) !important;
+  margin-inline-start: 155px !important; padding: 0 16px 16px !important; box-sizing: border-box !important; overflow: auto !important;
+}
+html.bongextend-chrono-embedded body.chrome-bootstrap .mainview > :not(.selected) { display: none !important; }
+html.bongextend-chrono-embedded body.chrome-bootstrap .mainview > .selected { position: relative !important; width: 100% !important; margin: 0 !important; }
+html.bongextend-chrono-embedded body.chrome-bootstrap .mainview .content { width: auto !important; max-width: 100% !important; margin: 0 !important; padding-top: 12px !important; }
+html.bongextend-chrono-embedded body.chrome-bootstrap .mainview header { position: sticky !important; top: 0 !important; width: 100% !important; box-sizing: border-box !important; background: var(--be-bg) !important; z-index: 2 !important; }
+html.bongextend-chrono-embedded body.chrome-bootstrap .mainview :is(h1, h2, h3, h4, legend, section) { color: var(--be-text) !important; }
+html.bongextend-chrono-embedded body.chrome-bootstrap .navigation a { color: var(--be-text-2) !important; }
+
 html.bongextend-chrono-embedded body {
   display: flex !important;
   flex-direction: column !important;

@@ -44,12 +44,12 @@ const assert = require('node:assert/strict');
       session.start();
       await session.whenIdle();
       const responseMs = performance.now() - started;
-      await new Promise(resolve => setTimeout(resolve, 3100));
+      await new Promise((resolve,reject) => {const until=performance.now()+25000;const poll=()=>{if(!document.querySelector('.pt-page-translator-sweep,.pt-page-translator-pending'))return resolve();if(performance.now()>until)return reject(Error('effects did not drain'));setTimeout(poll,100);};setTimeout(poll,100);});
       // Also exercise many scroll notifications in a single frame and a reused SPA text slot.
       for(let i=0;i<30;i++) document.dispatchEvent(new Event('scroll'));
       const reused = document.querySelector('main p');
       reused.firstChild.nodeValue = '新消息重新使用已有的文字区域';
-      await new Promise(resolve => setTimeout(resolve, 3100));
+      await new Promise((resolve,reject) => {const until=performance.now()+25000;const poll=()=>{if(!document.querySelector('.pt-page-translator-sweep,.pt-page-translator-pending'))return resolve();if(performance.now()>until)return reject(Error('effects did not drain'));setTimeout(poll,100);};setTimeout(poll,100);});
       measuring = false;
       observer.disconnect();
       const stats = {

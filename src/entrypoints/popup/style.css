@@ -49,6 +49,7 @@ html.embed, html.embed body { width: 100%; height: 100%; overflow: auto; }
 .dark-panel .dark-credit { margin: 4px 2px; text-align: right; }
 .dark-panel .dark-credit a { color: var(--be-accent); }
 .chrono-download-panel { padding: 0 !important; overflow: hidden !important; }
+.panel.be-shell.chrono-download-panel:not([hidden]) { display: flex; flex-direction: column; }
 #chronoPopupFrame { display: block; width: 100%; height: 100%; min-height: 0; border: 0; background: #fff; }
 .panel #darkStatus.error { color: var(--be-error); }
 .fx-flag { width: 22px; height: 22px; border-radius: 50%; object-fit: cover; flex: 0 0 auto; background: var(--be-surface-3); box-shadow: 0 0 0 1px color-mix(in srgb, var(--be-text) 14%, transparent); }
@@ -238,4 +239,4 @@ iframe.active { display: block; }
 
 .download-module-toolbar { display: flex; flex-wrap: wrap; flex: 0 0 auto; gap: 8px; padding: 10px 14px; background: var(--be-surface); border-bottom: 1px solid var(--be-border); }
 .download-module-toolbar button { font-size: 12px; padding: 8px 12px; }
-.chrono-download-panel #chronoPopupFrame { flex: 1 1 0; min-height: 0; height: 0; }
+.chrono-download-panel #chronoPopupFrame { display: block; flex: 1 1 0; min-height: 0; height: 0; }

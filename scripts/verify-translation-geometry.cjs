@@ -33,7 +33,7 @@ const fs=require('node:fs'),os=require('node:os'),path=require('node:path'),asse
         sendBatch:async texts=>({ok:true,translations:texts.map(t=>translations[t] || t)})});
       session.start();await session.whenIdle();
       const advance=t=>{clock=t;for(const fn of frames.splice(0))fn(t);};
-      advance(0);advance(980);
+      advance(0);advance(500);
       const rect=node=>{const r=document.createRange();r.selectNodeContents(node);const b=r.getBoundingClientRect();return {x:b.x,y:b.y,width:b.width,height:b.height,lines:Array.from(r.getClientRects()).map(r=>({x:r.x,y:r.y,width:r.width,height:r.height}))};};
       const boxes=Array.from(document.querySelectorAll('.pt-page-translator-sweep'));
       const during={};
@@ -54,7 +54,7 @@ const fs=require('node:fs'),os=require('node:os'),path=require('node:path'),asse
           const native=Object.keys(during).map(id=>document.getElementById(id)).find(e=>e.textContent===box.querySelector('.pt-next').textContent);
           return Math.abs(rect(native.firstChild).y-rect(box.querySelector('.pt-next')).y);
         });
-        advance(2480);return {shifts,shift,after:Object.fromEntries(Object.keys(during).map(id=>[id,rect(document.getElementById(id).firstChild)]))};
+        advance(1300);return {shifts,shift,after:Object.fromEntries(Object.keys(during).map(id=>[id,rect(document.getElementById(id).firstChild)]))};
       };
       return {during,overlays:boxes.length};
     });

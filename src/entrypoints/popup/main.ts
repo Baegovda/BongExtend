@@ -44,7 +44,7 @@ const FRAMES: Partial<Record<TabId, string>> = {
     trans: "/trans/popup/popup.html",
     dc: "/dc.html"
 };
-const NAMES: Partial<Record<TabId, string>> = {chzzk: "치지직", trans: "번역", dc: "디시", gmail: "메일", fx: "환율", dark: "다크 모드", download: "다운로드"};
+const NAMES: Partial<Record<TabId, string>> = {chzzk: "치지직", trans: "번역", dc: "디시", gmail: "메일", fx: "환율", dark: "다크 모드", download: "다운로더"};
 const TAB_KEY = "core.popupTab";
 // 탭 순서. core.* 이라 전체 백업·복원에 포함되고, 디시 초기화(refresher:*)와는 무관.
 const ORDER_KEY = "core.popupTabOrder";
@@ -88,7 +88,7 @@ chronoPopupFrame.addEventListener("load", () => {
         if (!doc) return;
         applyEmbeddedTheme(doc, "bongextend-chrono-embedded", "pop/pop-embed.css");
     } catch (error) {
-        console.warn("Chrono 다운로드 화면을 BongExtend 탭에 맞추지 못했어요.", error);
+        console.warn("다운로더 화면을 BongExtend 탭에 맞추지 못했어요.", error);
     }
 });
 let current: TabId = "chzzk";

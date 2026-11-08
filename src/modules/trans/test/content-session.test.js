@@ -272,8 +272,8 @@ test('pending text breathes gently and aurora gradients are reserved for the rev
   assert.match(source, /prefers-reduced-motion:\s*reduce/);
   assert.match(source, /pt-page-translator-pending/);
   assert.match(source, /pt-pending-pulse/);
-  assert.match(source, /WIPER_MS = 2480/);
-  assert.match(source, /TRAVEL_MS = 1600/);
+  assert.match(source, /WIPER_MS = APPEAR_MS \+ TRAVEL_MS \+ SETTLE_MS/);
+  assert.match(source, /TRAVEL_MS = 800/);
   assert.match(source, /50% \{ opacity: 0\.72;/);
   assert.match(source, /0%, 100% \{ opacity: 0\.94;/);
   const pendingRule = source.match(/`\.\$\{PENDING_CLASS\} \{[^`]+`/)?.[0] || '';
@@ -429,23 +429,23 @@ test('prism edge owns the exact original/translated boundary and the pastel trai
   assert.equal(box.children[0].children[0].nodeValue, 'Free shipping');
   assert.equal(box.children[1].children[0].nodeValue, '무료 배송');
   assert.equal(box.style.getPropertyValue('--pt-progress'), '0%');
-  h.advance(180);
+  h.advance(100);
   assert.equal(box.style.getPropertyValue('--pt-progress'), '0%');
   assert.equal(box.style.getPropertyValue('--pt-beam-opacity'), '1');
-  h.advance(980);
+  h.advance(500);
   assert.equal(box.style.getPropertyValue('--pt-progress'), '50%');
   assert.equal(box.style.getPropertyValue('--pt-glow-head'), '50%');
   assert.equal(box.style.getPropertyValue('--pt-glow-tail'), '5%');
   h.text.rect = {left: 200, top: 80, width: 100, height: 20};
-  h.document.dispatch('scroll'); h.advance(980);
+  h.document.dispatch('scroll'); h.advance(500);
   assert.equal(box.style.getPropertyValue('left'), '200px', 'scroll moves the whole clipped stack together');
-  h.advance(1780);
+  h.advance(900);
   assert.equal(box.style.getPropertyValue('--pt-progress'), '100%');
-  h.advance(2130);
+  h.advance(1100);
   assert.equal(box.style.getPropertyValue('--pt-beam-opacity'), '0');
   assert.equal(box.style.getPropertyValue('--pt-glow-tail'), '77.5%');
   assert.ok(box.parentNode, 'pastel trail outlives the beam');
-  h.advance(2480);
+  h.advance(1300);
   assert.equal(box.parentNode, null);
   assert.equal(h.text.childNodes[0].nodeValue, '무료 배송');
   assert.equal(h.text.classList.contains('pt-page-translator-hold'), false);
@@ -453,13 +453,13 @@ test('prism edge owns the exact original/translated boundary and the pastel trai
 
 test('cancelling midway removes both clipped layers and restores the original immediately', async () => {
   const h = prismHarness();
-  h.session.start(); await h.session.whenIdle(); h.advance(0); h.advance(980);
+  h.session.start(); await h.session.whenIdle(); h.advance(0); h.advance(500);
   const box = h.created.find(node => node.className === 'pt-page-translator-sweep');
   h.session.setEnabled(false);
   assert.equal(box.parentNode, null);
   assert.equal(h.text.classList.contains('pt-page-translator-hold'), false);
   assert.equal(h.text.childNodes[0].nodeValue, 'Free shipping');
-  h.advance(2480);
+  h.advance(1300);
   assert.equal(h.text.childNodes[0].nodeValue, 'Free shipping');
 });
 
@@ -469,10 +469,18 @@ test('dense cached results bound prism layers without dropping translations', as
   h.session.start(); await h.session.whenIdle(); h.advance(0);
   const boxes = h.created.filter(node => node.className === 'pt-page-translator-sweep');
   assert.equal(boxes.length, 16);
-  assert.equal(h.root.childNodes.filter(node => node.childNodes[0].nodeValue === '무료 배송').length, 101);
-  h.advance(2480);
+  assert.equal(h.root.childNodes.filter(node => node.childNodes[0].nodeValue === '무료 배송').length, 16, 'overflow stays original until its own prism starts');
+  for(let pass=1;pass<=8;pass++){h.advance(pass*h.api.WIPER_MS);h.advance(pass*h.api.WIPER_MS);}
   assert.equal(h.root.childNodes.every(node => node.childNodes[0].nodeValue === '무료 배송'), true);
   assert.equal(boxes.every(box => !box.parentNode), true);
+});
+
+test('an ordinary sibling gets its own translation, never a partial replacement from another label', async () => {
+  const root=element('li'),short=element('span',{},['商品']),long=element('span',{},['商品详情']);root.append(short);root.append(long);
+  const api=loadContent();const session=api.createSession({root,enableBanner:false,revealAnimation:false,
+    sendBatch:async texts=>({ok:true,translations:texts.map(t=>({'商品':'상품','商品详情':'상품 상세 정보'}[t] || '잘못된 부분 치환'))})});
+  session.start();await session.whenIdle();
+  assert.equal(short.childNodes[0].nodeValue,'상품');assert.equal(long.childNodes[0].nodeValue,'상품 상세 정보');
 });
 
 test('overlay insertions, descendants and removals never rescan the page; real reused text still does', async () => {
@@ -489,10 +497,10 @@ test('overlay insertions, descendants and removals never rescan the page; real r
     {type:'childList', target:h.root, addedNodes:[], removedNodes:[box]},
   ]);
   assert.equal(reads, 0, 'own overlay mutations must not traverse the website');
-  h.advance(2480);
+  h.advance(1300);
   h.text.childNodes[0].nodeValue = 'A different product';
   h.session.emitMutations([{type:'childList',target:h.root,addedNodes:[],removedNodes:[]}]);
-  await h.session.whenIdle(); h.advance(2480); h.advance(4960);
+  await h.session.whenIdle(); h.advance(1300); h.advance(2600);
   assert.equal(h.text.childNodes[0].nodeValue,'무료 배송');
 });
 
@@ -502,18 +510,18 @@ test('many scroll events coalesce beside the bounded animation-frame geometry ch
   let reads = 0;
   h.text.getBoundingClientRect = () => {reads++; return h.text.rect;};
   for (let i=0;i<30;i++) h.document.dispatch('scroll');
-  h.advance(180);
+  h.advance(100);
   assert.equal(reads, 2, 'one frame check and one coalesced scroll check, not thirty');
   h.session.setEnabled(false);
 });
 
 test('a late response starts a fresh prism at zero without jumping to the current batch boundary', async () => {
   const h = prismHarness();
-  h.session.start(); await h.session.whenIdle(); h.advance(0); h.advance(980);
+  h.session.start(); await h.session.whenIdle(); h.advance(0); h.advance(500);
   const added = element('span', {}, ['New arrivals']);
   h.root.append(added);
   h.session.emitMutations([{type: 'childList', addedNodes: [added]}]);
-  await h.session.whenIdle(); h.advance(980);
+  await h.session.whenIdle(); h.advance(500);
   const boxes = h.created.filter(node => node.className === 'pt-page-translator-sweep');
   assert.equal(boxes.length, 2);
   assert.equal(boxes[0].style.getPropertyValue('--pt-progress'), '50%');
@@ -898,7 +906,7 @@ test('pending bounds and overlay baseline use a bounded number of range reads', 
 test('a later layout shift moves the prism without a scroll event; resizing exposes native text', async () => {
   const h=prismHarness(); h.session.start(); await h.session.whenIdle(); h.advance(0);
   const box=h.created.find(node=>node.className==='pt-page-translator-sweep');
-  h.text.rect={left:70,top:180,width:100,height:20}; h.advance(980);
+  h.text.rect={left:70,top:180,width:100,height:20}; h.advance(500);
   assert.equal(box.style.getPropertyValue('top'),'180px');
   assert.equal(box.style.getPropertyValue('left'),'70px');
   h.text.rect={left:70,top:180,width:80,height:40}; h.advance(1100);
@@ -910,7 +918,7 @@ test('a later layout shift moves the prism without a scroll event; resizing expo
 test('a website update during the pass removes the stale text copy without overwriting new content', async () => {
   const h=prismHarness(); h.session.start(); await h.session.whenIdle(); h.advance(0);
   const box=h.created.find(node=>node.className==='pt-page-translator-sweep');
-  h.text.childNodes[0].nodeValue='A newer website message'; h.advance(980); h.advance(2480);
+  h.text.childNodes[0].nodeValue='A newer website message'; h.advance(500); h.advance(1300);
   assert.equal(box.parentNode,null);
   assert.equal(h.text.classList.contains('pt-page-translator-hold'),false);
   assert.equal(h.text.childNodes[0].nodeValue,'A newer website message');

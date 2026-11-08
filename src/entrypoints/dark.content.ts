@@ -2,7 +2,7 @@ import {auto, disable, enable, setFetchMethod} from "darkreader";
 // @ts-ignore settings are plain JS shared with the dark-mode popup and service worker
 import {DARK_SETTINGS_KEY, darkSiteEnabled, darkThemeForSite, normalizeDarkSettings} from "@/modules/dark/settings.js";
 // @ts-ignore original Dark Reader fixes are plain JS
-import {darkReaderFixesForSite} from "@/modules/dark/site-fixes.js";
+import {darkReaderFixesForSite, withTranslationColors} from "@/modules/dark/site-fixes.js";
 
 const MODULES_KEY = "core.modules";
 
@@ -47,7 +47,7 @@ export default defineContentScript({
                 }
 
                 const siteTheme = darkThemeForSite(settings, hostname);
-                const siteFixes = darkReaderFixesForSite(hostname);
+                const siteFixes = withTranslationColors(darkReaderFixesForSite(hostname));
                 const theme = {
                     mode: siteTheme.mode,
                     brightness: siteTheme.brightness,

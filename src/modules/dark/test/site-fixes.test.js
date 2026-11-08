@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import {darkReaderFixesForSite} from "../site-fixes.js";
+import {darkReaderFixesForSite, withTranslationColors} from "../site-fixes.js";
 
 test("Taobao disables CSP-blocked inline proxy injection but keeps Dark Reader fixes", () => {
     const fixes = darkReaderFixesForSite("www.taobao.com");
@@ -21,4 +21,12 @@ test("Naver Search keeps its upstream Dark Reader text fix", () => {
 
 test("unrelated sites keep Dark Reader's default stylesheet tracking", () => {
     assert.equal(darkReaderFixesForSite("example.com"), undefined);
+});
+
+test('temporary prism colors survive theming without replacing site fixes',()=>{
+    const original=darkReaderFixesForSite('www.taobao.com'),fixes=withTranslationColors(original);
+    assert.ok(fixes.ignoreInlineStyle.includes('.pt-page-translator-sweep *'));
+    assert.equal(fixes.disableInlineScriptInjection,true);
+    assert.deepEqual(original.ignoreInlineStyle,[]);
+    assert.ok(withTranslationColors(undefined).ignoreInlineStyle.length>0);
 });
