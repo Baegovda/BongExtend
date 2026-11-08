@@ -1,0 +1,30 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {startVideoHost} from '../video.js';
+
+test('local video bridge rejects pages, respects module state, and preserves jobs until completion', async()=>{
+ let listener, opened=0, nativeListener, disconnected, messages=[];
+ const state={'core.modules':{download:false}};
+ const native={postMessage:msg=>messages.push(msg),disconnect:()=>disconnected?.(),onMessage:{addListener:fn=>nativeListener=fn},onDisconnect:{addListener:fn=>disconnected=fn}};
+ globalThis.chrome={runtime:{id:'test',getURL:path=>'chrome-extension://test/'+path,onMessage:{addListener:fn=>listener=fn},connectNative:()=>{opened++;return native;}},storage:{local:{get:async key=>({[key]:state[key]}),set:async value=>Object.assign(state,value)}}};
+ startVideoHost();
+ const sender={id:'test',url:'chrome-extension://test/video-downloader.html'};
+ const ask=action=>new Promise(resolve=>listener({type:'BONG_VIDEO',action,url:'https://youtu.be/aqz-KE-bpKQ',quality:'2160'},sender,resolve));
+ assert.equal(listener({type:'BONG_VIDEO',action:'download'},{id:'test',url:'https://example.com/'},()=>assert.fail('web page must not start native work')),undefined);
+ assert.equal((await ask('download')).ok,false);
+ assert.equal(opened,0);
+ state['core.modules'].download=true;
+ assert.equal((await ask('download')).ok,true);
+ assert.equal(opened,1);
+ assert.equal(messages[0].type,'download');
+ assert.equal((await ask('download')).ok,false);
+ nativeListener({type:'progress',percent:42});
+ assert.equal(state['core.video:status'].percent,42);
+ nativeListener({type:'done',filename:'video.mkv'});
+ assert.equal(state['core.video:status'].type,'done');
+ assert.equal((await ask('ping')).ok,true);
+ nativeListener({type:'ready'});
+ assert.equal(state['core.video:status'].type,'ready');
+ assert.equal((await ask('cancel')).ok,true);
+ assert.equal(opened,2,'cancel while idle does not launch a helper');
+});

@@ -79,7 +79,8 @@ export default defineConfig({
             "tabs",
             "windows",
             "unlimitedStorage",
-            "clipboardWrite"
+            "clipboardWrite",
+            "nativeMessaging"
         ],
         host_permissions: [
             "https://*.dcinside.com/*",

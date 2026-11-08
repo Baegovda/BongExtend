@@ -4,3 +4,5 @@ web-ext.config.ts
 .idea
 node_modules
 .env
+native/video/BongExtendVideo.exe
+native/video/__pycache__/

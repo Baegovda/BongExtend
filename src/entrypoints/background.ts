@@ -1,3 +1,5 @@
+// @ts-ignore pure JS
+import {startVideoHost} from "@/modules/downloads/video.js";
 import {onMessage, sendMessage, sendToContentTab} from "@/http/messaging";
 import {migrateLocalStorageData} from "@/storage/migration";
 import {databaseStorage, moduleSchemaStorage} from "@/storage/wxtStorage";
@@ -36,6 +38,7 @@ import {DOWNLOAD_SETTINGS_KEY, cleanSuggestedFilename, makeDownloadFilename, nor
 import {createMailOtpHandler} from "@/modules/gmail/otp.js";
 
 export default defineBackground(() => {
+    startVideoHost();
     const otpHandler = createMailOtpHandler({
         load: async () => {
             const stored = await chrome.storage.local.get(["core.mailOtpSeen", "core.mailOtpEnabled", MODULES_KEY]);

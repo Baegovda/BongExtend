@@ -1654,3 +1654,19 @@ chrome.storage.onChanged.addListener((changes, area) => {
     const next = changes["core.popupTab"]?.newValue;
     if (typeof next === "string" && next !== current && TAB_IDS.includes(next as TabId)) void showTab(next as TabId, false);
 });
+
+$("videoDownloader").addEventListener("click",()=>void chrome.tabs.create({url:chrome.runtime.getURL("/video-downloader.html")}));
+
+$("currentVideoDownloader").addEventListener("click",async()=>{
+ const tabs=await chrome.tabs.query({url:["https://*/*","http://*/*"]});
+ const [focused]=await chrome.tabs.query({active:true,lastFocusedWindow:true});
+ tabs.sort((a,b)=>(b.lastAccessed || 0)-(a.lastAccessed || 0));
+ const tab=tabs.find(t=>t.id===focused?.id) || tabs[0];
+ if(!tab?.url){await chrome.tabs.create({url:chrome.runtime.getURL('/video-downloader.html')});return;}
+ let url=tab.url;
+ try {const [result]=await chrome.scripting.executeScript({target:{tabId:tab.id!},func:()=>{
+  const video=document.querySelector('video');const src=video?.currentSrc || video?.src;
+  return src?.startsWith('https://') || src?.startsWith('http://')?src:null;
+ }});if(typeof result?.result==='string')url=result.result;}catch{/* Supported page extractors can use the page URL directly. */}
+ await chrome.tabs.create({url:chrome.runtime.getURL('/video-downloader.html')+'?url='+encodeURIComponent(url)});
+});

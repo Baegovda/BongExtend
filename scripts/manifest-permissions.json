@@ -13,7 +13,8 @@
         "tabs",
         "windows",
         "unlimitedStorage",
-        "clipboardWrite"
+        "clipboardWrite",
+        "nativeMessaging"
     ],
     "optional_permissions": [
         "webRequest",
