@@ -1,4 +1,5 @@
 import {setupMailSettings} from "./mail-settings";
+import {setupWindowControls} from "./window-controls";
 // BongExtend 팝업: 탭 하나에 모듈 화면 하나. 각 모듈 화면은 옛 확장 팝업을 그대로 iframe으로 띄운다.
 import "@/modules/theme/theme.css";
 import {sendMessage} from "@/http/messaging";
@@ -55,6 +56,14 @@ const TAB_IDS: TabId[] = [...DEFAULT_ORDER, "update"];
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 const checkerPlusMailFrame = $("checkerPlusMailFrame") as HTMLIFrameElement;
+const initialMail = new URLSearchParams(location.search).get('mail');
+if (initialMail && /^[a-zA-Z0-9_-]{1,128}$/.test(initialMail)) {
+    checkerPlusMailFrame.dataset.src = `/checkerplus-popup.html?source=bongextend&previewMailId=${encodeURIComponent(initialMail)}`;
+}
+setupWindowControls(() => {
+    const child = checkerPlusMailFrame.contentWindow as (Window & {BongExtendMailView?: {selection: () => string}}) | null;
+    return child?.BongExtendMailView?.selection() || '';
+});
 const checkerPlusMailHome = $("checkerPlusMailHome") as HTMLButtonElement;
 const chronoPopupFrame = $("chronoPopupFrame") as HTMLIFrameElement;
 const applyEmbeddedTheme = (doc: Document, className: string, stylePath: string) => {

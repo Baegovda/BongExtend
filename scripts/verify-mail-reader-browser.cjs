@@ -15,12 +15,13 @@ const fs=require('node:fs'), path=require('node:path'), os=require('node:os'), h
   fs.writeFileSync(background,probe+fs.readFileSync(background,'utf8'));
   const server=http.createServer((req,res)=>{res.setHeader('Content-Type','text/html');res.end('<!doctype html><p>Security notice for your account</p>');});
   await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
-  const context=await chromium.launchPersistentContext(path.join(temp,'profile'),{executablePath:process.env.CHROME_PATH || 'C:/Program Files/Google/Chrome/Application/chrome.exe',headless:true,ignoreDefaultArgs:['--disable-extensions'],args:['--enable-unsafe-extension-debugging','--host-resolver-rules=MAP reader.test 127.0.0.1','--no-proxy-server'],viewport:{width:1000,height:780},colorScheme:'dark'});
+  const context=await chromium.launchPersistentContext(path.join(temp,'profile'),{executablePath:process.env.CHROME_PATH || 'C:/Program Files/Google/Chrome/Application/chrome.exe',headless:true,ignoreDefaultArgs:['--disable-extensions'],args:['--enable-unsafe-extension-debugging','--window-size=780,590','--host-resolver-rules=MAP reader.test 127.0.0.1','--no-proxy-server'],viewport:null,colorScheme:'dark'});
   try {
     const cdp=await context.browser().newBrowserCDPSession();
     const {id}=await cdp.send('Extensions.loadUnpacked',{path:ext});
     const worker=context.serviceWorkers()[0] || await context.waitForEvent('serviceworker');
     const page=await context.newPage(), errors=[]; page.on('pageerror',e=>errors.push(e.message));
+    await page.setViewportSize({width:780,height:590}); // The action popup's real content size.
     await worker.evaluate(()=>chrome.storage.local.set({'core.popupTab':'gmail'}));
     await page.goto(`chrome-extension://${id}/popup.html`);
     await page.frameLocator('#checkerPlusMailFrame').locator('html.bongextend-checkerplus-embedded').waitFor();
@@ -29,7 +30,7 @@ const fs=require('node:fs'), path=require('node:path'), os=require('node:os'), h
     // This disposable profile has no Gmail login. Finish that startup state before
     // mounting the synthetic message, so its account dialog cannot cover the reader.
     await frame.locator('dialog[open]').first().waitFor({state:'visible'});
-    await frame.evaluate(()=>{
+    const mountReader=()=>{
       document.querySelectorAll('dialog[open]').forEach(dialog=>dialog.close());
       document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
       const section=document.getElementById('openEmailSection'); section.classList.add('active');
@@ -37,11 +38,17 @@ const fs=require('node:fs'), path=require('node:path'), os=require('node:os'), h
       document.querySelector('.openEmailSubject').textContent='보안 알림 · 테스트 메일';
       document.getElementById('openEmailMessages').appendChild(document.getElementById('openEmailMessageTemplate').content.cloneNode(true));
       document.querySelector('.openEmailSender').textContent='알림 서비스';
+      document.querySelector('.openEmailSenderEmailAddress').textContent='<hello@example.test>';
+      document.querySelector('.messageHeader .date').textContent='2026년 11월 8일 오후 10:04';
+      document.getElementById('replyArea').hidden=false;
       const body=document.querySelector('.messageBody');
       setSafeHTML(body,`<div id="whiteMail" style="background:#fff;color:#202124;padding:24px;border:1px solid #dadce0;border-radius:12px"><div style="font-size:24px;font-weight:700;color:#1a73e8">MAIL</div><h2 style="color:#202124">Security notice</h2><p style="color:#202124">Security details for your account</p><p>Plain text stays readable.</p><a href="https://example.invalid/" style="background:#1a73e8;color:#fff;padding:10px 18px;display:inline-block;border-radius:6px">Review activity</a></div><div id="darkMail" style="background:#172033;color:#fff;padding:24px;margin-top:18px;border-radius:12px"><h3 style="color:#fff">Original dark email</h3><p style="color:#fff">White text on the sender's dark background.</p><img alt="테스트 이미지" width="48" height="24" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='24'%3E%3Crect width='48' height='24' fill='red'/%3E%3C/svg%3E"></div>`);
       hideRemoteMessageBackgrounds(body);
-    });
+    };
+    await frame.evaluate(mountReader);
     await frame.evaluate(()=>document.getAnimations().forEach(animation=>animation.finish()));
+    await frame.locator('#back').getByText('메일함').waitFor();
+    assert.equal(await frame.locator('#forward').textContent(),'전달');
     const readColors=()=>frame.evaluate(()=>{
       const style=selector=>{const s=getComputedStyle(document.querySelector(selector));return {color:s.color,bg:s.backgroundColor,filter:s.filter};};
       return {body:style('.messageBody'),white:style('#whiteMail'),dark:style('#darkMail'),link:style('#whiteMail a'),image:style('#darkMail img'),header:getComputedStyle(document.querySelector('#openEmailSection .site-header')).display,back:getComputedStyle(document.querySelector('#back').parentElement).display};
@@ -50,14 +57,45 @@ const fs=require('node:fs'), path=require('node:path'), os=require('node:os'), h
       await page.emulateMedia({colorScheme:scheme});
       await frame.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
       const colors=await readColors();
+      assert.equal(await frame.locator('.openEmailSubject').isVisible(), true);
+      assert.equal(await frame.evaluate(()=>document.querySelector('#openEmailHeader').parentElement===document.querySelector('#openEmail').parentElement),true);
+      assert.equal(await frame.locator('#ai-compose-in-reply-button').isVisible(),false);
       assert.equal(colors.body.bg,'rgb(255, 255, 255)'); assert.equal(colors.body.filter,'none');
       assert.equal(colors.white.color,'rgb(32, 33, 36)'); assert.equal(colors.dark.bg,'rgb(23, 32, 51)'); assert.equal(colors.dark.color,'rgb(255, 255, 255)');
       assert.equal(colors.link.color,'rgb(255, 255, 255)'); assert.equal(colors.image.filter,'none');
       assert.notEqual(colors.header,'none'); assert.notEqual(colors.back,'none');
       await frame.locator('#whiteMail').screenshot({path:path.join(temp,`message-${scheme}.png`)});
+      await page.evaluate(()=>window.scrollTo(0,0));
+      await frame.evaluate(()=>document.getElementById('openEmail').scrollTop=0);
       await page.screenshot({path:path.join(temp,`reader-${scheme}.png`)});
     }
     console.log('PASS dark/light mail: original colors, dark designed content, links, image colors, back toolbar');
+    const opened=context.waitForEvent('page');
+    await page.locator('#openResizableWindow').click();
+    const floating=await opened; await floating.waitForLoadState();
+    await floating.locator('#windowResizeHandle').waitFor();
+    const floatingFrame=floating.frames().find(frame=>frame.url().includes('/checkerplus-popup.html'));
+    await floatingFrame.locator('dialog[open]').first().waitFor({state:'visible'});
+    await floatingFrame.evaluate(mountReader);
+    assert.equal(await floating.locator('#openResizableWindow').isVisible(),false);
+    const floatingTab=await worker.evaluate(async url=>(await chrome.tabs.query({url}))[0],floating.url());
+    await worker.evaluate(id=>chrome.windows.update(id,{width:620,height:540}),floatingTab.windowId);
+    await floating.waitForFunction(()=>document.body.clientWidth===innerWidth && document.body.clientHeight===innerHeight);
+    await floating.waitForFunction(async()=>{const value=(await chrome.storage.local.get('core.popupWindowSize'))['core.popupWindowSize']; return value?.width===620&&value?.height===540;});
+    await floating.locator('#windowResizeHandle').focus();
+    await floating.locator('#windowResizeHandle').press('ArrowRight');
+    await floating.waitForFunction(async()=>{const value=(await chrome.storage.local.get('core.popupWindowSize'))['core.popupWindowSize'];return value?.width===660;});
+    await floatingFrame.locator('#forward').getByText('전달').waitFor();
+    await floatingFrame.evaluate(()=>document.getAnimations().forEach(animation=>animation.finish()));
+    assert.equal(await floatingFrame.evaluate(()=>{const footer=document.querySelector('#openEmailSection footer').getBoundingClientRect();return footer.x===0&&footer.bottom<=innerHeight&&footer.height>30;}),true);
+    const grip=await floating.locator('#windowResizeHandle').boundingBox();
+    await floating.mouse.move(grip.x+10,grip.y+10); await floating.mouse.down();
+    await floating.waitForFunction(()=>document.documentElement.classList.contains('resizing'));
+    await floating.mouse.move(grip.x-30,grip.y-30,{steps:4}); await floating.mouse.up();
+    await floating.waitForFunction(async()=>{const value=(await chrome.storage.local.get('core.popupWindowSize'))['core.popupWindowSize'];return value?.width===620&&value?.height===500;});
+    await floating.screenshot({path:path.join(temp,'resizable-window.png')});
+    await floating.close();
+    console.log('PASS real Chrome floating window: responsive fill, native resize, drag/keyboard grip, remembered dimensions');
     const menu=await worker.evaluate(()=>__testMenus.get('toggle-translation'));
     assert.equal(menu.title,'이 페이지 번역하기'); assert.ok(menu.contexts.includes('all'));
     assert.ok(menu.documentUrlPatterns.some(pattern=>pattern.startsWith('chrome-extension://')));

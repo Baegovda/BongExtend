@@ -226,3 +226,103 @@ html.bongextend-checkerplus-embedded #openEmailSection .primary-nav { flex: 1; }
 html.bongextend-checkerplus-embedded #openEmailSection .site-header { flex-shrink: 0; }
 html.bongextend-checkerplus-embedded #menu-view-preview-light { display: none !important; }
 .be-mail-translation-status { margin: 8px 12px; padding: 9px 12px; border-radius: 10px; background: var(--be-surface-2); color: var(--be-text); font: 13px/1.45 var(--be-font); }
+
+/* BongExtend reader: grouped tools, a quiet message canvas and a proper reply dock. */
+html.bongextend-checkerplus-embedded #openEmailSection,
+html.bongextend-checkerplus-embedded #openEmailSectionLayout {
+  height: 100% !important; min-height: 0 !important; background: var(--be-bg) !important;
+  color: var(--be-text) !important;
+}
+html.bongextend-checkerplus-embedded #openEmailSection.active,
+html.bongextend-checkerplus-embedded #openEmailSectionLayout {
+  display: flex !important; flex-direction: column !important;
+}
+html.bongextend-checkerplus-embedded #openEmailSection .site-header {
+  height: auto !important; min-height: 58px !important; padding: 9px 16px !important;
+  background: var(--be-surface) !important;
+}
+html.bongextend-checkerplus-embedded #openEmailSection .header-content { gap: 12px !important; flex-wrap: wrap; }
+html.bongextend-checkerplus-embedded #openEmailSection .primary-nav {
+  font: 600 12px/1.4 var(--be-font); color: var(--be-muted); min-width: 0;
+}
+html.bongextend-checkerplus-embedded #openEmailSection .utility-items { gap: 6px !important; flex-wrap: wrap; }
+html.bongextend-checkerplus-embedded #openEmailSection :is(.site-header,footer) j-button {
+  --icon-color: var(--be-text-2); --icon-size: 17px; --button-padding: 8px 11px;
+  --button-bg-color: transparent; --border-color: transparent; --button-text-color: var(--be-text-2);
+  border-radius: 10px !important; color: var(--be-text-2) !important;
+  font: 600 12px/1.3 var(--be-font) !important; box-shadow: none !important;
+}
+html.bongextend-checkerplus-embedded #openEmailSection :is(.site-header,footer) j-button:hover {
+  background: var(--be-surface-3) !important; color: var(--be-text) !important;
+}
+html.bongextend-checkerplus-embedded #openEmailSection :is(#back,#archive,#markAsRead,#markAsUnread) {
+  background: var(--be-surface-2) !important;
+}
+html.bongextend-checkerplus-embedded #openEmailSection #delete { color: var(--be-error) !important; --button-text-color: var(--be-error); --icon-color: var(--be-error); }
+html.bongextend-checkerplus-embedded #openEmailSection :is(#moveLabel,#addToTasks,#addToGoogleCalendar,#listenToEmail,#print),
+html.bongextend-checkerplus-embedded #ai-compose-in-reply-button { display: none !important; }
+html.bongextend-checkerplus-embedded #openEmail {
+  flex: 1 1 0 !important; min-height: 0 !important; min-width: 0 !important;
+  overflow: auto !important; padding: 22px 24px 28px !important;
+  scrollbar-color: var(--be-surface-3) transparent; background: var(--be-bg) !important;
+}
+html.bongextend-checkerplus-embedded #openEmailHeader {
+  padding: 16px 24px !important; margin: 0 !important; gap: 12px; flex-shrink: 0;
+  background: var(--be-bg); border-bottom: 1px solid var(--be-border);
+}
+html.bongextend-checkerplus-embedded #openEmailHeader > .flex { min-width: 0; flex-wrap: wrap; gap: 10px; }
+html.bongextend-checkerplus-embedded .openEmailSubject {
+  color: var(--be-text) !important; font: 650 22px/1.45 var(--be-font) !important;
+  overflow-wrap: anywhere; min-width: 180px;
+}
+html.bongextend-checkerplus-embedded #openEmailLabels { margin: 0 !important; max-width: 100% !important; }
+html.bongextend-checkerplus-embedded #openEmailLabels .label {
+  background: var(--be-surface-2) !important; color: var(--be-text-2) !important;
+  border: 1px solid var(--be-border); border-radius: 7px; font: 11px/1.5 var(--be-font); padding: 3px 8px;
+}
+html.bongextend-checkerplus-embedded #openEmail .message { margin: 0 0 20px !important; border: 0 !important; background: transparent !important; }
+html.bongextend-checkerplus-embedded #openEmail .messageHeader {
+  padding: 14px 16px !important; margin: 0 0 12px !important; gap: 12px;
+  background: var(--be-surface) !important; border: 1px solid var(--be-border); border-radius: 14px;
+}
+html.bongextend-checkerplus-embedded .messageHeader .contactPhoto { width: 38px !important; height: 38px !important; margin: 0 !important; flex-shrink: 0; border-radius: 50%; }
+html.bongextend-checkerplus-embedded .messageHeaderRight { min-width: 0; }
+html.bongextend-checkerplus-embedded .senderAndDate { gap: 8px; flex-wrap: wrap; }
+html.bongextend-checkerplus-embedded .openEmailSender { font: 650 14px/1.5 var(--be-font) !important; color: var(--be-text) !important; }
+html.bongextend-checkerplus-embedded .openEmailSenderEmailAddress { color: var(--be-muted) !important; font: 12px/1.5 var(--be-font); max-width: 100% !important; }
+html.bongextend-checkerplus-embedded .messageHeader :is(.date,.to) { color: var(--be-muted) !important; font: 11px/1.6 var(--be-font); }
+html.bongextend-checkerplus-embedded #openEmail .messageBody {
+  margin: 0 !important; box-sizing: border-box; width: 100%; min-width: 0;
+  padding: 20px !important; border: 0; box-shadow: 0 2px 16px #00000014;
+  overflow-x: auto; line-height: 1.65;
+}
+html.bongextend-checkerplus-embedded #openEmailSection footer {
+  flex-shrink: 0; padding: 10px 72px 10px 20px !important;
+  border-top: 1px solid var(--be-border); background: var(--be-surface) !important;
+}
+html.bongextend-checkerplus-embedded #openEmailSection footer:not(:has(#replyArea:not([hidden]))) { display: none; }
+html.bongextend-checkerplus-embedded #replyArea {
+  margin: 0 !important; padding: 0 !important; border: 0 !important; gap: 10px; flex-wrap: wrap;
+}
+html.bongextend-checkerplus-embedded #replyArea > .contactPhoto { margin: 0 !important; width: 28px; height: 28px; }
+html.bongextend-checkerplus-embedded #replyButtons { gap: 8px; flex-wrap: wrap; }
+html.bongextend-checkerplus-embedded #replyButtons j-button {
+  border: 1px solid var(--be-border) !important; background: var(--be-surface-2) !important;
+  color: var(--be-text) !important; --button-padding: 8px 14px;
+}
+html.bongextend-checkerplus-embedded #reply-textarea-wrapper { min-width: 0; flex: 1; }
+html.bongextend-checkerplus-embedded #replyArea.clicked #reply-textarea-wrapper { flex-basis: 100%; }
+html.bongextend-checkerplus-embedded #reply-textarea {
+  box-sizing: border-box; width: 100% !important; max-height: 160px; border-radius: 10px;
+  background: var(--be-bg) !important; color: var(--be-text) !important;
+  border: 1px solid var(--be-border) !important; padding: 12px; font: 14px/1.6 var(--be-font);
+}
+html.bongextend-checkerplus-embedded #replyArea .sendButtons { flex-direction: row !important; gap: 8px; }
+html.bongextend-checkerplus-embedded #replyArea #send { background: var(--be-accent) !important; color: var(--be-accent-ink) !important; --button-text-color: var(--be-accent-ink); --icon-color: var(--be-accent-ink); }
+@media (max-width: 680px) {
+  html.bongextend-checkerplus-embedded #openEmail { padding: 16px !important; }
+  html.bongextend-checkerplus-embedded #openEmailSection .primary-nav { display: none; }
+  html.bongextend-checkerplus-embedded #openEmailSection .site-header { padding: 8px !important; }
+  html.bongextend-checkerplus-embedded #openEmailSection .header-content { gap: 4px !important; }
+  html.bongextend-checkerplus-embedded .openEmailSubject { font-size: 19px !important; }
+}
