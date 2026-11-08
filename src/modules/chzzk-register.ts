@@ -18,7 +18,8 @@ export const CHZZK_SCRIPT_FILES = [
     "chzzk/content-extras.js",
     "chzzk/content-watch.js",
     "chzzk/content-wide.js",
-    "chzzk/content-autoplay.js"
+    "chzzk/content-autoplay.js",
+    "chzzk/content-log-power.js"
 ];
 
 export const CHZZK_MATCHES = ["https://chzzk.naver.com/*"];

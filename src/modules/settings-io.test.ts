@@ -37,6 +37,12 @@ describe("settings import", () => {
         expect(plan.sync["chzzk.enabled"]).toBe(false);
     });
 
+    test("log power setting survives legacy import and full backup", () => {
+        expect(planImport(JSON.stringify({autoLogPower: false})).sync["chzzk.autoLogPower"]).toBe(false);
+        const backup = buildExport({}, {"chzzk.autoLogPower": false});
+        expect(planImport(JSON.stringify(backup)).sync["chzzk.autoLogPower"]).toBe(false);
+    });
+
     test("BongExtend export round-trips", async () => {
         const local = {"trans.settings": {apiKey: "k"}, "trans.alwaysOrigins": ["https://shop.example"], "chzzk.recoverCount": 2, "refresher:memo:UID": {a: 1}, "core.modules": {chzzk: true, trans: false, dc: true}};
         const sync = {"chzzk.vivid": false};

@@ -20,7 +20,7 @@ const originList = (value: unknown): string[] => {
 export const CHZZK_KEYS = [
     "enabled", "threshold", "cooldown", "toast", "retryTimer", "lockQuality", "targetQuality", "followRefresh", "followInterval",
     "vivid", "hideRanking", "chatFontSize", "viewerChat", "viewerOverlay", "arrowSeek", "seekSeconds", "autoWide", "wideFullscreen", "autoPlay",
-    "blurRankNames", "hideTimeGuide", "adBlock", "adSkip", "watchEnabled", "watchList"
+    "blurRankNames", "hideTimeGuide", "adBlock", "adSkip", "autoLogPower", "watchEnabled", "watchList"
 ];
 
 type Rec = Record<string, unknown>;
