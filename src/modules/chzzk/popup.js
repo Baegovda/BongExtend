@@ -104,3 +104,9 @@ $('watchGoNow').onclick = async () => {
   watchMsg('지금 방송 중인 관심 스트리머가 없어요.');
 };
 getList().then(renderList);
+
+const tabStatus=document.getElementById('verticalTabsStatus');
+const paintTabStatus=value=>{if(tabStatus)tabStatus.textContent=({'shortcut-sent':'Ctrl+Shift+L을 전달했어요.','already-collapsed':'이미 접힌 상태예요.','helper-update-required':'PC 보조 프로그램을 최신 버전으로 다시 설치해 주세요.','helper-missing':'PC 보조 프로그램 연결이 필요해요.','unavailable':'브라우저 제어 상태를 읽지 못했어요.','not-foreground-chrome':'Chrome이 활성화되어 있을 때만 키를 보내요.','focus-changed':'창 전환을 감지해 입력을 건너뛰었어요.','input-failed':'단축키를 전달하지 못했어요.','helper-timeout':'PC 보조 프로그램이 응답하지 않았어요.','state-unknown':'세로 탭 상태를 확인하지 못했어요.','different-tab':'다른 탭이 활성화되어 키를 보내지 않았어요.','keys-busy':'사용 중인 키가 있어 자동 입력을 건너뛰었어요.'})[value] || 'Windows 보조 프로그램 연결이 필요해요.';};
+chrome.storage.local.get('core.chzzkTabs:status').then(data=>paintTabStatus(data['core.chzzkTabs:status']));
+chrome.storage.onChanged.addListener((changes,area)=>{if(area==='local'&&changes['core.chzzkTabs:status'])paintTabStatus(changes['core.chzzkTabs:status'].newValue);});
+document.getElementById('verticalTabsSetup')?.addEventListener('click',()=>chrome.tabs.create({url:chrome.runtime.getURL('video-downloader.html')}));

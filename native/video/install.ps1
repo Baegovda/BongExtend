@@ -1,7 +1,8 @@
 param([string]$ExtensionId)
 $ErrorActionPreference='Stop'
 if (!$ExtensionId) {
- $file=Get-ChildItem -LiteralPath ([IO.Path]::Combine($env:USERPROFILE,'Downloads')) -Filter 'bongextend-video-connection*.json' | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+ $folders=@($PSScriptRoot,(Split-Path $PSScriptRoot -Parent),([IO.Path]::Combine($env:USERPROFILE,'Downloads'))) | Select-Object -Unique
+ $file=$folders | Where-Object {Test-Path -LiteralPath $_} | ForEach-Object {Get-ChildItem -LiteralPath $_ -Filter 'bongextend-video-connection*.json' -File} | Sort-Object LastWriteTime -Descending | Select-Object -First 1
  if ($file) { $ExtensionId=(Get-Content -LiteralPath $file.FullName -Raw | ConvertFrom-Json).extensionId }
 }
 if ($ExtensionId -notmatch '^[a-p]{32}$') { throw 'Open the video downloader tab and download the connection file first.' }
@@ -10,6 +11,7 @@ New-Item -ItemType Directory -Force -Path $dest | Out-Null
 $python=(Get-Command python -ErrorAction Stop).Source
 & $python -c "import sys; assert sys.version_info >= (3,10)"
 if ($LASTEXITCODE -ne 0) {throw 'Python 3.10 or newer is required.'}
+Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'BongExtendBrowser.exe') -Destination $dest -Force
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'host.py') -Destination $dest -Force
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'BongExtendVideo.exe') -Destination $dest -Force
 [IO.File]::WriteAllText((Join-Path $dest 'python.txt'),$python)

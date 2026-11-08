@@ -48,10 +48,20 @@
         return match ? parseInt(match[0], 10) : 0;
     }
 
+    let lastProfile='';
+    function captureProfile(){
+        const header=[...document.querySelectorAll('a[aria-label],button[aria-label]')].find(node=>/Google/.test(node.getAttribute('aria-label'))&&/[A-Z0-9._%+-]+@[A-Z0-9.-]+/i.test(node.getAttribute('aria-label')));
+        const email=header?.getAttribute('aria-label')?.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0];
+        const imageUrl=header?.querySelector('img')?.src;
+        if(!email || !imageUrl || lastProfile===email+'|'+imageUrl)return;
+        try{const url=new URL(imageUrl);if(!/(^|\.)googleusercontent\.com$/.test(url.hostname))return;}catch{return;}
+        lastProfile=email+'|'+imageUrl;void chrome.runtime.sendMessage({command:'BongExtendSaveSessionProfile',params:{email,imageUrl}}).catch(()=>{});
+    }
     let debounceTimeout;
 
     clearInterval(unreadCountInterval);
     unreadCountInterval = setInterval(() => {
+        captureProfile();
         let unreadCount = getUnreadCount();
         if (unreadCount !== lastUnreadCount) {
             console.log("Unread count changed:", unreadCount);

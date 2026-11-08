@@ -961,28 +961,17 @@ async function setUnreadCountLabels($account) {
 }
 
 async function setAccountAvatar($account, $accountAvatar) {
-	const account = $accountAvatar._account;
-	const $accountPhoto = $accountAvatar.querySelector(".accountPhoto");
-	const profileInfo = await account.getSetting("profileInfo");
-	if (profileInfo) {
-		setTimeout(function() {
-			$account.querySelector(".accountPhoto").setAttribute("src", profileInfo.imageUrl);
-			$accountPhoto.setAttribute("src", profileInfo.imageUrl);
-		}, 20);
-	} else {
-		hide($account.querySelector(".accountPhoto"));
-		
-		let color;
-		if (await account.getSetting("accountColor") == "transparent") {
-			color = "#ccc";
-		} else {
-			color = await account.getSetting("accountColor");
-        }
-        const emailDisplayName = await account.getEmailDisplayName();
-        requestIdleCallback(async () => {
-            setLetterAvatar($accountPhoto, emailDisplayName, color);
-        });
-	}
+ const account=$accountAvatar._account,header=$account.querySelector('.accountPhoto'),side=$accountAvatar.querySelector('.accountPhoto');
+ const color=await account.getSetting('accountColor'),name=await account.getEmailDisplayName();
+ const fallback=async()=>{await Promise.all([header,side].filter(Boolean).map(async photo=>{photo.removeAttribute('hidden');photo.style.removeProperty('display');await setLetterAvatar(photo,name,color==='transparent'?'#ccc':color);}));};
+ await fallback();
+ let profile=await account.getSetting('profileInfo');
+ if(!profile?.imageUrl){try{profile=await chrome.runtime.sendMessage({command:'BongExtendAccountProfile',params:{email:account.getEmail()}});}catch{}}
+ const applyPhoto=(value,retried=false)=>{
+  for(const photo of [header,side]){if(!photo)continue;photo.removeAttribute('hidden');photo.style.removeProperty('display');photo.setAttribute('src',value.imageUrl);}
+  header?.addEventListener('error',async()=>{await fallback();if(!retried){try{const fresh=await chrome.runtime.sendMessage({command:'BongExtendAccountProfile',params:{email:account.getEmail(),force:true}});if(fresh?.imageUrl&&fresh.imageUrl!==value.imageUrl)applyPhoto(fresh,true);}catch{}}},{once:true});
+ };
+ if(profile?.imageUrl)applyPhoto(profile);
 }
 
 function setAvatarUnreadCount($accountAvatar, unreadCount) {
@@ -7651,3 +7640,10 @@ async function showIcsCalendarDetails(icsUrl, $openEmailMessages, mail) {
     const data = await fetchJSON(icsUrl);
     await parseICSAttachment(data, $openEmailMessages.querySelector(".messageBody"), mail);
 }
+
+// Gmail에서 사진 정보를 새로 얻었으면 열린 메일함에도 반영해요.
+chrome.runtime.onMessage.addListener((message,sender)=>{
+ if(sender.id!==chrome.runtime.id||message?.type!=='BONG_PROFILE_UPDATED')return;
+ const header=getAccountNodeByEmail(message.email),account=header?._account,avatar=account&&getAccountAvatar(account);
+ if(header&&avatar)void setAccountAvatar(header,avatar);
+});

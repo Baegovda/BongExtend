@@ -1,28 +1,20 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createOtpToast} from '../otp-toast.js';
+import {createOtpToast,renderCopiedOtpToast} from '../otp-toast.js';
 import {Window} from 'happy-dom';
-import {readFileSync} from 'node:fs';
-test('copied OTP is centered and delivered once without appearing in its URL',async()=>{
- let listener,created;
- const api={runtime:{id:'self',getURL:path=>'chrome-extension://self/'+path,onMessage:{addListener:fn=>listener=fn}},windows:{getLastFocused:async()=>({left:100,top:50,width:1000,height:800}),create:async value=>{created=value;}}};
- await createOtpToast(api)('001234');
- assert.equal(created.left,410);assert.equal(created.top,335);assert.equal(created.focused,false);assert.ok(!created.url.includes('001234'));
- const token=new URL(created.url).searchParams.get('token');let reply;
- listener({type:'BONG_OTP_TOAST_READ',token},{id:'self',url:'https://example.com/'},()=>assert.fail('web pages cannot read OTP'));
- listener({type:'BONG_OTP_TOAST_READ',token},{id:'self',url:'chrome-extension://self/otp-toast.html?token='+token},value=>reply=value);
- assert.equal(reply.code,'001234');
- listener({type:'BONG_OTP_TOAST_READ',token},{id:'self',url:'chrome-extension://self/otp-toast.html'},value=>reply=value);
- assert.deepEqual(reply,{});
+test('copied OTP goes to the active Chrome page without creating a new window',async()=>{
+ let injected;
+ const api={windows:{getLastFocused:async()=>({id:7}),create(){assert.fail('must not open a titled popup');}},tabs:{query:async query=>{assert.equal(query.windowId,7);return [{id:8,url:'https://example.com/'}];}},scripting:{executeScript:async value=>{injected=value;}}};
+ assert.equal(await createOtpToast(api)('001234'),true);assert.equal(injected.target.tabId,8);assert.deepEqual(injected.args,['001234']);assert.equal(injected.func,renderCopiedOtpToast);
+ api.scripting.executeScript=async()=>{throw Error('permission denied');};assert.equal(await createOtpToast(api)('001234'),false);
 });
-test('toast page renders the copied code and exact confirmation message as text',async()=>{
- const window=new Window({url:'https://extension.invalid/otp-toast.html?token=fixture'});
+test('frameless OTP is isolated in closed shadow DOM, fades out and replaces prior toast',async()=>{
+ const window=new Window(),timers=[];let root;
  try{
-  window.document.body.innerHTML='<strong id="code"></strong><p id="message"></p><button id="close">닫기</button>';
-  window.chrome={runtime:{sendMessage:async message=>{assert.equal(message.token,'fixture');return {code:'001234'};}}};
-  window.eval(readFileSync(new URL('../../../../public/otp-toast.js',import.meta.url),'utf8'));
-  await new Promise(resolve=>setImmediate(resolve));
-  assert.equal(window.document.getElementById('code').textContent,'001234');
-  assert.equal(window.document.getElementById('message').textContent,'클립보드에 복사되었습니다');
+  const attach=window.Element.prototype.attachShadow;window.Element.prototype.attachShadow=function(options){root=attach.call(this,options);return root;};
+  window.setTimeout=(fn,delay)=>{timers.push({fn,delay});return timers.length;};
+  window.eval('('+renderCopiedOtpToast.toString()+')('+JSON.stringify('001234')+')');
+  const host=window.document.getElementById('bongextend-otp-toast');assert.equal(host.shadowRoot,null);assert.equal(root.querySelector('.code').textContent,'001234');assert.equal(root.querySelector('.message').textContent,'클립보드에 복사되었습니다');assert.match(root.querySelector('style').textContent,/bottom:clamp/);assert.ok(!window.document.documentElement.textContent.includes('001234'));
+  assert.equal(timers[0].delay,6500);timers[0].fn();assert.ok(root.querySelector('.toast').classList.contains('leaving'));timers[1].fn();assert.equal(host.isConnected,false);
  }finally{await window.happyDOM.close();}
 });

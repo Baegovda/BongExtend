@@ -85,8 +85,28 @@
     if (enabled && key) schedule(700);
   }
 
+
+  // 브라우저 자체 단축키는 페이지의 합성 keydown으로 실행되지 않으므로 PC 보조 프로그램에 전달해요.
+  let immersiveSeen=false,lastCollapse=0;
+  function collapseTabs(){
+    if(!pageKey()||Date.now()-lastCollapse<1500)return;
+    lastCollapse=Date.now();
+    void chrome.runtime.sendMessage({type:'BONG_COLLAPSE_VERTICAL_TABS',expandedHint:window.outerWidth-window.innerWidth>=100}).catch(()=>{});
+  }
+  function checkImmersive(){
+    const active=!!document.fullscreenElement || info(findButton(playerRoot())).layoutWide;
+    if(active&&!immersiveSeen)collapseTabs();immersiveSeen=active;
+  }
+  document.addEventListener('fullscreenchange',checkImmersive);
+  window.addEventListener('focus',()=>{if(document.fullscreenElement || info(findButton(playerRoot())).layoutWide)collapseTabs();});
+  document.addEventListener('click',event=>{
+    const button=event.target.closest?.('.pzp-viewmode-button,.pzp-pc-viewmode-button,.pzp-pc-fullscreen-button,.pzp-fullscreen-button');
+    if(button&&!document.fullscreenElement&&!info(button).layoutWide)collapseTabs();
+  },true);
+
   let lastPath = location.pathname;
   setInterval(() => {
+    checkImmersive();
     if (location.pathname !== lastPath) { lastPath = location.pathname; start(true); }
     else if (enabled && pageKey() && settledRoute !== pageKey() && !timer) schedule(0);
   }, 1000);

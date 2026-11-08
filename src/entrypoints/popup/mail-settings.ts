@@ -1,3 +1,5 @@
+// @ts-ignore shared sound catalog
+import {CHECKER_PLUS_SOUNDS} from "@/modules/gmail/sound.js";
 const MAIL_ORIGIN = new URL(chrome.runtime.getURL("/")).origin;
 export function setupMailSettings() {
     const dialog = document.getElementById("mailSettingsDialog") as HTMLDialogElement;
@@ -13,6 +15,19 @@ export function setupMailSettings() {
             return response;
         } finally { if (timer) clearTimeout(timer); }
     };
+    const soundSelect=form.elements.namedItem('notificationSound') as HTMLSelectElement;
+    soundSelect.replaceChildren(...[{value:'',label:'소리 없음'},{value:'system-default',label:'시스템 기본 소리'},...CHECKER_PLUS_SOUNDS.map((name:string)=>({value:name+'.mp3',label:name}))].map(({value,label})=>{const option=document.createElement('option');option.value=value;option.textContent=label;return option;}));
+    let preview:HTMLAudioElement|undefined;
+    document.getElementById('mailSoundPreview')!.addEventListener('click',()=>{
+        preview?.pause();if(!soundSelect.value || soundSelect.value==='system-default'){status.textContent='파일 알림음을 선택하면 미리 들을 수 있어요.';return;}
+        preview=new Audio(chrome.runtime.getURL('sounds/'+soundSelect.value));preview.volume=Number((form.elements.namedItem('notificationSoundVolume') as HTMLInputElement).value)/100;
+        void preview.play().catch(()=>{status.textContent='알림음을 재생하지 못했어요.';});
+    });
+    dialog.addEventListener('close',()=>preview?.pause());
+    soundSelect.addEventListener('change',()=>preview?.pause());
+    document.getElementById('otpOverlayPermission')!.addEventListener('click',async()=>{
+        const granted=await chrome.permissions.request({origins:['https://*/*','http://*/*']});status.textContent=granted?'웹페이지 안에 인증번호 알림을 표시할 수 있어요.':'기존 데스크톱 알림은 계속 사용할 수 있어요.';
+    });
     const open = async () => {
         if (!dialog.open) dialog.showModal();
         status.textContent = "설정을 불러오고 있어요…";
@@ -23,7 +38,10 @@ export function setupMailSettings() {
                 const field = form.elements.namedItem(name) as HTMLInputElement | HTMLSelectElement | null;
                 if (!field) continue;
                 if (field instanceof HTMLInputElement && field.type === "checkbox") field.checked = Boolean(value);
-                else field.value = String(value ?? "");
+                else {
+                    if(name==='notificationSound' && value && field instanceof HTMLSelectElement && ![...field.options].some(option=>option.value===String(value))){const option=document.createElement('option');option.value=String(value);option.textContent='저장된 사용자 알림음';field.append(option);}
+                    field.value = String(value ?? "");
+                }
             }
             accounts.replaceChildren();
             if (!result.accounts.length) accounts.textContent = "연결된 Gmail 계정이 없어요. Gmail에 로그인한 뒤 다시 확인해 주세요.";

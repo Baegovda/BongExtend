@@ -1,5 +1,9 @@
 // @ts-ignore pure JS
 import {startVideoHost} from "@/modules/downloads/video.js";
+// @ts-ignore pure JS
+import {videoSaveTarget} from "@/modules/downloads/video-menu.js";
+// @ts-ignore pure JS
+import {startVerticalTabBridge} from "@/modules/chzzk/vertical-tabs.js";
 import {onMessage, sendMessage, sendToContentTab} from "@/http/messaging";
 import {migrateLocalStorageData} from "@/storage/migration";
 import {databaseStorage, moduleSchemaStorage} from "@/storage/wxtStorage";
@@ -41,6 +45,7 @@ import {createOtpToast} from "@/modules/gmail/otp-toast.js";
 
 export default defineBackground(() => {
     startVideoHost();
+    startVerticalTabBridge();
     const showOtpToast=createOtpToast();
     const otpHandler = createMailOtpHandler({
         load: async () => {
@@ -53,7 +58,8 @@ export default defineBackground(() => {
             if (typeof send !== "function") throw new Error("clipboard unavailable");
             const result = await send("bongextend-copy-otp", {code});
             if (!result?.ok) throw new Error("clipboard copy failed");
-            await showOtpToast(code);
+            const shown=await showOtpToast(code);
+            await chrome.storage.local.set({'core.mailOtpOverlayStatus':shown?'shown':'page-unavailable'});
         },
         notify: (key: string, code: string) => chrome.notifications.create(`bongextend-otp-${key}`, {
             type: "basic", iconUrl: chrome.runtime.getURL("icons/128.png"), title: code, message: ""
@@ -89,7 +95,7 @@ export default defineBackground(() => {
     if (typeof importChrono === "function") {
         try { importChrono.call(globalThis, "/js/chrono-action-bridge.js"); }
         catch (error) { console.error("다운로드 툴바 어댑터를 시작하지 못했어요.", error); }
-        try { importChrono.call(globalThis, "/js/background.js"); }
+        try { importChrono.call(globalThis, "/js/bongextend-profile.js", "/js/background.js"); }
         catch (error) { console.error("Checker Plus 메일 엔진을 시작하지 못했어요.", error); }
         try { importChrono.call(globalThis, "/chrono-worker.js"); }
         catch (error) { console.error("Chrono 다운로드 엔진을 시작하지 못했어요.", error); }
@@ -476,8 +482,13 @@ export default defineBackground(() => {
         },
         {
             id: "bongDownloadMedia",
-            title: "BongExtend로 미디어 다운로드",
-            contexts: ["audio", "video"]
+            title: "동영상 저장하기",
+            contexts: ["video"]
+        },
+        {
+            id: "bongDownloadAudio",
+            title: "BongExtend로 오디오 다운로드",
+            contexts: ["audio"]
         }
     ];
 
@@ -526,9 +537,19 @@ export default defineBackground(() => {
             case "searchSauceNao":
                 sendMessage("searchSauceNao", undefined, tab.id).catch(() => {});
                 break;
+            case "bongDownloadMedia": {
+                void getModules().then(async (modules: Record<string,boolean>)=>{
+                    if(modules.download===false)return;
+                    const target=videoSaveTarget(info,tab);
+                    if(!target)return;
+                    if(target.mode==='direct')await startDownloadWithName(target.url,cleanSuggestedFilename(new URL(target.url).pathname.split('/').pop()||'video.mp4'));
+                    else await chrome.tabs.create({url:chrome.runtime.getURL('video-downloader.html')+'?autostart=1&url='+encodeURIComponent(target.url)});
+                }).catch(()=>{void chrome.notifications.create('bongextend-video-save-error',{type:'basic',iconUrl:chrome.runtime.getURL('icons/128.png'),title:'동영상 저장',message:'다운로드를 시작하지 못했어요. 주소와 파일 상태를 확인해 주세요.'}).catch(()=>{});});
+                break;
+            }
             case "bongDownloadLink":
             case "bongDownloadImage":
-            case "bongDownloadMedia": {
+            case "bongDownloadAudio": {
                 void getModules().then((modules: Record<string, boolean | undefined>) => {
                     if (modules.download === false) return;
                     const rawUrl = info.menuItemId === "bongDownloadLink" ? info.linkUrl : info.srcUrl;

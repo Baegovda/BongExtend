@@ -27,7 +27,7 @@ def video_url(value):
     if u.scheme not in ('http', 'https') or not u.hostname or u.username or u.password:
         raise ValueError('http 또는 https 영상 페이지 주소를 입력해 주세요.')
     if u.hostname in ('youtube.com','www.youtube.com','m.youtube.com'):
-        key = parse_qs(u.query).get('v', [''])[0] if u.path == '/watch' else u.path.split('/')[-1] if u.path.startswith(('/shorts/','/live/')) else ''
+        key = parse_qs(u.query).get('v', [''])[0] if u.path == '/watch' else u.path.split('/')[-1] if u.path.startswith(('/shorts/','/live/','/embed/')) else ''
     elif u.hostname == 'youtu.be': key = u.path.strip('/')
     else:
         addresses = socket.getaddrinfo(u.hostname,u.port or (443 if u.scheme=='https' else 80))
@@ -49,6 +49,13 @@ def command(message):
     if quality == 'audio': args += ['-x','--audio-format','mp3']
     else: args += ['-f', f'bv*[height<=?{quality}]+ba/b[height<=?{quality}]', '--merge-output-format','mkv']
     return args + ['--',url]
+
+def collapse_tabs(message):
+    url=str(message.get('url',''))
+    if not re.match(r'^https://chzzk\.naver\.com/(live|video)/[^/?#]+',url): raise ValueError('Unsupported page')
+    title=str(message.get('title',''))[:512]
+    result=subprocess.run([str(BASE/'BongExtendBrowser.exe'),title,'expanded' if message.get('expandedHint') is True else 'unknown'],capture_output=True,text=True,encoding='utf-8',timeout=4,creationflags=getattr(subprocess,'CREATE_NO_WINDOW',0))
+    return {'type':'tabs','status':result.stdout.strip() or 'unavailable'}
 
 def download(message):
     global process
@@ -84,7 +91,9 @@ def main():
         if len(raw) != length: break
         try:
             message = json.loads(raw)
-            if message.get('type') == 'ping': emit({'type':'ready','version':1,'folder':str(OUT)})
+            if message.get('type') == 'ping': emit({'type':'ready','version':2,'folder':str(OUT)})
+            elif message.get('type') == 'collapse-tabs':
+                emit(collapse_tabs(message))
             elif message.get('type') == 'cancel':
                 stop_process()
             elif message.get('type') == 'download':

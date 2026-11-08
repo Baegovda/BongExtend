@@ -2561,6 +2561,9 @@ chrome.runtime.onMessage.addListener(/* DONT USE ASYNC HERE because of return tr
                     checkEmails("unread-count-change-gmail-ui");
                 }
                 sendResponse();
+            } else if (message.command === 'BongExtendSaveSessionProfile') {
+                if(sender.id===chrome.runtime.id && /^https:\/\/mail\.google\.com\//.test(sender.url || ''))sendResponse(await BongExtendSaveSessionProfile(message.params));
+                else sendResponse({ok:false});
             } else if (typeof globalThis[message.command] == "function") { // map fn string names directly to calling their fn
                 console.log("onMessage: " + message.command);
                 const response = await globalThis[message.command](message.params);
@@ -3753,7 +3756,7 @@ async function BongExtendMailOptions(params = {}) {
     if (params.values) {
         const v = params.values;
         if (typeof v.desktopNotification === "boolean") await storage.set("desktopNotification", v.desktopNotification ? "rich" : "");
-        if (["", "chime.mp3", "bell.mp3"].includes(v.notificationSound)) await storage.set("notificationSound", v.notificationSound);
+        if (["", "system-default", ...["bell","bug","cash","chime","ding","electronicdrops","fallingbeep","ios","kiss","ohno","ohshit","pianohappy","scary","tech","Typewriter Bell","ultranova","whoppii","yeahaha","youvegotmail"].map(name=>name+".mp3")].includes(v.notificationSound)) await storage.set("notificationSound", v.notificationSound);
         if (Number.isFinite(v.notificationSoundVolume)) await storage.set("notificationSoundVolume", Math.max(0, Math.min(100, v.notificationSoundVolume)));
         if (["comfortable", "cozy", "compact"].includes(v.displayDensity)) await storage.set("displayDensity", v.displayDensity);
         for (const key of ["previewing_marks_as_read", "showStar", "showArchive", "showDelete"]) if (typeof v[key] === "boolean") await storage.set(key, v[key]);
@@ -3775,4 +3778,23 @@ async function BongExtendMailSessionChanged() {
     if (!bongSessionRefresh) bongSessionRefresh = checkEmails("session-watch").finally(() => {bongSessionRefresh = null;});
     await bongSessionRefresh;
     return {ok: true};
+}
+
+const bongProfileAttempts=new Map();
+async function BongExtendAccountProfile(params={}) {
+ const account=accounts.find(a=>String(a.getEmail()).toLowerCase()===String(params.email||'').toLowerCase());if(!account)return {};
+ const existing=await account.getSetting('profileInfo');if(!params.force && BongProfile.valid(existing?.imageUrl))return existing;
+ if(!params.force && Date.now()<(bongProfileAttempts.get(params.email)||0))return {};
+ bongProfileAttempts.set(params.email,Date.now()+15*60*1000);
+ try{
+  const response=await fetch(`https://mail.google.com/mail/u/${account.id}/`,{credentials:'include',signal:AbortSignal.timeout(8000)});
+  if(!response.ok || !response.url.startsWith(`https://mail.google.com/mail/u/${account.id}/`))return {};
+  const imageUrl=BongProfile.fromHtml(await response.text(),params.email);
+  if(imageUrl){const profile={imageUrl};await account.saveSetting('profileInfo',profile);return profile;}
+ }catch{}return {};
+}
+async function BongExtendSaveSessionProfile(params={}) {
+ const account=accounts.find(a=>String(a.getEmail()).toLowerCase()===String(params.email||'').toLowerCase()),imageUrl=BongProfile.valid(params.imageUrl);
+ if(account&&imageUrl){const previous=await account.getSetting('profileInfo');if(previous?.imageUrl!==imageUrl){await account.saveSetting('profileInfo',{...(previous||{}),imageUrl});void chrome.runtime.sendMessage({type:'BONG_PROFILE_UPDATED',email:account.getEmail()}).catch(()=>{});}}
+ return {ok:Boolean(account&&imageUrl)};
 }

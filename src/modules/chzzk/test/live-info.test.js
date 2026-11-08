@@ -22,8 +22,8 @@ test('player fixture shows actual quality, elapsed time and viewer change colors
   await new Promise(resolve=>setTimeout(resolve,1150));
   assert.equal(window.document.querySelector('#bex-quality').textContent,'1080p');
   assert.match(window.document.querySelector('.bc-runtime').textContent,/^00:01:/);
-  const num=window.document.querySelector('#bex-vov .bc-num');assert.equal(num.textContent,'101명');assert.equal(num.frames[0].color,'#2ee59d');
-  await new Promise(resolve=>setTimeout(resolve,1000));assert.equal(num.textContent,'99명');assert.equal(num.frames[0].color,'#ff5c5c');
+  const num=window.document.querySelector('#bex-vov .bc-num');assert.equal(num.textContent,'101명');assert.equal(num.frames[1].color,'#8ad9b6');
+  await new Promise(resolve=>setTimeout(resolve,1000));assert.equal(num.textContent,'99명');assert.equal(num.frames[1].color,'#eea3a3');
   assert.equal(peak,1);assert.ok(starts[1]-starts[0]>=900&&starts[1]-starts[0]<1400);
  }finally{await window.happyDOM.close();}
 });

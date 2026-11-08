@@ -9,7 +9,7 @@ const {chromium}=require('playwright'),fs=require('fs'),path=require('path'),os=
   const worker=ctx.serviceWorkers()[0]||await ctx.waitForEvent('serviceworker');
   await worker.evaluate(async()=>{
    const seen=Date.now()-1000;
-   await chrome.storage.local.set({'core.update:autoCheck':false,'core.popupTab':'dark','core.downloadsLastSeen':seen,'core.video:status':{type:'progress',percent:42},'core.video:history':[
+   await chrome.storage.local.set({'core.update:autoCheck':false,'core.popupTab':'dark','core.chronoPopup':'/ui/index.html','core.downloadsLastSeen':seen,'core.video:status':{type:'progress',percent:42},'core.video:history':[
     {id:'new',filename:'C:\\Downloads\\새로 받은 긴 이름의 테스트 영상 [abc].mkv',completedAt:seen+1},
     {id:'old',filename:'C:\\Downloads\\이전 영상.mp4',completedAt:seen-1}
    ]});

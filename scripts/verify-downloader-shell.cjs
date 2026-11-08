@@ -9,15 +9,15 @@ const {chromium}=require('playwright'),fs=require('node:fs'),os=require('node:os
   await worker.evaluate(()=>chrome.storage.local.set({'core.popupTab':'download','core.update:autoCheck':false}));
   const page=await ctx.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));await page.goto(`chrome-extension://${id}/popup.html`);
   const frame=page.frameLocator('#chronoPopupFrame');
-  await frame.locator('.table-wrap').waitFor({state:'visible'});
-  assert.match(await frame.locator('aside button.selected').innerText(),/최근/);
+  await frame.locator('#list').waitFor({state:'visible'});
+  assert.equal(await frame.locator('table').count(),0);
   const size=await page.locator('#chronoPopupFrame').boundingBox();console.log('frame size',size);
   if(!process.env.BASELINE)assert.ok(size.height>300,'the nested downloader frame must not collapse to zero height');
   if(process.env.BASELINE)return;
   assert.match(await page.locator('[data-tab=download]').innerText(),/다운로더/);
-  await frame.locator('#add').waitFor({state:'visible'});
+  await frame.locator('#video').waitFor({state:'visible'});
   await page.screenshot({path:path.join(temp,'recent.png')});
-  await page.locator('[data-download-view="/ui/options.html"]').click();
+  await frame.locator('#settings').click();
   await frame.locator('input:visible').first().waitFor();
   assert.ok((await page.locator('#chronoPopupFrame').boundingBox()).height>300);
   const count=await frame.locator('input:visible').count();assert.ok(count>2,'settings must render usable controls');
@@ -27,7 +27,7 @@ const {chromium}=require('playwright'),fs=require('node:fs'),os=require('node:os
   await page.locator('[data-download-view="/ui/index.html"]').click();await frame.locator('#dy_tbar_add').waitFor({state:'visible'});
   await frame.locator('.loading-overlay').waitFor({state:'hidden'});
   await page.screenshot({path:path.join(temp,'manager.png')});
-  await page.locator('[data-download-view="/recent-downloads.html"]').click();await frame.locator('#add').waitFor({state:'visible'});
+  await page.locator('[data-download-view="/recent-downloads.html"]').click();await frame.locator('#video').waitFor({state:'visible'});
   await page.emulateMedia({colorScheme:'dark'});
   await page.locator('[data-download-view="/ui/options.html"]').click();await frame.locator('input:visible').first().waitFor();
   await page.waitForFunction(()=>{const doc=document.querySelector('#chronoPopupFrame').contentDocument;return getComputedStyle(doc.querySelector('.mainview > .selected')).opacity==='1';});

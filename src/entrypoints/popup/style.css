@@ -251,3 +251,5 @@ iframe.active { display: block; }
 .video-history-list li > div { flex: 1; min-width: 0; }
 .video-history-list strong { display: block; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .video-history-list span { display: block; font-size: 11px; color: var(--be-muted); margin-top: 3px; }
+
+.chrono-download-panel.is-recent .download-module-toolbar,.chrono-download-panel.is-recent #videoActivity{display:none!important}

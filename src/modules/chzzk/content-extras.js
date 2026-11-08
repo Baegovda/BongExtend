@@ -104,8 +104,10 @@
     num.textContent = text;
     const dir = X.changeDirection(prev, viewerNum);
     if (dir && num.animate) {
+      const before=getComputedStyle(num).color;
       num.getAnimations?.().forEach(an => an.cancel());
-      num.animate([{ color: dir === 'up' ? '#2ee59d' : '#ff5c5c' }, { color: 'inherit' }], { duration: 600, easing: 'ease-out' });
+      const tint=dir === 'up' ? '#8ad9b6' : '#eea3a3';
+      num.animate([{color:before,offset:0},{color:tint,offset:.08},{color:tint,offset:.55},{color:'inherit',offset:1}], {duration:5000,easing:'ease-out'});
     }
   }
   function refreshViewerUi() {

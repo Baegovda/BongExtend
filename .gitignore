@@ -6,3 +6,5 @@ node_modules
 .env
 native/video/BongExtendVideo.exe
 native/video/__pycache__/
+
+native/video/BongExtendBrowser.exe

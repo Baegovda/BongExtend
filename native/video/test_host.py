@@ -4,13 +4,22 @@ import struct
 import subprocess
 import sys
 import unittest
+from types import SimpleNamespace
 from unittest.mock import patch
 import host
 
 
 class VideoHostTests(unittest.TestCase):
+    def test_tab_shortcut_is_scoped_to_chzzk_and_uses_fixed_arguments(self):
+        with patch('host.subprocess.run', return_value=SimpleNamespace(stdout='already-collapsed\n')) as run:
+            result=host.collapse_tabs({'url':'https://chzzk.naver.com/live/'+'a'*32,'title':'방송 제목','expandedHint':True})
+            self.assertEqual(result,{'type':'tabs','status':'already-collapsed'})
+            self.assertEqual(run.call_args.args[0],[str(host.BASE/'BongExtendBrowser.exe'),'방송 제목','expanded'])
+            self.assertNotIn('shell',run.call_args.kwargs)
+            with self.assertRaises(ValueError): host.collapse_tabs({'url':'https://example.com/live/x','title':'Other'})
+            self.assertEqual(run.call_count,1)
     def test_youtube_normalizes_single_video(self):
-        for url in ('https://youtu.be/aqz-KE-bpKQ?t=10', 'https://www.youtube.com/shorts/aqz-KE-bpKQ'):
+        for url in ('https://youtu.be/aqz-KE-bpKQ?t=10', 'https://www.youtube.com/shorts/aqz-KE-bpKQ', 'https://www.youtube.com/embed/aqz-KE-bpKQ'):
             self.assertEqual(host.video_url(url), 'https://www.youtube.com/watch?v=aqz-KE-bpKQ')
         with self.assertRaises(ValueError):
             host.video_url('https://youtube.com/playlist?list=abc')
