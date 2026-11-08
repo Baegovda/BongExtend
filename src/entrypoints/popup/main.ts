@@ -145,8 +145,8 @@ const showTab = async (tab: TabId, persist = true) => {
     }
     if (tab === "download") {
         const stored = await chrome.storage.local.get("core.chronoPopup");
-        const popup = typeof stored["core.chronoPopup"] === "string" && /^\/(?:(?:pop\/(?:pop|sniffer))|(?:ui\/(?:index|options)))\.html(?:\?mnu=1)?$/.test(stored["core.chronoPopup"])
-            ? stored["core.chronoPopup"] : "/pop/pop.html";
+        const popup = typeof stored["core.chronoPopup"] === "string" && (stored["core.chronoPopup"] === "/recent-downloads.html" || /^\/(?:(?:pop\/(?:pop|sniffer))|(?:ui\/(?:index|options)))\.html(?:\?(?:mnu|recent)=1)?$/.test(stored["core.chronoPopup"]))
+            ? (stored["core.chronoPopup"] === "/pop/pop.html" ? "/recent-downloads.html" : stored["core.chronoPopup"]) : "/recent-downloads.html";
         if (chronoPopupFrame.src !== chrome.runtime.getURL(popup)) chronoPopupFrame.src = popup;
     }
     if (tab === "download") void acknowledgeDownloads();
