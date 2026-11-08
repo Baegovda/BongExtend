@@ -1,142 +1,128 @@
 # BongExtend 인수인계
 
-코드 버전은 `package.json`의 **1.2.10**예요. 설치 파일은 [Releases](https://github.com/Baegovda/BongExtend/releases/tag/v1.2.10)의 `bongextend-1.2.10-chrome.zip`이에요. 숫자가 다르면 `package.json`과 Releases를 다시 보세요.
+기준일: 2026-11-08. 이 문서는 기존 v1.2.10 인수인계를 대체해요. 이후 변경은 package.json, CHANGELOG.md, GitHub Releases를 우선 확인하세요.
 
-오너(Guilliman / GitHub Baegovda)는 개발자가 아니에요. 화면 글, README, CHANGELOG, 보고는 한국어로 쉽게 써요.
+## 현재 상태
 
-꼭 지킬 짧은 규칙은 `AGENTS.md`예요. 이 파일은 구조, 저장, 시험, 릴리스, 화면, 남은 일을 한곳에 모은 거예요.
+- 저장소: https://github.com/Baegovda/BongExtend
+- 최신 앱: **v1.2.40**, 앱 커밋 **4172675**, main. 이후 문서 커밋은 앱 버전을 바꾸지 않아요.
+- 배포: https://github.com/Baegovda/BongExtend/releases/tag/v1.2.40
+- Chrome ZIP과 Windows 영상 보조 프로그램 ZIP이 모두 게시됐고 CI/Release가 성공했어요. Source code ZIP은 설치 파일이 아니에요.
+- 마지막 요청인 메일 상세 UI와 창 크기 조절은 구현·시험·배포까지 끝났어요. **현재 미완료 코드 작업이나 실행 중인 에이전트는 없어요.**
+- **배포 완료와 사용자 Chrome 적용은 달라요.** 마지막 배포 후 실제 설치 버전과 열린 페이지 새로고침은 직접 확인하지 않았어요.
 
-## 이 프로젝트가 뭐예요
+## 작업 원칙과 승인 맥락
 
-BongExtend는 크롬 확장(MV3) 하나예요. 예전에 따로 쓰던 기능을 합쳤어요. 라이선스는 GPL-3.0이에요. 저장소는 [Baegovda/BongExtend](https://github.com/Baegovda/BongExtend)예요.
+AGENTS.md → MERGE_NOTES.md → 이 문서를 읽으세요. 오래된 v1.2.10 설명이나 매번 릴리스 승인을 받으라는 옛 문구를 다시 정책으로 적용하지 마세요.
 
-- **메일**: 로그인된 Gmail의 읽지 않은 메일을 계정마다 보여요. Google Cloud 로그인은 없어요. Gmail이 이미 로그인된 브라우저의 받은편지함 피드만 봐요.
-- **번역**: Gemini로 지금 보는 페이지의 글을 번역해요.
-- **치지직**: 라이브 시청을 돕는 기능과 광고 가리기예요.
-- **디시**: 디시인사이드 글 목록 새로고침·미리보기·차단이에요. 코드 폴더는 `dc`이고, 저장 키는 예전 이름 `refresher`예요. green1052/DCRefresher-Reborn 포크예요.
-- **환율**: 원, 달러, 엔 같은 통화를 바꿔 봐요.
+- 사용자는 쉬운 한국어 **해요체**를 원해요. 개발자가 아니므로 결과와 사용법을 먼저 말해요.
+- 사용자는 이미 “릴리즈까지 알아서”, “선조치 후보고”를 지시했어요. 승인된 범위에서 조사·수정·필요한 검사·푸시·릴리스를 끝내고 보고해요. 같은 승인을 반복해서 묻지 않아요.
+- 실패하면 원인을 좁히고 다른 허용된 방법으로 진행해요. 의미 없는 재검사·반복 설명·끝없는 새 기능 추가는 하지 않아요. 상위 지침과 실제 도구 권한은 그대로 적용돼요.
+- UI는 직접 검수하되 **로그인된 실제 사이트, 별도 Chrome의 가짜 화면, 단위 시험**을 구분해서 보고하세요.
+- Windows 창 검사에는 .cursor/rules/windows-inspection.mdc를 적용해요. 프로세스 조회 → GetWindowRect → 이미 보이는 사각형 CopyFromScreen 캡처예요. 검사만 하려고 클릭·키 입력·창 활성화·이동·복원을 하지 않아요. 안전 차단을 다른 방법으로 우회하지 않아요.
+- 브라우저 시험은 폐기 가능한 별도 Chrome 프로필에서 해요. 사용자 실제 프로필에 Playwright/CDP를 붙이지 않아요. 개인 메일 전송·읽음·삭제나 유료 Gemini 요청을 자동 시험으로 실행하지 않아요.
+- 완료된 검사와 지식을 재사용해요. 문서 인수만을 위해 앱 시험을 전부 다시 돌리지 않아요.
 
-## 어떻게 만들어져 있어요
+## 제품 정체성과 지도
 
-도구는 WXT(확장 뼈대), Vue 3(디시 화면만), TypeScript, Bun이에요. 치지직·번역·환율·메일의 많은 부분은 빌드 때 그대로 복사되는 순수 자바스크립트예요.
+BongExtend는 메일·다운로더·번역·치지직·디시·환율·다크 모드를 합친 Chrome MV3 확장이에요. **앱 전체를 Checker Plus/Chrono로 바꾸면 안 돼요.** 공통 테마는 src/modules/theme/theme.css와 tokens.js예요. 둥근 카드·여백·파란 강조색·밝은/어두운 테마를 유지해요.
 
-- `src/entrypoints/background.ts`: 서비스 워커는 이 파일 하나예요. 메일, 번역, 우클릭, 업데이트, 치지직 스크립트 등록이 여기 붙어요.
-- `src/entrypoints/popup/`: 팝업 껍데기예요. 가운데 탭은 치지직·번역·디시·메일·환율이에요. 치지직·번역·디시는 iframe이고, 메일·환율·업데이트는 이 페이지 안이에요.
-- `src/entrypoints/options/`: 확장 프로그램 세부정보의 설정 화면이에요. 왼쪽 탭은 메일, 환율, 치지직, 번역, 디시, 우클릭, 설정이에요.
-- `src/entrypoints/dc/`: 디시 Vue 화면(`dc.html`).
-- `src/modules/gmail/`: 메일. 배경은 `watch.js`와 `background.js`, 화면은 팝업이에요.
-- `src/modules/trans/`: 번역. `background.js`는 배경에 `startTransBackground()`로 붙고, 페이지 글은 `content/content.js`를 나중에 넣어요.
-- `src/modules/chzzk/`: 치지직. 배경이 `src/modules/chzzk-register.ts`로 콘텐츠 스크립트를 등록해요. 이 파일 순서는 바꾸지 마세요.
-- `src/modules/fx/`: 환율 계산과 나라 색.
-- `src/modules/rightclick/`: 사이트의 오른쪽 클릭을 되살려요.
-- `src/modules/theme/`: 밝은 화면·어두운 화면 색. `theme/theme.css`가 공통 테마예요.
-- `wxt.config.ts`의 `imports.parser: "oxc"`는 빼지 마세요. 빼면 배경 스크립트가 죽어요.
+- src/entrypoints/background.ts: 하나의 서비스 워커. 모듈·배지·OTP·업데이트를 연결해요.
+- src/entrypoints/popup/: 전체 탭 셸, 공통 설정·업데이트·인앱 메일 설정.
+- 메일: public/checkerplus-popup.html, public/js/popup.js, background.js와 계정 헬퍼 등 **Checker Plus 36.6 원본 코드**가 연결돼요. src/modules/gmail/에는 어댑터·설정·레거시 코드도 있어요. 이 폴더만 보고 전체 엔진을 판단하지 마세요.
+- 다운로더: **Chrono 0.13.12 원본 관리자·설정·워커**와 어댑터가 남아 있어요. 최근 목록은 public/recent-downloads.{html,css,js}의 자체 UI예요. 표시 이름은 **다운로더**예요. chrono-worker.js와 chrono-action-bridge.js 등 내부 이름은 무턱대고 바꾸지 않아요.
+- 번역: src/modules/trans/. background.js는 공통 워커에 연결하고 content/content.js는 비모듈 IIFE로 주입해요.
+- 치지직: src/modules/chzzk/, 등록은 src/modules/chzzk-register.ts. 콘텐츠 스크립트 순서를 유지해요.
+- 다크 모드: src/entrypoints/dark.content.ts, dark-proxy.content.ts, src/modules/dark/, patches/darkreader@4.9.134.patch.
+- 디시: src/entrypoints/dc/, options/, content/ 등 기존 Vue 코드. green1052/DCRefresher-Reborn 출처를 유지해요.
+- 환율은 src/modules/fx/, 우클릭 복구는 src/modules/rightclick/.
+- PC 영상: native/video/host.py, Launcher.cs, 설치 스크립트. scripts/package-video-helper.ps1로 패키징해요.
 
-## 저장 키
+사용자는 원작자 허락을 받았다고 지시했어요. 타사 코드의 실제 통합 범위와 자체 어댑터를 구분하고, CHECKERPLUS-ATTRIBUTION.txt, CHRONO-ATTRIBUTION.txt, licenses/ 등 저작권·라이선스 표시는 유지해요.
 
-사용자 데이터는 지우지 마세요. `chrome.storage.*.clear()`도 쓰지 마세요. 안 쓰는 옛 키가 남아 있어도 그대로 두세요. 예: 환율 즐겨찾기 `fx.favorites`는 화면에서 뺐지만, 저장값은 지우지 않아요.
+## 최근 완료한 변경
 
-| 구역 | 어디 | 예 |
-| --- | --- | --- |
-| 디시 | `chrome.storage.local`, 접두사 `refresher:` | 디시 안쪽 탭 위치 `refresher:popup:lastTab` |
-| 치지직 | `chzzk.*` (sync/local, `src/modules/chzzk/lib/ns.js`가 접두사를 붙임) | 광고 차단 `chzzk.adBlock` |
-| 번역 | `chrome.storage.local` | `trans.settings`, `trans.cacheStats`, `trans.alwaysOrigins` |
-| 공통 | `chrome.storage.local` | `core.modules`, `core.popupTab`, `core.popupTabOrder`, `core.update:*` |
-| 메일 | `chrome.storage.local` | `gmail.snapshot`, `gmail.unread`, `gmail.seen`, `gmail.baseline`, `gmail.error`, `gmail.notify`, `gmail.intervalMs`, `gmail.disabled`, `gmail.photos`, `gmail.accountColors`, `gmail.accountOrder`, `gmail.sound` |
-| 메일 토큰 | `chrome.storage.session` | `gmail.sessionTokens` (브라우저를 닫으면 사라지는 작업 토큰) |
-| 환율 | `chrome.storage.local` | `fx.table`, 카드 순서 `fx.cardOrder`, 금액·통화 `fx.form`. 옛 `fx.favorites`는 읽지도 쓰지도 않아요 |
-| 우클릭 | `chrome.storage.local` | `rc.origins` |
+### v1.2.40 — 메일 상세 UI와 크기 조절
 
-디시 데이터 작업(가져오기, 초기화, 백업)은 `src/storage/namespace.ts`가 디시 키만 다뤄요. 다른 구역은 건드리지 않아요.
+- public/checkerplus-embed.css: 도구 모음·제목·발신자 카드·답장 영역을 공통 테마로 리메이크했어요. 발신자가 지정한 **본문 색과 이미지**는 유지해요. 과거 검은 글자/검은 바탕 문제를 다시 만들지 마세요.
+- public/js/bongextend-mail-ui.js: 기존 버튼·이벤트를 유지하며 한국어 표시와 추가 메뉴를 적용해요. 제목을 스크롤 영역 밖으로 옮겨 항상 보이게 해요.
+- src/entrypoints/popup/window-controls.ts: 상단 ↗ 버튼으로 popup.html?window=1 별도 창을 열어요. 기존 780×590 도구 모음 팝업은 Chrome의 최대 800×600 제한을 받아 큰 크기는 별도 창에서 처리해요.
+- 별도 창은 가로·세로를 채우고 작은 폭에서는 탭 줄을 바꿔요. OS 테두리와 오른쪽 아래 손잡이의 드래그/방향키로 크기를 조절해요. local의 core.popupWindowSize에 마지막 크기를 저장해요.
+- 현재 선택 메일 ID가 있으면 새 창의 previewMailId로 전달하는 코드가 있어요. **실계정의 이미 읽은 메일·작성 중 답장까지 완전하게 이어지는지는 미검증**이에요.
 
-번역 캐시 IndexedDB 이름은 `page-translator`예요. 업데이트 폴더 핸들 IndexedDB 이름은 `bongextend-install`이에요.
+### v1.2.39 — 치지직 넓은 화면과 F11
 
-## 권한
+- 사용자 요청으로 **Ctrl+Shift+L 자동 입력을 제거**했어요. 다시 넣지 마세요. BrowserShortcut.cs, vertical-tabs.js, 네이티브 collapse-tabs 처리와 연결 UI를 제거했어요.
+- src/modules/chzzk/wide-fullscreen.js가 chrome.windows로 브라우저 전체화면을 켜요. 키 입력/영상 보조 프로그램을 사용하지 않아요.
+- content-wide.js는 실제 넓은 화면 상태 변경을 보고해요. 설정은 sync의 chzzk.wideFullscreen, 기본값 켜짐이에요.
+- 이전 일반 창 위치·크기 또는 최대화 상태를 session의 core.chzzkWideFullscreen에 보관해요. 넓은 화면 해제, 탭 이동·닫기·분리, 페이지 이동, 기능/모듈 끄기에 복구해요.
+- 이미 사용자가 켜 둔 전체화면은 소유하지 않아요. 수동 F11 해제를 즉시 덮어쓰지 않아요. 다른 탭에서 돌아오면 실제 넓은 화면 상태를 다시 읽어요.
+- 화면 밖 좌표를 Chrome이 거부하면 위치 지정 없이 일반 창으로 복구해요. 비동기 전환은 직렬화해요.
 
-권한을 늘리지 마세요. manifest `key`도 넣지 마세요. `webNavigation`도 넣지 마세요. `host_permissions`에 `<all_urls>`도 넣지 마세요.
+### v1.2.38 — 다크 모드 CSP 오류 반복
 
-- `permissions`: `activeTab`, `alarms`, `contextMenus`, `declarativeNetRequest`, `downloads`, `notifications`, `offscreen`, `idle`, `storage`, `scripting`, `tabs`, `windows`, `unlimitedStorage`, `clipboardWrite`
-- `host_permissions`: `https://*.dcinside.com/*`, `https://chzzk.naver.com/*`, `https://api.chzzk.naver.com/*`, `https://generativelanguage.googleapis.com/*`, `https://api.github.com/*`, `https://github.com/*`, `https://objects.githubusercontent.com/*`, `https://release-assets.githubusercontent.com/*`, `https://mail.google.com/*`, `https://latest.currency-api.pages.dev/*`, `https://scanner.tradingview.com/*`, `wss://data.tradingview.com/*`
-- 번역이 사이트를 항상 켤 때만 그 주소의 `optional_host_permissions`(`https://*/*`, `http://*/*`)를 물어봐요.
-- 단축키는 번역 켜기/끄기(`toggle-translation`) 하나만 두세요.
-- Gemini API 키는 서비스 워커와 확장 페이지에만 두세요. 콘텐츠 스크립트로 보내지 마세요.
-- `.github/FUNDING.yml`은 고치지 마세요.
+- 사용자 오류 화면을 읽기 전용으로 캡처했어요. 다수는 content-scripts/dark.js:15의 인라인 스크립트가 CSP에 막혀 반복된 기록이었어요. **확장 ID 충돌로 진단한 것이 아니에요.**
+- Dark Reader 4.9.134의 자체 완결 injectProxy 원본을 별도 MAIN 콘텐츠 스크립트로 패키징하고 ISOLATED 테마와 이벤트로 연결했어요. 사이트 CSP 완화/unsafe-inline 추가는 하지 않아요.
+- scripts/sync-darkreader-proxy.cjs로 원본과의 일치를 확인해요. 패치·원본 복사본·등록/즉시 주입 경로를 함께 관리해야 해요. Windows CRLF도 비교 시 정규화해요.
+- 모든 사이트에서 인라인 프록시 주입은 끄되 CSSOM 감지를 유지해요. 기존 사이트별 프록시 예외는 남아 있어요.
+- 업데이트로 옛 오류 기록이 자동 삭제되지 않으며, 열린 탭의 옛 스크립트는 페이지 새로고침이 필요해요.
 
-다른 사이트 주소의 창(iframe)을 번역하려면 그 사이트 권한이 더 필요해요. 그 권한이 없으면 멈추고, 왜 필요한지 오너에게 말하세요. 몰래 넣지 마세요.
+### v1.2.37과 직전의 중요한 상태
 
-## 시험
+- 최근 다운로더는 표가 아닌 **파일 아이콘·이름·출처·크기·시간의 세로 목록**이에요. 사용자가 마지막에 다시 목록을 요청했으므로 옛 표 UI로 되돌리지 않아요. 아이콘은 chrome.downloads.getFileIcon을 사용해요.
+- 영상 우클릭 **동영상 저장하기**와 현재 페이지 영상 받기가 연결돼요. 직접 주소는 Chrome 다운로드, 스트리밍/blob은 페이지 주소로 로컬 영상 받기를 사용해요. src/modules/downloads/video-menu.js, video.js, video-history.js를 보세요.
+- Downloaderto 서버의 API 키/403 문제로 사용자가 선택한 방식은 **PC의 yt-dlp + FFmpeg, API 키 불필요**예요. 외부 변환 서버로 되돌리거나 DRM/로그인 보호 영상 지원을 약속하지 않아요.
+- OTP는 추출 → 복사 성공 → 웹페이지 중앙 하단의 닫힌 shadow DOM/popover 카드로 약 7초 표시해요. src/modules/gmail/otp.js, otp-toast.js. 프리즘·페이드 효과예요. 별도 인증번호 창으로 되돌리지 않아요. 사이트 표시 권한이 없으면 시스템 알림으로 대체해요.
+- 프로필 사진 비동기 덮어쓰기/숨김을 수정했어요. public/js/bongextend-profile.js와 계정 표시 경로를 함께 보세요. 인앱 설정에 원본 알림음 19개와 미리 듣기가 있어요.
+- 메일 감지는 **이미 로그인된 Gmail 세션**을 사용해요. 정상 응답 시 1초 간격이며 중복 요청·오류·Retry-After 대기가 있어요. 타인 메일에 무인증 접근하는 기능이 아니에요.
+- 치지직 시청자 수는 정상 응답 시 약 1초, 증가/감소 색은 은은하게 약 5초 유지해요. 실제 영상 해상도와 방송 경과 시간도 표시해요.
+- 툴바 배지는 미읽음 메일 합계(src/modules/toolbar-badge.js). 다운로더 배지는 새 완료 건을 확인하면 지우는 방식이에요. 모든 과거 다운로드 수를 99+로 표시하던 동작으로 되돌리지 않아요.
+- 번역 요구는 **프리즘 세로 막대 위치를 기준으로 원문/번역문을 명확히 나누고, 지나간 글에 파스텔 잔광이 남다 원래 색으로 복귀**하는 거예요. 타오바오 글 겹침·위치 불일치·버벅임도 반복 지적됐어요. 단순 전체 페이드/일괄 치환으로 바꾸지 마세요.
 
-시험은 가짜로 해요. 진짜 Gmail, Gemini, 치지직, 디시, GitHub 릴리스를 부르지 않아요.
+## 확인한 증거
 
-- `bun install`
-- `bun run test`는 디시·타입 시험, 그다음 자바스크립트 시험, 그다음 `tsc --noEmit`예요.
-- 자바스크립트 시험은 치지직, 번역, 메일, 환율, 우클릭, 테마, 플랫폼 폴더의 `node --test`예요.
-- `bun run build` 결과는 `.output/chrome-mv3/`예요.
-- `bun scripts/check-no-eval.ts`는 빌드 결과의 js/html에 `eval`이나 `Function` 생성자가 있으면 실패해요. 서비스 워커에서 `Function()`을 쓰면 크롬 MV3가 등록을 막아요.
+인계만을 위해 아래 검사를 다시 전부 실행하지 마세요. 관련 변경·실패·새 증상·오래된 증거가 있을 때 필요한 검사를 골라요.
 
-## 릴리스
+- v1.2.40: bun run test의 기존 Bun 시험, JS **213개**, 타입 검사 통과.
+- bun run zip, bun run verify, check-no-eval.ts, check-manifest-permissions.ts 통과.
+- 네이티브 Python 시험 6개는 v1.2.39에서 통과했어요. 이후 해당 코드는 그대로이며 v1.2.40 배포 CI도 성공했어요.
+- scripts/verify-mail-reader-browser.cjs: 별도 실제 Chrome + 시험 메일. 밝은/어두운 테마, 본문 색·그림, 제목·뒤로 가기, 번역 메뉴, 별도 창 크기 채우기, 실제 창 API 변경, 손잡이 드래그·방향키, 크기 저장 확인.
+- scripts/verify-chzzk-wide-browser.cjs: 별도 Chrome + 가짜 치지직 DOM. 실제 브라우저 전체화면 API, 일반 창/최대화 복구, 기존 전체화면, 수동 해제, 탭 이동·복귀·페이지 이동, 설정 확인. 실제 로그인 방송 검증은 아니에요.
+- scripts/verify-dark-csp.cjs: 로컬 엄격한 CSP에서 인라인 script 위반 없음, 다크 스타일, CSSOM 변경, 기존 탭·새 문서·하위 프레임·시스템 테마 확인.
+- scripts/verify-downloader-list.cjs: 별도 Chrome의 실제 다운로드 API + 시험 파일로 OS 아이콘·목록·검색 확인.
+- 다른 번역·업데이트·모듈·영상 기록 시험은 scripts/verify-*.cjs에 있어요. 이번에 모두 다시 실행했다고 주장하지 마세요.
+- UI 증거: docs/handoff/mail-reader-dark-v1.2.40.png, resizable-window-v1.2.40.png. **합성 메일**이에요. 작은 창 캡처는 일부러 줄인 상태라 본문 공간이 좁아요.
 
-버전 숫자는 `package.json` 하나예요. 사용자에게 보이는 변경은 `CHANGELOG.md`의 `## [X.Y.Z]`에 쉬운 한국어로 적어요.
+## 미검증 사항과 다음 조사 후보
 
-순서는 이래요.
+아래를 모두 고장으로 단정하거나 한꺼번에 다시 만들지 마세요. 사용자의 다음 증상과 관련된 항목부터 증거로 좁히세요.
 
-1. `package.json` 버전을 올려요.
-2. `CHANGELOG.md`에 그 버전 섹션을 넣어요.
-3. 작업 브랜치에서 PR을 열어요. `gh pr create`는 이 환경에서 막힐 수 있어요. 저장소가 쓰는 PR 도구로 열어요.
-4. CI가 초록이 되면 스쿼시로 합쳐요. 합친 브랜치는 지워요.
-5. `main`이 그 커밋인지 확인한 뒤 태그 `vX.Y.Z`를 푸시해요.
-6. `.github/workflows/release.yml`이 시험, 태그=버전 확인, 크롬 zip, zip 검사, eval 검사, 릴리스를 만들어요. 파이어폭스 zip은 올리지 않아요.
-7. 받은 zip을 풀어 `bun scripts/check-no-eval.ts`로 한 번 더 봐요.
+1. 별도로 보인 **TypeError: Failed to fetch**는 어떤 요청인지 스택을 확보하지 못했어요. CSP 수정으로 이것까지 해결됐다고 하지 않았어요. 재발하면 발생 URL·시간·스택을 먼저 구분하세요.
+2. v1.2.38~40의 실제 사용자 Chrome 설치/적용/페이지 새로고침은 미확인이에요. GitHub 게시만으로 적용 완료라고 하지 마세요.
+3. 실제 Gmail 사진·알림음·미읽음 합계·새 메일·OTP 복사/카드·답장 전송은 마지막 변경 후 종합 검증하지 않았어요. 선택 메일과 작성 중 초안의 새 창 인계도 미검증이에요.
+4. 실제 치지직 광고 전체 주기/차단 감지, 시청자 변화, DOM 변경 시 F11 연동은 합성 시험과 다를 수 있어요. 광고가 절대 안 나온다고 보장하지 마세요.
+5. 타오바오 실제 로그인 메인/채팅의 최신 프리즘 효과·레이아웃·성능은 다음 재현을 기준으로 조사해요.
+6. 사용자 영상 보조 프로그램의 **실제 확장 ID 등록/연결 완료**는 미확인이에요. 설치 파일 준비만으로 연결 완료가 아니에요. 설치 위치는 %LOCALAPPDATA%/BongExtend/video-helper. 네이티브 호스트 허용 ID와 연결 상태부터 구분하세요. 치지직 F11에는 이 프로그램이 필요 없어요.
+7. 네이버/쿠팡의 동적 모달·iframe 다크 모드, 디시 로그인 기능, 실제 설정 가져오기도 최신 사용자 환경에서 완전 검수한 것으로 간주하지 마세요.
 
-main 푸시와 PR의 CI(`.github/workflows/ci.yml`)는 시험과 빌드와 eval 검사만 해요. 릴리스는 만들지 않아요. 문서만 바꾼 PR은 태그와 릴리스가 필요 없어요.
+## 데이터·권한·보안
 
-푸시, 태그, 릴리스는 오너가 확인한 뒤에만 해요. 이미 나간 태그를 다시 다는 일도 오너가 그 버전 배치에 넣으라고 한 뒤에만 해요.
+- wxt.config.ts의 **imports.parser: "oxc"**를 유지해요. 제거하면 순환 import로 워커가 죽을 수 있어요.
+- refresher:*는 디시, chzzk.*는 치지직, trans.*는 번역, core.*는 공통이에요. 디시 초기화가 다른 모듈을 건드리면 안 돼요. chrome.storage.*.clear()를 쓰지 않고 옛 fx.favorites도 유지해요.
+- IDB 이름은 번역 캐시 page-translator, 업데이트 폴더 핸들 bongextend-install이에요. 사용자 캐시·프로필·설정을 임의로 지우지 않아요.
+- core.popupWindowSize는 local, core.chzzkWideFullscreen은 session. 영상 기록은 core.video:history, 상태는 core.video:status예요.
+- manifest key, webNavigation, 필수 <all_urls>를 추가하지 않아요. 권한은 AGENTS.md와 check-manifest-permissions.ts를 보세요. 기존 선택 권한에 메일/영상 호환 권한도 남아 있어요. 다크/항상 번역의 사이트 권한 흐름을 유지해요.
+- commands는 toggle-translation 하나예요. Ctrl+Shift+L은 제거됐으며 F11 동작도 명령 등록/합성 키가 아니라 창 API예요.
+- Gemini 키를 콘텐츠 스크립트·페이지·인수인계에 넣지 않아요. GET_PREFS 허용 필드를 유지해요.
+- OTP 원문·실메일·토큰·사용자 실제 브라우저 캡처를 공용 저장소에 올리지 않아요.
+- .github/FUNDING.yml, 디시·타사 라이선스 표시는 유지해요.
 
-## 화면 규칙
+## 빌드·배포와 다음 채팅
 
-아이폰처럼 둥근 모서리, 넓은 여백, 알약 스위치예요. 기기 설정이 밝은 화면이면 밝게, 어두운 화면이면 어둡게 나와요. 글자와 바탕은 읽기 쉽게 차이를 유지해요. 움직임 줄이기를 켜면 짧은 움직임을 빼요.
-
-- 팝업 탭은 가운데에 모여요. 끌어서 순서를 바꿀 수 있어요.
-- 오른쪽 끝의 마우스 그림은 지금 사이트의 오른쪽 클릭·복사·글자 선택을 되살려요.
-- 오른쪽 아래 톱니는 업데이트·설정이에요. 새 버전이 있으면 톱니에 점이 찍혀요.
-- 메일 탭 배지는 읽지 않은 수예요. 0이면 숨고, 100통부터는 `99+`예요.
-- 환율 탭 배지는 1달러가 몇 원인지예요. 시세가 없으면 숨겨요.
-- 메일 탭의 모듈 스위치, 확인 간격, 새 메일 알림, 긴 설명은 팝업이 아니라 설정 화면의 메일에 있어요. 팝업 메일에는 다시 확인 아이콘만 있어요.
-- 환율 화면은 팝업 높이 안에 들어가요. 칸을 더 내리지 않아도 8개 나라 칸과 시세 글이 보여요. 이 문장은 1.2.3·1.2.4 변경 기록에는 빠졌지만, 화면은 1.2.3부터 들어 있어요.
-
-## 최근 역사 (1.2.0 ~ 1.2.7)
-
-자세한 문장은 `CHANGELOG.md`에 있어요.
-
-- **1.2.0**: 팝업과 설정이 아이폰 스타일이 되고, 설정 화면에 왼쪽 탭이 생겼어요.
-- **1.2.1**: 설정 화면 마지막 탭 이름이 설정으로 바뀌었어요.
-- **1.2.2**: 메일을 계정마다 묶고, 모두 읽음, 알림 소리, 프로필 사진, 계정 색을 넣었어요.
-- **1.2.3**: 업데이트 확인을 5분마다 해요. 같은 Gmail 주소는 한 번만 나와요. 메일 배지, 계정 순서 끌기, 파스텔 번역, 환율 즐겨찾기 제거(저장값은 유지), 나라 색, 1달러 배지, 스크롤 없는 환율 화면이 들어갔어요.
-- **1.2.4**: 타오바오처럼 주소 `#` 뒤가 바뀌고 글이 나중에 생기는 화면도 번역해요. 메일 탭은 받은 메일이 먼저 보이고, 제목이 가장 크며, 이름·주소·받은 시각이 나와요. 치지직 광고 칸과 짧은 광고 영상은 가리고 소리를 끄며, 건너뛰기가 켜지면 눌러요.
-- **1.2.5**: 치지직 라이브에서 소리는 나는데 화면만 검던 문제를 고치려 했어요. 본영상을 숨기지 않게 바꿨지만, 광고를 빈 응답으로 막는 방식은 그대로였어요.
-- **1.2.6**: 치지직이 광고를 못 받으면 까만 막을 유지해요. 광고 스크립트와 빈 일정으로 막지 않고, 재생 전 광고 표시만 끄며, 남아 있는 까만 막은 본영상이 나온 뒤에 접어요.
-- **1.2.7**: 환율 칸 순서를 끌 수 있어요. 메일이 없어도 계정이 보여요. 톱니와 단축키 버튼을 다듬고, 새 메일 소리에 Checker Plus 소리를 넣었어요. 즐겨찾기 저장값은 그대로예요.
-- **1.2.8**: 툴바 배지는 읽지 않은 메일만 보여요. 탭·메일·환율 끌기를 다듬고, 환율 금액과 통화 그림을 기억해요. 시세는 지금 출처를 더 자주 받아요. 번역은 안내 글과 짧은 글, 나중에 생긴 말도 바꾸고 말풍선이 잘리지 않아요.
-- **1.2.9**: 번역 중 무지개 막대를 없애고, 채팅방을 바꿔도 새 글을 다시 번역해요.
-- **1.2.10**: 분류 칸의 겹친 중국어를 가리고, 환율은 트레이딩뷰 실시간 시세를 받아요. 칸 끌기는 빈 자리로 보여 준 곳에 들어가요.
-
-## 알려진 문제와 남은 일
-
-코드는 들어갔지만, 로그인된 실제 크롬에서 끝까지 본 기록은 아직 없어요.
-
-- 치지직 라이브에서 화면이 보이는지, 그리고 광고가 길게 남지 않는지. 1.2.6부터는 광고 요청을 빈 응답으로 막지 않아요. 광고 영상 주소가 다른 사이트면, 지금 권한으로는 그 요청을 막지 못하고 화면에서 건너뛰어요.
-- 번역을 켠 페이지의 창이 다른 사이트 주소면, 그 창은 번역되지 않아요. 권한을 더 넣기 전에 오너에게 이유를 말하세요.
-- Gemini 키로 실제 페이지가 번역되는지. 타오바오 채팅은 가짜 화면으로만 봤어요.
-- Gmail 실계정에서 사진, 순서 끌기, 모두 읽음, 소리가 도는지.
-- 디시 글 미리보기와 댓글, 로그인한 디시 기능.
-- 항상 번역 스위치를 켤 때 그 사이트만 권한을 묻는지.
-- 예전 번역 설정 파일과 예전 디시 설정을 실제로 가져오기. 자동 시험만 있어요.
-- 번역을 치지직·디시 페이지에서 켰을 때 서로 안 부딪히는지.
-
-그 밖에 지우면 안 되는 것:
-
-- `fx.favorites` 저장값.
-- `.github/FUNDING.yml`.
-- 디시 모듈의 green1052 라이선스 표시.
-
-파이어폭스 zip은 로컬 스크립트만 있고, 릴리스에는 올리지 않아요.
+- 검증된 도구: Bun **1.3.14**, 로컬 Node 26, CI Node 22, WXT 0.20.27, TypeScript 7 계열.
+- CI/Release의 Bun은 1.3.14 고정이에요. 이전 latest 1.4.4 다운로드 504 때문에 고정했으므로 무심코 latest로 바꾸지 마세요.
+- 소스 변경 시 관련 시험과 bun run test. 배포는 zip → verify → no-eval/권한 검사예요. 성공한 검사를 관련 변경 없이 반복하지 않아요.
+- 버전은 package.json, 쉬운 변경 기록은 CHANGELOG.md. vX.Y.Z 태그가 Release를 시작해요. **두 배포 파일과 CI/Release 성공**을 확인한 뒤 완료라고 보고해요.
+- 이미 공개한 태그를 몰래 다시 달거나 강제 푸시하지 않아요. 이번 인계는 문서만 바꾸므로 새 앱 버전/태그/릴리스가 필요 없어요.
+- 실제 Git 루트가 환경 폴더 아래 work/BongExtend일 수 있어요. 먼저 기존 체크아웃 위치와 git status를 확인하고 불필요한 재클론·초기화를 하지 않아요.
+- 같은 프로젝트의 새 채팅에 NEXT_CHAT_PROMPT.txt를 붙여 넣으세요. 다음 구체적인 요청이 오면 관련 파일·증상부터 이어서 작업해요.

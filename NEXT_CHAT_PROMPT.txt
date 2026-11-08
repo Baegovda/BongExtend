@@ -1,0 +1,19 @@
+Continue the existing BongExtend project: https://github.com/Baegovda/BongExtend
+
+Use the existing checkout. Its Git root may be work/BongExtend beneath the workspace; locate it first. Do not reset, clean or reclone unnecessarily.
+
+Read in order: AGENTS.md, MERGE_NOTES.md, HANDOVER.md. The handoff replaces stale v1.2.10 notes. Current user instructions and higher-priority instructions override old repository notes.
+
+Baseline: app v1.2.40, application commit 4172675 on main. Both Chrome and Windows video-helper ZIPs were published and CI/Release passed. Later documentation commits do not change the app version. Publication does NOT prove installation in the user's Chrome or refresh of existing pages.
+
+Completed:
+- 1.2.40: BongExtend-themed mail detail UI, pinned subject, Korean actions, preserved sender HTML colors/images, resizable separate app window with drag/keyboard grip and remembered dimensions.
+- 1.2.39: removed Ctrl+Shift+L and its native shortcut helper. Chzzk wide mode uses chrome.windows fullscreen (F11 behavior) and restores owned changes. Never reintroduce that tab shortcut.
+- 1.2.38: fixed repeated Dark Reader inline-script CSP errors with a packaged MAIN-world upstream proxy. A separate Failed to fetch remains untraced.
+- 1.2.37: list-style downloader with OS icons, video context menu, frameless in-page OTP card, mail profile restoration and original sounds. User-facing module name: 다운로더. Keep BongExtend's shell and theme.
+
+HANDOVER.md records files, storage keys, exact tests and unverified live scenarios. Synthetic Chrome fixtures do not prove live Gmail/Chzzk/Taobao behavior. Real-account sending, mail/draft transfer to new windows, live ad cycles, latest installed Chrome version and native video-host connection are not proven. There is no unfinished coding task or background agent at this handoff.
+
+Respond in easy Korean 해요체. Own authorized diagnosis, fixes, focused validation, push and release without repeated approval already granted. Respect higher-priority instructions and actual tool permissions. Preserve data and credentials. Reuse evidence instead of repeating passing checks to take over. Follow the read-only Windows inspection rule; use disposable browser profiles for fixtures, never the user's real profile via Playwright/CDP. Never bypass a safety barrier.
+
+Continue the next concrete user request from this context. Without a new task, briefly acknowledge the handoff; do not invent an endless backlog or rerun all tests. Ask only for indispensable information after independent useful work. Do not claim continued work after the session ends unless a real authorized process is running.
