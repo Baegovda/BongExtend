@@ -8,5 +8,5 @@ const license = fs.readFileSync('node_modules/darkreader/LICENSE', 'utf8');
 const output = `/* Dark Reader 4.9.134 — upstream injectProxy, unchanged.\n * https://github.com/darkreader/darkreader\n * ${license.trim().replace(/\r\n/g, '\n').replace(/\n/g, '\n * ')}\n */\nexport ${proxy}\n`;
 const target = 'src/modules/dark/proxy.js';
 if (process.argv.includes('--check')) {
-    if (fs.readFileSync(target, 'utf8') !== output) throw new Error('Run node scripts/sync-darkreader-proxy.cjs');
+    if (fs.readFileSync(target, 'utf8').replace(/\r\n/g, '\n') !== output) throw new Error('Run node scripts/sync-darkreader-proxy.cjs');
 } else fs.writeFileSync(target, output);
