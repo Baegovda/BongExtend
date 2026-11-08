@@ -177,7 +177,7 @@ html.bongextend-checkerplus-embedded .mail .from {
   color: var(--be-text) !important;
 }
 
-html.bongextend-checkerplus-embedded a {
+html.bongextend-checkerplus-embedded a:not(.messageBody a) {
   color: var(--be-link) !important;
 }
 
@@ -198,8 +198,31 @@ html.bongextend-checkerplus-embedded .accountErrorWrapper {
 }
 
 /* 메일 공통 작업과 설정은 부모 앱에서 표시해요. */
-html.bongextend-checkerplus-embedded .site-header { display: none !important; }
+html.bongextend-checkerplus-embedded #inboxSection > .site-header { display: none !important; }
 html.bongextend-checkerplus-embedded #options-menu,
 html.bongextend-checkerplus-embedded j-listbox[popover] { background: var(--be-surface) !important; color: var(--be-text) !important; border: 1px solid var(--be-border) !important; border-radius: 14px !important; }
 html.bongextend-checkerplus-embedded j-listbox[popover] :is(j-item, j-icon-item, span, j-icon) { color: var(--be-text) !important; background-color: transparent !important; }
 html.bongextend-checkerplus-embedded :is(.contribute, .discoverMyApps, .aboutMe, .share) { display: none !important; }
+
+/* 메일은 발신자가 지정한 색을 유지하는 밝은 종이 위에 표시해요.
+   투명한 바탕에 일괄 반전을 적용하면 검은 글자와 배경이 겹쳐 읽을 수 없어요. */
+html.bongextend-checkerplus-embedded #openEmail .messageBody,
+html.bongextend-checkerplus-embedded #emailContext {
+  color-scheme: light !important;
+  color: #202124 !important;
+  background: #fff !important;
+  filter: none !important;
+  padding: 18px !important;
+  border: 1px solid #dadce0;
+  border-radius: 14px !important;
+}
+html.bongextend-checkerplus-embedded #openEmail .messageBody :is(a, img, picture, video, svg, canvas, iframe, [background], [style*="background-image"]),
+html.bongextend-checkerplus-embedded #emailContext :is(a, img, picture, video, svg, canvas, iframe, [background], [style*="background-image"]) {
+  filter: none !important;
+}
+html.bongextend-checkerplus-embedded #openEmail .messageBody a { color: #1a73e8; }
+html.bongextend-checkerplus-embedded #openEmailSection .header-start { display: flex !important; }
+html.bongextend-checkerplus-embedded #openEmailSection .primary-nav { flex: 1; }
+html.bongextend-checkerplus-embedded #openEmailSection .site-header { flex-shrink: 0; }
+html.bongextend-checkerplus-embedded #menu-view-preview-light { display: none !important; }
+.be-mail-translation-status { margin: 8px 12px; padding: 9px 12px; border-radius: 10px; background: var(--be-surface-2); color: var(--be-text); font: 13px/1.45 var(--be-font); }

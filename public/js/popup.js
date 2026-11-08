@@ -2322,12 +2322,7 @@ function openEmailPromise(params) {
 								externalContentHidden = true;
 							});
 							
-							$messageBody.querySelectorAll("*[style*='background:'], *[style*='background-image:']").forEach(el => {
-								var style = el.getAttribute("style");
-								style = style.replace(/background/ig, "backgroundDISABLED");
-								el.setAttribute("style", style);
-								externalContentHidden = true;
-							});
+                            externalContentHidden = hideRemoteMessageBackgrounds($messageBody) || externalContentHidden;
 						} else if (mail.forceDisplayImages && accountAddingMethod == "oauth") {
 							showImages($messageBody);
 						}
@@ -3461,6 +3456,17 @@ if (chrome.runtime.onMessageExternal) {
 	});
 }
 		
+function hideRemoteMessageBackgrounds(root) {
+    let hidden = false;
+    for (const element of root.querySelectorAll('[style*="background" i]')) {
+        if (!/url\s*\(/i.test(element.style.getPropertyValue('background-image'))) continue;
+        // Keep solid colors and gradients; blocking remote images must not erase contrast.
+        element.style.setProperty('background-image', 'none', 'important');
+        hidden = true;
+    }
+    return hidden;
+}
+
 function showImages($node) {
 	var html = $node.innerHTML;
 	html = html.replaceAll(IMAGE_REPLACED_OPENER, IMAGE_RESTORED_OPENER);

@@ -2132,7 +2132,7 @@
     }).catch(() => {});
   }
 
-  if (ns.installed) return;
+  if (ns.libraryOnly || ns.installed) return;
   if (globalThis.chrome?.runtime?.onMessage) {
     ns.installed = true;
     install();

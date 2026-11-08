@@ -480,8 +480,6 @@ export default defineBackground(() => {
         if (contextMenuSetup) return contextMenuSetup;
 
         contextMenuSetup = (async () => {
-            await browser.contextMenus.removeAll();
-
             for (const item of contextMenuItems) {
                 if (item.id) {
                     await browser.contextMenus.remove(item.id).catch(() => {});
@@ -490,8 +488,9 @@ export default defineBackground(() => {
                 await browser.contextMenus.create(item as chrome.contextMenus.CreateProperties);
             }
 
-            // 번역 모듈 메뉴 (removeAll 뒤에 같이 만든다)
+            // 다른 모듈의 메뉴를 지우지 않고 공통 번역 메뉴를 갱신한다.
             try {
+                await browser.contextMenus.remove("toggle-translation").catch(() => {});
                 createTransMenus();
             } catch (error) {
                 console.warn("번역 메뉴를 만들지 못했어요.", error);

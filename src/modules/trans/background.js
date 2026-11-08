@@ -9,14 +9,13 @@ import { STORAGE_KEY } from './lib/settings.js';
 import { isModuleEnabled } from '../core-modules.js';
 import { createTranslator } from './lib/translator.js';
 
-// BongExtend: 우클릭 메뉴는 디시 모듈 메뉴와 함께 background.ts의 createContextMenus에서 만든다.
-// (removeAll을 각자 부르면 서로의 메뉴를 지우므로 여기서는 만들지 않는다.)
+// 공통 메뉴 초기화에서 호출해요. 각 모듈은 자기 메뉴만 정리해요.
 export function createTransMenus() {
   return chrome.contextMenus.create({
     id: 'toggle-translation',
-    title: 'BongExtend: 페이지 번역 켜기/끄기',
-    contexts: ['page', 'action'],
-    documentUrlPatterns: ['http://*/*', 'https://*/*'],
+    title: '이 페이지 번역하기',
+    contexts: ['all'],
+    documentUrlPatterns: ['http://*/*', 'https://*/*', `${chrome.runtime.getURL('checkerplus-popup.html')}*`],
   });
 }
 
@@ -466,7 +465,12 @@ chrome.commands.onCommand.addListener((command) => {
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {
   if (info.menuItemId === 'toggle-translation') {
-    toggleTranslation(tab?.id).catch((error) => console.warn('[page-translator]', error?.code || error?.message));
+    const mailPage = [info.frameUrl, info.pageUrl].find(url => typeof url === 'string' && url.startsWith(chrome.runtime.getURL('checkerplus-popup.html')));
+    if (mailPage) {
+      chrome.runtime.sendMessage({type: 'BONGEXTEND_TRANSLATE_MAIL_PAGE', documentUrl: mailPage}).catch(() => {});
+    } else {
+      setEnabled(tab?.id, true).catch((error) => console.warn('[page-translator]', error?.code || error?.message));
+    }
   }
 });
 }

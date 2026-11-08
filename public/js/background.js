@@ -2593,7 +2593,8 @@ chrome.runtime.onMessage.addListener(/* DONT USE ASYNC HERE because of return tr
 function initContextMenus() {
     if (chrome.contextMenus) {
 
-        chrome.contextMenus.removeAll().then(() => {
+        // Only remove this mail module's own IDs. Removing every menu erased translation.
+        Promise.all(Object.values(ContextMenu).filter(id => typeof id === "string").map(id => chrome.contextMenus.remove(id).catch(() => {}))).then(() => {
             createContextMenu(ContextMenu.OPEN_GMAIL, getMessage("openGmailTab"));
             createContextMenu(ContextMenu.COMPOSE, getMessage("compose"));
             createContextMenu(ContextMenu.REFRESH, getMessage("refresh"));
