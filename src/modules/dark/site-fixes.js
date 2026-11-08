@@ -9,8 +9,7 @@ const NAVER_SEARCH_FIXES = Object.freeze({
   ignoreCSSUrl: []
 });
 
-// Fab blocks Dark Reader's temporary inline proxy script with its CSP. The generated
-// dark styles still work without that proxy, but dynamic stylesheet tracking is reduced.
+// Keep the existing site-specific stylesheet proxy exclusions.
 const FAB_CSP_FIXES = Object.freeze({
   invert: [],
   css: "",
@@ -61,5 +60,7 @@ export const darkReaderFixesForSite = (hostname) => {
 // Preserve the deliberate pastel/prism colors in the temporary effect layers.
 export const withTranslationColors = (fixes) => ({
   ...fixes,
+  // The packaged MAIN-world content script supplies the upstream proxy without inline scripts.
+  disableInlineScriptInjection: true,
   ignoreInlineStyle: [...(fixes?.ignoreInlineStyle || []), '.pt-page-translator-sweep', '.pt-page-translator-sweep *'],
 });

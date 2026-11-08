@@ -21,6 +21,9 @@ export default defineContentScript({
         }
         let generation = 0;
         const hostname = location.hostname.toLowerCase();
+        document.addEventListener("__darkreader__cleanUp", () => {
+            document.documentElement?.removeAttribute("data-bong-dark-proxy");
+        });
 
         setFetchMethod(async (resourceUrl: string) => {
             const url = new URL(resourceUrl, location.href);

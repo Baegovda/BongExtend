@@ -21,6 +21,10 @@ test("Naver Search keeps its upstream Dark Reader text fix", () => {
 
 test("unrelated sites keep Dark Reader's default stylesheet tracking", () => {
     assert.equal(darkReaderFixesForSite("example.com"), undefined);
+    const fixes = withTranslationColors(darkReaderFixesForSite("gall.dcinside.com"));
+    assert.equal(fixes.disableInlineScriptInjection, true);
+    assert.notEqual(fixes.disableStyleSheetsProxy, true);
+    assert.notEqual(fixes.disableCustomElementRegistryProxy, true);
 });
 
 test('temporary prism colors survive theming without replacing site fixes',()=>{

@@ -34,7 +34,7 @@ import {startFxBackground} from "@/modules/fx/background.js";
 // @ts-ignore 순수 JS
 import {startRightClickBackground} from "@/modules/rightclick/background.js";
 // @ts-ignore settings are plain JS shared with the dark-mode popup and content script
-import {DARK_SCRIPT_FILE, DARK_SCRIPT_ID, DARK_SETTINGS_KEY, darkSiteEnabled, darkSitePattern, normalizeDarkSettings} from "@/modules/dark/settings.js";
+import {DARK_SCRIPT_FILE, DARK_SCRIPT_ID, DARK_PROXY_SCRIPT_ID, DARK_PROXY_SCRIPT_FILE, DARK_SETTINGS_KEY, darkSiteEnabled, darkSitePattern, normalizeDarkSettings} from "@/modules/dark/settings.js";
 // @ts-ignore download helpers are plain JS shared with the manager page
 import {DOWNLOAD_SETTINGS_KEY, cleanSuggestedFilename, makeDownloadFilename, normalizeDownloadSettings} from "@/modules/downloads/settings.js";
 
@@ -168,10 +168,19 @@ export default defineBackground(() => {
                     }
                 }
             }
-            const registered = await browser.scripting.getRegisteredContentScripts({ids: [DARK_SCRIPT_ID]});
-            if (registered.length) await browser.scripting.unregisterContentScripts({ids: [DARK_SCRIPT_ID]});
+            const registered = await browser.scripting.getRegisteredContentScripts({ids: [DARK_SCRIPT_ID, DARK_PROXY_SCRIPT_ID]});
+            if (registered.length) await browser.scripting.unregisterContentScripts({ids: registered.map(script => script.id)});
             if (matches.length) {
                 await browser.scripting.registerContentScripts([{
+                    id: DARK_PROXY_SCRIPT_ID,
+                    matches: [...new Set(matches)],
+                    js: [DARK_PROXY_SCRIPT_FILE],
+                    world: "MAIN",
+                    allFrames: true,
+                    matchOriginAsFallback: true,
+                    runAt: "document_start",
+                    persistAcrossSessions: true
+                }, {
                     id: DARK_SCRIPT_ID,
                     matches: [...new Set(matches)],
                     js: [DARK_SCRIPT_FILE],
@@ -195,6 +204,11 @@ export default defineBackground(() => {
                     const originPattern = darkSitePattern(url.hostname).find((pattern: string) => pattern.startsWith(`${url.protocol}//`));
                     if (!originPattern || !await browser.permissions.contains({origins: [originPattern]})) continue;
                     try {
+                        await browser.scripting.executeScript({
+                            target: {tabId: tab.id, allFrames: true},
+                            world: "MAIN",
+                            files: [DARK_PROXY_SCRIPT_FILE]
+                        });
                         await browser.scripting.executeScript({
                             target: {tabId: tab.id, allFrames: true},
                             files: [DARK_SCRIPT_FILE]

@@ -1,6 +1,8 @@
 export const DARK_SETTINGS_KEY = "core.darkMode";
 export const DARK_SCRIPT_ID = "bongextend-dark-reader";
 export const DARK_SCRIPT_FILE = "content-scripts/dark.js";
+export const DARK_PROXY_SCRIPT_ID = "bongextend-dark-reader-proxy";
+export const DARK_PROXY_SCRIPT_FILE = "content-scripts/dark-proxy.js";
 
 export const DEFAULT_DARK_SETTINGS = Object.freeze({
   enabledByDefault: false,
