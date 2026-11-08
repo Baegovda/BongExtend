@@ -36,8 +36,8 @@
     '100% { opacity: 1; filter: none; transform: none; }',
     '}',
     `.${HOLD_CLASS} { color: transparent !important; -webkit-text-fill-color: transparent !important; text-shadow: none !important; }`,
-    `.${SWEEP_CLASS} { --pt-progress: 0%; z-index: 2147483646 !important; pointer-events: none !important; mix-blend-mode: normal !important; isolation: isolate !important; overflow: visible !important; text-shadow: none !important; }`,
-    `.${SWEEP_CLASS} .pt-prev, .${SWEEP_CLASS} .pt-next, .${SWEEP_CLASS} .pt-afterglow { position: absolute !important; inset: 0 !important; display: block !important; box-sizing: border-box !important; width: 100% !important; height: 100% !important; margin: 0 !important; padding: 0 !important; border: 0 !important; -webkit-text-fill-color: currentColor !important; }`,
+    `.${SWEEP_CLASS} { all: initial !important; --pt-progress: 0%; z-index: 2147483646 !important; pointer-events: none !important; mix-blend-mode: normal !important; isolation: isolate !important; overflow: visible !important; text-shadow: none !important; }`,
+    `.${SWEEP_CLASS} .pt-prev, .${SWEEP_CLASS} .pt-next, .${SWEEP_CLASS} .pt-afterglow { all: initial !important; position: absolute !important; inset: 0 !important; display: block !important; box-sizing: border-box !important; width: 100% !important; height: 100% !important; margin: 0 !important; padding: 0 !important; border: 0 !important; -webkit-text-fill-color: currentColor !important; }`,
     `.${SWEEP_CLASS} .pt-prev { clip-path: inset(0 0 0 var(--pt-progress)) !important; }`,
     `.${SWEEP_CLASS} .pt-next, .${SWEEP_CLASS} .pt-afterglow { clip-path: inset(0 calc(100% - var(--pt-progress)) 0 0) !important; }`,
     `.${SWEEP_CLASS} .pt-afterglow { z-index: 2 !important; color: transparent !important; -webkit-text-fill-color: transparent !important; background: linear-gradient(180deg, #ffbdd7, #eed0ff 24%, #b9d9ff 46%, #b7f4e1 70%, #fff0bc) !important; background-clip: text !important; -webkit-background-clip: text !important; mask-image: linear-gradient(90deg, transparent var(--pt-glow-tail), #000 var(--pt-glow-head)) !important; opacity: .88 !important; }`,
@@ -784,30 +784,21 @@
     }
 
     function measureLine(job) {
-      const line = findLineBox(job.element);
-      const lineMode = line ? line.mode : 'flow';
-      const lineElement = line ? line.element : null;
       const glyph = readRect(job.node);
-      const elementRect = lineElement && typeof lineElement.getBoundingClientRect === 'function'
-        ? normalizeRect(lineElement.getBoundingClientRect())
-        : null;
       return {
         job,
-        rect: slotRect(glyph, elementRect, lineMode),
+        // Recreate the actual layout box, not the union of the ink rectangles.
+        // Ink bounds lose padding, line-height, alignment and the available wrap width.
+        rect: normalizeRect(job.element.getBoundingClientRect()),
+        glyph,
         rtl: readDirection(job.element) === 'rtl',
         style: computedStyle(job.element),
         hold: canHold(job.element),
-        lineMode,
-        lineElement,
       };
     }
 
     function rectForJob(job) {
-      const glyph = readRect(job.node);
-      if (!job || job.lineMode === 'flow' || !job.lineElement || typeof job.lineElement.getBoundingClientRect !== 'function') {
-        return glyph;
-      }
-      return slotRect(glyph, normalizeRect(job.lineElement.getBoundingClientRect()), job.lineMode);
+      return normalizeRect(job.element.getBoundingClientRect());
     }
 
     function nowMs() {
@@ -913,30 +904,97 @@
 
     function placeBox(node, rect) {
       if (!node || !node.style || !rect) return;
-      node.style.position = 'fixed';
-      node.style.left = `${rect.left}px`;
-      node.style.top = `${rect.top}px`;
-      node.style.width = `${Math.max(1, rect.width)}px`;
-      node.style.height = `${Math.max(1, rect.height)}px`;
+      setImportantStyle(node, 'position', 'fixed');
+      setImportantStyle(node, 'left', `${rect.left}px`);
+      setImportantStyle(node, 'top', `${rect.top}px`);
+      setImportantStyle(node, 'width', `${Math.max(1, rect.width)}px`);
+      setImportantStyle(node, 'height', `${Math.max(1, rect.height)}px`);
     }
 
-    function copyTextStyle(node, computed, rtl, lineMode) {
+    function copyTextStyle(node, computed, rtl) {
       if (!node || !node.style || !computed) return;
-      node.style.font = computed.font || '';
-      node.style.letterSpacing = computed.letterSpacing || '';
-      node.style.color = computed.color || '';
-      node.style.lineHeight = computed.lineHeight || '';
-      node.style.whiteSpace = computed.whiteSpace || 'normal';
-      node.style.wordBreak = computed.wordBreak || 'normal';
-      node.style.overflowWrap = computed.overflowWrap || 'normal';
-      node.style.textAlign = computed.textAlign || 'start';
-      if (rtl) node.style.direction = 'rtl';
-      if (lineMode === 'single') {
-        node.style.whiteSpace = 'nowrap';
-        node.style.textOverflow = 'ellipsis';
-        node.style.overflow = 'hidden';
-      } else if (lineMode === 'clamp') {
-        node.style.whiteSpace = 'normal';
+      // computed.font is empty for e.g. tabular numerals/variable fonts. Copy the
+      // longhands too, or the overlay silently falls back to the browser's 16px font.
+      if (computed.font) setImportantStyle(node, 'font', computed.font);
+      for (const name of ['font-family', 'font-size', 'font-weight', 'font-style', 'font-stretch',
+        'font-variant', 'font-feature-settings', 'font-variation-settings', 'font-kerning',
+        'font-optical-sizing', 'font-size-adjust', 'font-synthesis', 'letter-spacing', 'word-spacing',
+        'color', 'line-height', 'white-space', 'word-break', 'overflow-wrap', 'text-align',
+        'text-indent', 'text-transform', 'text-decoration', 'text-shadow', 'tab-size',
+        'text-rendering', '-webkit-text-fill-color', '-webkit-text-stroke-width', '-webkit-text-stroke-color',
+        'padding-top', 'padding-right', 'padding-bottom', 'padding-left',
+        'border-top-width', 'border-right-width', 'border-bottom-width', 'border-left-width',
+        'overflow-x', 'overflow-y', 'text-overflow', '-webkit-line-clamp', '-webkit-box-orient',
+        'align-items', 'justify-content', 'align-content']) {
+        const value = typeof computed.getPropertyValue === 'function' ? computed.getPropertyValue(name)
+          : computed[name.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase())];
+        if (value) setImportantStyle(node, name, value);
+      }
+      setImportantStyle(node, 'border-style', 'solid');
+      setImportantStyle(node, 'border-color', 'transparent');
+      setImportantStyle(node, 'direction', rtl ? 'rtl' : 'ltr');
+      if (isInlineBox(computed)) {
+        setImportantStyle(node, 'white-space', 'pre');
+        setImportantStyle(node, 'text-align', 'start');
+        setImportantStyle(node, 'text-indent', '0');
+      } else if (flexLike(computed) || String(computed.display || '').includes('webkit-box')) {
+        setImportantStyle(node, 'display', computed.display);
+      }
+    }
+
+    function visualParent(element) {
+      return element.parentElement || element.getRootNode?.().host || null;
+    }
+
+    function preciseLayout(element) {
+      // A fixed rectangle cannot represent rotated/scaled/vertical text or a
+      // fragmented inline run. Show native translated text in those cases.
+      if (typeof document?.createRange !== 'function') return true;
+      const style = computedStyle(element);
+      if (isInlineBox(style, element)) {
+        const range = document.createRange(); range.selectNodeContents(element);
+        if (typeof range.getClientRects === 'function' && range.getClientRects().length > 1) return false;
+      }
+      for (let parent = element; parent; parent = visualParent(parent)) {
+        const s = computedStyle(parent);
+        if (!s) continue;
+        if (s.transform && s.transform !== 'none' || s.perspective && s.perspective !== 'none'
+          || s.rotate && s.rotate !== 'none' || s.scale && s.scale !== 'none'
+          || s.zoom && s.zoom !== '1' && s.zoom !== 'normal'
+          || s.writingMode && s.writingMode !== 'horizontal-tb') return false;
+      }
+      return true;
+    }
+
+    function clipBox(job, rect) {
+      if (typeof window === 'undefined') return;
+      let left = 0, top = 0, right = window.innerWidth, bottom = window.innerHeight;
+      for (let parent = visualParent(job.element); parent; parent = visualParent(parent)) {
+        const s = computedStyle(parent);
+        if (!s) continue;
+        const clips = value => /^(hidden|clip|scroll|auto)$/.test(value || '');
+        const x = clips(s.overflowX), y = clips(s.overflowY);
+        if (!x && !y) continue;
+        const r = parent.getBoundingClientRect();
+        if (x) {left = Math.max(left, r.left + parent.clientLeft); right = Math.min(right, r.left + parent.clientLeft + parent.clientWidth);}
+        if (y) {top = Math.max(top, r.top + parent.clientTop); bottom = Math.min(bottom, r.top + parent.clientTop + parent.clientHeight);}
+      }
+      setImportantStyle(job.box, 'clip-path', `inset(${Math.max(0, top - rect.top)}px ${Math.max(0, rect.left + rect.width - right)}px ${Math.max(0, rect.top + rect.height - bottom)}px ${Math.max(0, left - rect.left)}px)`);
+    }
+
+    function alignPainted(job, glyph) {
+      if (!glyph || typeof document?.createRange !== 'function') return;
+      const range = document.createRange(); range.selectNodeContents(job.box.children[1]);
+      const actual = range.getBoundingClientRect();
+      if (Math.abs(actual.width - glyph.width) > 1 || Math.abs(actual.height - glyph.height) > 1) {
+        releaseJob(job, true);
+        return;
+      }
+      const dx = glyph.left - actual.left, dy = glyph.top - actual.top;
+      // The line box and the glyph box have different ascents/descents. Let the
+      // browser shape the text, then align its ink without guessing a baseline.
+      for (const layer of [job.box.children[0], job.box.children[1], job.box.children[2]]) {
+        setImportantStyle(layer, 'transform', `translate(${dx}px, ${dy}px)`);
       }
     }
 
@@ -964,35 +1022,45 @@
       if (scrollBound || typeof document === 'undefined' || !document.addEventListener) return;
       scrollBound = true;
       document.addEventListener('scroll', repositionSweeps, true);
-      if (typeof window !== 'undefined' && window.addEventListener) window.addEventListener('resize', repositionSweeps);
+      const exposeNativeText = () => {for (const job of [...activeJobs]) releaseJob(job, true);};
+      if (typeof window !== 'undefined' && window.addEventListener) window.addEventListener('resize', exposeNativeText);
+      document.fonts?.addEventListener('loadingdone', exposeNativeText);
     }
 
     function repositionSweeps() {
       if (!activeJobs.size || repositionFrame) return;
       repositionFrame = requestFrame(() => {
         repositionFrame = 0;
-        const rows = [];
-        for (const job of activeJobs) {
-          if (!job.box || !connected(job.node)) continue;
-          rows.push({ job, rect: rectForJob(job) });
-        }
-        for (const row of rows) {
-          if (row.rect) placeBox(row.job.box, row.rect);
-        }
+        refreshJobs(activeJobs);
       });
+    }
+
+    function refreshJobs(jobs) {
+      // Read the bounded set before writing. Lazy images, later translation
+      // batches and SPA updates can move text even without scrolling/resizing.
+      const rows = [];
+      for (const job of jobs) if (!job.settled) rows.push({job, rect: connected(job.node) ? rectForJob(job) : null});
+      for (const {job, rect} of rows) {
+        if (!rect || job.node.nodeValue !== job.target) releaseJob(job, false);
+        else if (Math.abs(rect.width - job.rect.width) > .5 || Math.abs(rect.height - job.rect.height) > .5) releaseJob(job, true);
+        else if (rect.left !== job.rect.left || rect.top !== job.rect.top) {
+          placeBox(job.box, rect); clipBox(job, rect); job.rect = rect;
+        }
+      }
     }
 
     function setProgress(job, value) {
       const next = Math.round(clamp01(value) * 1000) / 1000;
+      const width = job.inkWidth ?? 1, start = job.inkStart || 0;
       if (job.shown !== next) {
         job.shown = next;
-        setCssVar(job.box, '--pt-progress', `${next * 100}%`);
+        setCssVar(job.box, '--pt-progress', `${(start + next * width) * 100}%`);
       }
-      const head = job.glowHead == null ? next * 100 : job.glowHead;
+      const head = start * 100 + (job.glowHead == null ? next * 100 : job.glowHead) * width;
       if (job.lastGlowHead !== head) {
         job.lastGlowHead = head;
         setCssVar(job.box, '--pt-glow-head', `${head}%`);
-        setCssVar(job.box, '--pt-glow-tail', `${head - 45}%`);
+        setCssVar(job.box, '--pt-glow-tail', `${head - 45 * width}%`);
       }
       const opacity = job.beamOpacity == null ? 1 : job.beamOpacity;
       if (job.lastBeamOpacity !== opacity) {
@@ -1010,21 +1078,28 @@
         box.setAttribute('translate', 'no');
         box.setAttribute('aria-hidden', 'true');
         placeBox(box, row.rect);
-        copyTextStyle(box, row.style, row.rtl, row.lineMode);
         const prev = document.createElement('div');
         prev.className = 'pt-prev';
         const next = document.createElement('div');
         next.className = 'pt-next';
-        copyTextStyle(prev, row.style, row.rtl, row.lineMode);
-        copyTextStyle(next, row.style, row.rtl, row.lineMode);
-        appendText(prev, job.node.nodeValue);
+        copyTextStyle(prev, row.style, row.rtl);
+        copyTextStyle(next, row.style, row.rtl);
+        appendText(prev, job.original);
         appendText(next, job.target);
         const glow = document.createElement('div');
         glow.className = 'pt-afterglow';
-        copyTextStyle(glow, row.style, row.rtl, row.lineMode);
+        copyTextStyle(glow, row.style, row.rtl);
+        setImportantStyle(glow, 'color', 'transparent');
+        setImportantStyle(glow, '-webkit-text-fill-color', 'transparent');
+        setImportantStyle(glow, 'text-shadow', 'none');
         appendText(glow, job.target);
         const edge = document.createElement('div');
         edge.className = EDGE_CLASS;
+        if (row.glyph) {
+          setImportantStyle(edge, 'top', `${row.glyph.top - row.rect.top - 3}px`);
+          setImportantStyle(edge, 'height', `${row.glyph.height + 6}px`);
+          setImportantStyle(edge, 'bottom', 'auto');
+        }
         box.appendChild(prev);
         box.appendChild(next);
         box.appendChild(glow);
@@ -1040,8 +1115,10 @@
           original: job.original,
           translated: job.translated,
           box,
-          lineMode: row.lineMode || 'flow',
-          lineElement: row.lineElement || null,
+          rect: row.rect,
+          glyph: row.glyph,
+          inkStart: row.glyph ? Math.max(0, row.rtl ? row.rect.left + row.rect.width - row.glyph.left - row.glyph.width : row.glyph.left - row.rect.left) / row.rect.width : 0,
+          inkWidth: row.glyph ? Math.min(row.glyph.width, row.rect.width) / row.rect.width : 1,
           at: spot.at,
           band: spot.band,
           epoch: job.epoch,
@@ -1049,6 +1126,7 @@
           settled: false,
         };
         activeJobs.add(painted);
+        clipBox(painted, row.rect);
         return painted;
       } catch {
         writeNode(job.node, job.target);
@@ -1091,9 +1169,8 @@
 
     }
 
-    // nodeValue changes only after the clip finishes, in one write batch.
-    // Doing it as the overlay is removed keeps the longer translation from
-    // reflowing icon labels while the line is still moving.
+    // Native translated layout is already reserved. Removing the overlay must
+    // only expose that same text, never reflow the page at the end of the pass.
     function finishPass(pass, commit) {
       if (!pass || pass.settled) return;
       pass.settled = true;
@@ -1116,6 +1193,7 @@
         if (painted) jobs.push(painted);
       }
       if (!jobs.length) return;
+      for (const job of jobs) alignPainted(job, job.glyph);
       const pass = {
         epoch: sweepEpoch,
         jobs,
@@ -1128,6 +1206,7 @@
       bindSweepScroll();
       const step = (time) => {
         if (pass.settled || pass.epoch !== sweepEpoch) return;
+        refreshJobs(pass.jobs);
         const sample = lineSample({ lineStart: 0, lineEnd: 1, from: 0, to: 1 }, time - pass.startedAt, WIPER_MS);
         const elapsed = Math.max(0, time - pass.startedAt);
         const travel = clamp01((elapsed - APPEAR_MS) / TRAVEL_MS);
@@ -1173,8 +1252,17 @@
     function drainReveal() {
       const batch = revealWait.splice(0);
       if (!batch.length) return;
+      // Commit all final strings first, then measure all of them in that layout.
+      // This also accounts for earlier paragraphs moving the later text down.
+      lockMutations(() => {
+        for (const job of batch) if (job.epoch === sweepEpoch && connected(job.node)) writeNode(job.node, job.target);
+      });
       const measured = [];
-      for (const job of batch) measured.push(measureLine(job));
+      for (const job of batch) {
+        if (!connected(job.node)) continue;
+        if (!preciseLayout(job.element)) {clearPending(job.element, false); continue;}
+        measured.push(measureLine(job));
+      }
       lockMutations(() => paintMeasured(measured));
     }
 
@@ -1198,16 +1286,7 @@
       // Cached responses can finish hundreds of labels before the next frame.
       // Keep a few visible prisms; overflow commits immediately without blur layers.
       if (job.original === job.translated || activeJobs.size + revealWait.length >= MAX_ACTIVE_SWEEPS) return false;
-      if (!canHold(job.element)) {
-        const parent = job.node.parentNode;
-        if (!parent || typeof parent.insertBefore !== 'function') return false;
-        const slot = document.createElement('span');
-        slot.style.display = 'inline';
-        parent.insertBefore(slot, job.node);
-        slot.appendChild(job.node);
-        job.slot = slot;
-        job.element = slot;
-      }
+      if (!canHold(job.element)) return false;
       // Hiding a text-only parent must never hide a sibling text run.
       if ([...job.element.childNodes].filter(node => node.nodeType === 3 && String(node.nodeValue || '').trim()).length !== 1) return false;
       if (job.target == null) job.target = showOriginal ? job.original : job.translated;

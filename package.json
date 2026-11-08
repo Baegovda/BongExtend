@@ -1,7 +1,7 @@
 {
     "displayName": "BongExtend",
     "name": "bongextend",
-    "version": "1.2.28",
+    "version": "1.2.29",
     "description": "치지직·디시인사이드 개선, Gemini 번역, 다크 모드, 다운로드 관리 기능을 담은 크롬 확장 프로그램",
     "homepage": "https://github.com/Baegovda/BongExtend",
     "repository": {
@@ -27,6 +27,7 @@
         "test:js": "node --test src/modules/chzzk/test/*.test.js src/modules/trans/test/*.test.js src/modules/gmail/test/*.test.js src/modules/fx/test/*.test.js src/modules/rightclick/test/*.test.js src/modules/theme/test/*.test.js src/modules/dark/test/*.test.js src/modules/downloads/test/*.test.js src/platform/test/*.test.js",
         "verify": "bun scripts/verify-release-zip.ts",
         "test:browser:translation": "node scripts/verify-translation-performance.cjs",
+        "test:browser:translation-geometry": "node scripts/verify-translation-geometry.cjs",
         "test:browser:modules": "node scripts/verify-modules-browser.cjs",
         "test:browser:chzzk": "node scripts/verify-chzzk-ads-browser.cjs",
         "test:browser:mail": "node scripts/verify-mail-reader-browser.cjs"

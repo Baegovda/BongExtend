@@ -424,7 +424,7 @@ test('prism edge owns the exact original/translated boundary and the pastel trai
   h.session.start(); await h.session.whenIdle(); h.advance(0);
   const box = h.created.find(node => node.className === 'pt-page-translator-sweep');
   assert.ok(box);
-  assert.equal(h.text.childNodes[0].nodeValue, 'Free shipping', 'source layout stays reserved during the pass');
+  assert.equal(h.text.childNodes[0].nodeValue, '무료 배송', 'final translated layout stays reserved during the pass');
   assert.equal(h.text.classList.contains('pt-page-translator-hold'), true);
   assert.equal(box.children[0].children[0].nodeValue, 'Free shipping');
   assert.equal(box.children[1].children[0].nodeValue, '무료 배송');
@@ -438,7 +438,7 @@ test('prism edge owns the exact original/translated boundary and the pastel trai
   assert.equal(box.style.getPropertyValue('--pt-glow-tail'), '5%');
   h.text.rect = {left: 200, top: 80, width: 100, height: 20};
   h.document.dispatch('scroll'); h.advance(980);
-  assert.equal(box.style.left, '200px', 'scroll moves the whole clipped stack together');
+  assert.equal(box.style.getPropertyValue('left'), '200px', 'scroll moves the whole clipped stack together');
   h.advance(1780);
   assert.equal(box.style.getPropertyValue('--pt-progress'), '100%');
   h.advance(2130);
@@ -469,7 +469,7 @@ test('dense cached results bound prism layers without dropping translations', as
   h.session.start(); await h.session.whenIdle(); h.advance(0);
   const boxes = h.created.filter(node => node.className === 'pt-page-translator-sweep');
   assert.equal(boxes.length, 16);
-  assert.equal(h.root.childNodes.filter(node => node.childNodes[0].nodeValue === '무료 배송').length, 85);
+  assert.equal(h.root.childNodes.filter(node => node.childNodes[0].nodeValue === '무료 배송').length, 101);
   h.advance(2480);
   assert.equal(h.root.childNodes.every(node => node.childNodes[0].nodeValue === '무료 배송'), true);
   assert.equal(boxes.every(box => !box.parentNode), true);
@@ -496,14 +496,14 @@ test('overlay insertions, descendants and removals never rescan the page; real r
   assert.equal(h.text.childNodes[0].nodeValue,'무료 배송');
 });
 
-test('many scroll events coalesce into one geometry read per active text', async () => {
+test('many scroll events coalesce beside the bounded animation-frame geometry check', async () => {
   const h = prismHarness();
   h.session.start(); await h.session.whenIdle(); h.advance(0);
   let reads = 0;
   h.text.getBoundingClientRect = () => {reads++; return h.text.rect;};
   for (let i=0;i<30;i++) h.document.dispatch('scroll');
   h.advance(180);
-  assert.equal(reads, 1);
+  assert.equal(reads, 2, 'one frame check and one coalesced scroll check, not thirty');
   h.session.setEnabled(false);
 });
 
@@ -854,7 +854,7 @@ test('a later chunk uses the same clip instead of popping into place', async () 
   assert.equal(created.some((node) => String(node.className).includes('pt-page-translator-sweep') && node.parentNode), false);
 });
 
-test('pending animation measures the text bounds once and does not follow the parent box', async () => {
+test('pending bounds and overlay baseline use a bounded number of range reads', async () => {
   const created = [];
   const timers = [];
   let rangeReads = 0;
@@ -892,7 +892,28 @@ test('pending animation measures the text bounds once and does not follow the pa
   assert.equal(block.childNodes[0].nodeValue, '번역包邮AB');
   assert.equal(block.classList.contains('pt-page-translator-pending'), false);
   assert.equal(created.some((node) => String(node.className).includes('pt-page-translator-sweep') && node.parentNode), false);
-  assert.equal(rangeReads, 2);
+  assert.equal(rangeReads, 3);
+});
+
+test('a later layout shift moves the prism without a scroll event; resizing exposes native text', async () => {
+  const h=prismHarness(); h.session.start(); await h.session.whenIdle(); h.advance(0);
+  const box=h.created.find(node=>node.className==='pt-page-translator-sweep');
+  h.text.rect={left:70,top:180,width:100,height:20}; h.advance(980);
+  assert.equal(box.style.getPropertyValue('top'),'180px');
+  assert.equal(box.style.getPropertyValue('left'),'70px');
+  h.text.rect={left:70,top:180,width:80,height:40}; h.advance(1100);
+  assert.equal(box.parentNode,null);
+  assert.equal(h.text.classList.contains('pt-page-translator-hold'),false);
+  assert.equal(h.text.childNodes[0].nodeValue,'무료 배송');
+});
+
+test('a website update during the pass removes the stale text copy without overwriting new content', async () => {
+  const h=prismHarness(); h.session.start(); await h.session.whenIdle(); h.advance(0);
+  const box=h.created.find(node=>node.className==='pt-page-translator-sweep');
+  h.text.childNodes[0].nodeValue='A newer website message'; h.advance(980); h.advance(2480);
+  assert.equal(box.parentNode,null);
+  assert.equal(h.text.classList.contains('pt-page-translator-hold'),false);
+  assert.equal(h.text.childNodes[0].nodeValue,'A newer website message');
 });
 
 test('turning translation off restores originals and stops new batches', async () => {
