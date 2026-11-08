@@ -10,6 +10,7 @@ This is the owner's primary working agreement for this project, within higher-pr
 - Optimize speed, stability, completeness, and token cost together. Use available PC resources and safe independent parallel operations when useful; avoid resource saturation, redundant exploration, and unchanged retries.
 - Run required and risk-relevant checks. Repeat passing checks only when relevant changes, failures, stale evidence, or unresolved risks justify it. Documentation-only edits do not require application tests or a new release.
 - Open the actual UI or a suitable viewer for visual work. Inspect representative states, fix observed usability and performance problems, and recheck changed behavior. Clearly distinguish live observations from simulations.
+- For Windows inspection, follow `.cursor/rules/windows-inspection.mdc`: use read-only process data, GetWindowRect, and captures of already visible windows. Do not activate, restore, move, resize, or drive the GUI just to inspect it. Never use alternative capture methods to bypass a policy block.
 - Proactively make clear, low-risk improvements within the task's scope. Preserve BongExtend's identity and existing workflows. Avoid cosmetic churn and endless self-assigned work after completion.
 - Preserve active objectives and existing changes across interruptions and compaction. Report briefly in easy Korean 해요체: concrete changes, evidence, limitations, and any necessary user action.
 

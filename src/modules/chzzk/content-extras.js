@@ -24,6 +24,7 @@
     let st = document.getElementById('bex-xstyle');
     if (!st) { st = document.createElement('style'); st.id = 'bex-xstyle'; (document.head || document.documentElement).appendChild(st); }
     let css = '#bex-vov{position:absolute;top:12px;left:12px;z-index:2147483000;pointer-events:none;background:rgba(0,0,0,.55);color:#fff;font:600 13px/1 sans-serif;padding:5px 9px;border-radius:999px;white-space:nowrap}'
+      + '#bex-quality{position:absolute;top:12px;right:12px;z-index:2147483000;pointer-events:none;background:rgba(0,0,0,.55);color:#fff;font:600 13px/1 sans-serif;padding:5px 9px;border-radius:999px;white-space:nowrap}.bc-runtime{margin-left:10px;padding-left:10px;border-left:1px solid #ffffff55;color:#ddd;font-variant-numeric:tabular-nums}'
       + '#bex-vchat{display:inline-block;margin-left:8px;font-size:12px;font-weight:400;color:#9aa0a6;white-space:nowrap;vertical-align:middle;max-width:calc(100% - 60px);overflow:hidden;text-overflow:ellipsis}'
       + '.bex-seektoast{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:2147483000;pointer-events:none;background:rgba(0,0,0,.6);color:#fff;font:700 18px sans-serif;padding:8px 14px;border-radius:10px;transition:opacity .3s}';
     const RANK = ['#aside-chatting > div:has(> strong[class*="_ranking_"])', '#aside-chatting > div:has(> strong[class*="_title_"][class*="_ranking"])', '#aside-chatting > div:has([class*="_qxsox_"])', '#aside-chatting > div:has(i[class*="icon_cheese"]):not(:has([role="log"]))', '.bex-rank'];
@@ -87,6 +88,7 @@
   }
 
   // ── 시청자 수 (채팅 헤더 + 플레이어 오버레이), 단일 폴링 루프 ──
+  let liveStartedAt=NaN, detailAt=0, detailBusy=false, liveId=null;
   let viewerNum = NaN, viewerChannel = null, vFails = 0, vTimer = 0, vBusy = false;
   const wantViewers = () => (cfg.viewerChat || cfg.viewerOverlay) && document.visibilityState === 'visible' && X.channelIdFromPath(location.pathname);
   const EYE = '<svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" style="vertical-align:-2px;margin-right:4px"><path fill="currentColor" d="M12 5C6.5 5 2.3 8.6 1 12c1.3 3.4 5.5 7 11 7s9.7-3.6 11-7c-1.3-3.4-5.5-7-11-7zm0 11.5A4.5 4.5 0 1 1 12 7.5a4.5 4.5 0 0 1 0 9zm0-2.5a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"/></svg>';
@@ -130,20 +132,47 @@
         host.appendChild(ov);
       }
       paintViewer(ov);
+      let elapsed=ov.querySelector('.bc-runtime');
+      if(!elapsed){elapsed=document.createElement('span');elapsed.className='bc-runtime';ov.append(elapsed);}
+      elapsed.textContent=X.broadcastElapsed(liveStartedAt);elapsed.title='방송 시작 후 경과 시간';
     } else ov?.remove();
+    let quality=document.getElementById('bex-quality');
+    if(onLive && host){
+      if(!quality || quality.parentElement!==host){quality?.remove();quality=document.createElement('div');quality.id='bex-quality';host.append(quality);}
+      if(getComputedStyle(host).position==='static')host.style.position='relative';
+      const height=(host.querySelector('video.webplayer-internal-video') || host.querySelector('video'))?.videoHeight;
+      quality.textContent=height>0?`${height}p`:'화질 확인 중';quality.title='현재 영상의 실제 해상도';
+    }else quality?.remove();
+  }
+  async function refreshBroadcastStart(id){
+    if(detailBusy || Date.now()<detailAt)return;
+    detailBusy=true;detailAt=Date.now()+60000;
+    try{
+      const response=await fetch(`https://api.chzzk.naver.com/service/v2/channels/${id}/live-detail`,{credentials:'include',cache:'no-store',signal:AbortSignal.timeout(8000)});
+      if(!response.ok)throw Error();
+      const content=(await response.json())?.content;
+      if(id===X.channelIdFromPath(location.pathname))liveStartedAt=X.broadcastStart(content?.openDate);
+    }catch{detailAt=Date.now()+30000;}finally{detailBusy=false;}
   }
   async function pollViewers() {
     clearTimeout(vTimer);
+    if(vBusy)return;
+    const began=Date.now();
     const id = wantViewers();
     if (!id) { viewerChannel = null; viewerNum = NaN; refreshViewerUi(); vTimer = setTimeout(pollViewers, 1000); return; }
-    if (id !== viewerChannel) { viewerChannel = id; viewerNum = NaN; vFails = 0; }
+    if (id !== viewerChannel) { viewerChannel = id; viewerNum = NaN; vFails = 0; liveStartedAt=NaN;detailAt=0;liveId=null; }
     if (!vBusy) {
       vBusy = true;
       try {
-        const r = await fetch(`https://api.chzzk.naver.com/polling/v3.1/channels/${id}/live-status?includePlayerRecommendContent=true`, { credentials: 'include', cache: 'no-store' });
+        const r = await fetch(`https://api.chzzk.naver.com/polling/v3.1/channels/${id}/live-status?includePlayerRecommendContent=true`, { credentials: 'include', cache: 'no-store', signal: AbortSignal.timeout(8000) });
         if (!r.ok) throw new Error('HTTP ' + r.status);
         const c = (await r.json())?.content;
         if (id === viewerChannel) viewerNum = c && c.status === 'OPEN' && typeof c.concurrentUserCount === 'number' ? c.concurrentUserCount : NaN;
+        if(id===X.channelIdFromPath(location.pathname) && c?.status==='OPEN'){
+          if(c.liveId!=null && c.liveId!==liveId){liveId=c.liveId;liveStartedAt=NaN;detailAt=0;}
+          if(c.openDate)liveStartedAt=X.broadcastStart(c.openDate);
+          if(!Number.isFinite(liveStartedAt) || Date.now()>=detailAt)void refreshBroadcastStart(id);
+        }else if(c?.status!=='OPEN')liveStartedAt=NaN;
         vFails = 0;
       } catch (e) {
         vFails++; viewerNum = NaN;
@@ -152,7 +181,7 @@
     }
     refreshViewerUi();
     clearTimeout(vTimer);
-    vTimer = setTimeout(pollViewers, Math.min(30000, 1000 * Math.pow(2, Math.min(vFails, 5))));
+    vTimer = setTimeout(pollViewers, Math.max(0, Math.min(30000, 1000 * Math.pow(2, Math.min(vFails, 5)))-(Date.now()-began)));
   }
   pollViewers();
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') pollViewers(); });

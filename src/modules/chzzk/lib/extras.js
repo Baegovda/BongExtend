@@ -61,7 +61,18 @@
     });
     return out;
   }
+  function broadcastStart(value) {
+    if (typeof value !== 'string' || !value.trim()) return NaN;
+    let text=value.trim().replace(' ','T');
+    if (!/(Z|[+-]\d{2}:?\d{2})$/i.test(text)) text+='+09:00';
+    return Date.parse(text);
+  }
+  function broadcastElapsed(start, now=Date.now()) {
+    if (!Number.isFinite(start) || start>now) return '방송 시간 확인 중';
+    const seconds=Math.floor((now-start)/1000);
+    return [Math.floor(seconds/3600),Math.floor(seconds/60)%60,seconds%60].map(n=>String(n).padStart(2,'0')).join(':');
+  }
   const SEEK_ALLOWED = [5, 10, 15, 30];
   const normalizeSeekSec = v => SEEK_ALLOWED.includes(Number(v)) ? Number(v) : 5;
-  root.BongExtras = { isNameText, rankRowIndices, channelIdFromPath, formatViewers, formatCount, changeDirection, eyeColor, clampSeek, seekRange, normalizeFontSize, normalizeSeekSec };
+  root.BongExtras = { broadcastStart, broadcastElapsed, isNameText, rankRowIndices, channelIdFromPath, formatViewers, formatCount, changeDirection, eyeColor, clampSeek, seekRange, normalizeFontSize, normalizeSeekSec };
 })(typeof globalThis !== 'undefined' ? globalThis : this);

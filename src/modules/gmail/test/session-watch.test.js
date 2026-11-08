@@ -9,7 +9,7 @@ test('session polling baselines accounts, detects changes, skips logged-out feed
     let tick, enabled = false, changes = 0, code = 'one', pending, reads = 0;
     const context = {
         navigator:{onLine:true}, DOMParser:window.DOMParser, AbortSignal,
-        setInterval(fn, ms) {assert.equal(ms,10000); tick=fn;},
+        setInterval(fn, ms) {assert.equal(ms,1000); tick=fn;},
         chrome:{runtime:{async sendMessage(message) {
             if (message.command === 'BongExtendGetSessionWatchConfig') return {enabled, accounts:[0,1,0,-1,20,'2']};
             assert.equal(message.command,'BongExtendMailSessionChanged'); changes++;
@@ -32,4 +32,18 @@ test('session polling baselines accounts, detects changes, skips logged-out feed
     const previous=reads; await tick(); assert.equal(reads,previous); release(); await running;
     pending=null; enabled=false; await tick(); assert.equal(reads,previous);
     await window.happyDOM.close();
+});
+
+test('one-second session watcher honors server retry-after and isolates account failures',async()=>{
+ const window=new Window();let tick,now=100000,reads=0;
+ const context={navigator:{onLine:true},DOMParser:window.DOMParser,AbortSignal,
+  Date:class extends Date{static now(){return now;}},setInterval(fn,ms){assert.equal(ms,1000);tick=fn;},
+  chrome:{runtime:{sendMessage:async()=>({enabled:true,accounts:[0]})}},
+  fetch:async()=>{reads++;return {ok:false,status:429,url:'https://mail.google.com/mail/u/0/feed/atom',headers:{get:()=> '20'}};}};
+ try{
+  vm.runInNewContext(readFileSync(new URL('../../../../public/js/gmail-session-watch.js',import.meta.url),'utf8'),context);
+  await new Promise(resolve=>setImmediate(resolve));assert.equal(reads,1);
+  now+=1000;await tick();assert.equal(reads,1);
+  now+=19000;await tick();assert.equal(reads,2);
+ }finally{await window.happyDOM.close();}
 });

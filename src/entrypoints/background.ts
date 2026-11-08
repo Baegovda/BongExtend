@@ -36,9 +36,12 @@ import {DOWNLOAD_SETTINGS_KEY, cleanSuggestedFilename, makeDownloadFilename, nor
 
 // @ts-ignore 순수 JS 인증번호 처리기
 import {createMailOtpHandler} from "@/modules/gmail/otp.js";
+// @ts-ignore pure JS
+import {createOtpToast} from "@/modules/gmail/otp-toast.js";
 
 export default defineBackground(() => {
     startVideoHost();
+    const showOtpToast=createOtpToast();
     const otpHandler = createMailOtpHandler({
         load: async () => {
             const stored = await chrome.storage.local.get(["core.mailOtpSeen", "core.mailOtpEnabled", MODULES_KEY]);
@@ -50,6 +53,7 @@ export default defineBackground(() => {
             if (typeof send !== "function") throw new Error("clipboard unavailable");
             const result = await send("bongextend-copy-otp", {code});
             if (!result?.ok) throw new Error("clipboard copy failed");
+            await showOtpToast(code);
         },
         notify: (key: string, code: string) => chrome.notifications.create(`bongextend-otp-${key}`, {
             type: "basic", iconUrl: chrome.runtime.getURL("icons/128.png"), title: code, message: ""

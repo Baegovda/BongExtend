@@ -1,0 +1,12 @@
+---
+description: Inspect Windows processes and already visible windows without GUI driving
+alwaysApply: true
+---
+
+For inspection only, do not use Computer Use, mouse/keyboard input, SendKeys, SetForegroundWindow, ShowWindow, or SetWindowPos. Never activate, move, resize, minimize, or restore a window just to inspect it.
+
+- Identify the process using Get-Process or Win32_Process. Record PID, start time, working set, executable path, and command line only as needed; obtain file versions from the executable path.
+- Read its existing HWND and call GetWindowRect. Report Left, Top, Right, Bottom, width, and height. Compare with monitor bounds if relevant.
+- To see pixels, prefer CopyFromScreen at that existing rectangle only when the window is already visible. PrintWindow is a fallback; GPU windows may be black. Save and inspect the PNG without moving the window.
+- Report only what these reads show. Do not infer uncaptured visual details.
+- These inspection methods do not authorize bypassing a safety barrier or resuming browser access after a computer-use policy block.

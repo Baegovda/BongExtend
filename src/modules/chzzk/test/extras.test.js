@@ -60,3 +60,11 @@ test('rankRowIndices', () => {
   assert.deepEqual([...X.rankRowIndices([d(), d({ signal: true }), d()])], [1]);
   assert.deepEqual([...X.rankRowIndices([d(), d({ isDiv: false }), d({ hasLog: true })])], []);
 });
+
+test('broadcast time uses Korean server timestamps and remains correct beyond 24 hours',()=>{
+ const start=X.broadcastStart('2026-11-08 09:00:00');
+ assert.equal(start,Date.parse('2026-11-08T00:00:00Z'));
+ assert.equal(X.broadcastElapsed(start,start+90061000),'25:01:01');
+ assert.equal(X.broadcastElapsed(NaN),'방송 시간 확인 중');
+ assert.equal(X.broadcastElapsed(start,start-1000),'방송 시간 확인 중');
+});
