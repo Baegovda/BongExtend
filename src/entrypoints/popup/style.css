@@ -240,3 +240,14 @@ iframe.active { display: block; }
 .download-module-toolbar { display: flex; flex-wrap: wrap; flex: 0 0 auto; gap: 8px; padding: 10px 14px; background: var(--be-surface); border-bottom: 1px solid var(--be-border); }
 .download-module-toolbar button { font-size: 12px; padding: 8px 12px; }
 .chrono-download-panel #chronoPopupFrame { display: block; flex: 1 1 0; min-height: 0; height: 0; }
+.video-activity { flex: 0 0 auto; margin: 0; padding: 10px 14px; border-bottom: 1px solid var(--be-border); background: var(--be-surface); }
+.video-activity summary { cursor: pointer; font-weight: 600; font-size: 13px; }
+#videoHistoryCount { color: var(--be-muted); margin-left: 6px; }
+.video-activity-heading { display: flex; align-items: center; gap: 12px; }
+.video-activity-heading p { flex: 1; font-size: 12px; color: var(--be-muted); margin: 8px 0; }
+.video-activity button { flex-shrink: 0; font-size: 12px; padding: 7px 10px; }
+.video-history-list { list-style: none; margin: 0; padding: 0; max-height: 150px; overflow-y: auto; }
+.video-history-list li { display: flex; gap: 12px; align-items: center; padding: 8px 0; border-top: 1px solid var(--be-border); }
+.video-history-list li > div { flex: 1; min-width: 0; }
+.video-history-list strong { display: block; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.video-history-list span { display: block; font-size: 11px; color: var(--be-muted); margin-top: 3px; }

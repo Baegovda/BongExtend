@@ -1,7 +1,12 @@
 import {isModuleEnabled} from '../core-modules.js';
-let port, active=false;
-const key='core.video:status';
+import {addVideoHistory, VIDEO_STATUS_KEY, VIDEO_HISTORY_KEY} from './video-history.js';
+let port, active=false, jobId;
+const key=VIDEO_STATUS_KEY;
 const save=value=>chrome.storage.local.set({[key]:value});
+async function saveCompleted(value, id){
+ const stored=await chrome.storage.local.get(VIDEO_HISTORY_KEY);
+ await chrome.storage.local.set({[VIDEO_HISTORY_KEY]:addVideoHistory(stored[VIDEO_HISTORY_KEY],{id,filename:value.filename,completedAt:Date.now()})});
+}
 export function startVideoHost(){
  void chrome.storage.local.get(key).then(saved=>{
   if(!port && ['started','progress','connecting'].includes(saved[key]?.type))void save({type:'error',message:'이전 다운로드 연결이 종료됐어요. 다시 시작해 주세요.'});
@@ -20,6 +25,7 @@ export function startVideoHost(){
     current.onMessage.addListener(value=>{
      if(value.type==='ready' && active)return;
      void save(value);
+     if(value.type==='done' && jobId)void saveCompleted(value,jobId);
      if(['done','error'].includes(value.type) || value.type==='ready' && !active){active=false;port=null;current.disconnect();}
     });
     current.onDisconnect.addListener(()=>{
@@ -29,7 +35,7 @@ export function startVideoHost(){
      void save({type:'missing',message:error?.message || '보조 프로그램 연결이 끊겼어요. 다시 연결해 주세요.'});
     });
    }
-   if(message.action==='download')active=true;
+   if(message.action==='download'){active=true;jobId=crypto.randomUUID();}
    if(message.action!=='cancel')void save({type:active?'started':'connecting'});
    port.postMessage({type:message.action,url:message.url,quality:message.quality});reply({ok:true});
   }catch{active=false;port?.disconnect();port=null;void save({type:'missing'});reply({ok:false});}

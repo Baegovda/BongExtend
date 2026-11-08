@@ -34,6 +34,8 @@ import {gmailComposeUrl, gmailInboxUrl, gmailMessageUrl} from "@/modules/gmail/o
 import {DARK_SETTINGS_KEY, darkSiteEnabled, darkSitePattern, normalizeDarkHost, normalizeDarkSettings} from "@/modules/dark/settings.js";
 // @ts-ignore download settings helpers are plain JS
 import {completedDownloadsBadge, DOWNLOAD_SETTINGS_KEY, normalizeDownloadSettings} from "@/modules/downloads/settings.js";
+// @ts-ignore plain JS shared with the video bridge
+import {VIDEO_HISTORY_KEY, VIDEO_STATUS_KEY, unseenVideos, videoHistory, videoInProgress} from "@/modules/downloads/video-history.js";
 
 const effects = createChromeEffects();
 
@@ -1354,7 +1356,9 @@ effects.storageOnChanged((changes: Record<string, {newValue?: unknown}>, area: s
 type FxTable = {base: string; date: string; rates: Record<string, number>; fetchedAt: number};
 const downloadBadge = $("downloadBadge");
 const DOWNLOAD_SEEN_KEY = "core.downloadsLastSeen";
+let downloadBadgeRequest=0;
 async function acknowledgeDownloads() {
+    downloadBadgeRequest++;
     await chrome.storage.local.set({[DOWNLOAD_SEEN_KEY]: Date.now()});
     paintDownloadBadge(0);
 }
@@ -1364,8 +1368,9 @@ const paintDownloadBadge = (count: number) => {
     downloadBadge.hidden = !text;
 };
 const refreshDownloadBadge = async () => {
+    const request=++downloadBadgeRequest;
     try {
-        const stored = await chrome.storage.local.get(DOWNLOAD_SEEN_KEY);
+        const stored = await chrome.storage.local.get([DOWNLOAD_SEEN_KEY, VIDEO_HISTORY_KEY]);
         let seen = Number(stored[DOWNLOAD_SEEN_KEY]);
         if (!Number.isFinite(seen) || seen <= 0) {
             seen = Date.now();
@@ -1373,9 +1378,9 @@ const refreshDownloadBadge = async () => {
         }
         if (current === "download") { await acknowledgeDownloads(); return; }
         const completed = await chrome.downloads.search({state: "complete", endedAfter: new Date(seen).toISOString()});
-        paintDownloadBadge(completed.length);
+        if(request===downloadBadgeRequest)paintDownloadBadge(completed.length + unseenVideos(stored[VIDEO_HISTORY_KEY], seen));
     } catch {
-        paintDownloadBadge(0);
+        if(request===downloadBadgeRequest)paintDownloadBadge(0);
     }
 };
 void refreshDownloadBadge();
@@ -1655,18 +1660,61 @@ chrome.storage.onChanged.addListener((changes, area) => {
     if (typeof next === "string" && next !== current && TAB_IDS.includes(next as TabId)) void showTab(next as TabId, false);
 });
 
-$("videoDownloader").addEventListener("click",()=>void chrome.tabs.create({url:chrome.runtime.getURL("/video-downloader.html")}));
+async function openVideoDownloader(url?: string) {
+ const base=chrome.runtime.getURL('/video-downloader.html');
+ const tabs=await chrome.tabs.query({});
+ const existing=tabs.find(tab=>tab.url===base || tab.url?.startsWith(base+'?'));
+ const stored=await chrome.storage.local.get(VIDEO_STATUS_KEY);
+ const target=base+(url?'?url='+encodeURIComponent(url):'');
+ if(existing?.id){
+  await chrome.tabs.update(existing.id,{active:true,...(url && !videoInProgress(stored[VIDEO_STATUS_KEY])?{url:target}:{})});
+  if(typeof existing.windowId==='number')await chrome.windows.update(existing.windowId,{focused:true});
+ }else await chrome.tabs.create({url:target});
+}
+$("videoDownloader").addEventListener("click",()=>void openVideoDownloader());
+$("videoStatusOpen").addEventListener("click",()=>void openVideoDownloader());
+
+let renderedVideoHistory='';
+async function refreshVideoActivity(){
+ const stored=await chrome.storage.local.get([VIDEO_STATUS_KEY,VIDEO_HISTORY_KEY]);
+ const state=stored[VIDEO_STATUS_KEY] as {type?:string;percent?:number}|undefined, history=videoHistory(stored[VIDEO_HISTORY_KEY]) as Array<{id:string;filename:string;completedAt:number}>;
+ const busy=videoInProgress(state), panel=$("videoActivity");
+ panel.hidden=!busy && !history.length;
+ $("videoHistoryCount").textContent=history.length?`${history.length}개`:'';
+ $("videoActivityStatus").textContent=busy?(state?.type==='progress'?`받는 중 ${Math.floor(state.percent || 0)}% · 영상·음성 병합까지 기다려 주세요.`:'영상 정보를 확인하고 있어요…'):'PC에 저장한 영상이에요. 경로를 복사해 파일 탐색기에 붙여 넣을 수 있어요.';
+ $("videoStatusOpen").textContent=busy?'진행 상황 열기':'영상 받기 열기';
+ const signature=JSON.stringify(history);
+ if(signature===renderedVideoHistory)return;
+ renderedVideoHistory=signature;
+ const list=$("videoHistoryList");list.replaceChildren();
+ for(const row of history){
+  const item=document.createElement('li'), info=document.createElement('div'), name=document.createElement('strong'), date=document.createElement('span'), copy=document.createElement('button');
+  name.textContent=row.filename.split(/[\\/]/).pop() || row.filename;name.title=row.filename;
+  date.textContent=new Date(row.completedAt).toLocaleString('ko-KR');
+  info.append(name,date);copy.textContent='경로 복사';copy.type='button';
+  copy.addEventListener('click',async()=>{
+   try{await navigator.clipboard.writeText(row.filename);copy.textContent='복사했어요';}catch{copy.textContent='복사 실패';}
+  });
+  item.append(info,copy);list.append(item);
+ }
+}
+void refreshVideoActivity();
+chrome.storage.onChanged.addListener((changes,area)=>{
+ if(area!=='local')return;
+ if(changes[VIDEO_STATUS_KEY] || changes[VIDEO_HISTORY_KEY])void refreshVideoActivity();
+ if(changes[VIDEO_HISTORY_KEY] || changes[DOWNLOAD_SEEN_KEY] && current!=='download')void refreshDownloadBadge();
+});
 
 $("currentVideoDownloader").addEventListener("click",async()=>{
  const tabs=await chrome.tabs.query({url:["https://*/*","http://*/*"]});
  const [focused]=await chrome.tabs.query({active:true,lastFocusedWindow:true});
  tabs.sort((a,b)=>(b.lastAccessed || 0)-(a.lastAccessed || 0));
  const tab=tabs.find(t=>t.id===focused?.id) || tabs[0];
- if(!tab?.url){await chrome.tabs.create({url:chrome.runtime.getURL('/video-downloader.html')});return;}
+ if(!tab?.url){await openVideoDownloader();return;}
  let url=tab.url;
  try {const [result]=await chrome.scripting.executeScript({target:{tabId:tab.id!},func:()=>{
   const video=document.querySelector('video');const src=video?.currentSrc || video?.src;
   return src?.startsWith('https://') || src?.startsWith('http://')?src:null;
  }});if(typeof result?.result==='string')url=result.result;}catch{/* Supported page extractors can use the page URL directly. */}
- await chrome.tabs.create({url:chrome.runtime.getURL('/video-downloader.html')+'?url='+encodeURIComponent(url)});
+ await openVideoDownloader(url);
 });

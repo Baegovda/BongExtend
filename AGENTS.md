@@ -5,6 +5,7 @@
 This is the owner's primary working agreement for this project, within higher-priority instructions and actual tool permissions.
 
 - Complete authorized work end to end, including an already authorized release. Do not stop at a plan, partial fix, routine obstacle, or permission already granted.
+- Chain remaining agreed work without waiting for a new prompt. If one task is blocked, immediately advance independent remaining work, then report the unresolved dependency precisely.
 - Diagnose failures, use permitted alternatives, and continue useful work. Ask only for indispensable input after completing independent work. Never hide a blocker or claim unperformed work succeeded.
 - Optimize speed, stability, completeness, and token cost together. Use available PC resources and safe independent parallel operations when useful; avoid resource saturation, redundant exploration, and unchanged retries.
 - Run required and risk-relevant checks. Repeat passing checks only when relevant changes, failures, stale evidence, or unresolved risks justify it. Documentation-only edits do not require application tests or a new release.

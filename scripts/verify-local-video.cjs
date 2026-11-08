@@ -26,6 +26,9 @@ const {chromium}=require('playwright'),fs=require('fs'),path=require('path'),os=
   await page.screenshot({path:path.join(tmp,'connected.png')});await page.evaluate(()=>chrome.storage.local.remove('core.video:status'));await page.locator('#start').click();
   const result=await waitState(['done','error','missing']);console.log('result',result);assert.equal(result.type,'done');assert.ok(fs.statSync(result.filename).size>100000);
   await page.waitForFunction(()=>!document.querySelector('#start').disabled && document.querySelector('#cancel').disabled);
+  const historyUntil=Date.now()+3000;let history=[];
+  while(Date.now()<historyUntil){history=await page.evaluate(async()=> (await chrome.storage.local.get('core.video:history'))['core.video:history'] || []);if(history.some(row=>row.filename===result.filename))break;await new Promise(resolve=>setTimeout(resolve,50));}
+  assert.ok(history.some(row=>row.filename===result.filename),'actual native completion must be saved in downloader history');
   await page.screenshot({path:path.join(tmp,'downloaded.png')});console.log('screenshots',tmp);
   await page.emulateMedia({colorScheme:'dark'});await page.setViewportSize({width:360,height:760});
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'narrow screen has no horizontal clipping');

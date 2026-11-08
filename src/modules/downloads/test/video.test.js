@@ -22,6 +22,8 @@ test('local video bridge rejects pages, respects module state, and preserves job
  assert.equal(state['core.video:status'].percent,42);
  nativeListener({type:'done',filename:'video.mkv'});
  assert.equal(state['core.video:status'].type,'done');
+ await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(state['core.video:history'][0].filename,'video.mkv');
  assert.equal((await ask('ping')).ok,true);
  nativeListener({type:'ready'});
  assert.equal(state['core.video:status'].type,'ready');
