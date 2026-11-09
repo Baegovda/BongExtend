@@ -29,3 +29,41 @@ export async function fetchNaverInbox(id, fetchImpl = fetch) {
   let data; try{data=await response.json();}catch{throw Error('네이버 메일에 로그인한 뒤 다시 연결해 주세요.');}
   return parseList(data);
 }
+
+// Only the explicitly opened message is requested. Bodies are never put in storage.
+export function parseMessage(data, requestedId) {
+  if(data?.Result==='FAIL'||data?.result==='FAIL'||data?.error)throw Error('네이버 메일에 로그인한 뒤 다시 시도해 주세요.');
+  const item = data?.mailInfo || (Array.isArray(data?.mailData) ? data.mailData[0] : data?.mailData) || data?.message || data;
+  if (!item || typeof item !== 'object') throw Error('메일 내용을 확인하지 못했어요. 네이버에서 열어 확인해 주세요.');
+  const actual = item.mailSN ?? item.mailId;
+  if (actual != null && String(actual) !== String(requestedId)) throw Error('다른 메일이 응답했어요. 목록에서 다시 선택해 주세요.');
+  const bodyObject = data?.mailBody;
+  const html = [item.body, item.content, item.html, item.mailBody, bodyObject?.body, bodyObject?.content, typeof bodyObject === 'string' ? bodyObject : null, data?.body]
+    .find(value => typeof value === 'string');
+  if (html == null) throw Error('메일 본문 형식을 확인하지 못했어요. 네이버에서 열어 확인해 주세요.');
+  if (html.length > 2_000_000) throw Error('내용이 큰 메일이에요. 네이버에서 열어 확인해 주세요.');
+  return {id:String(requestedId),html,plain:item.contentType === 'text/plain' || item.isHtml === false,
+    subject:String(item.subject || '').slice(0,1000),sender:String(item.fromName || item.senderName || item.from?.name || '').slice(0,300),
+    address:String(item.fromAddress || item.from?.address || '').slice(0,300)};
+}
+export async function fetchNaverMessage(account, messageId, {fetchImpl = fetch, signal} = {}) {
+  if (!naverId(account) || !/^\d{1,30}$/.test(String(messageId))) throw Error('메일 주소를 확인해 주세요.');
+  const controller=new AbortController(),abort=()=>controller.abort(signal.reason);
+  const timer=setTimeout(()=>controller.abort(new DOMException('메일 응답 대기 시간 초과','TimeoutError')),15000);
+  if(signal?.aborted)abort();else signal?.addEventListener('abort',abort,{once:true});
+  try {
+  const response = await fetchImpl(`${MAIL_ORIGIN}/json/read`, {method:'POST',credentials:'include',cache:'no-store',redirect:'error',
+    signal:controller.signal,
+    body:new URLSearchParams({u:naverId(account),mailSN:String(messageId),folderSN:'0'})});
+  if (response.status === 429) throw Error('네이버가 요청을 제한했어요. 잠시 뒤 다시 시도해 주세요.');
+  if (!response.ok) throw Error('네이버 메일 연결을 확인한 뒤 다시 시도해 주세요.');
+  const length = Number(response.headers.get('content-length'));
+  if (length > 5_000_000) throw Error('내용이 큰 메일이에요. 네이버에서 열어 확인해 주세요.');
+  let data;try {data = await response.json();} catch {if(controller.signal.aborted)throw controller.signal.reason;throw Error('네이버 메일에 로그인한 뒤 다시 시도해 주세요.');}
+  return parseMessage(data,messageId);
+  } catch(error) {
+    if(controller.signal.aborted)throw controller.signal.reason;
+    if(error instanceof TypeError)throw Error('네이버 메일과 연결하지 못했어요. 로그인 상태를 확인한 뒤 다시 시도해 주세요.');
+    throw error;
+  } finally {clearTimeout(timer);signal?.removeEventListener('abort',abort);}
+}

@@ -28,7 +28,7 @@ export function repairIconPixels(data, width, height, background) {
   return changed >= 8 ? out : null;
 }
 
-export function createIconContrastController(doc = document, onSettled = () => {}) {
+export function createIconContrastController(doc = document, onSettled = () => {}, {fetchImage} = {}) {
   const win = doc.defaultView, cache = new Map(), records = new WeakMap(), refs = new Set(), aborts = new Set();
   let active = false, generation = 0, pending = 0;
   const restore = el => {
@@ -55,14 +55,30 @@ export function createIconContrastController(doc = document, onSettled = () => {
   const decode = async (url, bg) => {
     const controller = new AbortController(); aborts.add(controller);
     const timer = win.setTimeout(()=>controller.abort(), 3000);
-    let bitmap;
+    let bitmap, objectURL, svgDocument;
     try {
-      const response = await win.fetch(url, {credentials:'omit', redirect:'error', signal:controller.signal});
-      if (!response.ok || !/^image\/(png|webp)$/i.test((response.headers.get('content-type') || '').split(';')[0])) return null;
+      const response = await (fetchImage || win.fetch.bind(win))(url, {credentials:'omit', redirect:'error', signal:controller.signal});
+      const mime = (response.headers.get('content-type') || '').split(';')[0];
+      if (!response.ok || !/^image\/(png|webp|svg\+xml)$/i.test(mime)) return null;
       const reader = response.body?.getReader(); if (!reader) return null;
       const chunks = []; let size = 0;
       for (;;) {const {value,done}=await reader.read(); if (done) break; size+=value.length; if(size>131072){await reader.cancel();return null;} chunks.push(value);}
-      bitmap = await win.createImageBitmap(new Blob(chunks));
+      const blob = new Blob(chunks, {type:mime});
+      if (/svg/i.test(mime)) {
+        const source = await blob.text(); if (/<!DOCTYPE|<!ENTITY/i.test(source)) return null;
+        const svg = new win.DOMParser().parseFromString(source, 'image/svg+xml');
+        svgDocument = svg;
+        const dimensions = ['width','height'].map(name => svg.documentElement.getAttribute(name) || '');
+        if (dimensions.some(value => !/^\d+(?:\.\d+)?(?:px)?$/.test(value)) || Number.parseFloat(dimensions[0]) > 512 || Number.parseFloat(dimensions[1]) > 256 || Number.parseFloat(dimensions[0])*Number.parseFloat(dimensions[1]) > 65536) return null;
+        // Only standalone static vector glyphs; no references, active content,
+        // embedded images or network-dependent resources are rasterized.
+        if (svg.querySelector('parsererror,script,foreignObject,image,use,style,filter,animate,animateTransform,animateMotion,set,discard') || Array.from(svg.querySelectorAll('*')).some(node => Array.from(node.attributes).some(a => a.name === 'style' || /^on/i.test(a.name) || /href$/i.test(a.name) || /url\s*\(/i.test(a.value.replace(/url\(\s*(['"]?)#[\w-]+\1\s*\)/g,''))))) return null;
+        // Chromium's createImageBitmap(Blob) does not decode SVG on all builds.
+        // Image mode keeps scripts/external document access disabled.
+        objectURL = win.URL.createObjectURL(blob); bitmap = new win.Image(); bitmap.src = objectURL; await bitmap.decode();
+      } else {
+        bitmap = await win.createImageBitmap(blob);
+      }
       if (bitmap.width > 512 || bitmap.height > 256 || bitmap.width * bitmap.height > 65536) return null;
       const canvas = doc.createElement('canvas'); canvas.width=bitmap.width;canvas.height=bitmap.height;
       const ctx = canvas.getContext('2d', {willReadFrequently:true}); if(!ctx)return null;
@@ -70,14 +86,41 @@ export function createIconContrastController(doc = document, onSettled = () => {
       const pixels=ctx.getImageData(0,0,canvas.width,canvas.height), repaired=repairIconPixels(pixels.data,canvas.width,canvas.height,bg);
       if(!repaired)return null;
       pixels.data.set(repaired);ctx.putImageData(pixels,0,0);
-      const result=canvas.toDataURL('image/png');
+      let result;
+      if (svgDocument) {
+        // Preserve vector geometry/alpha exactly: only explicit neutral paint
+        // attributes change. Rasterization above is eligibility analysis only.
+        let count = 0;
+        for (const node of svgDocument.querySelectorAll('*')) for (const attr of ['fill','stroke']) {
+          // Definitions/masks affect geometry or alpha, not visible paint.
+          // Preserve their exact values even when a mask uses neutral black.
+          if (node.closest('defs,mask,clipPath,pattern,linearGradient,radialGradient')) continue;
+          // Ancestor paint can be inherited by a mask even when its own nodes have no fill.
+          if (node.querySelector('mask')) continue;
+          const value = node.getAttribute(attr); if (!value) continue;
+          const hex = value.match(/^#([a-f\d]{3}|[a-f\d]{6})$/i);
+          const digits = hex && (hex[1].length === 3 ? [...hex[1]].map(v=>v+v).join('') : hex[1]);
+          const neutralName = {black:0,white:255,gray:128,grey:128,silver:192,darkgray:169,darkgrey:169,lightgray:211,lightgrey:211}[value.trim().toLowerCase()];
+          const color = digits ? [parseInt(digits.slice(0,2),16),parseInt(digits.slice(2,4),16),parseInt(digits.slice(4,6),16),1] : neutralName != null ? [neutralName,neutralName,neutralName,1] : parseColor(value);
+          if (!color || Math.max(...color.slice(0,3))-Math.min(...color.slice(0,3)) > 25) continue;
+          const next = readableColor(color,bg,4.5);if(next){node.setAttribute(attr,next);count++;}
+        }
+        if (!count) return null;
+        const text = new win.XMLSerializer().serializeToString(svgDocument);
+        const bytes = new TextEncoder().encode(text); let binary = '';
+        for (let i=0;i<bytes.length;i+=8192) binary += String.fromCharCode(...bytes.subarray(i,i+8192));
+        result = 'data:image/svg+xml;base64,' + win.btoa(binary);
+      } else result=canvas.toDataURL('image/png');
       // If page CSP disallows data images, keep the original visible asset.
       await new Promise((resolve,reject)=>{const image=new win.Image();image.onload=resolve;image.onerror=reject;image.src=result;});
       return result;
-    } catch {return null;} finally {bitmap?.close();win.clearTimeout(timer);aborts.delete(controller);}
+    } catch {return null;} finally {bitmap?.close?.();if(objectURL)win.URL.revokeObjectURL(objectURL);win.clearTimeout(timer);aborts.delete(controller);}
   };
   const inspect = el => {
-    if (!active || !el.isConnected || el.namespaceURI !== 'http://www.w3.org/1999/xhtml' || !el.closest('button,a,[role="button"]') || el.closest('[hidden],[disabled],[aria-disabled="true"],[contenteditable],.a3s,.ii,[data-message-id]')) return;
+    if (!active || !el.isConnected || el.namespaceURI !== 'http://www.w3.org/1999/xhtml' || el.closest('[hidden],[disabled],[aria-disabled="true"],[contenteditable],.a3s,.ii,[data-message-id]')) return;
+    const control = el.closest('button,a,[role="button"]');
+    const searchControl = !control && /^(SPAN|I)$/.test(el.tagName) && el.parentElement?.children.length <= 2 && el.parentElement?.parentElement?.querySelector('input[type="search"],input[type="text"],input:not([type])');
+    if (!control && !searchControl) return;
     const old=records.get(el);
     if (old && old.written === el.style.getPropertyValue('background-image') && old.signature === signature(el)) return;
     if (old) restore(el);

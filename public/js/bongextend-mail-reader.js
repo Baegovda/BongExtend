@@ -29,7 +29,8 @@
         });
     }
     async function translatePage() {
-        const root = document.querySelector('#openEmailSection.active #openEmailMessages') || document.querySelector('#inboxSection.active #inbox');
+        const naver = document.querySelector('#beNaverReader:not([hidden]) #beNaverBody');
+        const root = naver ? naver.contentDocument?.body : document.querySelector('#openEmailSection.active #openEmailMessages') || document.querySelector('#inboxSection.active #inbox');
         if (!root) return;
         let status = document.getElementById('beMailTranslationStatus');
         if (!status) {

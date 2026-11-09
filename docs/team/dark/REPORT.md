@@ -1,5 +1,34 @@
 # 공통 대비 보정과 긴급 쪽지 조사 보고
 
+## 2026-11-10 Malltail 최종 담당 보고 — root 통합 완료
+
+- root 최종 패키지 검사: scripts/verify-dark-image-relay-browser.cjs에서 실제 content→CORS 실패→권한 검증 worker→보정을 확인했어요. 중립1076픽셀 변화/브랜드0·alpha0 차이, 사진 보존, 허용하지 않은 자원·다크 OFF 거절, OFF 스타일 복원 통과. Temp/be-image-relay-u7mEq7/dark.png/off.png 직접 확인이에요. 공개 사이트의 완전한 테마 재현 증거와는 구분해요.
+- root 최종 보호: mask 내부뿐 아니라 mask를 포함한 조상의 paint도 상속 변경하지 않아요. 로컬 mask 검사 두 형태(명시 paint, root fill을 상속한 mask) 모두 changed512/alpha0/brand0/defs 보존 통과. 최종 전체 JS262개+Bun+타입/ZIP/eval/권한 검사 통과예요.
+
+- **마지막 mask/clip 회귀 완료**: visible paint를 바꿀 때 defs/mask/clipPath/pattern/linearGradient/radialGradient 내부는 제외해요. 새 로컬 `scripts/verify-dark-svg-mask-browser.cjs` 통과: 보이는 중립512픽셀만 변화, mask alpha 차이0, 컬러 차이0, defs XML 완전일치, OFF marker 복원. CSS/default fill처럼 판별 불가능한 paint는 그대로 둬요.
+- **실제 relay 경로 추가 확인**: 최신 controller와 dark.content.ts의 동일 fetch hook을 disposable extension의 시험 파일로 주입해 direct CORS 실패→실제 root backend port→SVG 보정→stop 복원 통과했어요. 이 진단은 공개 로고에 임시 어두운 backdrop을 준 조건이며 페이지 전체 제품 테마 성공으로 표현하지 않아요. be-malltail-product-OEwj41에 before/dark/off가 있어요.
+- root 최종 패키지 회귀도 통과했다고 전달받았어요: verify-dark-image-relay-browser.cjs에서 실제 content→relay→SVG/권한거절/다크OFF거절/원본사진/복원 확인, 중립1076픽셀 변화·컬러/alpha차이0. 증거 be-image-relay-u7mEq7/dark.png/off.png. 해당 최종 제품 검사는 중복 실행하지 않았어요.
+- 공개 CDN source-helper는 passing 세션에서7개/브랜드671픽셀·alpha 원형보존을 확인했으나 마지막 반복 중 일부는15초 보정조건 대기 만료가 발생했어요(원인 미확정, 임의 해결 주장하지 않음). mask 경계 검사는 네트워크와 분리한 위 로컬 시험으로 확정했어요. root의 통제된 최종 제품 회귀와 공개 사이트의 안정성 범위를 구분해요.
+- 담당 최종 소유 파일에 scripts/verify-dark-svg-mask-browser.cjs를 추가했어요. 사진 빈칸은 여전히 미재현/사용자 OFF 대조 대기이며 강제 보정은 없어요. 추가 빌드/전체시험/푸시/릴리스 없이 이번 배정을 종료해요.
+
+- 변경 파일: icon-contrast.js/.d.ts, dark.content.ts(fetchImage 연결), 신규 scripts/verify-malltail-dark-browser.cjs 및 verify-malltail-icon-browser.cjs, REPORT예요. proxy/권한/버전/메일 파일은 수정하지 않았어요.
+- 공통 SVG 지원: 작은 투명 조작/홈 링크 및 입력창 옆 단순 glyph만 기존 픽셀 분류 상한으로 검사하고, 정적인 SVG의 명시적 중립 fill/stroke만 밝게 해요. geometry/clipPath/alpha/컬러 paint는 원형 보존해요. 새 사이트 분기는 없어요.
+- Chromium createImageBitmap(SVG Blob) 실패를 확인해 Image.decode 경로를 사용해요. 처음 PNG 재인코딩 시험에서 SVG antialias/브랜드 차이를 발견해 폐기했고, SVG의 원래 벡터를 유지하는 방식으로 수정했어요. 최종 실제 로고 검사: 중립1003픽셀 변화, 컬러671픽셀 차이0, alpha 차이0이에요.
+- SVG 외부참조/DOCTYPE/ENTITY/스크립트/이미지/스타일/애니메이션/필터는 거절하고 정수/px 명시 크기512×256/65536픽셀 상한을 decode 전에 검사해요. 원래 PNG/WebP 상한도 유지해요. CSP data/blob 허용이 없거나 복잡한 SVG면 원본을 그대로 둬요.
+- dark.content.ts의 fetchDarkImage는 direct omit/redirect:error fetch를 먼저 쓰고 CORS 등 예외만 전용 bongextend-dark-image port로 대체해요. AbortSignal/3초/port disconnect cleanup과 응답 MIME/base64/128KiB 재검사를 넣었어요. backend의 실제 origin 권한/설정 검증은 root 구현을 사용해요.
+- 공개 source-helper 검사 통과: 로고/돋보기/종/계정/장바구니 등7개 보정, alpha/브랜드 원형보존, OFF marker/style 복원, 위험 SVG4종 거절. 사진 URL/naturalWidth400/filter none/opacity1 보존. 단위2개 통과·diff check 통과예요.
+- 실제 .output 확장 port 경로도 1500px/3600px에서 응답 ok/type image/svg+xml/9215바이트 확인했어요. 다만 최종 source의 벡터 보존/입력 glyph 변경 이후 root 최종 재빌드 및 제품자동보정 검사는 root가 이어가야 해요. 담당은 build를 하지 않았어요.
+- 직접 검수한 source-helper 화면: C:/Users/REVAPT~1/AppData/Local/Temp/be-malltail-icons-fxKLnt/source-helpers-dark.png (before/off 포함). 제품형 3600×1950 비교: be-malltail-product-218DHv/before.png/dark.png/off.png.
+- **상품 빈칸은 미재현**: 1500px 및 마지막 독립3600×1950 before/ON/OFF에서 HOTDEAL/BEST 이미지가 모두 보였고 loaded true·naturalWidth400/553/1020·원본URL 유지였어요. 제품 경로는 외부CSS 일부가 CORS로 미적용되어 header가 흰색인 차이가 있어 사용자 전체 조건을 재현했다고 할 수 없어요. 사진을 억지 표시/반전하는 패치는 넣지 않았어요. 사용자 OFF 대조 답변은 root가 대기 중이에요.
+- 보고 종료: SVG 공통 소스 보완·relay 연결과 관련 근거를 보존했어요. 실제 사용자 사진빈칸 해결/모든 상태 지원/배포 완료를 주장하지 않아요. root가 최종 빌드/통합/릴리스를 소유해요.
+
+### 초기 조사 기록 (위 최종 결과 우선)
+
+- 기준13661f0/1.2.56, 공개 post.malltail.com에서 header 검은 SVG 로고·조작아이콘 저대비는 재현했어요. 원본 SVG URL은 header_logo2025_D.svg, header_user_icon1_D.svg 등 cdn.malltail.com/goods_img/contents/index 아래예요.
+- 현재 icon controller는 MIME png/webp만 허용해 SVG를 건너뛰고, content-script fetch는 공개 CDN SVG에 CORS Failed to fetch가 나요. 단순 모든 이미지반전은 안전하지 않아요. **총괄 공유 제안**: 기존 선택한 사이트/자원 호스트 권한을 확인하는 bounded 이미지 relay(omit credentials, redirect:error, MIME png/webp/svg+xml,128KiB 상한)를 icon controller fetchImage hook으로 연결해야 실제 cross-origin SVG 픽셀 분류가 가능해요. 담당은 background/권한을 직접 바꾸지 않아요.
+- HOTDEAL 사진 빈칸은 아직 재현 못했어요. 비로그인 공개 before/DR API/full external CSS/OFF에서 이미지 naturalWidth400/553/1020·opacity1·filter none·blend normal·원본URL 모두 유지하고 사진이 보여요. 실제 .output extension 임시프로필에서도 로딩/이미지는 유지됐어요(그 경로는 일부 외부CSS 미적용으로 화면 전체테마가 사용자와 달라 완전 대조가 아니에요).
+- 증거 직접 확인: C:/Users/REVAPT~1/AppData/Local/Temp/be-malltail-8cVCsu/tall-dark.png/tall-off.png 및 be-malltail-product-2CByex/before.png/dark.png/off.png. 사진 가림 원인은 확정하지 않았어요. 사진에 visibility/filter/표시 강제 보정은 넣지 않아요.
+
 ## 2026-11-10 메뉴·반투명 미리보기 보완 (최신 배정)
 
 - 총괄 최종 공개/합성 재검사 통과: 10000노드 상한과 자기 mutation 안정화(visited6064/styleReads1765/animationReads2/maxBatch180), 공개 네이버 카드면·outline, codex-resets 범례·가시칸 색 일치 유지. `C:/Users/REVAPT~1/AppData/Local/Temp/be-contrast-BYL2Em`. 실제 로그인 메뉴·미리보기 검증은 아니에요.

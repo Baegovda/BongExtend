@@ -11,6 +11,40 @@ import {createPaintGuard} from "@/modules/dark/paint-guard.js";
 
 const MODULES_KEY = "core.modules";
 
+// Public small image only. The worker independently checks both origin grants
+// and active dark settings; page credentials are never relayed.
+async function fetchDarkImage(url: string, init: RequestInit): Promise<Response> {
+    try { return await fetch(url, init); } catch (error) {
+        if (init.signal?.aborted) throw error;
+    }
+    return new Promise((resolve, reject) => {
+        if (init.signal?.aborted) {reject(new DOMException("Aborted", "AbortError")); return;}
+        const port = chrome.runtime.connect({name: "bongextend-dark-image"});
+        let settled = false;
+        const finish = (error?: Error, response?: Response) => {
+            if (settled) return;
+            settled = true;
+            clearTimeout(timer); init.signal?.removeEventListener("abort", aborted);
+            port.onDisconnect.removeListener(disconnected); port.disconnect();
+            if (error) reject(error); else resolve(response!);
+        };
+        const aborted = () => finish(new DOMException("Aborted", "AbortError"));
+        const disconnected = () => finish(new Error(chrome.runtime.lastError?.message || "Image connection closed"));
+        const timer = setTimeout(() => finish(new Error("Image request timed out")), 3000);
+        init.signal?.addEventListener("abort", aborted, {once: true});
+        port.onDisconnect.addListener(disconnected);
+        port.onMessage.addListener(result => {
+            try {
+                if (result?.ok !== true || !/^image\/(png|webp|svg\+xml)$/.test(result.type) || typeof result.data !== "string" || result.data.length > 174764) throw new Error("Image response rejected");
+                const bytes = Uint8Array.from(atob(result.data), c => c.charCodeAt(0));
+                if (bytes.length > 131072) throw new Error("Image response too large");
+                finish(undefined, new Response(bytes, {headers: {"Content-Type": result.type}}));
+            } catch (error) {finish(error instanceof Error ? error : new Error("Invalid image response"));}
+        });
+        port.postMessage({url});
+    });
+}
+
 export default defineContentScript({
     // WXT builds this file for runtime registration. This existing site keeps it out of broad required permissions.
     matches: ["https://mail.google.com/*"],
@@ -25,7 +59,7 @@ export default defineContentScript({
             return;
         }
         let generation = 0;
-        const icons = createIconContrastController(document, () => contrast.update());
+        const icons = createIconContrastController(document, () => contrast.update(), {fetchImage: fetchDarkImage});
         const contrast = createContrastController(document, {inspectImage: icons.inspect});
         const paint = createPaintGuard(document);
         let contrastEnabled = false;

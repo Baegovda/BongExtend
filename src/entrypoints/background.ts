@@ -1,6 +1,8 @@
 // @ts-ignore plain JS provider
 import {startNaverMail} from '@/modules/naver-mail/background.js';
 import {darkStylesheetPermission} from '@/modules/dark/css-resource.js';
+// @ts-ignore bounded static image relay
+import {darkImageOrigins,fetchDarkImage} from '@/modules/dark/image-resource.js';
 // @ts-ignore pure JS
 import {startVideoHost} from "@/modules/downloads/video.js";
 // @ts-ignore pure JS
@@ -152,6 +154,33 @@ export default defineBackground(() => {
                     if (text.length > 5_000_000) throw new Error("stylesheet too large");
                     respond({ok: true, text});
                 } catch { respond({ok: false}); }
+            })();
+        });
+    });
+    let activeDarkImages=0;
+    chrome.runtime.onConnect.addListener(port=>{
+        if(port.name!=="bongextend-dark-image")return;
+        let received=false;const controller=new AbortController();
+        port.onDisconnect.addListener(()=>controller.abort());
+        port.onMessage.addListener(message=>{
+            if(received)return;received=true;
+            const respond=(result:unknown)=>{try{port.postMessage(result);}catch{/* Closed document. */}};
+            void(async()=>{
+                let acquired=false,timer:ReturnType<typeof setTimeout>|undefined;
+                try{
+                    const sender=port.sender,senderUrl=sender?.url||"";
+                    const page=new URL(/^(about|blob|data):/.test(senderUrl)?sender?.origin||"":senderUrl);
+                    const url=new URL(message.url),origins=darkImageOrigins(page.href,url.href);
+                    if(sender?.id!==chrome.runtime.id||!sender.tab?.id||!origins||activeDarkImages>=4)throw Error("unsupported image");
+                    const stored=await chrome.storage.local.get([DARK_SETTINGS_KEY,MODULES_KEY]);
+                    const modules=stored[MODULES_KEY] as {dark?:boolean}|undefined;
+                    if(modules?.dark===false||!darkSiteEnabled(normalizeDarkSettings(stored[DARK_SETTINGS_KEY]),page.hostname)||!await chrome.permissions.contains({origins}))throw Error("not enabled");
+                    if(controller.signal.aborted||activeDarkImages>=4)throw Error("busy");
+                    activeDarkImages++;acquired=true;timer=setTimeout(()=>controller.abort(),3000);
+                    const result=await fetchDarkImage(url.href,{signal:controller.signal});
+                    if(!controller.signal.aborted)respond({ok:true,...result});
+                }catch{respond({ok:false});}
+                finally{if(timer)clearTimeout(timer);if(acquired)activeDarkImages--;}
             })();
         });
     });

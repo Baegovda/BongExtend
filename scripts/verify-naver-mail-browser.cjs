@@ -16,6 +16,11 @@ const {chromium}=require('playwright');const fs=require('node:fs'),os=require('n
   const page=await context.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
   await page.addInitScript(()=>{if(!globalThis.chrome?.runtime?.sendMessage)return;globalThis.__fixtureCalls=[];const original=chrome.runtime.sendMessage.bind(chrome.runtime);chrome.runtime.sendMessage=(...args)=>{const result=original(...args);if(result?.then)result.then(response=>{__fixtureCalls.push({command:args[0]?.command,error:response?.error?.message,stack:response?.error?.stack});});return result;};});
   await context.route('https://mail.naver.com/**',route=>route.fulfill({contentType:'text/html',body:'<!doctype html><title>Synthetic Naver destination</title>'}));
+  const reads=[];let readMode='ok';
+  await context.route('https://mail.naver.com/json/read',async route=>{
+   reads.push(route.request().postData());if(readMode==='slow')await new Promise(resolve=>setTimeout(resolve,350));
+   await route.fulfill({contentType:'application/json',body:JSON.stringify(readMode==='error'?{Result:'FAIL'}:{mailInfo:{mailSN:125,subject:'앱 안의 네이버 메일',fromName:'네이버 시험 발신자',body:'<h2 style="color:#ab1234">본문 원색 유지</h2><p>앱 안에서 읽는 합성 메일이에요.</p><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO/aOt0AAAAASUVORK5CYII=" onerror="parent.__mailAttack=true"><script>parent.__mailAttack=true</script><iframe src="https://example.test"></iframe><a href="javascript:alert(1)">위험 링크</a>'}})}).catch(()=>{});
+  });
   await page.goto(`chrome-extension://${id}/popup.html`);
   const frame=page.frameLocator('#checkerPlusMailFrame');
   await frame.locator('#bongextendNaverAccount').waitFor();
@@ -50,6 +55,12 @@ const {chromium}=require('playwright');const fs=require('node:fs'),os=require('n
   await frame.locator('#bongextendNaverAccount .be-account-order button').first().click();
   await page.waitForFunction(async()=>JSON.stringify((await chrome.storage.local.get('core.mailAccountOrder'))['core.mailAccountOrder'])===JSON.stringify(['naver:fixture-user@naver.com','gmail:fixture@gmail.com']));
   await inbox.waitForFunction(()=>document.getElementById('inbox').querySelector('.be-naver-account,.account').id==='bongextendNaverAccount');
+  // Actual pointer gestures reach the real parent storage adapter, not the fixture protocol.
+  const dragAccount=async(source,target)=>{const from=await frame.locator(source+' .be-account-grip').boundingBox(),to=await frame.locator(target+' .accountHeader,'+target+' .be-naver-header').boundingBox();assert.ok(from&&to);await page.mouse.move(from.x+from.width/2,from.y+from.height/2);await page.mouse.down();await page.mouse.move(to.x+40,to.y+2,{steps:8});await page.mouse.up();};
+  await frame.locator('#fixtureGmail .be-account-grip').waitFor();await dragAccount('#fixtureGmail','#bongextendNaverAccount');
+  await page.waitForFunction(async()=>(await chrome.storage.local.get('core.mailAccountOrder'))['core.mailAccountOrder']?.[0]==='gmail:fixture@gmail.com');
+  await dragAccount('#bongextendNaverAccount','#fixtureGmail');
+  await page.waitForFunction(async()=>(await chrome.storage.local.get('core.mailAccountOrder'))['core.mailAccountOrder']?.[0]==='naver:fixture-user@naver.com');
   assert.equal(await inbox.evaluate(()=>document.getElementById('fixtureGmail')._account.email),'fixture@gmail.com');
   await inbox.evaluate(()=>{const old=document.getElementById('fixtureGmail'),fresh=old.cloneNode(true);fresh._account={email:'fixture@gmail.com',id:7};old.replaceWith(fresh);});
   await frame.locator('#bongextendNaverAccount .be-account-order button').last().press('Enter');
@@ -71,10 +82,34 @@ const {chromium}=require('playwright');const fs=require('node:fs'),os=require('n
   await inbox.evaluate(()=>{window.__naverFirst=document.querySelector('#naverMailList button');});
   await worker.evaluate(async()=>{const s=await chrome.storage.session.get('naver.mail.state');await chrome.storage.session.set({'naver.mail.state':{...s['naver.mail.state'],checkedAt:Date.now()+1000}});});
   await page.waitForTimeout(100);assert.equal(await inbox.evaluate(()=>document.querySelector('#naverMailList button')===window.__naverFirst&&document.activeElement===window.__naverFirst),true);
-  // A Naver message keeps its existing web-mail destination, never a Gmail action.
+  // Reading stays inside the app, with an isolated body and an explicit original-site action.
   await page.evaluate(()=>{window.__naverOpens=[];const create=chrome.tabs.create.bind(chrome.tabs);chrome.tabs.create=async options=>{__naverOpens.push(options);return {id:999,...options};};});
-  await frame.locator('#naverMailList button').first().click();await page.waitForTimeout(700);
-  assert.equal(await page.evaluate(()=>window.__naverOpens[0]?.url),'https://mail.naver.com/v2/read/0/125');
+  await frame.locator('#naverMailList button').first().click();
+  const reader=frame.locator('#beNaverReader');await reader.waitFor({state:'visible'});
+  const body=frame.frameLocator('#beNaverBody');await body.locator('h2').waitFor();
+  assert.equal(await page.evaluate(()=>window.__naverOpens.length),0);assert.equal(reads.length,1);assert.match(reads[0],/mailSN=125/);
+  assert.equal(await body.locator('h2').evaluate(e=>getComputedStyle(e).color),'rgb(171, 18, 52)');
+  assert.equal(await body.locator('img').evaluate(e=>e.complete&&e.naturalWidth>0),true,'sender raster image still decodes');
+  assert.equal(await body.locator('body').evaluate(e=>getComputedStyle(e).zoom),'0.8');
+  assert.equal(await body.locator('script,iframe,[onerror],a[href^="javascript:"]').count(),0);
+  assert.equal(await inbox.evaluate(()=>Boolean(window.__mailAttack)),false);
+  assert.equal(await frame.locator('#beNaverBody').getAttribute('sandbox'),'allow-same-origin allow-popups allow-popups-to-escape-sandbox');
+  await page.screenshot({path:path.join(folder,'naver-reader-dark.png'),animations:'disabled'});
+  await reader.getByRole('button',{name:'메일 본문 배율 전환 (80% / 100%)'}).click();assert.equal(await body.locator('body').evaluate(e=>getComputedStyle(e).zoom),'1');assert.equal(reads.length,1);
+  await reader.getByRole('button',{name:'네이버에서 열기'}).click();assert.equal(await page.evaluate(()=>window.__naverOpens[0]?.url),'https://mail.naver.com/v2/read/0/125');
+  await reader.getByRole('button',{name:'← 메일함'}).click();await reader.waitFor({state:'hidden'});assert.equal(await inbox.evaluate(()=>document.activeElement===window.__naverFirst),true);
+  readMode='error';await frame.locator('#naverMailList button').first().click();await reader.getByRole('button',{name:'다시 시도'}).waitFor({state:'visible'});
+  readMode='ok';await reader.getByRole('button',{name:'다시 시도'}).click();await body.locator('h2').waitFor();
+  await page.emulateMedia({colorScheme:'light'});await page.screenshot({path:path.join(folder,'naver-reader-light.png'),animations:'disabled'});
+  await reader.getByRole('button',{name:'← 메일함'}).press('Escape');await reader.waitFor({state:'hidden'});
+  readMode='slow';await frame.locator('#naverMailList button').first().click();await reader.getByRole('button',{name:'← 메일함'}).click();await page.waitForTimeout(500);assert.equal(await reader.isVisible(),false);
+  readMode='ok';
+  await worker.evaluate(()=>chrome.storage.local.set({'core.popupSize':{width:520,height:590}}));
+  const compact=await context.newPage();await compact.setViewportSize({width:520,height:590});await compact.goto(`chrome-extension://${id}/popup.html`);
+  const compactMail=compact.frameLocator('#checkerPlusMailFrame');await compactMail.locator('#naverMailList button').first().click();await compactMail.frameLocator('#beNaverBody').locator('h2').waitFor();
+  assert.equal(await compactMail.locator('#beNaverReader').evaluate(e=>Math.round(e.getBoundingClientRect().width)===innerWidth),true,'reader fills its actual mail frame at 520px shell width');
+  assert.equal(await compactMail.locator('#beNaverReader').evaluate(e=>[...e.querySelectorAll('button,iframe')].every(el=>el.getBoundingClientRect().right<=innerWidth+1)),true);
+  await compact.emulateMedia({colorScheme:'dark'});await compact.screenshot({path:path.join(folder,'naver-reader-520-dark.png'),animations:'disabled'});await compact.close();
   await page.reload();await frame.locator('#naverMailList li').nth(2).waitFor();
   inbox=page.frames().find(f=>f.url().includes('/checkerplus-popup.html'));
   await inbox.evaluate(()=>{const row=document.createElement('section');row.className='account';row.id='restoredGmail';row.setAttribute('email','fixture@gmail.com');row.innerHTML='<div class="accountHeader">Gmail</div>';document.getElementById('inbox').append(row);});
@@ -93,6 +128,6 @@ const {chromium}=require('playwright');const fs=require('node:fs'),os=require('n
   const requests=await worker.evaluate(()=>globalThis.__mailRequests);assert.ok(requests.length>=2);assert.ok(requests.every(r=>r.url==='https://mail.naver.com/json/list'&&r.body.includes('isUnread=true')));
   // Checker Plus may report missing Google sessions in this deliberately logged-out fixture.
   assert.deepEqual(errors.filter(e=>/naver-mail|naverMail/.test(e)),[]);
-  console.log('PASS fixture: connect, unread list, escaped HTML, unified Gmail/Naver accounts, local N logo, common settings, persistence, module off/on, expired login, disconnect and list-only requests;',folder);
+  console.log('PASS fixture: connect/list, real account drag storage/reload, unified accounts/N logo, in-app scriptless Naver reader, colors/zoom/error/retry/close race, module off/on, expired login and disconnect;',folder);
  }finally{await context.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});

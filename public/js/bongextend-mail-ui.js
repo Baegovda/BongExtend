@@ -50,12 +50,67 @@
   const set=(el,name,value)=>{if(el.getAttribute(name)!==value)el.setAttribute(name,value);};
   let sequence=0,scheduled=false;
   const keyboardControls=new WeakSet();
+  const accountRows=()=>Array.from(inbox.children).filter(row=>row.matches('.account,.be-naver-account')&&!row.hidden);
+  const accountKey=row=>row?.classList.contains('be-naver-account')?row.dataset.accountKey||'':`gmail:${String(row?.getAttribute('email')||row?._account?.email||'').trim().toLowerCase()}`;
+  let drag;
+  const dragStatus=document.createElement('span');dragStatus.className='be-drag-status';dragStatus.setAttribute('role','status');inbox.before(dragStatus);
+  function clearTarget(){for(const row of inbox.querySelectorAll('.be-drop-before,.be-drop-after'))row.classList.remove('be-drop-before','be-drop-after');}
+  function finishDrag(commit=false){
+    if(!drag)return;const state=drag;drag=undefined;cancelAnimationFrame(state.frame);clearTarget();
+    state.row.classList.remove('be-account-dragging');document.documentElement.classList.remove('be-account-drag-active');
+    if(state.grip.hasPointerCapture?.(state.id))state.grip.releasePointerCapture(state.id);
+    if(commit&&state.active&&state.target?.isConnected&&state.row.isConnected){
+      const sourceKey=accountKey(state.row),targetKey=accountKey(state.target);
+      if(sourceKey&&sourceKey!=='gmail:'&&targetKey&&targetKey!=='gmail:'&&sourceKey!==targetKey){
+        const event=new CustomEvent('bongextend-mail-account-move',{cancelable:true,detail:{sourceKey,targetKey,placement:state.placement}});
+        document.dispatchEvent(event);dragStatus.textContent=event.defaultPrevented?'계정 순서를 변경했어요.':'계정 순서를 변경하지 못했어요. 위아래 버튼을 사용해 주세요.';
+      }
+    }else if(state.active)dragStatus.textContent='계정 이동을 취소했어요.';
+    if(state.grip.isConnected)state.grip.focus({preventScroll:true});
+  }
+  function updateDrag(){
+    if(!drag?.active)return;
+    if(!drag.row.isConnected||!drag.grip.isConnected){finishDrag();return;}
+    clearTarget();drag.target=undefined;
+    const bounds=inbox.getBoundingClientRect();
+    if(drag.x>=bounds.left&&drag.x<=bounds.right&&drag.y>=bounds.top&&drag.y<=bounds.bottom){
+      const headers=accountRows().filter(row=>row!==drag.row).map(row=>({row,rect:row.querySelector('.accountHeader,.be-naver-header')?.getBoundingClientRect()})).filter(item=>item.rect?.height);
+      let closest,dist=Infinity;
+      for(const item of headers){const next=Math.abs(drag.y-(item.rect.top+item.rect.height/2));if(next<dist){closest=item;dist=next;}}
+      const own=drag.row.querySelector('.accountHeader,.be-naver-header')?.getBoundingClientRect();
+      if(closest&&!(own&&drag.y>=own.top&&drag.y<=own.bottom)){drag.target=closest.row;drag.placement=drag.y<closest.rect.top+closest.rect.height/2?'before':'after';drag.target.classList.add('be-drop-'+drag.placement);}
+      const edge=32,speed=drag.y<bounds.top+edge?-10:drag.y>bounds.bottom-edge?10:0;
+      if(speed)inbox.scrollTop+=speed;
+    }
+    drag.frame=requestAnimationFrame(updateDrag);
+  }
+  function installGrip(row,header,email){
+    if(header.querySelector('.be-account-grip'))return;
+    const grip=document.createElement('button');grip.type='button';grip.className='be-account-grip';grip.textContent='⠿';
+    grip.title='드래그하여 계정 순서 변경 · 키보드는 위/아래 방향키';grip.setAttribute('aria-label',`${email} 계정 순서 이동`);
+    for(const type of ['click','mouseup','dragstart'])grip.addEventListener(type,event=>{event.preventDefault();event.stopPropagation();});
+    grip.addEventListener('keydown',event=>{event.stopPropagation();if(event.key==='Escape'){event.preventDefault();finishDrag();}else if(event.key==='ArrowUp'||event.key==='ArrowDown'){event.preventDefault();row.querySelectorAll('.be-account-order button')[event.key==='ArrowUp'?0:1]?.click();grip.focus({preventScroll:true});}});
+    grip.addEventListener('pointerdown',event=>{
+      if(event.button!==0||!event.isPrimary||drag)return;event.preventDefault();event.stopPropagation();
+      drag={row,grip,id:event.pointerId,startX:event.clientX,startY:event.clientY,x:event.clientX,y:event.clientY,active:false};grip.setPointerCapture(event.pointerId);
+    });
+    grip.addEventListener('pointermove',event=>{if(!drag||drag.id!==event.pointerId)return;event.preventDefault();event.stopPropagation();drag.x=event.clientX;drag.y=event.clientY;
+      if(!drag.active&&Math.hypot(drag.x-drag.startX,drag.y-drag.startY)>=5){drag.active=true;row.classList.add('be-account-dragging');document.documentElement.classList.add('be-account-drag-active');dragStatus.textContent='계정을 놓을 위치로 이동해 주세요. Esc로 취소해요.';updateDrag();}
+    });
+    grip.addEventListener('pointerup',event=>{if(drag?.id===event.pointerId){event.preventDefault();event.stopPropagation();drag.x=event.clientX;drag.y=event.clientY;if(drag.active){cancelAnimationFrame(drag.frame);updateDrag();}finishDrag(true);}});
+    for(const type of ['pointercancel','lostpointercapture'])grip.addEventListener(type,event=>{if(drag?.id===event.pointerId)finishDrag();});
+    header.prepend(grip);
+  }
+  document.addEventListener('keydown',event=>{if(drag&&event.key==='Escape'){event.preventDefault();event.stopImmediatePropagation();finishDrag();}},true);
+  window.addEventListener('blur',()=>finishDrag());
+  window.addEventListener('pagehide',()=>finishDrag());
   function enhanceInbox(){
     scheduled=false;
     for(const row of inbox.querySelectorAll(':scope > .account,:scope > .be-naver-account')){
       const naver=row.classList.contains('be-naver-account');
       const header=row.querySelector(naver?'.be-naver-header':'.accountHeader');if(!header)continue;
       const email=row.getAttribute('email')||row.querySelector(naver?'.be-naver-title strong':'.accountTitle')?.textContent?.trim()||'메일 계정';
+      installGrip(row,header,email);
       for(const [selector,label] of [['.compose','새 메일 작성'],['.search','이 계정에서 메일 검색'],['.accountOptionsMenuButton','계정 더보기'],['.markAllAsReadButton','이 계정의 모든 메일을 읽음으로 표시'],['.accountTitleArea','Gmail에서 전체 메일 열기']]){
         const control=header.querySelector(selector);if(!control)continue;set(control,'title',`${label} · ${email}`);set(control,'aria-label',`${label} · ${email}`);
       }

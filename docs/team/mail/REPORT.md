@@ -1,24 +1,30 @@
-# 메일 사용자 흐름 개선 보고
+# 1.2.57 총괄 통합 — 계정 드래그와 네이버 앱내 읽기
 
-- 기준: main `9179f8c`, 앱 1.2.55, 2026-11-10 배정이에요.
-- 변경 파일: `public/js/bongextend-mail-ui.js`, `public/checkerplus-embed.css`예요.
-- 계정별 접기/펼치기 버튼을 추가했어요. 읽지 않은 수와 계정 작업은 헤더에 남고 목록만 접혀요.
-- 버튼에 계정명·aria-expanded·aria-controls를 제공하며 Enter/Space가 Gmail 전역 단축키로 전달되지 않아요.
-- 읽지 않은 수에 ‘안 읽음’ 시각 라벨과 ‘읽지 않은 메일 N통’ 접근성 이름을 추가했어요. 선택 행 강조는 기존 glass/accent 디자인을 유지해요.
-- Gmail 작성·검색·계정 더보기·모두 읽음·전체 메일 열기와 네이버 작성·열기에 대상 계정이 포함된 명확한 이름/힌트를 추가했어요.
-- Gmail 계정 이름을 키보드로 선택하고 Enter/Space로 기존 mouseup 열기 동작을 실행할 수 있어요. 새 경로/새 계정 로직은 없어요.
-- 빈 Gmail 목록은 계정 이름에서 전체 메일을 여는 다음 행동을 안내해요. 연결 오류는 로그인 상태 확인→상단 새로고침 순서로 안내해요.
-- 새 도움말은 독립적인 읽기 대비 면을 사용하고, 필요할 때만 표시해요. 신규 툴바는 없어요.
-- provider 엔진·폴링·계정 index·순서 저장·N 로고·발신자 HTML·본문80%·컴팩트 reader는 변경하지 않았어요.
-- inbox 변경 관찰은 requestAnimationFrame으로 합치고 속성/문구가 달라질 때만 갱신해요. 사용자 저장소는 추가하지 않았어요.
-- 접힘 상태는 현재 DOM의 화면 상태예요. 재열기/계정 엔진 재생성 후 영구 저장은 이번 범위에 포함하지 않았어요.
-- root 공통 파일·빌드·버전·권한·설정은 수정하지 않았어요.
-- 검증: JS syntax와 git diff --check 통과했어요.
-- 검증: 폐기용 Chrome에 현재 CSS/JS만 임시 복사하여 네이버 fixture 전체 통과했어요.
-- 추가 합성 확인: Gmail/네이버 접기·펼치기, Enter/Space, 네이티브 accountAction 불필요 호출 0회, Gmail DOM 재생성 후 키보드 열기 1회, 빈 목록·연결 실패 안내를 확인했어요.
-- reader fixture 전체 통과: 원색·이미지·배율·작은 창/큰 창·제목·resize·번역 동작이에요. 이후 inbox 전용 키보드/안내 CSS만 보정했어요.
-- 최종 계정 캡처: `C:/Users/Revaptor_FX/AppData/Local/Temp/be-naver-mail-gn8uwf/naver-mail-dark.png`, 같은 폴더 unified-mail-light.png/flow-600.png/flow-780.png예요.
-- reader 캡처: `C:/Users/Revaptor_FX/AppData/Local/Temp/be-reader-WEp2bJ` 폴더예요.
-- 밝음/어두움 캡처를 직접 확인했어요. 원본 계정 엔진이 resize 시 요구하는 getMails/getSetting은 합성 객체에 제공했으며 제품 오류를 숨기지 않았어요.
-- 작은 600px fixture는 이전 산출물의 부모 780px 고정 레이아웃 때문에 오른쪽 일부가 잘려요. 총괄의 이번 parent 고정폭 개선 소스가 포함되지 않은 상태이며 최종 통합 확인이 필요해요.
-- 실제 로그인/유료 API/개인 프로필 접근은 없었어요. 최종 앱 빌드·전체 검사·커밋·배포는 총괄 담당이에요.
+- root가 parent 어댑터를 결합했어요. 실제 패키지에서 Gmail↔Naver pointer drop, core.mailAccountOrder 저장·재열기, native account id/index 보존과 기존 위/아래 이동을 확인했어요.
+- Naver 메시지는 선택 시 /json/read 응답을 HTML 허용목록+scriptless sandbox로 표시해요. 원색·raster 이미지·80/100%·목록 복귀·오류 재시도·취소 뒤 응답·520px 검사 통과. 본문은 저장소에 보관하지 않아요. 답장·첨부 전체 기능은 명시적인 네이버에서 열기예요.
+- 실제 로그인 계정의 API 응답 형식·읽음 처리·CID/첨부 및 Naver 본문 번역 전체 경로는 미검증이에요. 합성 통과와 실계정 성공을 구분해요.
+- root 증거: Temp/be-naver-mail-0jmXEq (합성 Naver/정렬/520px), be-reader-UeRJmm (Gmail reader/문맥 메뉴/resize), 집중 JS3개. 실제 계정·유료 요청·개인 프로필 접근은 없었어요.
+
+# 계정 드래그 담당 보고 (통합 계약 이행 완료)
+
+- 기준 main `13661f0`, 앱 1.2.56. 소유 변경: public/js/bongextend-mail-ui.js, public/checkerplus-embed.css, scripts/verify-mail-account-drag.cjs예요.
+- **통합 계약**: naver-mail.ts loaded()에서 iframe document의 `bongextend-mail-account-move` 이벤트를 수신해 주세요.
+- cancelable CustomEvent detail은 `{sourceKey,targetKey,placement}`, placement는 `before` 또는 `after`예요.
+- 키는 기존과 동일한 gmail:소문자주소 / naver:소문자주소예요.
+- 현재 DOM에서 두 키가 존재하고 서로 다른지 검증한 뒤 기존 core.mailAccountOrder 정렬·저장 경로로 적용해 주세요.
+- 수락한 요청은 `event.preventDefault()`로 응답해 주세요. 수락하지 않으면 UI는 DOM·저장소를 변경하지 않아요.
+- parent의 loaded() 재호출 시 옛 document 리스너 해제, 새 document에 1회 설치가 필요해요.
+- 담당은 naver-mail.ts를 수정하지 않았어요. 위/아래 버튼이 쓰는 저장·복원 경로를 root가 공유해 주면 돼요.
+- 구현: Gmail/네이버 헤더 왼쪽 전용 grip에서 pointer capture로 드래그해요. 일반 계정명·본문·입력 영역은 드래그 시작점이 아니에요.
+- 5px 이동부터 드래그 활성화하고 대상 계정의 앞/뒤 위치를 선으로 표시해요. 실제 DOM은 drop 이벤트 수락 시 parent만 변경해요.
+- 화면 안 드래그에 한해 inbox 가장자리 32px에서 자동 스크롤해요.
+- Escape·pointercancel·capture 해제·창 blur/pagehide·원본 계정 제거·영역 밖 놓기는 저장하지 않고 정리해요.
+- 마우스업/클릭이 계정/메일 열기로 전달되지 않으며, grip 위/아래 방향키는 기존 이동 버튼을 호출해요.
+- native account 객체/index·로그인·폴링·본문·N 로고·기존 설정은 변경하지 않아요.
+- 검증: `node scripts/verify-mail-account-drag.cjs` 최종 통과. 소스 HTML 합성 헤더를 폐기용 실제 Chrome에서 실행했어요.
+- 검증 범위: Gmail↔네이버 pointer 이동 이벤트/위치, native ID 보존, 취소/영역 밖/수락 거절 무변경, grip 키보드 이동, 자동 스크롤, 메일 열기 0회, 밝음/어두움·600×500예요.
+- 검사는 parent 어댑터를 모의 구현해 프로토콜을 확인해요. 실제 parent core.mailAccountOrder 저장/재열기는 root 통합 후 기존 네이버 fixture로 확인해야 해요.
+- 캡처: `C:/Users/Revaptor_FX/AppData/Local/Temp/be-mail-drag-61Rumd`의 light.png/dark.png/drag-scroll.png를 직접 확인했어요.
+- JS syntax 및 집중 변경 git diff --check 통과했어요.
+- 앱 build·전체 검사·버전·커밋·배포는 실행하지 않았어요. 실계정·개인 프로필·유료 API 접근은 없었어요.
+- 배정 파일 구현은 종료했어요. root 어댑터 결합 외 추가 사용자 선택은 필요 없어요.

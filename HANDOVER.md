@@ -2,7 +2,18 @@
 
 기준일: 2026-11-10. 이 문서는 기존 v1.2.10 인수인계를 대체해요. 이후 변경은 package.json, CHANGELOG.md, GitHub Releases를 우선 확인하세요.
 
-## 최신 인계 — v1.2.56
+## 최신 인계 — v1.2.57
+
+- 검증 완료: 전체 JS262개+Bun+타입, release ZIP/eval/권한 검사 통과. 최종 SVG mask/상속 mask 두 형태는 alpha/brand 차이0·defs 보존, 실제 패키지 relay도 권한 거절/OFF 복원까지 확인했어요. 배포 결과는 이어서 기록해요.
+- 사용자 최신 요청은 Gmail·네이버 통합 계정의 드래그 정렬과 네이버 앱 내부 본문 읽기예요. 추가로 몰테일 다크 화면의 로고/아이콘 저대비와 상품 빈칸을 조사했어요. 이전 항목의 완료를 새 실계정/사이트 검증으로 간주하지 않아요.
+- 계정 정렬: public/js/bongextend-mail-ui.js 전용 grip(pointer/가장자리 스크롤/Escape·cancel), naver-mail.ts가 cancelable `bongextend-mail-account-move` {sourceKey,targetKey,placement}를 실제 계정 DOM 키로 검증하고 기존 core.mailAccountOrder에 저장해요. native Gmail 객체·index·위/아래 버튼을 보존하고 리스너는 iframe 문서마다 한 번 설치해요.
+- 네이버 읽기: naver-reader.ts, modules/naver-mail/client.js/message.js, public/naver-reader.css. 사용자가 선택한 mailSN만 /json/read로 session POST, redirect:error/no-store/15초/계정·모듈·기존 권한 확인. 닫기/연결 변경/모듈 OFF는 본문을 비우고 늦은 응답을 무시해요. 제목·발신자·80/100%·재시도·명시적 네이버에서 열기를 제공해요.
+- 본문은 저장소에 보관하지 않고 HTML 허용목록으로 복사한 뒤 **allow-scripts 없는 sandbox+script-src none** 프레임에 표시해요. 원래 색/이미지·기본80% 유지, forms/events/active URLs/외부 style·script는 제거해요. Naver 답장/첨부 전체 기능은 원본 사이트에서 해요. **실제 로그인 Naver의 /json/read 응답 형식·읽음 처리·첨부/인라인 CID 이미지는 미검증**이에요. 합성 API fixture 통과를 실계정 성공으로 표현하지 않아요.
+- 다크: 작은 투명 static SVG의 명시적 중립 paint만 공통 보정하고 vector geometry/컬러/alpha/사진을 보존해요. SVG 위험 요소와 크기 상한은 icon-contrast.js를 참고해요. background의 전용 image relay는 실제 sender URL/현재 다크 설정/페이지와 자원 양쪽 기존 origin 권한, credential omit/redirect error/3초/128KiB/동시4를 검증해요. 새 필수 권한·도메인 특례는 없어요.
+- Chrome 검증: 실제 parent 정렬 저장/재열기·객체/index 유지, Naver 앱내 읽기/색·이미지/80%·재시도·닫힌 뒤 지연 응답/520px/스크립트 제거를 be-naver-mail-0jmXEq에서 확인했어요. Gmail reader 원색/이미지/배율/resize/문맥 메뉴는 be-reader-UeRJmm에서 재검사 통과. 실제 패키지 content→CORS 실패→권한 검증 worker→SVG 보정 및 브랜드/alpha/사진 보존·권한 거절·OFF 복원은 be-image-relay-u7mEq7에서 통과했어요. 계정 grip 취소/스크롤과 공개 Malltail SVG 픽셀/위험 SVG 검증은 각 REPORT를 참고해요.
+- **몰테일 상품 사진 빈칸은 미해결/미재현**이에요. 공개1500px와3600×1950 before/ON/OFF 모두 사진 loaded/naturalWidth/URL/filter/opacity를 유지했고 사용자 스크린샷과 일부 외부 CSS 적용 조건도 달라요. 사용자에게 ‘다크 OFF 하면 사진이 나타나는지’ 질문을 보냈고 아직 답변이 없어요. 원인 없이 사진 표시/반전 패치를 추가하지 않았고 이 증상 해결을 주장하지 않아요. 이 후속 진단은 답변이 필요해요.
+
+## 이전 인계 — v1.2.56
 
 - 최종 앱 커밋 **89364c9**, main / [v1.2.56 Release](https://github.com/Baegovda/BongExtend/releases/tag/v1.2.56). CI **42657326353**·Release **42657332139** 모두 success. Chrome ZIP **4,828,953바이트**·Windows 영상 보조 ZIP **22,614바이트** 게시 확인. 이 배정의 구현·검사·푸시·릴리스 완료, 담당팀 모두 idle이며 추가 코딩/시험 프로세스는 없어요. 이후 문서 커밋은 앱 버전을 바꾸지 않아요.
 - 2026-11-10 사용자 후속 요청: 남색을 줄인 Chrome 계열 중립 차콜/밝은 회색·진주빛 유리 UI, 탭 크기 통일, 다운로더 한 줄, 모든 모듈의 사용자 흐름, 치지직 넓은 화면 F11 실패를 반영했어요. package.json은 1.2.56이고 배포 결과는 아래 기록을 최신으로 유지해요.
