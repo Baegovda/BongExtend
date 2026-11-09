@@ -1,5 +1,9 @@
 # BongExtend — 에이전트 안내
 
+## 모듈 담당 팀
+
+사용자는 ForgeLens처럼 총괄과 모듈별 실제 독립 채팅을 나누도록 요청했어요. 팀 작업 시 [조정 문서](docs/team/COORDINATION.md)에서 기존 채팅과 파일 소유권을 확인하고 재사용하세요. 역할 지침은 `.cursor/agents/bong-*.md`, 공통 협업 규칙은 `.cursor/rules/module-team.mdc`예요. 담당자가 없는 새 과제는 총괄이 배정하며, 새 작업 없이 자체 백로그를 만들지 않아요.
+
 ## Primary execution policy — act first, report after
 
 This is the owner's primary working agreement for this project, within higher-priority instructions and actual tool permissions.
