@@ -6,3 +6,20 @@
 #status.error, #updateStatus.error { color: var(--be-error); }
 #updateStatus { min-height: 1.2em; margin: 4px 0 0; color: var(--be-text-2); font-size: 12px; line-height: 1.5; }
 .be-hint { margin: 6px 0 4px; }
+
+body.be-shell { margin: 0; min-width: 0; padding: 14px 16px; background: var(--be-canvas-gradient, var(--be-bg)); }
+.be-title { padding-bottom: 12px; margin-bottom: 12px; border-bottom: 1px solid var(--be-glass-border, var(--be-border)); gap: 8px; flex-wrap: wrap; }
+.be-title h3 { font-size: 17px; letter-spacing: -.5px; }
+.be-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-items: start; }
+.be-col { min-width: 0; gap: 12px; }
+.be-card { background: var(--be-glass, var(--be-surface)); border: 1px solid var(--be-glass-border, var(--be-border)); box-shadow: var(--be-glass-shadow, none); border-radius: 16px; padding: 12px 14px; }
+.be-sec > h4 { font-size: 12px; color: var(--be-text-2); letter-spacing: 0; padding-bottom: 9px; margin: 0 0 6px; }
+.be-row { gap: 12px; padding: 10px 0; }
+.be-row-text { min-width: 0; line-height: 1.5; overflow-wrap: anywhere; }
+.be-row-text small { margin-top: 4px; line-height: 1.55; }
+.be-row > input, .be-row > button { flex-shrink: 0; }
+.be-row > button { white-space: normal; max-width: 45%; background: var(--be-control-bg, var(--be-surface-2)); border-color: var(--be-control-border, var(--be-border-strong)); border-radius: 9px; }
+#status { border-left: 2px solid var(--be-accent); padding-left: 10px; overflow-wrap: anywhere; }
+.be-hint { line-height: 1.65; }
+@media (max-width: 600px) { .be-grid { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 360px) { body.be-shell { padding: 12px; } .be-row { flex-wrap: wrap; } .be-row > button, .be-row > input { margin-left: auto; max-width: 100%; } }

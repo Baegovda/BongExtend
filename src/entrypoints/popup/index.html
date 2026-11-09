@@ -5,9 +5,9 @@
     <meta content="width=device-width, initial-scale=1.0" name="viewport">
     <title>BongExtend</title>
     <style>
-      html { color-scheme: dark; background: #000000; color: #ffffff; }
+      html { color-scheme: dark; background: #0c1019; color: #f4f6ff; }
       @media (prefers-color-scheme: light) {
-        html { color-scheme: light; background: #f2f2f7; color: #1c1c1e; }
+        html { color-scheme: light; background: #eef1f8; color: #192239; }
       }
     </style>
     <link href="./style.css" rel="stylesheet">
@@ -45,12 +45,14 @@
     <section class="panel be-shell dark-panel" data-frame="dark" hidden>
         <div class="be-title"><h3>다크 모드</h3><span id="darkSiteLabel" class="be-sub">현재 사이트 확인 중…</span></div>
         <div class="be-card be-sec dark-top">
+            <h4>사용 범위</h4>
             <label class="be-row"><span class="be-row-text"><span>모든 사이트에서 사용</span><small>처음 켤 때 모든 웹사이트 접근 권한을 요청해요.</small></span><input id="darkEverywhere" type="checkbox" role="switch"></label>
             <label class="be-row"><span class="be-row-text"><span>현재 사이트에서 사용</span><small id="darkSiteNote">사이트별로 켜고 끌 수 있어요.</small></span><input id="darkCurrentSite" type="checkbox" role="switch"></label>
             <label class="be-row"><span>시스템 다크 모드 따라가기</span><input id="darkFollowSystem" type="checkbox" role="switch"></label>
             <label class="be-row"><span>현재 사이트만 따로 꾸미기</span><input id="darkCustomSite" type="checkbox" role="switch"></label>
         </div>
         <div class="be-card be-sec dark-options">
+            <h4>화면 조정</h4>
             <label class="be-row dark-select"><span>화면 처리</span><select id="darkMode"><option value="1">다크 테마 (권장)</option><option value="0">차분한 다크</option></select></label>
             <label class="dark-slider"><span>밝기 <b id="darkBrightnessValue">100%</b></span><input id="darkBrightness" type="range" min="50" max="120" value="100"></label>
             <label class="dark-slider"><span>대비 <b id="darkContrastValue">100%</b></span><input id="darkContrast" type="range" min="50" max="120" value="100"></label>
@@ -138,7 +140,7 @@
     </section>
     <section class="panel be-shell fx-panel" data-frame="fx" hidden>
         <div class="be-title"><h3>환율</h3><span class="be-sub">선택한 통화 비교</span><button id="fxManageCurrencies" type="button">통화 추가·관리</button></div>
-        <div class="fx-row">
+        <div class="fx-converter be-card"><div class="fx-row">
             <input id="fxAmount" inputmode="decimal" type="number" value="10000" min="0" step="any" aria-label="금액">
             <img id="fxFromIcon" class="fx-flag" alt="" width="22" height="22">
             <select id="fxFrom" aria-label="시작 통화"></select>
@@ -146,7 +148,7 @@
             <img id="fxToIcon" class="fx-flag" alt="" width="22" height="22">
             <select id="fxTo" aria-label="바꿀 통화"></select>
         </div>
-        <p id="fxResult" class="fx-result">계산 중…</p>
+        <p id="fxResult" class="fx-result">계산 중…</p></div>
         <div id="fxMore" class="fx-board"></div>
         <dialog id="fxPicker" aria-labelledby="fxPickerTitle"><h2 id="fxPickerTitle">표시할 통화 선택</h2><input id="fxCurrencySearch" type="search" placeholder="통화 이름 또는 코드 검색" aria-label="통화 검색"><div class="fx-picker-actions"><button id="fxSelectAll" type="button">전체 선택</button><button id="fxSelectNone" type="button">선택 해제</button></div><p id="fxCurrencyCount" role="status"></p><div id="fxCurrencyList"></div><div class="fx-picker-actions"><button id="fxPickerCancel" type="button">취소</button><button id="fxPickerApply" type="button">선택 적용</button></div></dialog>
         <p id="fxStatus" class="be-hint"></p>

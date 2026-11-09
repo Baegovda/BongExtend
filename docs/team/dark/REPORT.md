@@ -1,5 +1,25 @@
 # 공통 대비 보정과 긴급 쪽지 조사 보고
 
+## 2026-11-10 메뉴·반투명 미리보기 보완 (최신 배정)
+
+- 총괄 최종 공개/합성 재검사 통과: 10000노드 상한과 자기 mutation 안정화(visited6064/styleReads1765/animationReads2/maxBatch180), 공개 네이버 카드면·outline, codex-resets 범례·가시칸 색 일치 유지. `C:/Users/REVAPT~1/AppData/Local/Temp/be-contrast-BYL2Em`. 실제 로그인 메뉴·미리보기 검증은 아니에요.
+- 추가 검토 반영: selected 경계만으로 탭띠 문제를 해결했다고 보지 않아요. role=tablist/nav/navigation의 작은 조작요소2~12개, 높이100px 이하, 원래 불투명한 중립 표면이 있고 부모와 대비가 낮은 조건에서 **그룹 면만 RGB+10**으로 구분해요. 투명 nav·그림/disabled 포함 그룹·움직이는 효과는 그대로예요. 도메인/네이버 클래스 분기는 없어요.
+- 실제 변경 수치(합성): 탭띠 bg rgb(24,26,27)→rgb(34,36,37), 투명 nav inline background 변경 없음. 반투명 미리보기는 .72 group opacity/.85 color alpha 보존 + 최종 합성 대비>=4.5 확인. 글자 크기/굵기·기존 의미색·선택 경계 위계는 유지해요.
+- 성능 추가 개선: batch별 computed-style/실제 paint-animation 판정 WeakMap 캐시, animation/transition 선언이 없는 정상 글자는 getAnimations 호출 생략. stats에 styleReads/animationReads만 추가했고 소비 API는 동일해요.
+- 최종 관련 검사: 단위3개와 합성 브라우저 통과. 10000노드 한정 검사 누적 visited6064/styleReads1763/animationReads2/maxBatch180, 정상 글자 stress 중 animationReads 증가0, 48pass 후 무한/자기 dirty 재순회 없이 안정. 최종 캡처 C:/Users/REVAPT~1/AppData/Local/Temp/be-contrast-OkvmfT/synthetic-dark.png 직접 확인했어요.
+- 이번 마지막 표면·캐시 변경 후 비로그인 공개 검사를 중복 실행하지 않았어요. 실제 로그인 메뉴/메일 미리보기 구조와 개선 효과는 여전히 미확인이며 사용자 사진의 모든 문제가 해결됐다고 주장하지 않아요. 전체 UI 리디자인/완벽한 사이트별 수작업 품질 완료도 아니에요. 추가 build/ZIP/커밋/배포는 하지 않았어요.
+
+- 기준 main118f4f5/앱1.2.54. 담당 변경은 contrast.js, test/contrast.test.js, scripts/verify-dark-contrast-browser.cjs, REPORT예요. .d.ts/API는 변경하지 않았고 타 팀 변경을 보존했어요.
+- 원인 후보를 공통 보완: 이전에는 opacity<.99인 글자/조상이면 전부 건너뛰었어요. 이제 안정된 opacity .5 이상 중립 글자는 조상별 배경alpha와 group opacity를 안쪽부터 합성해 최종 대비4.5:1을 계산해요. 원래 opacity와 color alpha 모두 보존하며 색의 RGB만 필요한 만큼 밝게 해요.
+- 실제 실행 중인 opacity/color/background 애니메이션·전환은 제외하고 종료 후 다시 평가해요. 자기 color 전환 종료로 재보정 루프가 생기지 않도록 소유 이벤트는 제외했어요.
+- 명시 role=tab+aria-selected 또는 aria-current 링크/메뉴가 부모와 가까운 면색이고 유효한 기존 경계/그림자/outline이 없을 때만 얇은 중립 경계를 더해요. 기존 선택 경계·의미색·focus는 유지해요. aria 상태 변경 시 복원해요.
+- 새로운 도메인 분기는 없어요. 콘텐츠 사이트에 확장 UI 유리 토큰을 넣지 않았고, 글자 굵기/크기/내용/원래 사진/브랜드/숨김/disabled/편집 영역은 유지해요.
+- 검사: 단위3개 통과. 합성 Chrome에서 중첩 background alpha+.72 group opacity+.85 글자 alpha의 실제 합성 대비>=4.5, opacity/alpha 불변, idle transition 선언은 허용, 실제 fade 보호, 선택 해제 시 경계 복원, 브랜드/hidden/disabled/stop/새 inline 보존 통과했어요.
+- 자기 mutation 안정화와 10000노드 상한 검사 통과(최대batch180, 방문6058 누적, 최종 재검사42pass 후 안정). 기존 공개 Naver/codex-resets API+helper 검사도 통과했어요. 전체 빌드/타입/ZIP/릴리스는 실행하지 않았어요.
+- 직접 화면 검수: C:/Users/REVAPT~1/AppData/Local/Temp/be-contrast-WBpZIg/synthetic-dark.png (일반 구조 합성), naver-dark.png (비로그인 공개 메인), codex-resets-dark.png. 최종 추가 합성 ratio assert 재검사 폴더는 be-contrast-oyymg0예요.
+- 한계: 로그인 프로필 탭과 실제 메일 미리보기 DOM은 접근하지 않았어요. 사용자 증상 해결 완료는 미확인이에요. 사진/gradient 배경·filter/blend·강한 의미색·opacity<.5·최대 밝기로도 목표대비 불가능한 글자는 안전하게 미보정해요. 모든 페이지를 수작업 수준으로 완성했다는 증거는 아니에요.
+- 총괄 의존: 기존 연결 API 변경 없이 새 helper를 다음 통합 빌드에 포함하고 실제 사용자 페이지 적용 후 확인해야 해요. 담당 배정을 마쳐요.
+
 ## 총괄 통합 v1.2.54 (2026-11-10)
 
 - 최종 배포: 앱 commit bf6d335 main + v1.2.54. GitHub CI42642155913 / Release42642160225 모두 success. Chrome ZIP4,812,254바이트·Windows 보조 ZIP22,615바이트 게시 확인. 사용자 Chrome에 실제 적용됐다는 뜻은 아니에요.

@@ -29,7 +29,7 @@ const {chromium}=require('playwright'),fs=require('node:fs'),os=require('node:os
   await page.screenshot({path:path.join(temp,'manager.png')});
   await page.locator('[data-download-view="/recent-downloads.html"]').click();await frame.locator('#video').waitFor({state:'visible'});
   await page.emulateMedia({colorScheme:'dark'});
-  await page.locator('[data-download-view="/ui/options.html"]').click();await frame.locator('input:visible').first().waitFor();
+  await frame.locator('#settings').click();await frame.locator('input:visible').first().waitFor();
   await page.waitForFunction(()=>{const doc=document.querySelector('#chronoPopupFrame').contentDocument;return getComputedStyle(doc.querySelector('.mainview > .selected')).opacity==='1';});
   assert.notEqual(await frame.locator('.mainview section:visible').first().evaluate(e=>getComputedStyle(e).color),'rgb(0, 0, 0)','settings sections stay readable in dark mode');
   await page.screenshot({path:path.join(temp,'settings-dark.png')});

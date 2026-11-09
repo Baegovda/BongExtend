@@ -26,6 +26,27 @@ select{min-width:76px}
 #last{flex-basis:100%;font-size:12px}
 #updateStatus{color:var(--be-muted);margin:6px 0;word-break:keep-all}
 #updateStatus.error{color:var(--be-error)}
+/* Module layout: the app theme owns the light/dark glass palette. */
+body{margin:0;background:var(--be-canvas-gradient,var(--be-bg));min-width:0}
+.be-title{padding:0 0 12px;margin-bottom:12px;border-bottom:1px solid var(--be-glass-border,var(--be-border));gap:8px;flex-wrap:wrap}
+.be-title h3{font-size:17px;letter-spacing:-.5px}
+.grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.col{min-width:0;gap:12px}
+.be-card{padding:10px 14px 12px;border-radius:16px;background:var(--be-glass,var(--be-surface));border:1px solid var(--be-glass-border,var(--be-border));box-shadow:var(--be-glass-shadow,none)}
+.be-card h4{font-size:12px;letter-spacing:0;color:var(--be-text-2);margin:2px 0 6px;padding-bottom:9px;border-bottom:1px solid var(--be-border)}
+label{padding:7px 0;line-height:1.5;min-width:0;overflow-wrap:anywhere}
+label>input,label>select{flex-shrink:0}
+.inline{justify-content:flex-end;flex-wrap:wrap;min-width:0;max-width:65%}
+.inline input[type=range]{max-width:100%}
+input[type=number],select,button{background:var(--be-control-bg,var(--be-surface-2));border-color:var(--be-control-border,var(--be-border-strong));border-radius:9px}
+.watch-row{flex-wrap:wrap;gap:8px}
+.watch-row input{flex-basis:150px}
+.watch-row button{max-width:100%;white-space:normal}
+.hint{line-height:1.6;margin:2px 0 8px;overflow-wrap:anywhere}
+.c{margin-top:8px;padding-top:8px;border-top:1px solid var(--be-border)}
+#watchListEl{overflow-wrap:anywhere}
+@media(max-width:600px){.grid{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:360px){body{padding:12px}.be-card{padding:10px 12px}label{flex-wrap:wrap}label>input,label>select,.inline{margin-left:auto}.inline{max-width:100%}}
 </style>
 </head><body class="be-page">
 <div class="be-title"><h3>치지직</h3><span class="be-sub">라이브 시청 편의 기능</span></div>

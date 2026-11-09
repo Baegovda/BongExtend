@@ -31,3 +31,27 @@ legend { font-weight: 700; padding: 0 6px; color: var(--be-text); }
 #status.warn, #updateStatus.warn { color: var(--be-warn); }
 #updateLinks { display: flex; gap: 8px; margin: 8px 0 0; }
 #updateLinks[hidden] { display: none; }
+
+body.be-page { margin: 0; background: var(--be-canvas-gradient, var(--be-bg)); }
+main { max-width: 760px; padding: 36px 24px 64px; }
+header { gap: 16px; margin-bottom: 24px; }
+header img { flex-shrink: 0; border-radius: 14px; box-shadow: var(--be-glass-shadow, none); }
+h1 { font-size: 24px; letter-spacing: -.8px; }
+.be-card { background: var(--be-glass, var(--be-surface)); border: 1px solid var(--be-glass-border, var(--be-border)); box-shadow: var(--be-glass-shadow, none); border-radius: 20px; padding: 24px; }
+.field, .choice span { min-width: 0; }
+.field { gap: 7px; }
+.be-page input[type="password"], .be-page input[type="text"], .be-page select { box-sizing: border-box; min-width: 0; background: var(--be-control-bg, var(--be-surface-2)); border-color: var(--be-control-border, var(--be-border-strong)); border-radius: 10px; padding: 10px 12px; }
+fieldset { margin-top: 24px; padding: 14px 16px 16px; border-radius: 14px; background: var(--be-control-bg, var(--be-surface-2)); }
+legend { font-size: 12px; color: var(--be-text-2); }
+.choice { padding: 8px 0; margin: 0; gap: 10px; line-height: 1.55; }
+.choice + .choice { border-top: 1px solid var(--be-border); }
+.choice input { flex-shrink: 0; }
+.choice strong, .hint, .note p { overflow-wrap: anywhere; }
+.choice:has(input:checked) strong { color: var(--be-accent); }
+.cache-stats { gap: 10px; }
+.cache-stats p { padding: 12px; border: 1px solid var(--be-glass-border, var(--be-border)); border-radius: 12px; background: var(--be-glass, var(--be-surface)); }
+.cache-stats strong { font-size: 21px; font-variant-numeric: tabular-nums; }
+.actions { gap: 10px; }
+.be-page .actions button { border-radius: 10px; min-height: 36px; }
+.note { margin-top: 16px; }
+@media (max-width: 480px) { main { padding: 20px 12px 40px; } header { align-items: flex-start; } h1 { font-size: 20px; } .be-card { padding: 16px; border-radius: 16px; } fieldset { padding: 12px; } }

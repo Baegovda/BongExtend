@@ -9,7 +9,27 @@ const fs=require('node:fs'),os=require('node:os'),path=require('node:path'),asse
  const install=async()=>page.addScriptTag({content:source+';window.contrast=createContrastController(document);window.contrast.start();'});
  try{
   await page.setContent(`<html data-darkreader-scheme="dark"><body style="background:#181a1b;color:#333;font:18px sans-serif"><div id="card" style="background:#181a1b;box-shadow:0 0 0 1px #222;width:400px;padding:20px"><span id="low">일반 글자 대비 보정</span><span id="alpha" style="color:rgba(100,100,100,.5)">반투명 글자</span></div><p id="good" style="color:#ddd">읽기 좋은 글자</p><p id="brand" style="color:rgb(180,30,20)">브랜드색 보존</p><button disabled style="color:#333">비활성</button><div hidden>숨김</div><div style="opacity:.3"><span id="faded">의도적 투명</span></div><div contenteditable="true" style="color:#333">편집 영역</div><button><svg id="icon" width="20" height="20" viewBox="0 0 20 20"><path fill="currentColor" d="M0 0h20v20H0z"/></svg></button></body></html>`);
+  await page.evaluate(()=>document.body.insertAdjacentHTML('beforeend',`<section style="opacity:.72;background:rgba(255,255,255,.04)"><p id="stableText" style="color:rgba(75,75,75,.85);transition:color .2s">안정된 반투명 미리보기</p></section><div role="tablist"><button id="selectedTab" role="tab" aria-selected="true" style="background:#202324;color:#444">선택 탭</button><button id="otherTab" role="tab" aria-selected="false" style="background:#202324;color:#444">다른 탭</button></div><style>@keyframes fadeText{from{opacity:.6}to{opacity:.9}}</style><p id="animatingText" style="animation:fadeText 1s infinite;color:#444">의도적 페이드</p>`));
   await install();await page.waitForTimeout(700);
+  await page.evaluate(()=>{
+   const group=document.querySelector('[role="tablist"]');group.id='tabStrip';group.style.cssText='background:rgb(24,26,27);width:400px;height:44px;padding:8px';
+   const nav=document.createElement('nav');nav.id='transparentNav';nav.innerHTML='<a href="#">투명 탐색 1</a> <a href="#">투명 탐색 2</a>';document.body.append(nav);
+  });await page.waitForTimeout(250);
+  assert.equal(await page.locator('#tabStrip').evaluate(e=>getComputedStyle(e).backgroundColor),'rgb(34, 36, 37)');
+  assert.equal(await page.locator('#transparentNav').evaluate(e=>e.style.backgroundColor),'');
+  assert.notEqual(await page.locator('#stableText').evaluate(e=>e.style.color),'rgba(75, 75, 75, 0.85)');
+  assert.equal(await page.locator('#stableText').evaluate(e=>getComputedStyle(e.parentElement).opacity),'0.72');
+  assert.equal(await page.locator('#stableText').evaluate(e=>getComputedStyle(e).color.match(/[\d.]+/g).at(-1)),'0.85');
+  assert.ok(await page.locator('#stableText').evaluate(e=>{
+   const base=[24,26,27,1],surface=composite([255,255,255,.04],base),fg=parseColor(getComputedStyle(e).color);
+   const ink=composite([...composite(fg,surface).slice(0,3),.72],base),paper=composite([...surface.slice(0,3),.72],base);
+   return contrastRatio(ink,paper)>=4.5;
+  }),'actual nested alpha/opacity compositing must meet 4.5:1');
+  assert.match(await page.locator('#selectedTab').evaluate(e=>e.style.outline),/solid/);
+  assert.equal(await page.locator('#otherTab').evaluate(e=>e.style.outline),'');
+  assert.equal(await page.locator('#animatingText').evaluate(e=>e.style.color),'rgb(68, 68, 68)');
+  await page.locator('#selectedTab').evaluate(e=>e.setAttribute('aria-selected','false'));await page.waitForTimeout(200);
+  assert.equal(await page.locator('#selectedTab').evaluate(e=>e.style.outline),'');
   assert.notEqual(await page.locator('#low').evaluate(e=>getComputedStyle(e).color),'rgb(51, 51, 51)');
   assert.match(await page.locator('#card').evaluate(e=>e.style.outline),/solid/);
   assert.equal(await page.locator('#brand').evaluate(e=>e.style.color),'rgb(180, 30, 20)');
@@ -36,9 +56,12 @@ const fs=require('node:fs'),os=require('node:os'),path=require('node:path'),asse
   assert.equal(await page.locator('#close [data-kind="beta"]').evaluate(e=>e.style.backgroundColor),'rgb(85, 189, 214)');
   assert.equal(await page.locator('#distinct [data-kind="beta"]').evaluate(e=>e.style.backgroundColor),'rgb(51, 189, 221)');
   const settled=await page.evaluate(()=>contrast.stats.passes);await page.waitForTimeout(400);assert.equal(await page.evaluate(()=>contrast.stats.passes),settled);
+  const beforeStress=await page.evaluate(()=>({...contrast.stats}));
   await page.evaluate(()=>{contrast.stop();document.body.innerHTML='<p>성능 검사</p>'+Array.from({length:10000},()=>'<span>후보</span>').join('');contrast.start();});
   await page.waitForTimeout(3500);const bounded=await page.evaluate(()=>({...contrast.stats}));
   assert.ok(bounded.maxBatch<=180);const boundedPasses=bounded.passes;await page.waitForTimeout(400);assert.equal(await page.evaluate(()=>contrast.stats.passes),boundedPasses);
+  assert.equal(bounded.animationReads,beforeStress.animationReads,'solid text must not query animations for every ancestor');
+  assert.ok(bounded.styleReads-beforeStress.styleReads<6000,'batch cache bounds ancestor style re-reads');
   console.log('PASS independent chart scopes and bounded 10000-node traversal:',bounded);await page.evaluate(()=>contrast.stop());
   // Paint-order diagnostic, not a claim about the actual signed-in note DOM.
   const layer=await browser.newPage({viewport:{width:800,height:600}});

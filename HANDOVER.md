@@ -2,7 +2,16 @@
 
 기준일: 2026-11-10. 이 문서는 기존 v1.2.10 인수인계를 대체해요. 이후 변경은 package.json, CHANGELOG.md, GitHub Releases를 우선 확인하세요.
 
-## 최신 인계 — v1.2.54
+## 최신 인계 — v1.2.55
+
+- 사용자 승인으로 BongExtend 전체 UI를 **세련됨·고급스러움·유리 질감·그라데이션·오묘한 색상·애플 감성** 방향으로 리메이크했어요. AGENTS.md에 지속 정책과 다크 모드의 “사이트를 디자이너가 직접 재설계한 듯한 자연스러움” 목표를 기록했어요.
+- 공통 theme.css/tokens.js에 남청색/진주색·청록/보라 sheen·glass/control/gradient 토큰, 대비·focus·모션/투명도 줄이기·불투명 fallback을 넣었어요. 앱 셸, 메일·다운로더·번역·치지직·디시·환율·다크·공통 설정/업데이트를 연결했어요. 메일 원색/80%·계정 순서·기존 기능/라이선스/데이터는 유지해요.
+- 다운로더 actual task row0은 기존 vendor에서도 재현됐어요. `__cdexp_$0` 로컬 DB 조회 export 부재로 wf.eg가 []를 반환하던 것을 public/download-module.js의 native **readonly** adapter로 복구했어요. 숫자 state3/4·exists/recycled는 원본과 맞췄고 DB migration/파일삭제/권한 확대는 없어요. focus/click으로 즉시 닫히던 검색도 고쳤어요.
+- 웹 다크 공통 엔진: stable opacity>=.5 중립 글자는 원래 opacity/color alpha를 유지하며 합성 대비4.5를 보정해요. 명시된 선택 상태와 원래 불투명한 탭/탐색 그룹의 면을 구분하고, 의도적 fading/브랜드/사진/숨김/disabled/투명 nav는 보존해요. 스타일/애니메이션 조회 batch 캐시와 상한을 검증했어요. 콘텐츠 사이트에 확장 UI glass 색을 강제로 씌우지 않아요.
+- 검증: 전체 JS254개+Bun+타입, ZIP/eval/권한. Chrome 임시 프로필에서 7모듈 밝음/어두움 및600/360px, 합성 schema의 실제 디시 Vue control, 메일 reader/원색/배율/resize/context menu, 다운로드 실제2MiB 시작/일시정지/재개/재시작/바이트일치/완료개수/목록제거후파일보존/설정저장·오류0, 관리자 실제작업/검색/선택/734·440px, 공통 다크 합성·공개 네이버/리셋 범례 검사 통과. 개별 REPORT.md에 캡처·근거가 있어요.
+- **실제 로그인 네이버 메뉴·메일 미리보기와 쪽지 목록은 여전히 미확인**이에요. 사용자 최신 스크린샷과 구조가 같다는 근거 없이 해결됐다고 말하지 않아요. 사용자 실제 Chrome 적용·기존 페이지 새로고침도 배포와 별개예요. 모든 사이트의 완벽한 재디자인이나 경쟁 제품보다 우월함이 입증됐다는 주장은 하지 않아요.
+
+## 이전 인계 — v1.2.54
 
 - 최신 구현은 package.json/CHANGELOG의 **1.2.54**예요. 아래 v1.2.40 상태·파일 지도는 과거 기준이며 최신 상태를 덮어쓰지 않아요. 배포 결과·커밋은 최신 GitHub Release/main을 확인하세요.
 - 앱 커밋 **bf6d335** main, [v1.2.54 Release](https://github.com/Baegovda/BongExtend/releases/tag/v1.2.54). CI **42642155913**·Release **42642160225** 모두 성공했고 Chrome ZIP(4,812,254바이트)·Windows 영상 보조 ZIP(22,615바이트) 게시를 확인했어요. 이후 문서 커밋은 앱 버전을 바꾸지 않아요. 이 요청의 코드·검사·배포는 완료했고 담당 다크팀은 idle이에요. 실제 사용자 Chrome 설치·실계정 쪽지 검증은 하지 않았어요.

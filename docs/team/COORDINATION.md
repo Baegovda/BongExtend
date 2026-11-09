@@ -4,6 +4,7 @@
 
 ## 기준과 총괄
 
+- 최신 작업(2026-11-10): 앱1.2.54/main118f4f5에서 전체 UI 리메이크→1.2.55 통합. 총괄은 공통 theme/tokens·앱 셸·환율/다크/공통설정/업데이트·통합검수·배포, 다운로더팀은 public/download-module.*·recent-downloads.*·전용검사, 메일팀은 전용UI/reader테마, 디시팀은 디시·치지직·번역 설정UI를 맡았어요. 이후 네이버 메뉴 지적으로 다크팀이 공통 반투명 글자·탭/탐색 면을 보완했어요. 담당은 모두Sol/medium, Astra미사용이며 배정을 마친 상태예요. 총괄이 발견한 다운로더 DB 읽기 export 누락·검색이벤트와 남은control대비를 통합 수정했어요. 데이터/권한/라이선스를 보존했고 .output 빌드는 총괄만 했어요. 실제 로그인 네이버 화면·사용자 설치는 미확인이에요.
 - 앱 기준: 1.2.49, `ae2dfd6`, main. 최신 상태는 항상 실제 Git과 package.json을 다시 확인해요.
 - 실제 Git 루트: `C:/Users/Revaptor_FX/Documents/Codex/2026-11-04/https-github-com-baegovda-bongextend-https/work/BongExtend`.
 - 저장된 BongExtend 프로젝트 폴더 `C:/Users/Revaptor_FX/Documents/BongExtend`는 배포 폴더이므로 그곳을 소스 체크아웃으로 오인하지 않아요.

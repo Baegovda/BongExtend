@@ -13,3 +13,8 @@ test('repair only low contrast neutral text, preserve readable and saturated col
  assert.equal(readableColor([240,240,240,1],bg),null);
  assert.equal(readableColor([180,30,20,1],bg),null);
 });
+test('neutral rgba repair retains alpha and must meet composited contrast',()=>{
+ const bg=[24,26,27,1],fg=[80,80,80,.7],color=parseColor(readableColor(fg,bg));
+ assert.equal(color[3],.7);assert.ok(contrastRatio(composite(color,bg),bg)>=4.5);
+ assert.equal(readableColor([40,40,40,.1],bg),null);
+});

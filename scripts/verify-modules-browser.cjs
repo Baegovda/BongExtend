@@ -24,7 +24,9 @@ await until(async()=>{const [d]=await page.evaluate(id=>chrome.downloads.search(
 console.log('PASS paused');
 await fire({cmd:'t_start',data:[[taskid],null]});
 const finished=await until(async()=>{const [d]=await page.evaluate(id=>chrome.downloads.search({id}),download.id);return d?.state==='complete'&&d;},'resume and finish');
-assert.deepEqual(fs.readFileSync(finished.filename),payload);console.log('PASS resumed, complete bytes match');
+assert.deepEqual(fs.readFileSync(finished.filename),payload);
+await until(()=>page.evaluate(async()=>await wf.eg(13,-1,'finished')===1),'UI completed task count');
+console.log('PASS resumed, complete bytes match, UI readonly completed count');
 await fire({cmd:'t_restart',data:[[taskid],null]});
 const restarted=await until(async()=>{const ds=await page.evaluate(()=>chrome.downloads.search({}));return ds.find(d=>d.url===url&&d.id!==download.id&&d.state==='complete');},'restart');
 assert.deepEqual(fs.readFileSync(restarted.filename),payload);console.log('PASS restarted bytes match');

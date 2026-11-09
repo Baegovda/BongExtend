@@ -1,27 +1,23 @@
-# 메일 UI·계정 순서 작업 보고
+# 메일 glass UI 작업 보고
 
-- 배정 기준: main `601d6ed`, 앱 1.2.50. 총괄의 1.2.51·공통 상단 변경을 보존했어요.
-- 변경: `public/checkerplus-embed.css`, `public/js/bongextend-mail-ui.js`, `src/entrypoints/popup/naver-mail.ts`, 메일·네이버 브라우저 검사 스크립트 2개예요.
-- 읽기 도구를 높이 36px 한 줄 아이콘으로 줄이고 한국어 title/aria-label, 기존 handlers·더보기를 유지했어요.
-- 제목 상단 고정을 유지하며 최대 40px로 줄였고 발신자 카드·본문 여백·답장 도크도 줄였어요.
-- 본문만 CSS zoom 80%이며 같은 줄의 80/100% 버튼으로 복구해요. 배율은 현재 화면에서만 유지해요.
-- 발신자 HTML 색·이미지를 다시 쓰지 않고 답장 입력과 조작 버튼은 정상 배율이에요.
-- 125% 폭 보정은 실제 직사각형 검사에서 넘침이 있어 제거했어요. width 100%·border-box로 검증했어요.
-- Gmail popup.js에서 재사용 가능한 계정 drag/order 구현은 발견하지 못했어요. 원본 엔진은 수정하지 않았어요.
-- Gmail 이메일과 네이버 주소의 provider 접두사 키를 `core.mailAccountOrder`에 저장해요.
-- 위/아래 버튼은 DOM 행만 이동하며 Gmail native index·계정 객체를 변경하지 않아요.
-- 네이버 마지막 강제 이동을 제거했고 동일 순서이면 DOM을 이동하지 않아 observer 반복을 막아요.
-- 동적 계정 추가·같은 키 새 DOM 교체 시 현재 행을 조회해요. 키보드 초점, 저장 실패 안내, 다른 창 storage 변경도 처리해요.
-- 최종 build·TypeScript 검사 통과. 전체 앱 시험은 총괄이 맡았어요.
-- 최종 `node scripts/verify-mail-reader-browser.cjs` 통과: 밝음/어두움, 색·이미지, 아이콘, 80/100%, 600×500·780×590·1100×800 본문 폭/제목 높이, resize·저장, 번역 메뉴예요.
-- 최종 `node scripts/verify-naver-mail-browser.cjs` 통과: 순서 저장·재열기, 동적 Gmail DOM 교체, native id 7 보존, Enter 이동·초점, 외부 storage 변경, 네이버 목적 URL 보존이에요.
-- 폐기용 Chrome·합성 계정/메일이며 실계정 전송·읽음·삭제나 개인 프로필 접근은 없었어요.
-- 번역은 zoom 조상에서 고정 overlay 대신 native 번역 텍스트로 표시하는 기존 처리를 유지해요. 줌 상태의 번역 성공을 확인했어요.
-- 읽기 캡처 폴더: `C:/Users/REVAPT~1/AppData/Local/Temp/be-reader-sOdiHe` (reader-dark.png, reader-light.png, resizable-window.png).
-- 최종 계정 캡처 폴더: `C:/Users/REVAPT~1/AppData/Local/Temp/be-naver-mail-4Kmp9C` (naver-mail-dark.png, unified-mail-light.png). 오류 toast 없이 직접 확인했어요.
-- 이전 오류의 최소 fixture 원인 추정은 정정해요. sendMessage 계측 결과 계정 생성 전 오류 없음, Enter 이동 후 `accountAction` 오류가 있었어요.
-- 원인은 popup.js:6782의 body keydown이 Enter를 Gmail 계정 열기로 처리한 것이에요. 순서 버튼 keydown 전파 차단 1줄로 수정했어요. 제품 오류 숨김 처리는 없어요.
-- 재생성 Gmail fixture에 native id 7을 넣고, 클릭·Enter 이동 전후 accountAction 호출이 0회인지 회귀 검사했어요. 수정 후 최종 네이버 브라우저 검사·build 통과했어요.
-- 실계정·임의 고정폭 HTML 전체의 종합 검증은 하지 않았어요. 커밋·푸시·릴리스는 총괄 영역이에요.
-- 총괄 통합: keydown 수정을 포함한 1.2.51 ZIP을 다시 만들고 ZIP·타입·eval·권한 검사까지 통과했어요. 전체 시험 238개와 담당의 관련 브라우저 검증 증거를 재사용했어요.
-- 총괄이 reader-dark/resizable-window 및 오류 없는 최종 계정 화면을 직접 확인했어요. 메일 활성 상태의 부모 앱 바는 작은 창에서도 34px 한 줄이고, 메일 전용 embed 화면에는 설정·새로고침을 작은 도구 줄로 남겨요.
+- 총괄 최종 통합: 신규 공통 토큰 빌드의 reader Chrome 검사 전체 통과. 본문 원색/이미지/80%배율, 붙은 팝업 크기·800px cap, 별도 앱 창 크기/기억/drag/keyboard, 메일·웹페이지 번역 메뉴 모두 통과했고 초기 일회성 연결 오류는 재발하지 않았어요. `C:/Users/REVAPT~1/AppData/Local/Temp/be-reader-pCE53f/reader-dark.png` 직접 확인했어요. 합성 메일이며 실계정은 아니에요.
+- 기준: main `118f4f5`, 앱 1.2.54, 2026-11-10 배정이에요.
+- 소유 변경 파일: `public/checkerplus-embed.css` 하나예요. JS·공통 popup/theme/token은 수정하지 않았어요.
+- 목록·Gmail/네이버 계정 카드·읽기 헤더/도크·배율/순서 버튼·더보기 메뉴에 공통 glass/control/gradient 토큰을 연결했어요.
+- 목록 카드는 얇은 빛 테두리와 은은한 그림자, 선택 행은 accent 선으로 구분해요.
+- blur는 상단/계정 헤더/메뉴에만 적용하고 목록 행에는 적용하지 않아요.
+- reduced-transparency 환경에서는 불투명 카드로 표시해요.
+- 컴팩트 도구 36px·제목 최대 40px·본문 80/100%·계정 순서·N 로고·발신자 원색 보존을 유지해요.
+- 본문/발신자 HTML을 대상으로 새 디자인 선택자를 추가하지 않았어요.
+- 공유 빌드를 실행하지 않았어요. 기존 산출물을 폐기용 프로필에 복사하고 현재 메일 CSS·theme 소스만 temp에 덮어씌워 검사했어요.
+- 임시 실행기: `C:/Users/Revaptor_FX/AppData/Local/Temp/be-mail-source-check.cjs`.
+- 네이버 fixture 검사 전체 통과: 순서·재열기·Enter·계정 ID·외부 storage·목적 URL·HTML 안전 표시 확인했어요.
+- reader fixture는 밝음/어두움·본문 색/이미지·배율·600×500/780×590/큰 창 크기·제목 높이·resize·번역까지 통과했어요.
+- reader 검사 마지막 worker 오류 배열에서 `Could not establish connection. Receiving end does not exist.` 1건으로 종료 코드 1이에요. CSS 관련 실패는 없었으나 전체 통과로 보고하지 않아요.
+- 읽기 캡처: `C:/Users/Revaptor_FX/AppData/Local/Temp/be-reader-gvy6ot/reader-dark.png`, 같은 폴더 reader-light.png/resizable-window.png.
+- 계정 캡처: `C:/Users/Revaptor_FX/AppData/Local/Temp/be-naver-mail-ZR9yJ3/unified-mail-light.png`, 같은 폴더 naver-mail-dark.png.
+- 캡처 직접 확인: 제목·도구·원색 본문·계정 카드의 겹침/잘림은 관찰하지 못했어요.
+- 이번 캡처 시 공통 신규 glass 토큰이 아직 소스에 없어서 fallback 색상으로 표시돼요. 진주빛 최종 색감은 총괄의 새 토큰 통합 후 확인해야 해요.
+- 메일 설정 dialog는 부모 popup 공통 영역이므로 총괄의 공통 glass 규칙에 의존해요.
+- 실계정·유료 API·개인 브라우저 접근은 없었어요. 전체 검사·최종 빌드·버전·배포는 총괄 담당이에요.
+- `git diff --check -- public/checkerplus-embed.css` 통과. 배정한 제품 파일 수정은 종료했어요.

@@ -43,3 +43,17 @@ test("motion and the first paint use the same easing, duration, and theme colors
     assert.match(popupHtml, new RegExp(themes.light.bg, "i"));
     assert.match(popupHtml, /prefers-color-scheme:\s*light/);
 });
+
+test('glass sheen and primary gradient endpoints preserve readable foregrounds',()=>{
+    for(const name of ['dark','light']){
+        const t=themes[name];
+        for(const under of [t.bg,t.surface,'#000000','#ffffff']){
+            const glass=composite(t.surface,under,.9);
+            const sheen=composite(name==='dark'?'#b6d2ff':'#ffffff',glass,name==='dark'?.065:.7);
+            for(const background of [glass,sheen])for(const key of ['text','text2','muted'])
+                assert.ok(contrastRatio(t[key],background)>=4.5,`${name} ${key} on glass ${background}`);
+        }
+        const endpoints=name==='dark'?['#405fc4','#5b53aa','#326b89']:['#455cc2','#6351a6','#336b85'];
+        for(const color of endpoints)assert.ok(contrastRatio('#ffffff',color)>=4.5,name+' primary '+color);
+    }
+});

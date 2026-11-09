@@ -10,12 +10,15 @@ export const composite = (front, back) => [...front.slice(0, 3).map((v, i) => v 
 const luminance = c => c.slice(0, 3).map(v => {v /= 255; return v <= .04045 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4;}).reduce((sum, v, i) => sum + v * [.2126, .7152, .0722][i], 0);
 export const contrastRatio = (a, b) => (Math.max(luminance(a), luminance(b)) + .05) / (Math.min(luminance(a), luminance(b)) + .05);
 export const readableColor = (foreground, background, target = 4.5) => {
-  if (contrastRatio(composite(foreground, background), background) >= target) return null;
+  return repairColor(foreground, color => contrastRatio(composite(color, background), background), target);
+};
+const repairColor = (foreground, ratio, target) => {
+  if (ratio(foreground) >= target) return null;
   // Preserve hue by moving toward white; never recolor saturated semantic colors.
   if (Math.max(...foreground.slice(0, 3)) - Math.min(...foreground.slice(0, 3)) > 70) return null;
   for (let amount = .05; amount <= 1.01; amount += .05) {
     const next = foreground.slice(0, 3).map(v => Math.round(v + (255 - v) * Math.min(1, amount)));
-    if (contrastRatio([...next, 1], background) >= target) return `rgb(${next.join(', ')})`;
+    if (ratio([...next, foreground[3]]) >= target) return foreground[3] < 1 ? `rgba(${next.join(', ')}, ${foreground[3]})` : `rgb(${next.join(', ')})`;
   }
   return null;
 };
@@ -28,7 +31,20 @@ export function createContrastController(doc = document, {inspectImage} = {}) {
   const roots = new Set();
   const swatches = new Map();
   let semanticColors = new WeakMap();
-  const stats = {visited: 0, measured: 0, changed: 0, passes: 0, maxBatch: 0};
+  const stats = {visited: 0, measured: 0, changed: 0, passes: 0, maxBatch: 0, styleReads: 0, animationReads: 0};
+  let styleCache = new WeakMap(), animationCache = new WeakMap();
+  const styleOf = el => {
+    if (!styleCache.has(el)) {styleCache.set(el, win.getComputedStyle(el)); stats.styleReads++;}
+    return styleCache.get(el);
+  };
+  const changingPaint = (el, style) => {
+    if (style.animationName === 'none' && !style.transitionDuration.split(',').some(value => parseFloat(value) > 0)) return false;
+    if (!animationCache.has(el)) {
+      stats.animationReads++;
+      animationCache.set(el, Boolean(el.getAnimations?.().some(a => (a.playState === 'running' || a.pending) && a.effect?.getKeyframes().some(k => 'opacity' in k || 'color' in k || 'backgroundColor' in k))));
+    }
+    return animationCache.get(el);
+  };
   const restore = el => {
     const props = records.get(el);
     if (!props) return;
@@ -56,7 +72,7 @@ export function createContrastController(doc = document, {inspectImage} = {}) {
   const background = el => {
     const layers = [];
     for (let node = el, depth = 0; node && depth++ < 24; node = node.parentElement) {
-      const s = win.getComputedStyle(node);
+      const s = styleOf(node);
       // Unknown compositing is deliberately left alone (images, opacity, blend).
       if (s.backgroundImage !== 'none' || Number(s.opacity) < .99 || s.mixBlendMode !== 'normal' || s.filter !== 'none') return null;
       const c = parseColor(s.backgroundColor); if (!c) return null;
@@ -64,14 +80,48 @@ export function createContrastController(doc = document, {inspectImage} = {}) {
     }
     return layers.reverse().reduce((back, front) => composite(front, back), [255, 255, 255, 1]);
   };
+  const textContext = el => {
+    const layers = [];
+    for (let node = el, depth = 0; node; node = node.parentElement) {
+      if (++depth > 24) return null;
+      const s = styleOf(node), opacity = Number(s.opacity);
+      // Never undo intentional fading, animations, disabled ancestors or
+      // image/gradient/blend effects whose sampled background is unknown.
+      const changing = changingPaint(node, s);
+      if (opacity < .5 || s.visibility !== 'visible' || s.backgroundImage !== 'none' || s.filter !== 'none' || s.mixBlendMode !== 'normal' || changing) return null;
+      const color = parseColor(s.backgroundColor); if (!color) return null;
+      layers.push({color, opacity});
+    }
+    const over = (front, back) => {
+      const a = front[3] + back[3] * (1 - front[3]);
+      return [...front.slice(0,3).map((v,i) => a ? (v * front[3] + back[i] * back[3] * (1-front[3])) / a : 0), a];
+    };
+    const render = foreground => {
+      let color = foreground;
+      for (const layer of layers) {color = over(color, layer.color); color[3] *= layer.opacity;}
+      return over(color, [255,255,255,1]);
+    };
+    const paper = render([0,0,0,0]);
+    return {paper, ratio: fg => contrastRatio(render(fg), paper)};
+  };
   const inspect = el => {
     restore(el);
     if (!el.isConnected || el.closest(excluded)) return;
     const rect = el.getBoundingClientRect();
     if (rect.width < 1 || rect.height < 1 || rect.bottom < -100 || rect.top > win.innerHeight + 100 || rect.right < 0 || rect.left > win.innerWidth) return;
-    const s = win.getComputedStyle(el); stats.measured++;
-    if (s.visibility !== 'visible' || s.display === 'none' || Number(s.opacity) < .99) return;
-    inspectImage?.(el);
+    const s = styleOf(el); stats.measured++;
+    if (s.visibility !== 'visible' || s.display === 'none') return;
+    if (Number(s.opacity) >= .99) inspectImage?.(el);
+    const text = [...el.childNodes].some(n => n.nodeType === 3 && n.textContent.trim());
+    const foreground = parseColor(s.color);
+    if (text && foreground) {
+      const context = textContext(el);
+      if (context && luminance(context.paper) <= .25) {
+        const color = repairColor(foreground, context.ratio, 4.5);
+        if (color) write(el, 'color', color);
+      }
+    }
+    if (Number(s.opacity) < .99) return;
     const bg = background(el);
     if (!bg) return;
     // Associate only explicit legend modifiers with matching data category values.
@@ -92,16 +142,28 @@ export function createContrastController(doc = document, {inspectImage} = {}) {
       }
     }
     if (luminance(bg) > .25) return;
-    const text = [...el.childNodes].some(n => n.nodeType === 3 && n.textContent.trim());
     const smallIcon = el.namespaceURI === 'http://www.w3.org/2000/svg' && el.tagName.toLowerCase() === 'svg' && rect.width <= 40 && rect.height <= 40 && el.closest('button,a,[role="button"]') && !el.querySelector('[fill]:not([fill="currentColor"]):not([fill="none"]),[stroke]:not([stroke="currentColor"]):not([stroke="none"])');
     const fg = parseColor(s.color);
-    if ((text || smallIcon) && fg) {
-      const color = readableColor(fg, bg, text ? 4.5 : 3);
+    if (smallIcon && fg) {
+      const color = readableColor(fg, bg, 3);
       if (color) write(el, 'color', color);
     }
-    if (el === doc.body || el === doc.documentElement || el.namespaceURI !== 'http://www.w3.org/1999/xhtml' || rect.width < 80 || rect.height < 32 || s.outlineStyle !== 'none') return;
+    const selected = el.matches('[role="tab"][aria-selected="true"],a[aria-current]:not([aria-current="false"]),[role="menuitem"][aria-current]:not([aria-current="false"])');
+    const selectionParent = selected && el.parentElement && background(el.parentElement);
+    const selectionEdge = selected && ['Top','Right','Bottom','Left'].some(side => {const color = parseColor(s[`border${side}Color`]); return parseFloat(s[`border${side}Width`]) > 0 && color && contrastRatio(composite(color, bg), bg) >= 2;});
+    if (selected && selectionParent && contrastRatio(bg, selectionParent) < 1.3 && !selectionEdge && s.boxShadow === 'none' && s.outlineStyle === 'none') {write(el, 'outline', '1px solid rgba(190, 202, 218, 0.65)'); write(el, 'outline-offset', '-1px');}
+    if (el === doc.body || el === doc.documentElement || el.namespaceURI !== 'http://www.w3.org/1999/xhtml' || rect.width < 80 || rect.height < 32 || s.outlineStyle !== 'none' || selected) return;
     const hasEdge = s.boxShadow !== 'none' || ['Top','Right','Bottom','Left'].some(side => parseFloat(s[`border${side}Width`]) > 0 && s[`border${side}Style`] !== 'none');
     const surface = parseColor(s.backgroundColor), parent = el.parentElement && background(el.parentElement);
+    // A compact semantic control strip may have a real opaque surface but no
+    // border/shadow. Distinguish that group without recoloring its controls.
+    if (el.matches('[role="tablist"],nav,[role="navigation"]') && rect.height <= 100 && surface?.[3] > .9 && parent && contrastRatio(bg, parent) < 1.3 && Math.max(...bg.slice(0,3)) - Math.min(...bg.slice(0,3)) < 35 && !changingPaint(el, s) && !el.querySelector('img,picture,video,canvas,svg,[disabled],[aria-disabled="true"]')) {
+      const controls = Array.from(el.querySelectorAll('a,button,[role="tab"],[role="menuitem"]')).slice(0,13);
+      if (controls.length >= 2 && controls.length <= 12 && controls.every(control => {const r = control.getBoundingClientRect(); return r.width > 0 && r.width <= 240 && r.height > 0 && r.height <= 60;})) {
+        write(el, 'background-color', `rgb(${bg.slice(0,3).map(v => Math.round(Math.min(255,v+10))).join(', ')})`);
+        return;
+      }
+    }
     if (hasEdge && surface && surface[3] > .9 && parent && contrastRatio(bg, parent) < 1.3) {
       write(el, 'outline', '1px solid rgba(190, 202, 218, 0.35)');
       write(el, 'outline-offset', '-1px');
@@ -123,6 +185,7 @@ export function createContrastController(doc = document, {inspectImage} = {}) {
     // Wait for Dark Reader instead of interpreting a partially themed page.
     if (doc.documentElement?.getAttribute('data-darkreader-scheme') !== 'dark') return;
     stats.passes++;
+    styleCache = new WeakMap(); animationCache = new WeakMap();
     let count = 0;
     const started = win.performance.now();
     while (count < 180 && win.performance.now() - started < 8) {
@@ -170,18 +233,24 @@ export function createContrastController(doc = document, {inspectImage} = {}) {
     }
   });
   const update = () => enqueue(doc.documentElement);
+  const settledEffect = event => {
+    if (event.type === 'transitionend' && records.has(event.target) && event.propertyName === 'color') return;
+    enqueue(event.target);
+  };
   return {
     start() {
       if (active) return;
       active = true;
-      observer.observe(doc, {subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['style','class','hidden','disabled','aria-disabled','aria-hidden','data-darkreader-scheme']});
+      observer.observe(doc, {subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['style','class','hidden','disabled','aria-disabled','aria-hidden','aria-selected','aria-current','role','data-darkreader-scheme']});
       win.addEventListener('scroll', update, {passive: true, capture: true}); win.addEventListener('resize', update); update();
+      doc.addEventListener('transitionend', settledEffect); doc.addEventListener('animationend', settledEffect);
     },
     update,
     stop() {
       active = false; observer.disconnect();
       if (scheduled) {if (win.cancelIdleCallback) win.cancelIdleCallback(scheduled); else win.clearTimeout(scheduled);} scheduled = 0;
       win.removeEventListener('scroll', update, true); win.removeEventListener('resize', update);
+      doc.removeEventListener('transitionend', settledEffect); doc.removeEventListener('animationend', settledEffect);
       roots.clear(); swatches.clear(); semanticColors = new WeakMap(); iterator = null;
       for (const ref of refs) {const el = ref.deref(); if (el) restore(el);} refs.clear();
     },

@@ -64,7 +64,7 @@ const handleChange = () => {
   input {
     -webkit-appearance: none;
     appearance: none;
-    background: #ddd;
+    background: var(--be-surface-3);
     border-radius: 3px;
     flex: 1;
     height: 6px;
@@ -74,7 +74,7 @@ const handleChange = () => {
     &::-webkit-slider-thumb {
       -webkit-appearance: none;
       appearance: none;
-      background: var(--be-accent, #4caf50);
+      background: var(--be-link);
       border-radius: 50%;
       cursor: pointer;
       height: 18px;
@@ -82,13 +82,13 @@ const handleChange = () => {
       width: 18px;
 
       &:hover {
-        box-shadow: 0 0 0 4px rgba(76, 175, 80, 0.2);
+        box-shadow: var(--be-focus);
         transform: scale(1.1);
       }
     }
 
     &::-moz-range-thumb {
-      background: var(--be-accent, #4caf50);
+      background: var(--be-link);
       border: none;
       border-radius: 50%;
       cursor: pointer;
@@ -97,7 +97,7 @@ const handleChange = () => {
       width: 18px;
 
       &:hover {
-        box-shadow: 0 0 0 4px rgba(76, 175, 80, 0.2);
+        box-shadow: var(--be-focus);
         transform: scale(1.1);
       }
     }
@@ -127,7 +127,7 @@ const handleChange = () => {
   }
 
   .indicator {
-    color: #a0a0a0;
+    color: var(--be-muted);
     font-size: 12px;
     font-weight: 500;
     min-width: 40px;
@@ -138,27 +138,27 @@ const handleChange = () => {
 @media (prefers-color-scheme: dark) {
   .refresher-range {
     input {
-      background: #555;
+      background: var(--be-surface-3);
 
       &::-webkit-slider-thumb {
-        background: #66bb6a;
+        background: var(--be-link);
 
         &:hover {
-          box-shadow: 0 0 0 4px rgba(102, 187, 106, 0.2);
+          box-shadow: var(--be-focus);
         }
       }
 
       &::-moz-range-thumb {
-        background: #66bb6a;
+        background: var(--be-link);
 
         &:hover {
-          box-shadow: 0 0 0 4px rgba(102, 187, 106, 0.2);
+          box-shadow: var(--be-focus);
         }
       }
     }
 
     .indicator {
-      color: #ccc;
+      color: var(--be-muted);
     }
   }
 }

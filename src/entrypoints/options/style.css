@@ -14,3 +14,10 @@ html, body { height: 100%; margin: 0; }
 .right-panel h1 { margin-bottom: 8px; }
 .right-panel .be-group { margin-top: 16px; }
 .right-panel .be-row { padding: 4px 16px; }
+
+.settings-nav { background: var(--be-glass-sheen),var(--be-glass); border-color: var(--be-glass-border); box-shadow: 6px 0 24px rgba(0,0,0,.025); }
+.settings-nav button { min-height: 42px; font-size: 13px; font-weight: 550; border: 1px solid transparent; color: var(--be-text-2); }
+.settings-nav button.active { color: var(--be-text); background: var(--be-glass-strong); border-color: var(--be-glass-border); box-shadow: var(--be-glass-shadow); font-weight: 700; }
+.right-panel { max-width: 720px; margin-top: 40px; }
+.right-panel h1 { letter-spacing: -.04em; }
+@media(max-width:680px) { .settings { flex-direction: column; }.settings-nav{width:100%;flex:0 0 auto;flex-direction:row;flex-wrap:wrap;padding:10px;border-right:0;border-bottom:1px solid var(--be-glass-border);gap:5px}.settings-nav button{width:auto;min-height:32px;padding:7px 10px;font-size:12px}.right-panel{margin-top:24px} }

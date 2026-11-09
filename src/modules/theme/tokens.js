@@ -1,4 +1,4 @@
-// 화면 토큰. BongHub 저장소는 이 환경에서 열리지 않아, iOS 그룹 배경·시스템 글자색을 기준으로 했다.
+// BongExtend: 깊이 있는 유리 면과 진주빛 청색·보라·청록을 위한 공통 토큰.
 // theme.css 의 같은 이름 변수와 숫자를 맞춘다. 대비 테스트가 둘을 비교한다.
 
 export const EASE = "cubic-bezier(0.25, 0.1, 0.25, 1)";
@@ -8,42 +8,42 @@ export const BAR_ALPHA = 0.94;
 
 export const themes = {
     dark: {
-        bg: "#000000",
-        surface: "#1c1c1e",
-        surface2: "#2c2c2e",
-        surface3: "#3a3a3c",
-        border: "#3a3a3c",
-        borderStrong: "#48484a",
-        text: "#ffffff",
-        text2: "#e5e5ea",
-        muted: "#aeaeb2",
-        accent: "#0068d0",
-        accentHover: "#0070e0",
+        bg: "#0c1019",
+        surface: "#181e2c",
+        surface2: "#20293a",
+        surface3: "#2c374c",
+        border: "#36435b",
+        borderStrong: "#51617b",
+        text: "#f4f6ff",
+        text2: "#d8e0f0",
+        muted: "#abb8cd",
+        accent: "#405fc4",
+        accentHover: "#405bb4",
         accentInk: "#ffffff",
-        link: "#64d2ff",
-        ok: "#30d158",
-        warn: "#ffd60a",
-        error: "#ff6961",
-        separator: "#38383a"
+        link: "#acc7ff",
+        ok: "#7ce0be",
+        warn: "#f4d49c",
+        error: "#ffadae",
+        separator: "#303c52"
     },
     light: {
-        bg: "#f2f2f7",
-        surface: "#ffffff",
-        surface2: "#ffffff",
-        surface3: "#e5e5ea",
-        border: "#d1d1d6",
-        borderStrong: "#c7c7cc",
-        text: "#1c1c1e",
-        text2: "#3a3a3c",
-        muted: "#636366",
-        accent: "#0057c2",
-        accentHover: "#004aab",
+        bg: "#eef1f8",
+        surface: "#f9fbff",
+        surface2: "#edf2fa",
+        surface3: "#e0e7f3",
+        border: "#c6d0e0",
+        borderStrong: "#a4b1c7",
+        text: "#192239",
+        text2: "#34425c",
+        muted: "#53617a",
+        accent: "#455cc2",
+        accentHover: "#354cac",
         accentInk: "#ffffff",
-        link: "#0040dd",
-        ok: "#1b7f37",
-        warn: "#8a5a00",
-        error: "#d70015",
-        separator: "#d1d1d6"
+        link: "#3757b6",
+        ok: "#206a53",
+        warn: "#80601f",
+        error: "#aa3447",
+        separator: "#d5ddea"
     }
 };
 

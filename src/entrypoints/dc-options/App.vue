@@ -131,9 +131,9 @@ html, body {
   .refresher-title-zone {
     position: relative !important;
     width: 100%;
-    max-width: 1200px;
+    max-width: 1040px;
     margin: 0 auto;
-    padding: 18px 24px 0 !important;
+    padding: 24px 24px 12px !important;
     box-sizing: border-box;
     z-index: auto;
   }
@@ -141,12 +141,17 @@ html, body {
   .tab {
     position: relative !important;
     width: 100% !important;
-    max-width: 1200px;
+    max-width: 1040px;
     margin: 0 auto;
-    padding: 6px 24px 40px !important;
+    padding: 20px 24px 40px !important;
     height: auto !important;
     box-sizing: border-box;
     overflow-y: visible;
+  }
+
+  @media (max-width: 600px) {
+    .refresher-title-zone { padding: 16px 12px 10px !important; }
+    .tab { padding: 12px 12px 28px !important; }
   }
 }
 </style>
