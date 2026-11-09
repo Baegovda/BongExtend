@@ -139,7 +139,9 @@ export default defineBackground(() => {
             const respond = (value: unknown) => { try { port.postMessage(value); } catch { /* 문서가 닫힌 경우 */ } };
             void (async () => {
                 try {
-                    const page = new URL(sender?.url || "");
+                    // Chrome supplies the actual origin of blank/srcdoc frames; never trust a page message for it.
+                    const senderUrl = sender?.url || "";
+                    const page = new URL(/^(about|blob|data):/.test(senderUrl) ? sender?.origin || "" : senderUrl);
                     const url = new URL(message.url);
                     const origin = darkStylesheetPermission(page.href, url.href);
                     if (sender?.id !== chrome.runtime.id || !origin) throw new Error("unsupported resource");

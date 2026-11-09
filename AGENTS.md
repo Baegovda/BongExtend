@@ -4,6 +4,8 @@
 
 사용자는 ForgeLens처럼 총괄과 모듈별 실제 독립 채팅을 나누도록 요청했어요. 팀 작업 시 [조정 문서](docs/team/COORDINATION.md)에서 기존 채팅과 파일 소유권을 확인하고 재사용하세요. 역할 지침은 `.cursor/agents/bong-*.md`, 공통 협업 규칙은 `.cursor/rules/module-team.mdc`예요. 담당자가 없는 새 과제는 총괄이 배정하며, 새 작업 없이 자체 백로그를 만들지 않아요.
 
+과하지 않게 필요한 팀만 배정하고 기본 추론은 medium 이하로 해요. **Astra는 정말 어려운 문제나 서로 다른 합리적인 접근을 수차례 시도해도 해결되지 않는 문제에만** 예외로 사용해요. 일반 오류·첫 실패·단순 지연을 이유로 올리지 말고, 예외 투입의 근거와 이유를 짧게 알려요.
+
 ## Primary execution policy — act first, report after
 
 This is the owner's primary working agreement for this project, within higher-priority instructions and actual tool permissions.

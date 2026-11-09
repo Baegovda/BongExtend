@@ -4,6 +4,7 @@ import {DARK_SETTINGS_KEY, darkSiteEnabled, darkThemeForSite, normalizeDarkSetti
 // @ts-ignore original Dark Reader fixes are plain JS
 import {darkReaderFixesForSite, withTranslationColors} from "@/modules/dark/site-fixes.js";
 import {darkStylesheetPermission} from "@/modules/dark/css-resource.js";
+import {darkFrameHost} from "@/modules/dark/frame-host.js";
 
 const MODULES_KEY = "core.modules";
 
@@ -21,14 +22,16 @@ export default defineContentScript({
             return;
         }
         let generation = 0;
-        const hostname = location.hostname.toLowerCase();
+        const hostname = darkFrameHost(location.href, window !== window.top,
+            Array.from(location.ancestorOrigins || []), document.referrer);
         document.addEventListener("__darkreader__cleanUp", () => {
             document.documentElement?.removeAttribute("data-bong-dark-proxy");
         });
 
         setFetchMethod(async (resourceUrl: string) => {
             const url = new URL(resourceUrl, location.href);
-            if (darkStylesheetPermission(location.href, url.href)) {
+            const pageUrl = /^https?:$/.test(location.protocol) ? location.href : hostname ? `https://${hostname}/` : location.href;
+            if (darkStylesheetPermission(pageUrl, url.href)) {
                 // CSS 전용 연결로 다른 모듈의 응답과 섞이지 않게 해요.
                 const text = await new Promise<string>((resolve, reject) => {
                     const port = chrome.runtime.connect({name: "bongextend-dark-css"});

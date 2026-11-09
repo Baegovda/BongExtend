@@ -43,3 +43,10 @@ test('Naver homepage brightens only monochrome toolbar sprites and neutral text 
  assert.notEqual(darkReaderFixesForSite('search.naver.com'),fixes);
  assert.equal(darkReaderFixesForSite('mail.naver.com'),undefined);
 });
+
+test('homepage corrections target neutral labels and known monochrome pseudo elements',()=>{
+ const {css}=darkReaderFixesForSite('naver.com');
+ for(const part of ['nickname___','item_link___','btn_location___','weather_status___','time___','thumb_setting___','btn_next___','SettingView-module__btn_setting___'])assert.ok(css.includes(part));
+ assert.doesNotMatch(css,/opacity\s*:|visibility\s*:|display\s*:|weather_icon|dust_status/);
+ assert.equal(darkReaderFixesForSite('note.naver.com'),undefined);
+});

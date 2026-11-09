@@ -26,6 +26,16 @@ html[data-darkreader-scheme="dark"] #account [class*="btn_logout"]::after {
 html[data-darkreader-scheme="dark"] #account :is([class*="btn_logout"], [class*="link_more"]) {
   color: #c5cbd4 !important;
 }
+/* Public main CSS: neutral labels can inherit a locally scoped foreground variable.
+   Keep counts/status colors and photo/weather/brand imagery untouched. */
+html[data-darkreader-scheme="dark"] #account :is([class*="nickname___"], [class*="user_desc___"], [class*="item_link___"], [class*="link_new___"]),
+html[data-darkreader-scheme="dark"] [class*="DailyBoardView-module__"]:is([class*="btn_location___"], [class*="header_aside___"], [class*="weather_status___"], [class*="time___"]) {
+  color: #d5d9df !important;
+}
+html[data-darkreader-scheme="dark"] #account :is([class*="thumb_setting___"], [class*="btn_next___"], [class*="btn_prev___"])::before,
+html[data-darkreader-scheme="dark"] [class*="SettingView-module__btn_setting___"]::before {
+  filter: brightness(0) invert(0.88) !important;
+}
 `,
   ignoreInlineStyle: [],
   ignoreImageAnalysis: [],

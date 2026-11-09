@@ -26,6 +26,17 @@ const fs=require('node:fs'),os=require('node:os'),path=require('node:path');
   // Logged-in logout UI uses the same real stylesheet; fixture does not access an account.
   await page.evaluate(()=>{const row=document.createElement('div');row.className='MyView-module__my_info___fixture';row.innerHTML='<button class="MyView-module__btn_logout___fixture" id="fixtureLogout">로그아웃</button>';document.querySelector('#account').append(row);});
   assert.equal(await page.locator('#fixtureLogout').evaluate(e=>getComputedStyle(e).color),'rgb(197, 203, 212)');
+  await page.evaluate(()=>{
+   const account=document.querySelector('#account');
+   account.insertAdjacentHTML('beforeend','<section id="accountFixture"><p class="MyView-module__nickname___fixture">합성 계정</p><a class="MyView-module__item_link___fixture">메일 <b style="color:rgb(3,199,90)">4</b></a><button class="MyView-module__btn_next___fixture">다음</button><button class="MyView-module__thumb_setting___fixture">프로필 설정</button></section>');
+  });
+  for(const name of ['nickname','item_link'])assert.equal(await page.locator(`#accountFixture [class*="${name}___"]`).evaluate(e=>getComputedStyle(e).color),'rgb(213, 217, 223)');
+  for(const name of ['btn_next','thumb_setting'])assert.match(await page.locator(`#accountFixture [class*="${name}___"]`).evaluate(e=>getComputedStyle(e,'::before').filter),/brightness\(0\).*invert\(0.88\)/);
+  for(const selector of ['[class*="DailyBoardView-module__btn_location___"]','[class*="DailyBoardView-module__time___"]','[class*="DailyBoardView-module__weather_status___"]']){
+   const node=page.locator(selector).first();if(await node.count())assert.equal(await node.evaluate(e=>getComputedStyle(e).color),'rgb(213, 217, 223)');
+  }
+  for(const node of await page.locator('[class*="SettingView-module__btn_setting___"]').all())assert.match(await node.evaluate(e=>getComputedStyle(e,'::before').filter),/brightness\(0\).*invert\(0.88\)/);
+  await page.screenshot({path:path.join(folder,'naver-account-fixture-dark.png')});
   const bodyColor=()=>page.locator('body').evaluate(e=>getComputedStyle(e).backgroundColor);
   const dark=await bodyColor();
   await worker.evaluate(()=>chrome.storage.local.set({'core.darkMode':{enabledSites:[],followSystem:false}}));
