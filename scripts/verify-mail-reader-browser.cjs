@@ -29,7 +29,7 @@ const fs=require('node:fs'), path=require('node:path'), os=require('node:os'), h
     frame.on('pageerror',e=>errors.push(e.message));
     // This disposable profile has no Gmail login. Finish that startup state before
     // mounting the synthetic message, so its account dialog cannot cover the reader.
-    await frame.locator('dialog[open]').first().waitFor({state:'visible'});
+    await frame.waitForFunction(()=>document.documentElement.dataset.bongMailReady==='true');
     const mountReader=()=>{
       document.querySelectorAll('dialog[open]').forEach(dialog=>dialog.close());
       document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
@@ -88,7 +88,7 @@ const fs=require('node:fs'), path=require('node:path'), os=require('node:os'), h
     const floating=await opened; await floating.waitForLoadState();
     await floating.locator('#windowResizeHandle').waitFor();
     const floatingFrame=floating.frames().find(frame=>frame.url().includes('/checkerplus-popup.html'));
-    await floatingFrame.locator('dialog[open]').first().waitFor({state:'visible'});
+    await floatingFrame.waitForFunction(()=>document.documentElement.dataset.bongMailReady==='true');
     await floatingFrame.evaluate(mountReader);
     assert.equal(await floating.locator('#openResizableWindow').isVisible(),false);
     const floatingTab=await worker.evaluate(async url=>(await chrome.tabs.query({url}))[0],floating.url());

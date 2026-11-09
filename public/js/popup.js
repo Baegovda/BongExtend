@@ -7328,7 +7328,9 @@ async function init() {
 	
     sendMessageToBG("stopAllSounds");
 	
+    const bongUnifiedInbox = new URLSearchParams(location.search).get("source") === "bongextend";
     if (isDetached
+        && !bongUnifiedInbox
         && !isRequestingPermission
         && !await storage.get("popoutMessage")
         && !previewMailId
@@ -7375,7 +7377,9 @@ async function init() {
         }
     });
 
-	if (accounts.length == 0 || (accounts.length == 1 && accounts[0].error && accounts[0].error != "timeout" && accounts[0].getMailUrl().includes("/mail/"))) {
+	// The unified BongExtend inbox also contains Naver accounts. Show Gmail's inline
+    // account status there; the standalone Checker Plus view keeps its sign-in dialog.
+    if (!bongUnifiedInbox && (accounts.length == 0 || (accounts.length == 1 && accounts[0].error && accounts[0].error != "timeout" && accounts[0].getMailUrl().includes("/mail/")))) {
         if (await isOnline()) {
             let $dialog;
 
@@ -7499,7 +7503,7 @@ async function init() {
 		
 		if (previewMailId && (browserButtonAction != BrowserButtonAction.GMAIL_INBOX && browserButtonAction != BrowserButtonAction.GMAIL_INBOX_POPOUT && browserButtonAction != BrowserButtonAction.GMAIL_INBOX_SIDE_PANEL)) {
 			const mail = findMailById(previewMailId);
-			openEmail({mail:mail});
+			if (mail) openEmail({mail:mail});
 		} else if (await storage.get("refreshWhenOpeningPopup")) {
             // cached emails are already rendered, so refresh in the background without blocking init
             refresh().catch(error => {
@@ -7508,6 +7512,7 @@ async function init() {
         }
 	}
 
+    document.documentElement.dataset.bongMailReady = "true";
 	// patch for mac issue popup clipped at top ref: https://bugs.chromium.org/p/chromium/issues/detail?id=428044
 	// must make sure rendermoreaccounts still works
 	// v3 commented in Chrome 66 because was showing vertical scroll bars

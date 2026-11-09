@@ -269,16 +269,10 @@ iframe.active { display: block; }
 
 .chrono-download-panel.is-recent .download-module-toolbar,.chrono-download-panel.is-recent #videoActivity{display:none!important}
 
-.mail-provider-tabs{display:flex;gap:6px;padding:8px 14px;border-bottom:1px solid var(--be-border);flex-shrink:0}
-.mail-provider-tabs button[aria-pressed="true"]{background:var(--be-accent);color:var(--be-accent-ink)}
 .checkerplus-mail-frame[hidden]{display:none!important}
-#naverMailPanel:not([hidden]){flex:1;min-height:0;overflow:auto;padding:16px;background:var(--be-bg)}
 .naver-mail-connect,.naver-mail-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px}
 .naver-mail-connect input{flex:1;min-width:160px}.naver-mail-connect label{font-weight:600}
 .naver-mail-actions label{margin-right:auto}.naver-mail-hint,#naverMailStatus{color:var(--be-muted);font-size:12px;line-height:1.6;overflow-wrap:anywhere}
-#naverMailList{list-style:none;padding:0;margin:16px 0;display:grid;gap:8px}
-#naverMailList button{display:grid;gap:6px;text-align:left;width:100%;padding:14px;background:var(--be-surface);border:1px solid var(--be-border);border-radius:12px}
-#naverMailList strong{font-size:14px;color:var(--be-text)}#naverMailList span,#naverMailList time{font-size:12px;color:var(--be-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 .be-page .window-tools #openResizableWindow{width:auto;display:flex;gap:6px;padding:0 9px;font-size:11px;white-space:nowrap}
 .be-page #windowResizeHandle{width:30px;height:30px;border-radius:9px 0 0 0;background:var(--be-surface-2);border:1px solid var(--be-border);color:var(--be-text)}
@@ -293,3 +287,8 @@ html.embed #windowResizeHandle{display:none}
 #fxCurrencyList label{display:flex;align-items:center;gap:10px;padding:8px 12px;font-size:13px;cursor:pointer}#fxCurrencyList label+label{border-top:1px solid var(--be-border)}
 #fxPickerApply{background:var(--be-accent);color:var(--be-accent-ink)}
 @media(max-width:600px){.fx-board{grid-template-columns:repeat(2,minmax(0,1fr))}.fx-panel .fx-row{flex-wrap:wrap}.fx-panel .fx-row input{width:90px}}
+
+.mail-naver-settings {margin:16px 24px 0;padding:18px;}
+.mail-naver-settings h3 {display:flex;align-items:center;gap:8px;margin:0 0 12px;}
+.naver-service-logo {display:inline-block;width:24px;height:24px;border-radius:6px;object-fit:contain;flex-shrink:0;}
+@media(max-width:650px){.mail-naver-settings{margin:16px 16px 0;}}
