@@ -1,3 +1,4 @@
+import {CURRENCY_NAMES} from './currency-names.js';
 // 키 없는 환율표로 금액을 바꾼다. 표는 기준 통화 1이 다른 통화로 얼마인지다.
 
 export const FX_URL = "https://latest.currency-api.pages.dev/v1/currencies/krw.min.json";
@@ -28,6 +29,16 @@ export const FX_NAMES = {
 };
 
 export const COMMON_CODES = ["krw", "usd", "eur", "jpy", "cny", "gbp", "btc", "eth"];
+export const FX_SELECTED_KEY = "fx.selectedCards";
+export const FX_DAILY_KEY = "fx.dailyTable";
+export const availableCurrencyCodes = rates => Object.entries(rates || {}).filter(([code,value])=>/^[a-z0-9_-]{1,20}$/i.test(code)&&Number.isFinite(value)&&value>0).map(([code])=>code.toLowerCase()).sort();
+export const selectedCurrencyCards = (saved,codes) => {
+    const available=new Set(codes || []);
+    return [...new Set((Array.isArray(saved)?saved:COMMON_CODES).map(code=>String(code).toLowerCase()))].filter(code=>available.has(code));
+};
+export const mergeRateTables = (daily, live) => ({...live,date:daily?.date || live.date,rates:{...(daily?.rates || {}),...live.rates}});
+export const currencySearchText = code => `${currencyLabel(code)} ${CURRENCY_NAMES[code] || ''}`.toLowerCase();
+const koreanCurrencies = new Intl.DisplayNames(['ko'], {type:'currency'});
 export const FX_ORDER_KEY = "fx.cardOrder";
 export const FX_FORM_KEY = "fx.form";
 
@@ -77,7 +88,9 @@ export const orderCurrencyCards = (codes, saved) => {
 
 export const currencyName = (code) => {
     const id = String(code || "").toLowerCase();
-    return FX_NAMES[id] || id.toUpperCase();
+    if (FX_NAMES[id]) return FX_NAMES[id];
+    if (/^[a-z]{3}$/.test(id)) {const name=koreanCurrencies.of(id.toUpperCase());if(name!==id.toUpperCase())return name;}
+    return CURRENCY_NAMES[id] || id.toUpperCase();
 };
 
 export const CURRENCY_SYMBOLS = {
@@ -95,9 +108,9 @@ export const currencyCode = (code) => {
 
 export const currencyLabel = (code) => {
     const id = String(code || "").toLowerCase();
-    const name = FX_NAMES[id];
+    const name = currencyName(id);
     const iso = currencyCode(id);
-    if (!name) return iso;
+    if (!name || name === iso) return iso;
     const symbol = currencySymbol(id);
     return symbol ? `${symbol} ${name} (${iso})` : `${name} (${iso})`;
 };

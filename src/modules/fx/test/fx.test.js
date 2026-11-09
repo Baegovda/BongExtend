@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import {convertAmount, formatMoney, isCacheFresh, parseRatePayload, currencyLabel, CURRENCY_COLORS, CURRENCY_SYMBOLS, CURRENCY_TINT, currencyColor, currencyCode, currencySymbol, currencySymbolInk, fxTabBadge, orderCurrencyCards, FX_FORM_KEY, normalizeFxForm} from "../convert.js";
+import {availableCurrencyCodes, selectedCurrencyCards, mergeRateTables, currencyName, currencySearchText, convertAmount, formatMoney, isCacheFresh, parseRatePayload, currencyLabel, CURRENCY_COLORS, CURRENCY_SYMBOLS, CURRENCY_TINT, currencyColor, currencyCode, currencySymbol, currencySymbolInk, fxTabBadge, orderCurrencyCards, FX_FORM_KEY, normalizeFxForm} from "../convert.js";
 import {composite, contrastRatio} from "../../theme/contrast.js";
 
 test("converts through a KRW rate table, including crypto", () => {
@@ -73,4 +73,20 @@ test("formats won without decimals and labels Korean names", () => {
         assert.equal(CURRENCY_SYMBOLS[code].includes("http"), false);
         assert.equal(currencyCode(code), code.toUpperCase());
     }
+});
+
+test('all valid quoted currencies can be selected, with defaults, empty selection and duplicates handled',()=>{
+ const codes=availableCurrencyCodes({krw:1,usd:0.0007,nzd:0.001,aed:0.002,sol:0.00001,bad:-1,nan:NaN});
+ assert.ok(codes.includes('nzd'));assert.ok(codes.includes('sol'));assert.ok(!codes.includes('bad'));
+ assert.deepEqual(selectedCurrencyCards(['NZD','nzd','sol','missing'],codes),['nzd','sol']);
+ assert.deepEqual(selectedCurrencyCards([],codes),[]);
+ assert.deepEqual(selectedCurrencyCards(null,codes),['krw','usd']);
+ assert.match(currencyName('nzd'),/뉴질랜드/);assert.ok(currencySearchText('nzd').includes('nzd'));
+ assert.match(currencySearchText('sol'),/solana/i);
+});
+test('live major-currency quotes preserve the full daily currency table',()=>{
+ const full={date:'2026-11-09',rates:{krw:1,usd:0.0007,nzd:0.001,aed:0.002}};
+ const live={date:'',rates:{krw:1,usd:0.0008},source:'tradingview'};
+ const merged=mergeRateTables(full,live);
+ assert.equal(merged.rates.usd,0.0008);assert.equal(merged.rates.nzd,0.001);assert.equal(merged.date,'2026-11-09');assert.equal(full.rates.usd,0.0007);
 });

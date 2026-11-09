@@ -1,3 +1,4 @@
+import {setupCurrencyPicker} from './fx-picker';
 import {setupNaverMail} from './naver-mail';
 import {setupMailSettings} from "./mail-settings";
 import {setupWindowControls} from "./window-controls";
@@ -15,7 +16,7 @@ import {createPointerDrag, edgeScrollDelta, gridDropIndex} from "@/core/popup/po
 import type {DragEnd} from "@/core/popup/pointerDrag";
 import {exportAllSettings, importSettingsText} from "@/modules/settings-io";
 // @ts-ignore 순수 JS
-import {COMMON_CODES, CURRENCY_TINT, FX_FORM_KEY, FX_ORDER_KEY, FX_POPUP_REFRESH_MS, FX_URL, convertAmount, currencyCode, currencyColor, currencyIconPath, currencyLabel, currencyName, formatMoney, fxTabBadge, normalizeFxForm, orderCurrencyCards, parseRatePayload, shouldRefreshRates} from "@/modules/fx/convert.js";
+import {FX_SELECTED_KEY, FX_DAILY_KEY, availableCurrencyCodes, selectedCurrencyCards, mergeRateTables, COMMON_CODES, CURRENCY_TINT, FX_FORM_KEY, FX_ORDER_KEY, FX_POPUP_REFRESH_MS, FX_URL, convertAmount, currencyCode, currencyColor, currencyIconPath, currencyLabel, currencyName, formatMoney, fxTabBadge, normalizeFxForm, orderCurrencyCards, parseRatePayload, shouldRefreshRates} from "@/modules/fx/convert.js";
 // @ts-ignore 순수 JS
 import {openQuoteStream} from "@/modules/fx/tradingview.js";
 // @ts-ignore 순수 JS
@@ -1414,6 +1415,7 @@ const fxMore = $("fxMore");
 const fxStatus = $("fxStatus");
 let fxTable: FxTable | null = null;
 let fxCardOrder: string[] = [];
+let fxSelected: unknown = null;
 let fxDragged = false;
 let fxFormReady = false;
 let savedForm = normalizeFxForm(null) as {amount: string; from: string; to: string};
@@ -1482,7 +1484,7 @@ const renderFx = () => {
     const value = convertAmount(amount, fxFrom.value, fxTo.value, fxTable.rates);
     fxResult.textContent = value == null ? "이 통화는 표에 없어요." : `${formatMoney(amount, fxFrom.value)} ${fxFrom.value.toUpperCase()} = ${formatMoney(value, fxTo.value)} ${fxTo.value.toUpperCase()}`;
     const surface = fxSurface();
-    for (const code of orderCurrencyCards(COMMON_CODES as string[], fxCardOrder) as string[]) {
+    for (const code of orderCurrencyCards(selectedCurrencyCards(fxSelected, availableCurrencyCodes(fxTable.rates)), fxCardOrder) as string[]) {
         const other = convertAmount(amount, fxFrom.value, code, fxTable.rates);
         if (other == null) continue;
         const button = document.createElement("button");
@@ -1533,6 +1535,7 @@ const renderFx = () => {
         });
         fxMore.appendChild(button);
     }
+    if (!fxMore.childElementCount) fxMore.textContent="표시할 통화를 추가해 주세요.";
     paintUnitIcons();
     fxStatus.textContent = fxTable.date ? `${fxTable.date} 시세 · 팝업이 열려 있는 동안 자주 다시 받아요` : "팝업이 열려 있는 동안 자주 다시 받아요";
 };
@@ -1632,30 +1635,35 @@ window.setInterval(() => {
 openQuoteStream({
     WebSocket: globalThis.WebSocket,
     onTable(table: FxTable & {source?: string}) {
-        fxTable = table;
-        void effects.storageSet({[FX_KEY]: table});
-        if (!fxFrom.options.length) fillFxSelects(Object.keys(table.rates).sort());
+        fxTable = mergeRateTables(fxTable, table) as FxTable;
+        void effects.storageSet({[FX_KEY]: fxTable});
+        fillFxSelects(availableCurrencyCodes(fxTable!.rates));
         renderFx();
         paintFxBadge(table.rates);
-        if (table.source === "tradingview" && fxTable?.date === "") fxStatus.textContent = "트레이딩뷰 실시간 시세예요. 못 받으면 저장해 둔 표를 보여요.";
+        if (table.source === "tradingview") fxStatus.textContent = "주요 통화는 트레이딩뷰 실시간 시세, 나머지는 일일 시세예요.";
     },
     onError() { void refreshFx(); }
 });
 window.matchMedia("(prefers-color-scheme: light)").addEventListener("change", () => { if (fxTable) renderFx(); });
-effects.storageGet([FX_KEY, FX_ORDER_KEY, FX_FORM_KEY]).then((stored: Record<string, unknown>) => {
+effects.storageGet([FX_KEY, FX_DAILY_KEY, FX_ORDER_KEY, FX_FORM_KEY, FX_SELECTED_KEY]).then((stored: Record<string, unknown>) => {
     const cached = stored[FX_KEY] as FxTable | undefined;
+    fxSelected = stored[FX_SELECTED_KEY];
     fxCardOrder = Array.isArray(stored[FX_ORDER_KEY]) ? stored[FX_ORDER_KEY] as string[] : [];
     savedForm = normalizeFxForm(stored[FX_FORM_KEY]) as {amount: string; from: string; to: string};
     fxAmount.value = savedForm.amount;
     fxFormReady = true;
     paintFxBadge(cached?.rates);
     if (cached?.rates) {
-        fxTable = fxTable || cached;
+        const full = mergeRateTables(stored[FX_DAILY_KEY] as FxTable | undefined, cached) as FxTable;
+        fxTable = fxTable ? mergeRateTables(full, fxTable) as FxTable : full;
         fillFxSelects(Object.keys(fxTable.rates).sort());
         renderFx();
     }
 });
 
+setupCurrencyPicker(()=>availableCurrencyCodes(fxTable?.rates),()=>selectedCurrencyCards(fxSelected, availableCurrencyCodes(fxTable?.rates)),codes=>{
+    fxSelected=codes;void effects.storageSet({[FX_SELECTED_KEY]:codes});renderFx();
+});
 setupMailSettings();
 
 for (const button of document.querySelectorAll<HTMLButtonElement>("[data-download-view]")) {

@@ -79,3 +79,15 @@ test("a failed fetch keeps the saved table and a fresh table does not fetch", as
     assert.equal(next.table.rates.usd, 0.0008);
     assert.equal(next.table.fetchedAt, 50_000);
 });
+
+test('full daily catalog is fetched and retained across partial live updates',async()=>{
+ const store={};const storage={get:async key=>({[key]:store[key]}),set:async value=>Object.assign(store,value)};let dailyCalls=0;
+ const fetchImpl=async url=>{
+  if(String(url).includes('/forex/'))return {ok:true,json:async()=>({data:[{s:'FX_IDC:USDKRW',d:[1400]}]})};
+  if(String(url).includes('/crypto/'))return {ok:true,json:async()=>({data:[]})};
+  dailyCalls++;return {ok:true,json:async()=>({date:'2026-11-09',krw:{usd:1/1390,nzd:0.001}})};
+ };
+ const first=await refreshStoredRates({storage,fetchImpl,now:1000000,interval:1});
+ assert.equal(first.table.rates.nzd,0.001);assert.equal(first.table.rates.usd,1/1400);
+ await refreshStoredRates({storage,fetchImpl,now:1060000,interval:1});assert.equal(dailyCalls,1);
+});

@@ -9,7 +9,7 @@ const fs=require('node:fs'), path=require('node:path'), os=require('node:os'), h
   fs.writeFileSync(manifestPath,JSON.stringify(manifest));
   const background=path.join(ext,'background.js');
   const probe=`globalThis.__testMenus=new Map;globalThis.__testMenuClicks=[];globalThis.__testErrors=[];
-    self.addEventListener('error',e=>__testErrors.push(e.message));self.addEventListener('unhandledrejection',e=>__testErrors.push(String(e.reason)));
+    self.addEventListener('error',e=>__testErrors.push(e.message));self.addEventListener('unhandledrejection',e=>__testErrors.push(e.reason?.stack || String(e.reason)));
     const nativeCreate=chrome.contextMenus.create.bind(chrome.contextMenus);chrome.contextMenus.create=(props,callback)=>nativeCreate(props,()=>{const error=chrome.runtime.lastError;if(error)__testErrors.push(error.message);else __testMenus.set(props.id,props);callback?.();});
     const nativeClick=chrome.contextMenus.onClicked.addListener.bind(chrome.contextMenus.onClicked);chrome.contextMenus.onClicked.addListener=handler=>{__testMenuClicks.push(handler);nativeClick(handler);};`;
   fs.writeFileSync(background,probe+fs.readFileSync(background,'utf8'));
@@ -71,16 +71,18 @@ const fs=require('node:fs'), path=require('node:path'), os=require('node:os'), h
     }
     console.log('PASS dark/light mail: original colors, dark designed content, links, image colors, back toolbar');
     assert.equal(await page.locator('#windowResizeHandle').isVisible(),true,'ordinary popup page exposes the resize grip');
-    const promotedPage=context.waitForEvent('page');
+    const pagesBefore=context.pages().length;
     const ordinaryGrip=await page.locator('#windowResizeHandle').boundingBox();
     await page.mouse.move(ordinaryGrip.x+10,ordinaryGrip.y+10);await page.mouse.down();
     await page.mouse.move(ordinaryGrip.x-70,ordinaryGrip.y-60,{steps:4});await page.mouse.up();
-    const promoted=await promotedPage;await promoted.waitForLoadState();
-    await promoted.waitForFunction(()=>document.documentElement.classList.contains('is-window'));
-    assert.ok(promoted.url().includes('window=1'));
-    await promoted.locator('#windowResizeHandle').press('ArrowLeft');
-    await promoted.close();
-    console.log('PASS ordinary popup grip opens a real resizable app window');
+    await page.waitForFunction(()=>document.body.clientWidth===700&&document.body.clientHeight===520);
+    assert.equal(context.pages().length,pagesBefore,'attached resize must not open another window');
+    await page.locator('#windowResizeHandle').press('ArrowRight');
+    await page.waitForFunction(()=>document.body.clientWidth===740);
+    for(let i=0;i<5;i++)await page.locator('#windowResizeHandle').press('ArrowRight');
+    await page.waitForFunction(()=>document.body.clientWidth===800);
+    assert.equal(context.pages().length,pagesBefore);
+    console.log('PASS attached popup size: drag, keyboard, 800px cap and no extra window');
     const opened=context.waitForEvent('page');
     await page.locator('#openResizableWindow').click();
     const floating=await opened; await floating.waitForLoadState();

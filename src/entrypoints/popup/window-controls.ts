@@ -1,4 +1,5 @@
 const SIZE_KEY = 'core.popupWindowSize';
+const POPUP_SIZE_KEY = 'core.popupSize';
 export function setupWindowControls(selection: () => string) {
     const button = document.getElementById('openResizableWindow') as HTMLButtonElement;
     const handle = document.getElementById('windowResizeHandle') as HTMLButtonElement;
@@ -25,10 +26,20 @@ export function setupWindowControls(selection: () => string) {
     button.addEventListener('click', () => {void openWindow();});
     handle.hidden = false;
     void chrome.windows.getCurrent().then(window => {
-        if (window.type !== 'popup') return;
+        if (window.type !== 'popup') {
+            void chrome.storage.local.get(POPUP_SIZE_KEY).then(stored=>{const size=stored[POPUP_SIZE_KEY] as {width?:number;height?:number}|undefined;if(size)resizePopup(Number(size.width)||780,Number(size.height)||590);});
+            return;
+        }
         own = window; root.classList.add('is-window'); button.hidden = true; handle.hidden = false;
         windowResizeListener();
     });
+    let popupSaveTimer=0;
+    function resizePopup(width:number,height:number) {
+        // Chrome action popups stay attached and cannot exceed 800×600.
+        const size={width:Math.round(Math.max(520,Math.min(800,width))),height:Math.round(Math.max(460,Math.min(600,height)))};
+        for(const element of [root,document.body]){element.style.width=size.width+'px';element.style.height=size.height+'px';}
+        clearTimeout(popupSaveTimer);popupSaveTimer=window.setTimeout(()=>{void chrome.storage.local.set({[POPUP_SIZE_KEY]:size});},200);
+    }
     function windowResizeListener() {
         window.addEventListener('resize', () => {
             clearTimeout(saveTimer);
@@ -55,18 +66,11 @@ export function setupWindowControls(selection: () => string) {
         if (event.button !== 0) return;
         if (!own) {
             event.preventDefault(); handle.setPointerCapture(event.pointerId);
-            const x = event.screenX, y = event.screenY;
-            let width = innerWidth, height = innerHeight;
+            const x=event.screenX,y=event.screenY,width=document.body.clientWidth,height=document.body.clientHeight;
             root.classList.add('resizing');
-            const move = (e: PointerEvent) => {width = innerWidth + e.screenX-x; height = innerHeight + e.screenY-y;};
-            const end = (e: PointerEvent) => {
-                root.classList.remove('resizing');
-                handle.removeEventListener('pointermove', move); handle.removeEventListener('pointerup', end); handle.removeEventListener('lostpointercapture', cancel);
-                if (handle.hasPointerCapture(e.pointerId)) handle.releasePointerCapture(e.pointerId);
-                void openWindow(width, height);
-            };
-            const cancel = () => {root.classList.remove('resizing');handle.removeEventListener('pointermove', move);handle.removeEventListener('pointerup', end);};
-            handle.addEventListener('pointermove', move);handle.addEventListener('pointerup', end);handle.addEventListener('lostpointercapture', cancel, {once:true});
+            const move=(e:PointerEvent)=>resizePopup(width+e.screenX-x,height+e.screenY-y);
+            const end=()=>{root.classList.remove('resizing');handle.removeEventListener('pointermove',move);handle.removeEventListener('lostpointercapture',end);};
+            handle.addEventListener('pointermove',move);handle.addEventListener('lostpointercapture',end);
             return;
         }
         event.preventDefault(); handle.setPointerCapture(event.pointerId);
@@ -86,7 +90,7 @@ export function setupWindowControls(selection: () => string) {
         if (!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(event.key)) return;
         if (!own) {
             event.preventDefault();
-            await openWindow(innerWidth + (event.key==='ArrowRight'?40:event.key==='ArrowLeft'?-40:0), innerHeight + (event.key==='ArrowDown'?40:event.key==='ArrowUp'?-40:0));
+            resizePopup(document.body.clientWidth + (event.key==='ArrowRight'?40:event.key==='ArrowLeft'?-40:0), document.body.clientHeight + (event.key==='ArrowDown'?40:event.key==='ArrowUp'?-40:0));
             return;
         }
         event.preventDefault(); const current = await chrome.windows.get(own.id!);

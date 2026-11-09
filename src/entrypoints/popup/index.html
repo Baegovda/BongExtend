@@ -35,7 +35,7 @@
     </button>
     </div>
 </nav>
-<button id="windowResizeHandle" type="button" hidden aria-label="창 크기 조절: 끌거나 방향키 사용" title="끌어서 창 크기 조절 · 일반 팝업에서는 앱 창으로 열려요. 방향키도 사용할 수 있어요."><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="m5 13 8-8m-3 8 3-3"/></svg></button>
+<button id="windowResizeHandle" type="button" hidden aria-label="창 크기 조절: 끌거나 방향키 사용" title="끌어서 창 크기 조절 · 일반 팝업은 최대 800×600까지 조절해요. 방향키도 사용할 수 있어요."><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="m5 13 8-8m-3 8 3-3"/></svg></button>
 <main>
     <iframe data-frame="chzzk" title="치지직 설정"></iframe>
     <iframe data-frame="trans" title="번역"></iframe>
@@ -142,7 +142,7 @@
         </div>
     </section>
     <section class="panel be-shell fx-panel" data-frame="fx" hidden>
-        <div class="be-title"><h3>환율</h3><span class="be-sub">자주 확인</span></div>
+        <div class="be-title"><h3>환율</h3><span class="be-sub">선택한 통화 비교</span><button id="fxManageCurrencies" type="button">통화 추가·관리</button></div>
         <div class="fx-row">
             <input id="fxAmount" inputmode="decimal" type="number" value="10000" min="0" step="any" aria-label="금액">
             <img id="fxFromIcon" class="fx-flag" alt="" width="22" height="22">
@@ -153,6 +153,7 @@
         </div>
         <p id="fxResult" class="fx-result">계산 중…</p>
         <div id="fxMore" class="fx-board"></div>
+        <dialog id="fxPicker" aria-labelledby="fxPickerTitle"><h2 id="fxPickerTitle">표시할 통화 선택</h2><input id="fxCurrencySearch" type="search" placeholder="통화 이름 또는 코드 검색" aria-label="통화 검색"><div class="fx-picker-actions"><button id="fxSelectAll" type="button">전체 선택</button><button id="fxSelectNone" type="button">선택 해제</button></div><p id="fxCurrencyCount" role="status"></p><div id="fxCurrencyList"></div><div class="fx-picker-actions"><button id="fxPickerCancel" type="button">취소</button><button id="fxPickerApply" type="button">선택 적용</button></div></dialog>
         <p id="fxStatus" class="be-hint"></p>
     </section>
     <section class="panel be-shell" data-frame="update" hidden>
