@@ -1,4 +1,4 @@
-/* Dark Reader 4.9.134 — upstream injectProxy, unchanged.
+/* Dark Reader 4.9.134 — upstream injectProxy + cleanup return adapter.
  * https://github.com/darkreader/darkreader
  * MIT License
  * 
@@ -449,4 +449,5 @@ export function injectProxy(enableStyleSheetsProxy, enableCustomElementRegistryP
             };
         });
     });
+    return cleanUp; // BongExtend: survive document.open removing document listeners.
 }

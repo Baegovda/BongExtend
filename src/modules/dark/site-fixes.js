@@ -54,6 +54,7 @@ const NAVER_SEARCH_FIXES = Object.freeze({
   ignoreCSSUrl: []
 });
 
+
 // Keep the existing site-specific stylesheet proxy exclusions.
 const FAB_CSP_FIXES = Object.freeze({
   invert: [],
@@ -108,5 +109,8 @@ export const withTranslationColors = (fixes) => ({
   ...fixes,
   // The packaged MAIN-world content script supplies the upstream proxy without inline scripts.
   disableInlineScriptInjection: true,
-  ignoreInlineStyle: [...(fixes?.ignoreInlineStyle || []), '.pt-page-translator-sweep', '.pt-page-translator-sweep *'],
+  // Artwork is never globally inverted/hidden. Small transparent controls are
+  // examined separately by the bounded local bitmap contrast controller.
+  ignoreImageAnalysis: ['*', ...(fixes?.ignoreImageAnalysis || [])],
+  ignoreInlineStyle: [...(fixes?.ignoreInlineStyle || []), '.pt-page-translator-sweep', '.pt-page-translator-sweep *', '[data-bong-contrast-owned="1"]', '[data-bong-icon-owned="1"]'],
 });

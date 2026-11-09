@@ -1,8 +1,50 @@
+diff --git a/darkreader.js b/darkreader.js
+index c38c5002d1232a83a287a820f4d8b1bb155c38f8..63917d823e94eb35a449cfe3180cbbd593f24eda 100644
+--- a/darkreader.js
++++ b/darkreader.js
+@@ -3764,7 +3764,9 @@
+         pushFilter = null
+     ) {
+         try {
+-            if (shouldIgnoreImage(rule.selectorText, ignoreImageSelectors)) {
++            // BongExtend: preserve artwork URLs while still theming CSS gradients.
++            const preserveImageURLs = ignoreImageSelectors.includes("*");
++            if (!preserveImageURLs && shouldIgnoreImage(rule.selectorText, ignoreImageSelectors)) {
+                 return value;
+             }
+             const gradients = parseGradient(value);
+@@ -3839,6 +3841,7 @@
+                         ? getCSSBaseBath(parentStyleSheet.href)
+                         : ownerNode?.baseURI || location.origin;
+                 url = getAbsoluteURL(baseURL, url);
++                if (preserveImageURLs) return () => `url("${url}")`;
+                 return async (theme) => {
+                     if (isURLEmpty) {
+                         return "url('')";
 diff --git a/darkreader.mjs b/darkreader.mjs
-index 90eb131..f4ff1c2 100644
+index 90eb131d3f417cf9ce7141d956ce64f88988aaa4..1984028bd8b20811a4b27bf4469196b22f40fe8d 100644
 --- a/darkreader.mjs
 +++ b/darkreader.mjs
-@@ -8211,7 +8211,7 @@ function createStaticStyleOverrides() {
+@@ -3651,7 +3651,9 @@ function getBgImageModifier(
+     pushFilter = null
+ ) {
+     try {
+-        if (shouldIgnoreImage(rule.selectorText, ignoreImageSelectors)) {
++        // BongExtend: preserve artwork URLs while still theming CSS gradients.
++        const preserveImageURLs = ignoreImageSelectors.includes("*");
++        if (!preserveImageURLs && shouldIgnoreImage(rule.selectorText, ignoreImageSelectors)) {
+             return value;
+         }
+         const gradients = parseGradient(value);
+@@ -3722,6 +3724,7 @@ function getBgImageModifier(
+                     ? getCSSBaseBath(parentStyleSheet.href)
+                     : ownerNode?.baseURI || location.origin;
+             url = getAbsoluteURL(baseURL, url);
++            if (preserveImageURLs) return () => `url("${url}")`;
+             return async (theme) => {
+                 if (isURLEmpty) {
+                     return "url('')";
+@@ -8211,7 +8214,7 @@ function createStaticStyleOverrides() {
          fixes && fixes.disableCustomElementRegistryProxy
      );
      document.dispatchEvent(new CustomEvent("__darkreader__cleanUp"));
@@ -11,7 +53,7 @@ index 90eb131..f4ff1c2 100644
          const proxyScript = createOrUpdateScript("darkreader--proxy");
          proxyScript.append(
              `(${injectProxy})(${enableStyleSheetsProxy}, ${enableCustomElementRegistryProxy})`
-@@ -8222,6 +8222,10 @@ function createStaticStyleOverrides() {
+@@ -8222,6 +8225,10 @@ function createStaticStyleOverrides() {
                  document.head.firstElementChild
          );
          proxyScript.remove();
@@ -23,7 +65,7 @@ index 90eb131..f4ff1c2 100644
      staticStyleInjector.inject(
          "override",
 diff --git a/index.d.ts b/index.d.ts
-index 093103e730f86ea33d0549f34d0e1510b9de73e8..20a72d759cf5e87b48aadf05653a73851e40a15f 100644
+index 093103e730f86ea33d0549f34d0e1510b9de73e8..9a4e01c80983fe9e33143d5b7e482b379f02c1c6 100644
 --- a/index.d.ts
 +++ b/index.d.ts
 @@ -157,6 +157,12 @@ declare namespace DarkReader {

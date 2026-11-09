@@ -1,8 +1,18 @@
 # BongExtend 인수인계
 
-기준일: 2026-11-08. 이 문서는 기존 v1.2.10 인수인계를 대체해요. 이후 변경은 package.json, CHANGELOG.md, GitHub Releases를 우선 확인하세요.
+기준일: 2026-11-10. 이 문서는 기존 v1.2.10 인수인계를 대체해요. 이후 변경은 package.json, CHANGELOG.md, GitHub Releases를 우선 확인하세요.
 
-## 현재 상태
+## 최신 인계 — v1.2.54
+
+- 최신 구현은 package.json/CHANGELOG의 **1.2.54**예요. 아래 v1.2.40 상태·파일 지도는 과거 기준이며 최신 상태를 덮어쓰지 않아요. 배포 결과·커밋은 최신 GitHub Release/main을 확인하세요.
+- 1.2.41~53: 통나무 자동 받기, 네이버 통합 메일/N 로고, 브라우저에 붙은 크기 조절, 업데이트 확인 후 자동 진행, 통화 선택, 번역 누락·진행 표시, 메일 상단 축소/본문80%/계정 순서 등 변경은 CHANGELOG와 모듈 REPORT를 확인해요. 이미 passing한 검사를 인계만을 위해 반복하지 않아요.
+- 1.2.54: **공통** 대비 엔진(중립 글자/SVG/카드/범례·칸), 작은 투명 조작 bitmap의 중립 픽셀 보정, 사진·캐릭터 원색 보존, 원래 투명한 root/body가 음수 iframe을 가리는 조건 보호, document.open 문서 교체 뒤 테마·MAIN proxy/CSSOM 재연결을 구현했어요.
+- 주요 파일: dark.content.ts/dark-proxy.content.ts, dark/contrast.js, icon-contrast.js, paint-guard.js, site-fixes.js, proxy.js, DarkReader dependency patch. 패치는 URL 이미지 원색을 보존하면서 CSS gradient는 계속 테마 처리해요. proxy.js는 upstream에 cleanup 반환 adapter 하나만 추가하고 sync script가 검증해요.
+- 실제 공개 Chrome API/helper: 네이버 카드·AI 글자(컬러915픽셀/alpha 보존), codex-resets 범례·가시 칸 색 일치, 로스트아크 요청 페이지 큰 그림31개의 원본URL/필터 및 얼굴 정상색 확인. 제품 패키지 합성 Chrome: iframe URL/srcdoc/blank·문서교체 CSSOM·음수 iframe 본문 픽셀·hidden/OFF 복원, strict CSP/시스템테마 통과. 전체 JS252개·Bun·타입·ZIP/eval/권한 검사 통과. 자세한 근거/캡처 경로는 docs/team/dark/REPORT.md에 있어요.
+- **실제 로그인 네이버 쪽지 목록은 여전히 미확인**이에요. 사용자가 다크 OFF 하면 즉시 목록이 돌아온다고 확인했고, 유사한 CSS paint 원인과 별개 문서교체 결함을 합성으로 재현·수정했어요. 합성 passing을 실제 해결 증거로 말하지 않아요. 설치 버전·기존 페이지 새로고침도 배포와 별개예요.
+- 지속 정책: 사용자 UI 지적은 공통규칙 요청. 사이트 특례만으로 완료 금지, 외부 AI에 페이지/계정 전송 금지. 사진·캐릭터·배너를 통째로 반전/숨기지 않아요. 완료 항목은 **한 줄 전체 굵은 목록**. 팀은 필요한 담당만 medium 이하 기본, Astra는 극난도/서로 다른 접근 수차례 실패 때만. 현재 담당팀 채팅은 조정 문서를 재사용해요.
+
+## 과거 기준 상태 (v1.2.40)
 
 - 저장소: https://github.com/Baegovda/BongExtend
 - 최신 앱: **v1.2.40**, 앱 커밋 **4172675**, main. 이후 문서 커밋은 앱 버전을 바꾸지 않아요.

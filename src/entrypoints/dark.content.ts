@@ -5,6 +5,9 @@ import {DARK_SETTINGS_KEY, darkSiteEnabled, darkThemeForSite, normalizeDarkSetti
 import {darkReaderFixesForSite, withTranslationColors} from "@/modules/dark/site-fixes.js";
 import {darkStylesheetPermission} from "@/modules/dark/css-resource.js";
 import {darkFrameHost} from "@/modules/dark/frame-host.js";
+import {createContrastController} from "@/modules/dark/contrast.js";
+import {createIconContrastController} from "@/modules/dark/icon-contrast.js";
+import {createPaintGuard} from "@/modules/dark/paint-guard.js";
 
 const MODULES_KEY = "core.modules";
 
@@ -22,11 +25,41 @@ export default defineContentScript({
             return;
         }
         let generation = 0;
+        const icons = createIconContrastController(document, () => contrast.update());
+        const contrast = createContrastController(document, {inspectImage: icons.inspect});
+        const paint = createPaintGuard(document);
+        let contrastEnabled = false;
+        const syncContrast = () => {
+            if (contrastEnabled && document.documentElement?.getAttribute("data-darkreader-scheme") === "dark") {paint.start(); icons.start(); contrast.start();}
+            else {paint.stop(); icons.stop(); contrast.stop();}
+        };
+        let observedRoot: HTMLElement | null = null;
+        const onCleanup = () => {
+            paint.stop();
+            icons.stop();
+            contrast.stop();
+            document.documentElement?.removeAttribute("data-bong-dark-proxy");
+        };
+        const schemeObserver = new MutationObserver(() => {
+            if (watchScheme()) {
+                document.removeEventListener("__darkreader__cleanUp", onCleanup);
+                document.addEventListener("__darkreader__cleanUp", onCleanup);
+                if (scope[controllerKey]?.apply) void scope[controllerKey]!.apply!();
+            } else syncContrast();
+        });
+        const watchScheme = () => {
+            if (document.documentElement === observedRoot) return false;
+            observedRoot = document.documentElement;
+            schemeObserver.disconnect();
+            schemeObserver.observe(document, {childList: true});
+            if (observedRoot) schemeObserver.observe(observedRoot, {attributes: true, attributeFilter: ["data-darkreader-scheme"]});
+            return true;
+        };
+        schemeObserver.observe(document, {childList: true});
+        watchScheme();
         const hostname = darkFrameHost(location.href, window !== window.top,
             Array.from(location.ancestorOrigins || []), document.referrer);
-        document.addEventListener("__darkreader__cleanUp", () => {
-            document.documentElement?.removeAttribute("data-bong-dark-proxy");
-        });
+        document.addEventListener("__darkreader__cleanUp", onCleanup);
 
         setFetchMethod(async (resourceUrl: string) => {
             const url = new URL(resourceUrl, location.href);
@@ -62,6 +95,10 @@ export default defineContentScript({
                 if (current !== generation) return;
                 const settings = normalizeDarkSettings(stored[DARK_SETTINGS_KEY]);
                 const modules = (stored[MODULES_KEY] && typeof stored[MODULES_KEY] === "object" ? stored[MODULES_KEY] : {}) as Record<string, unknown>;
+                contrastEnabled = false;
+                paint.stop();
+                icons.stop();
+                contrast.stop();
                 if (modules.dark === false || !darkSiteEnabled(settings, hostname)) {
                     auto(false);
                     disable();
@@ -84,16 +121,26 @@ export default defineContentScript({
                     styleSystemControls: true
                 };
                 disable();
+                paint.prepare();
+                // Initial document_start may run before the page creates its body.
+                if (!document.body && document.readyState === "loading") document.addEventListener("DOMContentLoaded", onReady, {once: true});
+                contrastEnabled = true;
                 if (settings.followSystem) auto(theme, siteFixes);
                 else {
                     auto(false);
                     enable(theme, siteFixes);
                 }
+                syncContrast();
             } catch (error) {
+                contrastEnabled = false;
+                paint.stop();
+                icons.stop();
+                contrast.stop();
                 console.error("BongExtend 다크 모드를 적용하지 못했어요.", error);
             }
         };
 
+        const onReady = () => { void apply(); };
         scope[controllerKey] = {apply};
         void apply();
         browser.storage.onChanged.addListener((changes, area) => {

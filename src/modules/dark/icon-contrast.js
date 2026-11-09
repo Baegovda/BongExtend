@@ -1,0 +1,113 @@
+import {parseColor, contrastRatio, composite, readableColor} from './contrast.js';
+
+// Only small transparent bitmap controls are eligible. Decode locally, preserve
+// every saturated pixel and alpha value, and never send page data to a service.
+export function repairIconPixels(data, width, height, background) {
+  if (!width || !height || width > 512 || height > 256 || width * height > 65536) return null;
+  let clear = 0, painted = 0, neutral = 0;
+  for (let i = 0; i < data.length; i += 4) {
+    if (data[i + 3] < 8) clear++;
+    else {
+      painted++;
+      if (Math.max(data[i], data[i+1], data[i+2]) - Math.min(data[i], data[i+1], data[i+2]) <= 25) neutral++;
+    }
+  }
+  // Opaque images/photos and dense silhouettes are deliberately left alone.
+  if (clear < width * height * .2 || painted < 8 || painted > width * height * .6 || neutral < 8) return null;
+  const out = new Uint8ClampedArray(data);
+  let changed = 0;
+  for (let i = 0; i < data.length; i += 4) {
+    if (data[i+3] < 8 || Math.max(data[i], data[i+1], data[i+2]) - Math.min(data[i], data[i+1], data[i+2]) > 25) continue;
+    // Evaluate the opaque glyph color; antialiased edge alpha stays untouched.
+    const color = [data[i], data[i+1], data[i+2], 1];
+    if (contrastRatio(color, background) >= 3) continue;
+    const next = parseColor(readableColor(color, background, 4.5));
+    if (!next) continue;
+    out[i] = next[0]; out[i+1] = next[1]; out[i+2] = next[2]; changed++;
+  }
+  return changed >= 8 ? out : null;
+}
+
+export function createIconContrastController(doc = document, onSettled = () => {}) {
+  const win = doc.defaultView, cache = new Map(), records = new WeakMap(), refs = new Set(), aborts = new Set();
+  let active = false, generation = 0, pending = 0;
+  const restore = el => {
+    const r = records.get(el); if (!r) return;
+    if (el.style.getPropertyValue('background-image') === r.written && el.style.getPropertyPriority('background-image') === 'important') {
+      if (r.value) el.style.setProperty('background-image', r.value, r.priority); else el.style.removeProperty('background-image');
+    }
+    if (el.getAttribute('data-bong-icon-owned') === '1') {
+      if (r.marker == null) el.removeAttribute('data-bong-icon-owned'); else el.setAttribute('data-bong-icon-owned', r.marker);
+    }
+    records.delete(el);
+  };
+  const signature = el => [el,el.parentElement,el.parentElement?.parentElement].map(e=>e?.getAttribute('class') || '').join('|');
+  const backdrop = el => {
+    for (let n = el, depth = 0; n && depth++ < 16; n = n.parentElement) {
+      const s = win.getComputedStyle(n);
+      if (Number(s.opacity) < .99 || s.filter !== 'none' || s.mixBlendMode !== 'normal') return null;
+      if (n !== el && s.backgroundImage !== 'none') return null;
+      const c = parseColor(s.backgroundColor);
+      if (c?.[3] >= .95) return composite(c, [24,26,27,1]);
+    }
+    return null;
+  };
+  const decode = async (url, bg) => {
+    const controller = new AbortController(); aborts.add(controller);
+    const timer = win.setTimeout(()=>controller.abort(), 3000);
+    let bitmap;
+    try {
+      const response = await win.fetch(url, {credentials:'omit', redirect:'error', signal:controller.signal});
+      if (!response.ok || !/^image\/(png|webp)$/i.test((response.headers.get('content-type') || '').split(';')[0])) return null;
+      const reader = response.body?.getReader(); if (!reader) return null;
+      const chunks = []; let size = 0;
+      for (;;) {const {value,done}=await reader.read(); if (done) break; size+=value.length; if(size>131072){await reader.cancel();return null;} chunks.push(value);}
+      bitmap = await win.createImageBitmap(new Blob(chunks));
+      if (bitmap.width > 512 || bitmap.height > 256 || bitmap.width * bitmap.height > 65536) return null;
+      const canvas = doc.createElement('canvas'); canvas.width=bitmap.width;canvas.height=bitmap.height;
+      const ctx = canvas.getContext('2d', {willReadFrequently:true}); if(!ctx)return null;
+      ctx.drawImage(bitmap,0,0);
+      const pixels=ctx.getImageData(0,0,canvas.width,canvas.height), repaired=repairIconPixels(pixels.data,canvas.width,canvas.height,bg);
+      if(!repaired)return null;
+      pixels.data.set(repaired);ctx.putImageData(pixels,0,0);
+      const result=canvas.toDataURL('image/png');
+      // If page CSP disallows data images, keep the original visible asset.
+      await new Promise((resolve,reject)=>{const image=new win.Image();image.onload=resolve;image.onerror=reject;image.src=result;});
+      return result;
+    } catch {return null;} finally {bitmap?.close();win.clearTimeout(timer);aborts.delete(controller);}
+  };
+  const inspect = el => {
+    if (!active || !el.isConnected || el.namespaceURI !== 'http://www.w3.org/1999/xhtml' || !el.closest('button,a,[role="button"]') || el.closest('[hidden],[disabled],[aria-disabled="true"],[contenteditable],.a3s,.ii,[data-message-id]')) return;
+    const old=records.get(el);
+    if (old && old.written === el.style.getPropertyValue('background-image') && old.signature === signature(el)) return;
+    if (old) restore(el);
+    const rect=el.getBoundingClientRect();
+    if(rect.width<4||rect.height<4||rect.width>160||rect.height>64)return;
+    const style=win.getComputedStyle(el);
+    if(style.filter!=='none'||style.visibility!=='visible'||Number(style.opacity)<.99)return;
+    const originalImage=style.backgroundImage, originalSignature=signature(el);
+    const match=originalImage.match(/^url\(["']?(https?:[^"')]+)["']?\)$/);
+    if(!match)return;
+    let url;try{url=new URL(match[1]);if(url.username||url.password||!/^https?:$/.test(url.protocol))return;}catch{return;}
+    const bg=backdrop(el);if(!bg||contrastRatio([255,255,255,1],bg)<4.5)return;
+    const key=url.href+'|'+bg.slice(0,3).map(Math.round).join(',');
+    const apply=result=>{
+      if(!active||!result||!el.isConnected||win.getComputedStyle(el).backgroundImage!==originalImage||signature(el)!==originalSignature)return;
+      const record={value:el.style.getPropertyValue('background-image'),priority:el.style.getPropertyPriority('background-image'),marker:el.getAttribute('data-bong-icon-owned'),signature:signature(el),written:''};
+      el.setAttribute('data-bong-icon-owned','1');el.style.setProperty('background-image',`url("${result}")`,'important');record.written=el.style.getPropertyValue('background-image');
+      records.set(el,record);refs.add(new WeakRef(el));
+    };
+    if(cache.has(key)){const cached=cache.get(key);if(typeof cached==='string')apply(cached);return;}
+    if(pending>=2||cache.size>=48)return;
+    cache.set(key,null);pending++;const token=generation;
+    void decode(url.href,bg).then(result=>{
+      if(token!==generation)return;
+      cache.set(key,result);apply(result);onSettled();
+    }).finally(()=>{pending--;if(active)onSettled();});
+  };
+  return {
+    inspect,
+    start(){active=true;},
+    stop(){active=false;generation++;for(const controller of aborts)controller.abort();for(const ref of refs){const el=ref.deref();if(el)restore(el);}refs.clear();cache.clear();}
+  };
+}

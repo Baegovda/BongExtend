@@ -35,6 +35,14 @@ test('temporary prism colors survive theming without replacing site fixes',()=>{
     assert.ok(withTranslationColors(undefined).ignoreInlineStyle.length>0);
 });
 
+test('common rules preserve artwork colors independently of the site hostname',()=>{
+ for(const hostname of ['example.com','naver.com','lostark.game.onstove.com']){
+  const f=withTranslationColors(darkReaderFixesForSite(hostname));
+  assert.ok(f.ignoreImageAnalysis.includes('*'));
+  assert.ok(f.ignoreInlineStyle.includes('[data-bong-icon-owned="1"]'));
+ }
+});
+
 test('Naver homepage brightens only monochrome toolbar sprites and neutral text in dark mode',()=>{
  const fixes=darkReaderFixesForSite('www.naver.com');assert.equal(darkReaderFixesForSite('naver.com'),fixes);
  for(const icon of ['.btn_menu','.link_pay','.btn_notify','.link_shopping'])assert.ok(fixes.css.includes(icon));
