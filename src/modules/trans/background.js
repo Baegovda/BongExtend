@@ -8,6 +8,7 @@ import { loadSettings } from './lib/settings-store.js';
 import { STORAGE_KEY } from './lib/settings.js';
 import { isModuleEnabled } from '../core-modules.js';
 import { createTranslator } from './lib/translator.js';
+import { bindToolbarProgress } from './toolbar-progress.js';
 
 // 공통 메뉴 초기화에서 호출해요. 각 모듈은 자기 메뉴만 정리해요.
 export function createTransMenus() {
@@ -24,6 +25,7 @@ let started = false;
 export function startTransBackground() {
 if (started) return;
 started = true;
+const toolbarProgress = bindToolbarProgress();
 
 const persistentCache = createIdbCache({
   getPolicy: async () => {
@@ -256,6 +258,7 @@ async function setEnabled(tabId, enabled) {
     const settled = status || { enabled: false, showOriginal: true, started: false, done: 0, pending: 0 };
         setBadge(tab.id);
     rememberEnabled(tab.id, false);
+    toolbarProgress.clear(tab.id);
     return { ok: true, status: settled };
   }
   const results = await runInFrames(tab.id, enableInPage);
@@ -354,16 +357,22 @@ function publicError(error) {
 // 등록하므로, 일반 메시지 응답이 서로 먼저 도착해 번역 응답을 가리지 않게 해요.
 chrome.runtime.onConnect.addListener((port) => {
   if (port.name !== 'bongextend-translation-batch' || port.sender?.id !== chrome.runtime.id) return;
+  let connected = true;
+  port.onDisconnect.addListener(() => { connected = false; });
+  const reply = (message) => {
+    if (!connected) return;
+    try { port.postMessage(message); } catch { connected = false; }
+  };
   port.onMessage.addListener((message) => {
     if (!message || message.type !== 'BONGEXTEND_TRANSLATION_BATCH') return;
     translator.translateMany(message.texts).then(
-      (result) => port.postMessage({
+      (result) => reply({
         type: 'BONGEXTEND_TRANSLATION_BATCH_RESULT',
         response: { ok: true, translations: result.translations, model: result.model },
       }),
       (error) => {
         console.warn('[page-translator]', error?.code || 'API_ERROR', error?.status || '');
-        port.postMessage({
+        reply({
           type: 'BONGEXTEND_TRANSLATION_BATCH_RESULT',
           response: publicError(error),
         });

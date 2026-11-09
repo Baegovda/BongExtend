@@ -424,6 +424,7 @@ test('prism edge owns the exact original/translated boundary and the pastel trai
   h.session.start(); await h.session.whenIdle(); h.advance(0);
   const box = h.created.find(node => node.className === 'pt-page-translator-sweep');
   assert.ok(box);
+  assert.equal(h.session.getStatus().busy, true, 'API completion still has a visible reveal to finish');
   assert.equal(h.text.childNodes[0].nodeValue, '무료 배송', 'final translated layout stays reserved during the pass');
   assert.equal(h.text.classList.contains('pt-page-translator-hold'), true);
   assert.equal(box.children[0].children[0].nodeValue, 'Free shipping');
@@ -449,6 +450,7 @@ test('prism edge owns the exact original/translated boundary and the pastel trai
   assert.equal(box.parentNode, null);
   assert.equal(h.text.childNodes[0].nodeValue, '무료 배송');
   assert.equal(h.text.classList.contains('pt-page-translator-hold'), false);
+  assert.equal(h.session.getStatus().busy, false);
 });
 
 test('cancelling midway removes both clipped layers and restores the original immediately', async () => {
@@ -459,6 +461,7 @@ test('cancelling midway removes both clipped layers and restores the original im
   assert.equal(box.parentNode, null);
   assert.equal(h.text.classList.contains('pt-page-translator-hold'), false);
   assert.equal(h.text.childNodes[0].nodeValue, 'Free shipping');
+  assert.equal(h.session.getStatus().busy, false);
   h.advance(1300);
   assert.equal(h.text.childNodes[0].nodeValue, 'Free shipping');
 });
@@ -473,6 +476,7 @@ test('dense cached results bound prism layers without dropping translations', as
   for(let pass=1;pass<=8;pass++){h.advance(pass*h.api.WIPER_MS);h.advance(pass*h.api.WIPER_MS);}
   assert.equal(h.root.childNodes.every(node => node.childNodes[0].nodeValue === '무료 배송'), true);
   assert.equal(boxes.every(box => !box.parentNode), true);
+  assert.equal(h.session.getStatus().busy, false);
 });
 
 test('an ordinary sibling gets its own translation, never a partial replacement from another label', async () => {
@@ -1676,6 +1680,42 @@ test('a sidebar ghost layer is hidden so only the translation shows', async () =
   assert.equal(ghost.classList.contains('pt-page-translator-dup'), true);
   assert.equal(fly.classList.contains('pt-page-translator-nops'), true);
   assert.equal(label.locks['overflow-x'], 'hidden');
+});
+
+test('site rerenders restore a cached translation and rescans detect reused chat text', async () => {
+  const root = element('div');
+  const bubble = element('p', {}, ['亲，双11活动优惠和库存都比较紧张']);
+  const source = bubble.childNodes[0];
+  root.append(bubble);
+  const sent = [];
+  const session = loadContent().createSession({
+    root, walkRoot: root, enableBanner: false, revealAnimation: false,
+    sendBatch: async (texts) => {
+      sent.push([...texts]);
+      return { ok: true, translations: texts.map(() => '행사 중이라 재고가 부족해요') };
+    },
+  });
+  session.start();
+  await session.whenIdle();
+  assert.equal(source.nodeValue, '행사 중이라 재고가 부족해요');
+  source.nodeValue = '亲，双11活动优惠和库存都比较紧张';
+  session.emitMutations([{ type: 'characterData', target: source }]);
+  await session.whenIdle();
+  assert.equal(source.nodeValue, '행사 중이라 재고가 부족해요');
+  assert.equal(sent.length, 1, 'restoring the same message must not call the API again');
+  source.nodeValue = '亲，双11活动优惠和库存都比较紧张';
+  session.rescan();
+  assert.equal(source.nodeValue, '행사 중이라 재고가 부족해요');
+  source.nodeValue = '고객님，欢迎光临';
+  session.rescan();
+  await session.whenIdle();
+  assert.deepEqual(sent[1], ['고객님，欢迎光临']);
+  session.setShowOriginal(true);
+  session.emitMutations([{ type: 'characterData', target: source }]);
+  assert.equal(source.nodeValue, '고객님，欢迎光临');
+  session.setEnabled(false);
+  session.rescan();
+  assert.equal(source.nodeValue, '고객님，欢迎光临');
 });
 
 test('switching chats retranslates a reused text node and a replaced pane', async () => {

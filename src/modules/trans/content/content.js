@@ -440,6 +440,8 @@
         done: records.size,
         pending: queue.length,
         pumping,
+        busy: started && enabled && !showOriginal && !pausedForError && Boolean(
+          pumping || queue.length || attrWait.length || attrInflight.size || revealWait.length || activeJobs.size),
         error,
         model,
       };
@@ -1197,6 +1199,7 @@
         for (const job of pass.jobs || []) releaseJob(job, commit);
       });
       if (commit && revealWait.length && enabled && pass.epoch === sweepEpoch) scheduleReveal();
+      notify();
     }
 
     function startClock(pass, duration, step) {
@@ -1288,6 +1291,7 @@
       // Offscreen/unsupported runs can consume a queue slice without creating a
       // pass. Continue draining those slices instead of waiting for a nonexistent timer.
       if (revealWait.length && activeJobs.size < MAX_ACTIVE_SWEEPS) scheduleReveal();
+      notify();
     }
 
     function scheduleReveal() {
@@ -1560,6 +1564,7 @@
         pending.push(item);
       }
       if (!pending.length) return;
+      notify();
       sendBatch(pending.map((item) => item.core)).then((response) => {
         const translations = response?.ok && Array.isArray(response.translations) && response.translations.length === pending.length
           ? response.translations
@@ -1585,7 +1590,7 @@
           attrDelete(attrInflight, item.element, item.name);
           finishTitle(item, false);
         }
-      });
+      }).finally(notify);
     }
 
     function scheduleTitleFlush() {
@@ -1621,6 +1626,7 @@
           resolve,
         });
         scheduleTitleFlush();
+        notify();
       });
     }
 
@@ -1669,19 +1675,22 @@
       }
     }
 
-    function textMatchesRecord(node) {
-      const record = records.get(node);
-      if (!record) return false;
-      const value = node.nodeValue;
-      return value === record.original || value === record.translated;
-    }
-
     // 같은 글자 칸을 다음 대화가 다시 쓰면, 저장된 번역과 다르면 새로 번역한다.
     function syncTextNode(node) {
       if (!node || node.nodeType !== 3) return;
       if (expectedWrite.get(node) === node.nodeValue) return;
       if (shouldSkipText(node)) return;
-      if (textMatchesRecord(node)) return;
+      const record = records.get(node);
+      if (record && (node.nodeValue === record.original || node.nodeValue === record.translated)) {
+        // React 등에서 같은 원문을 다시 그려도 완료 목록 때문에 원문으로 남지 않게 해요.
+        // 이미 보여 준 번역이므로 추가 API 요청이나 프리즘 재생은 필요 없어요.
+        if (enabled && !showOriginal && node.nodeValue !== record.translated) writeNode(node, record.translated);
+        return;
+      }
+      if (meta.get(node)?.original === node.nodeValue) {
+        considerText(node);
+        return;
+      }
       if (done.has(node) || queued.has(node) || records.has(node) || meta.has(node)) forgetNode(node);
       considerText(node);
     }
@@ -1754,7 +1763,7 @@
       if (!node.childNodes) return;
       const children = [...node.childNodes];
       for (const child of children) {
-        if (child.nodeType === 3) considerText(child);
+        if (child.nodeType === 3) syncTextNode(child);
         else if (child.nodeType === 1) {
           considerAttrs(child);
           if (isSkipElement(child)) continue;
@@ -1815,7 +1824,7 @@
         if (changed.length && changed.every(isOwnNode)) continue;
         for (const node of mutation.addedNodes || []) {
           if (isOwnNode(node)) continue;
-          if (node.nodeType === 3) considerText(node);
+          if (node.nodeType === 3) syncTextNode(node);
           else if (node.nodeType === 1) {
             noteFrames(node);
             considerAttrs(node);
@@ -2157,6 +2166,7 @@
       });
     }
 
+    let progressPort = null;
     const session = createSession({
       root: document.documentElement,
       walkRoot: document.body || document.documentElement,
@@ -2164,14 +2174,16 @@
         return sendBatchOverPort(texts);
       },
       onStatus(status) {
-        let top = true;
         try {
-          top = window.top === window;
+          if (!progressPort) {
+            const port = chrome.runtime.connect({ name: 'bongextend-translation-progress' });
+            port.onDisconnect.addListener(() => { if (progressPort === port) progressPort = null; });
+            progressPort = port;
+          }
+          progressPort.postMessage(status);
         } catch {
-          top = false;
+          progressPort = null;
         }
-        if (!top) return;
-        chrome.runtime.sendMessage({ type: 'PROGRESS', status }).catch(() => {});
       },
       onBindScroll(handler) {
         document.addEventListener('scroll', handler, true);
