@@ -14,6 +14,7 @@ const {chromium}=require('playwright');const fs=require('node:fs'),os=require('n
    await chrome.storage.local.set({'core.update:autoCheck':false,'core.popupTab':'gmail','core.mailProvider':'naver','core.modules':{gmail:true,chzzk:false,trans:false,dc:false,dark:false,fx:false,download:false}});
   });
   const page=await context.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
+  await page.addInitScript(()=>{if(!globalThis.chrome?.runtime?.sendMessage)return;globalThis.__fixtureCalls=[];const original=chrome.runtime.sendMessage.bind(chrome.runtime);chrome.runtime.sendMessage=(...args)=>{const result=original(...args);if(result?.then)result.then(response=>{__fixtureCalls.push({command:args[0]?.command,error:response?.error?.message,stack:response?.error?.stack});});return result;};});
   await context.route('https://mail.naver.com/**',route=>route.fulfill({contentType:'text/html',body:'<!doctype html><title>Synthetic Naver destination</title>'}));
   await page.goto(`chrome-extension://${id}/popup.html`);
   const frame=page.frameLocator('#checkerPlusMailFrame');
@@ -21,7 +22,7 @@ const {chromium}=require('playwright');const fs=require('node:fs'),os=require('n
   await frame.locator('html[data-bong-mail-ready="true"]').waitFor();
   assert.equal(await page.locator('#providerGmail,#providerNaver').count(),0,'provider tabs have been removed');
   assert.equal(await frame.locator('dialog[open]').count(),0,'Naver-only use is not blocked by a Gmail login dialog');
-  await frame.locator('#bongextendNaverAccount button').click();await page.locator('#mailSettingsDialog').waitFor();
+  await frame.getByRole('button',{name:'계정 연결',exact:true}).click();await page.locator('#mailSettingsDialog').waitFor();
   await page.locator('#naverMailId').fill('fixture-user@naver.com');await page.locator('#naverMailConnect').click();
   await frame.locator('#naverMailList li').nth(1).waitFor();
   await page.waitForFunction(()=>!document.querySelector('#mailSettingsSave').disabled);
@@ -35,7 +36,8 @@ const {chromium}=require('playwright');const fs=require('node:fs'),os=require('n
   await frame.locator('#naverMailList li').nth(2).waitFor();
   assert.equal(await worker.evaluate(()=>__notifications.length),1);
   await page.waitForFunction(()=>document.querySelector('#mailBadge').textContent==='3');
-  const inbox=page.frames().find(f=>f.url().includes('/checkerplus-popup.html'));
+  let inbox=page.frames().find(f=>f.url().includes('/checkerplus-popup.html'));
+  assert.deepEqual(await inbox.evaluate(()=>__fixtureCalls.filter(call=>call.command==='accountAction')),[]);
   await inbox.evaluate(()=>{
     const account=document.createElement('section');account.className='account';account.id='fixtureGmail';account._account={email:'fixture@gmail.com'};
     account.innerHTML='<div class="accountHeader"><div class="accountTitleArea"><div class="accountTitle">fixture@gmail.com</div><div class="unreadCount">1</div></div></div><div class="mail"><div class="sender">Gmail 시험 발신자</div><div class="subject">Gmail과 네이버가 함께 보이는 시험 메일</div></div>';
@@ -45,9 +47,21 @@ const {chromium}=require('playwright');const fs=require('node:fs'),os=require('n
   await frame.locator('#bongextendGmailEmpty').waitFor({state:'hidden'});
   const together=await inbox.evaluate(()=>{const a=document.getElementById('fixtureGmail'),b=document.getElementById('bongextendNaverAccount');return {shared:a.parentElement===b.parentElement,order:Boolean(a.compareDocumentPosition(b)&Node.DOCUMENT_POSITION_FOLLOWING),naverIsGmail:b.matches('.account')};});
   assert.deepEqual(together,{shared:true,order:true,naverIsGmail:false});
+  await frame.locator('#bongextendNaverAccount .be-account-order button').first().click();
+  await page.waitForFunction(async()=>JSON.stringify((await chrome.storage.local.get('core.mailAccountOrder'))['core.mailAccountOrder'])===JSON.stringify(['naver:fixture-user@naver.com','gmail:fixture@gmail.com']));
+  await inbox.waitForFunction(()=>document.getElementById('inbox').querySelector('.be-naver-account,.account').id==='bongextendNaverAccount');
+  assert.equal(await inbox.evaluate(()=>document.getElementById('fixtureGmail')._account.email),'fixture@gmail.com');
+  await inbox.evaluate(()=>{const old=document.getElementById('fixtureGmail'),fresh=old.cloneNode(true);fresh._account={email:'fixture@gmail.com',id:7};old.replaceWith(fresh);});
+  await frame.locator('#bongextendNaverAccount .be-account-order button').last().press('Enter');
+  await inbox.waitForFunction(()=>document.getElementById('inbox').querySelector('.be-naver-account,.account').id==='fixtureGmail');
+  assert.equal(await inbox.evaluate(()=>document.getElementById('fixtureGmail')._account.id),7);
+  assert.equal(await inbox.evaluate(()=>document.activeElement?.closest('.be-account-order')!==null),true);
+  await worker.evaluate(()=>chrome.storage.local.set({'core.mailAccountOrder':['naver:fixture-user@naver.com','gmail:fixture@gmail.com']}));
+  await inbox.waitForFunction(()=>document.getElementById('inbox').querySelector('.be-naver-account,.account').id==='bongextendNaverAccount');
   const logo=frame.locator('.be-naver-logo');assert.ok(await logo.evaluate(e=>e.complete&&e.naturalWidth>0));
   const lb=await logo.boundingBox(),email=await frame.locator('.be-naver-title strong').boundingBox();assert.ok(lb.x+lb.width<=email.x);
   assert.equal(await frame.locator('.be-naver-title strong').textContent(),'fixture-user@naver.com');
+  assert.deepEqual(await inbox.evaluate(()=>__fixtureCalls.filter(call=>call.command==='accountAction')),[],'order buttons must not trigger native Gmail account actions');
   await page.screenshot({path:path.join(folder,'unified-mail-light.png'),animations:'disabled'});
   await page.emulateMedia({colorScheme:'dark'});
   await page.screenshot({path:path.join(folder,'naver-mail-dark.png'),animations:'disabled'});
@@ -61,6 +75,9 @@ const {chromium}=require('playwright');const fs=require('node:fs'),os=require('n
   await frame.locator('#naverMailList button').first().click();await page.waitForTimeout(700);
   assert.equal(await page.evaluate(()=>window.__naverOpens[0]?.url),'https://mail.naver.com/v2/read/0/125');
   await page.reload();await frame.locator('#naverMailList li').nth(2).waitFor();
+  inbox=page.frames().find(f=>f.url().includes('/checkerplus-popup.html'));
+  await inbox.evaluate(()=>{const row=document.createElement('section');row.className='account';row.id='restoredGmail';row.setAttribute('email','fixture@gmail.com');row.innerHTML='<div class="accountHeader">Gmail</div>';document.getElementById('inbox').append(row);});
+  await inbox.waitForFunction(()=>document.getElementById('inbox').querySelector('.be-naver-account,.account').id==='bongextendNaverAccount');
   await worker.evaluate(()=>chrome.storage.local.set({'core.modules':{gmail:false}}));
   await frame.locator('#naverMailList li').first().waitFor({state:'hidden'});
   await worker.evaluate(()=>chrome.storage.local.set({'core.modules':{gmail:true}}));

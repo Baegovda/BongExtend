@@ -1,14 +1,27 @@
-# 메일 담당 준비 보고
+# 메일 UI·계정 순서 작업 보고
 
-- 역할: Gmail·네이버 메일 감지, 계정 표시, 메일 상세 UI, 알림음·OTP의 명시 배정을 처리해요.
-- 기준: `main`, `ae2dfd6`, `package.json` 앱 버전 `1.2.49`이에요.
-- 현재 작업 트리에는 팀 초기 준비 문서 관련 미커밋 변경이 있으며, 보존했어요.
-- 메일 진입점: `src/modules/gmail/`, `src/entrypoints/gmail.content.ts`, `src/modules/naver-mail/`이에요.
-- Checker Plus 연결: `public/checkerplus-popup.html`, `public/js/popup.js`, `public/js/background.js`, 계정 헬퍼예요.
-- 자체 UI·컨텍스트: `public/checkerplus-embed.css`, `public/js/bongextend-mail-ui.js`, `bongextend-mail-reader.js`, 프로필·세션·작성 컨텍스트 파일이에요.
-- 설정 화면: `src/entrypoints/popup/mail-settings.ts`, `src/entrypoints/popup/naver-mail.ts`예요.
-- 공유 의존: `src/entrypoints/background.ts`, 팝업 공통 셸, 공통 테마·배지·설정 입출력, manifest·WXT·패키지·릴리스 파일은 총괄 소유예요.
-- 공통 파일 변경이 필요하면 대상과 최소 변경안을 총괄에 먼저 보고해요.
-- 이번 초기 배정에서는 앱 소스를 수정하지 않았고, 테스트·빌드·패키징·커밋·푸시·릴리스를 실행하지 않았어요.
-- 로그인 계정, 개인 브라우저, 실메일, OTP, 키에는 접근하지 않았어요.
-- 다음 총괄의 구체적인 목표와 허용 파일 범위를 기다려요.
+- 배정 기준: main `601d6ed`, 앱 1.2.50. 총괄의 1.2.51·공통 상단 변경을 보존했어요.
+- 변경: `public/checkerplus-embed.css`, `public/js/bongextend-mail-ui.js`, `src/entrypoints/popup/naver-mail.ts`, 메일·네이버 브라우저 검사 스크립트 2개예요.
+- 읽기 도구를 높이 36px 한 줄 아이콘으로 줄이고 한국어 title/aria-label, 기존 handlers·더보기를 유지했어요.
+- 제목 상단 고정을 유지하며 최대 40px로 줄였고 발신자 카드·본문 여백·답장 도크도 줄였어요.
+- 본문만 CSS zoom 80%이며 같은 줄의 80/100% 버튼으로 복구해요. 배율은 현재 화면에서만 유지해요.
+- 발신자 HTML 색·이미지를 다시 쓰지 않고 답장 입력과 조작 버튼은 정상 배율이에요.
+- 125% 폭 보정은 실제 직사각형 검사에서 넘침이 있어 제거했어요. width 100%·border-box로 검증했어요.
+- Gmail popup.js에서 재사용 가능한 계정 drag/order 구현은 발견하지 못했어요. 원본 엔진은 수정하지 않았어요.
+- Gmail 이메일과 네이버 주소의 provider 접두사 키를 `core.mailAccountOrder`에 저장해요.
+- 위/아래 버튼은 DOM 행만 이동하며 Gmail native index·계정 객체를 변경하지 않아요.
+- 네이버 마지막 강제 이동을 제거했고 동일 순서이면 DOM을 이동하지 않아 observer 반복을 막아요.
+- 동적 계정 추가·같은 키 새 DOM 교체 시 현재 행을 조회해요. 키보드 초점, 저장 실패 안내, 다른 창 storage 변경도 처리해요.
+- 최종 build·TypeScript 검사 통과. 전체 앱 시험은 총괄이 맡았어요.
+- 최종 `node scripts/verify-mail-reader-browser.cjs` 통과: 밝음/어두움, 색·이미지, 아이콘, 80/100%, 600×500·780×590·1100×800 본문 폭/제목 높이, resize·저장, 번역 메뉴예요.
+- 최종 `node scripts/verify-naver-mail-browser.cjs` 통과: 순서 저장·재열기, 동적 Gmail DOM 교체, native id 7 보존, Enter 이동·초점, 외부 storage 변경, 네이버 목적 URL 보존이에요.
+- 폐기용 Chrome·합성 계정/메일이며 실계정 전송·읽음·삭제나 개인 프로필 접근은 없었어요.
+- 번역은 zoom 조상에서 고정 overlay 대신 native 번역 텍스트로 표시하는 기존 처리를 유지해요. 줌 상태의 번역 성공을 확인했어요.
+- 읽기 캡처 폴더: `C:/Users/REVAPT~1/AppData/Local/Temp/be-reader-sOdiHe` (reader-dark.png, reader-light.png, resizable-window.png).
+- 최종 계정 캡처 폴더: `C:/Users/REVAPT~1/AppData/Local/Temp/be-naver-mail-4Kmp9C` (naver-mail-dark.png, unified-mail-light.png). 오류 toast 없이 직접 확인했어요.
+- 이전 오류의 최소 fixture 원인 추정은 정정해요. sendMessage 계측 결과 계정 생성 전 오류 없음, Enter 이동 후 `accountAction` 오류가 있었어요.
+- 원인은 popup.js:6782의 body keydown이 Enter를 Gmail 계정 열기로 처리한 것이에요. 순서 버튼 keydown 전파 차단 1줄로 수정했어요. 제품 오류 숨김 처리는 없어요.
+- 재생성 Gmail fixture에 native id 7을 넣고, 클릭·Enter 이동 전후 accountAction 호출이 0회인지 회귀 검사했어요. 수정 후 최종 네이버 브라우저 검사·build 통과했어요.
+- 실계정·임의 고정폭 HTML 전체의 종합 검증은 하지 않았어요. 커밋·푸시·릴리스는 총괄 영역이에요.
+- 총괄 통합: keydown 수정을 포함한 1.2.51 ZIP을 다시 만들고 ZIP·타입·eval·권한 검사까지 통과했어요. 전체 시험 238개와 담당의 관련 브라우저 검증 증거를 재사용했어요.
+- 총괄이 reader-dark/resizable-window 및 오류 없는 최종 계정 화면을 직접 확인했어요. 메일 활성 상태의 부모 앱 바는 작은 창에서도 34px 한 줄이고, 메일 전용 embed 화면에는 설정·새로고침을 작은 도구 줄로 남겨요.

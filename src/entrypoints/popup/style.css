@@ -229,9 +229,27 @@ iframe.active { display: block; }
     .mail-title .be-sub { display: none; }
 }
 
-.mail-module-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 10px 16px; border-bottom: 1px solid var(--be-border); background: var(--be-surface); }
-.mail-module-toolbar small { display: block; margin-top: 3px; color: var(--be-muted); font-size: 11px; }
-.mail-module-toolbar button { padding: 8px 12px; }
+.be-page .tabs .mail-shell-action { display: none; }
+html.mail-active .tabs { height: 34px; gap: 5px; grid-template-columns: auto minmax(0,1fr) auto; }
+html.mail-active .brand { font-size: 12px; gap: 5px; }
+html.mail-active .brand img { width: 16px; height: 16px; }
+html.mail-active .tabs .tab-group button { height: 34px; padding: 0 7px; font-size: 12px; }
+html.mail-active .window-tools { gap: 3px; }
+html.mail-active .tabs .window-tools button { display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border-radius: 6px; }
+html.mail-active .tabs .window-tools button:hover { background: var(--be-surface-3); }
+html.mail-active .window-toggle span { display: none; }
+html.mail-active .gear-fab { width: 28px; height: 28px; right: 30px; bottom: 6px; border-radius: 8px; }
+html.mail-active .gear-fab svg { width: 17px; height: 17px; }
+html.embed.mail-active .tabs { display: flex; justify-content: flex-end; height: 32px !important; }
+html.embed.mail-active .tabs :is(.brand,.tab-group,#rightClick,#openResizableWindow) { display: none !important; }
+html.embed.mail-active .window-tools { display: flex; padding-top: 0; }
+@media(max-width:720px) {
+  html.mail-active .tabs { grid-template-columns: 18px minmax(0,1fr) auto !important; gap: 4px; height: 34px !important; }
+  html.mail-active .brand { font-size: 0; grid-row: 1; padding-top: 0; }
+  html.mail-active .tab-group { grid-row: 1; grid-column: 2; }
+  html.mail-active .window-tools { grid-row: 1; grid-column: 3; padding-top: 0; }
+  html.mail-active .tabs .tab-group button { height: 34px; padding: 0 6px; }
+}
 .mail-settings-dialog { margin: auto; width: min(920px, calc(100% - 32px)); max-height: calc(100% - 32px); padding: 0; border: 1px solid var(--be-border); border-radius: 22px; color: var(--be-text); background: var(--be-bg); box-shadow: var(--be-shadow); overflow: auto; }
 .mail-settings-dialog::backdrop { background: rgba(0,0,0,.65); backdrop-filter: blur(6px); }
 .mail-settings-header { display: flex; justify-content: space-between; align-items: center; gap: 20px; padding: 24px; border-bottom: 1px solid var(--be-border); }
@@ -249,7 +267,6 @@ iframe.active { display: block; }
 @media(max-width:650px) { .mail-settings-grid { grid-template-columns: 1fr; padding: 16px; } .mail-settings-header { padding: 18px; } }
 
 .panel.be-shell.mail-panel:not([hidden]) { display: flex; flex-direction: column; }
-.mail-module-toolbar { flex: 0 0 auto; }
 .checkerplus-mail-frame { flex: 1 1 0; height: 0; }
 
 .download-module-toolbar { display: flex; flex-wrap: wrap; flex: 0 0 auto; gap: 8px; padding: 10px 14px; background: var(--be-surface); border-bottom: 1px solid var(--be-border); }

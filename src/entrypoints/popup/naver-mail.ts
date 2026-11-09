@@ -10,6 +10,31 @@ export function setupNaverMail(){
  const status=$('naverMailStatus'),id=$('naverMailId') as HTMLInputElement;
  const connect=$('naverMailConnect') as HTMLButtonElement,notify=$('naverMailNotify') as HTMLInputElement;
  let revision=0,observer:MutationObserver|undefined,section:HTMLElement|undefined,signature='';
+ const ORDER_KEY='core.mailAccountOrder';let accountOrder:string[]=[];
+ const orderAccounts=(doc:Document)=>{
+  const inbox=doc.getElementById('inbox');if(!inbox)return;
+  const rows=Array.from(inbox.children).filter((el):el is HTMLElement=>el instanceof doc.defaultView!.HTMLElement&&(el.matches('.account')||el.id==='bongextendNaverAccount'));
+  const key=(row:HTMLElement)=>row.id==='bongextendNaverAccount'?row.dataset.accountKey||'':`gmail:${String(row.getAttribute('email')||(row as HTMLElement&{_account?:{email?:string}})._account?.email||'').trim().toLowerCase()}`;
+  const valid=rows.filter(row=>key(row)&&key(row)!=='gmail:');
+  const sorted=[...valid].sort((a,b)=>{const rank=(row:HTMLElement)=>{const i=accountOrder.indexOf(key(row));return i<0?accountOrder.length+(row.id==='bongextendNaverAccount'?1:0):i;};return rank(a)-rank(b);});
+  if(valid.some((row,i)=>row!==sorted[i]))for(const row of sorted)inbox.append(row);
+  sorted.forEach((row,index)=>{
+   const header=row.querySelector('.accountHeader,.be-naver-header');if(!header)return;
+   let controls=header.querySelector('.be-account-order');
+   if(!controls){controls=doc.createElement('span');controls.className='be-account-order';
+    for(const [delta,label,glyph] of [[-1,'계정 위로 이동','↑'],[1,'계정 아래로 이동','↓']] as const){
+     const move=button(doc,glyph,()=>{const current=Array.from(inbox.children).filter(el=>el.matches('.account')||el.id==='bongextendNaverAccount') as HTMLElement[];const at=current.indexOf(row),target=at+delta;if(target<0||target>=current.length)return;
+      [current[at],current[target]]=[current[target],current[at]];accountOrder=current.map(key);orderAccounts(doc);
+      const focus=move.disabled?move.parentElement?.querySelector<HTMLButtonElement>('button:not(:disabled)'):move;focus?.focus();
+      void chrome.storage.local.set({[ORDER_KEY]:accountOrder}).catch(()=>{status.textContent='계정 순서를 저장하지 못했어요. 다시 이동해 주세요.';});});
+     move.title=label;move.setAttribute('aria-label',label);move.addEventListener('click',event=>event.stopPropagation());controls.append(move);
+     move.addEventListener('keydown',event=>event.stopPropagation());
+    }header.append(controls);
+   }
+   const buttons=controls.querySelectorAll('button');buttons[0].disabled=index===0;buttons[1].disabled=index===sorted.length-1;
+  });
+ };
+ void chrome.storage.local.get(ORDER_KEY).then(local=>{accountOrder=Array.isArray(local[ORDER_KEY])?local[ORDER_KEY].filter((key:unknown)=>typeof key==='string'):[];if(frame.contentDocument)orderAccounts(frame.contentDocument);});
  const refresh=()=>{
   const port=chrome.runtime.connect({name:'bongextend-naver-mail'});
   const timer=setTimeout(()=>port.disconnect(),20000);
@@ -30,7 +55,8 @@ export function setupNaverMail(){
   if(!doc||!inbox)return;
   hint(doc);
   if(section?.ownerDocument!==doc){section=doc.createElement('section');section.id='bongextendNaverAccount';section.className='be-naver-account';section.dataset.provider='naver';signature='';}
-  if(inbox.lastElementChild!==section)inbox.append(section!);
+  if(section!.parentElement!==inbox)inbox.append(section!);
+  orderAccounts(doc);
  };
  const render=async()=>{
   const current=++revision;
@@ -52,6 +78,8 @@ export function setupNaverMail(){
    header.append(button(doc,'메일함',()=>{void chrome.tabs.create({url:mailUrl('')});}),button(doc,'작성',()=>{void chrome.tabs.create({url:'https://mail.naver.com/v2/new'});}));
   }else header.append(button(doc,'계정 연결',openSettings));
   section.append(header);
+  section.dataset.accountKey=`naver:${String(config?.id||'').toLowerCase()}@naver.com`;
+  orderAccounts(doc);
   const note=doc.createElement('p');note.className='be-naver-note';note.setAttribute('role','status');
   note.textContent=!config?.enabled?'메일 설정에서 네이버 계정을 연결하면 Gmail과 함께 보여요.':!connected?'네이버 메일을 확인하고 있어요…':state!.error||(!state!.messages?.length?'읽지 않은 받은 메일이 없어요.':'');
   note.hidden=!note.textContent;section.append(note);
@@ -88,6 +116,6 @@ export function setupNaverMail(){
  $('naverMailDisconnect').addEventListener('click',async()=>{await chrome.storage.local.remove(CONFIG_KEY);await chrome.storage.session.remove(STATE_KEY);void render();});
  notify.addEventListener('change',async()=>{const local=await chrome.storage.local.get(CONFIG_KEY);if(local[CONFIG_KEY])await chrome.storage.local.set({[CONFIG_KEY]:{...(local[CONFIG_KEY] as NaverConfig),notify:notify.checked}});});
  $('naverMailRefresh').addEventListener('click',refresh);$('mailRefreshNow').addEventListener('click',refresh);
- chrome.storage.onChanged.addListener((changes,area)=>{if((area==='session'&&changes[STATE_KEY])||(area==='local'&&(changes[CONFIG_KEY]||changes['core.modules'])))void render();});
+ chrome.storage.onChanged.addListener((changes,area)=>{if(area==='local'&&changes[ORDER_KEY]){accountOrder=Array.isArray(changes[ORDER_KEY].newValue)?changes[ORDER_KEY].newValue:[];if(frame.contentDocument)orderAccounts(frame.contentDocument);}if((area==='session'&&changes[STATE_KEY])||(area==='local'&&(changes[CONFIG_KEY]||changes['core.modules'])))void render();});
  void render();refresh();
 }

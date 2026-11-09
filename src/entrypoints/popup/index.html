@@ -25,6 +25,8 @@
         <button data-tab="download" role="tab" title="끌어서 순서 바꾸기 (Alt+←/→)" type="button">다운로더<span id="downloadBadge" class="tab-badge download" hidden></span></button>
     </div>
     <div class="window-tools">
+    <button id="mailRefreshNow" class="mail-shell-action" type="button" title="메일 새로고침" aria-label="메일 새로고침"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M6.1 7a7 7 0 0 1 11.6-1L20 9M4 15l2.3 3A7 7 0 0 0 18 17"/></svg></button>
+    <button id="mailSettingsOpen" class="mail-shell-action" type="button" title="메일 설정" aria-label="메일 설정"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/><path d="M8 3v6m8 0v6M9 15v6"/></svg></button>
     <button id="openResizableWindow" class="window-toggle" type="button" title="크기를 조절할 수 있는 별도 창으로 열기" aria-label="크기 조절 창으로 열기"><span>크기 조절</span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="M8 16 16 8m-6 0h6v6"/></svg></button>
     <button id="rightClick" class="mouse-toggle" type="button" title="이 사이트에서 오른쪽 클릭, 복사, 글자 선택을 되살려요" aria-label="오른쪽 클릭" aria-pressed="false">
         <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
@@ -78,7 +80,6 @@
           <iframe id="chronoPopupFrame" title="다운로더" data-src="/recent-downloads.html"></iframe>
     </section>
     <section class="panel be-shell mail-panel" data-frame="gmail" hidden>
-        <div class="mail-module-toolbar"><div><strong>메일</strong><small>Gmail · 네이버 메일</small></div><div class="be-actions"><button id="mailRefreshNow" type="button">새로고침</button><button id="mailSettingsOpen" type="button">메일 설정</button></div></div>
         <button id="checkerPlusMailHome" class="checkerplus-mail-home" type="button" hidden>메일함으로 돌아가기</button>
         <iframe id="checkerPlusMailFrame" class="checkerplus-mail-frame" title="메일" data-src="/checkerplus-popup.html?source=bongextend"></iframe>
         <div id="legacyGmailPanel" hidden aria-hidden="true">

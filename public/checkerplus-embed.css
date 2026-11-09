@@ -327,6 +327,26 @@ html.bongextend-checkerplus-embedded #replyArea #send { background: var(--be-acc
   html.bongextend-checkerplus-embedded .openEmailSubject { font-size: 19px !important; }
 }
 
+/* Compact reader chrome; only sender content is scaled, never reply controls. */
+html.bongextend-checkerplus-embedded #openEmailSection .site-header {height:36px !important;min-height:36px !important;padding:2px 8px !important;flex-shrink:0;}
+html.bongextend-checkerplus-embedded #openEmailSection .header-content {gap:4px !important;flex-wrap:nowrap;}
+html.bongextend-checkerplus-embedded #openEmailSection .primary-nav {display:none;}
+html.bongextend-checkerplus-embedded #openEmailSection .utility-items {gap:2px !important;flex-wrap:nowrap;}
+html.bongextend-checkerplus-embedded #openEmailSection .site-header j-button {--button-padding:5px;--icon-size:18px;min-width:28px;}
+html.bongextend-checkerplus-embedded #openEmailHeader {padding:2px 12px !important;min-height:32px;max-height:40px;box-sizing:border-box;gap:4px;}
+html.bongextend-checkerplus-embedded .openEmailSubject {font:650 15px/1.5 var(--be-font) !important;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+html.bongextend-checkerplus-embedded #openEmail {padding:8px 12px !important;}
+html.bongextend-checkerplus-embedded #openEmail .messageHeader {padding:5px 8px !important;margin-bottom:6px !important;gap:6px;border-radius:8px;}
+html.bongextend-checkerplus-embedded .messageHeader .contactPhoto {width:26px !important;height:26px !important;}
+html.bongextend-checkerplus-embedded #openEmail .message {margin-bottom:8px !important;}
+html.bongextend-checkerplus-embedded #openEmail .messageBody {zoom:.8;width:100%;box-sizing:border-box;padding:10px !important;}
+html.bongextend-checkerplus-embedded #openEmailSection[data-body-zoom="100"] .messageBody {zoom:1;width:100%;}
+html.bongextend-checkerplus-embedded #openEmailSection footer {padding:4px 54px 4px 10px !important;}
+html.bongextend-checkerplus-embedded #replyButtons j-button {--button-padding:4px 9px;}
+.be-body-zoom,.be-account-order button {font:600 11px/1.4 var(--be-font);color:var(--be-text);background:var(--be-surface-2);border:1px solid var(--be-border);border-radius:5px;padding:3px 5px;cursor:pointer;}
+.be-account-order {display:inline-flex;gap:2px;margin-left:6px;flex-shrink:0;}
+.be-account-order button:disabled {opacity:.35;cursor:default;}
+.be-body-zoom:focus-visible,.be-account-order button:focus-visible {outline:2px solid var(--be-accent);outline-offset:1px;}
 /* Naver is rendered next to Gmail accounts in the same inbox; it has its own actions. */
 html.bongextend-checkerplus-embedded #accounts-and-inbox {height:100% !important;}
 .be-naver-account {margin:0 0 10px;color:var(--be-text);font-family:var(--be-font);}

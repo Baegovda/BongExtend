@@ -139,6 +139,7 @@ const embedded = embed === "gmail" || embed === "fx" || embed === "update";
 const showTab = async (tab: TabId, persist = true) => {
     if (tab === "update" && current !== "update") pageBeforeSettings = current;
     current = tab;
+    document.documentElement.classList.toggle("mail-active", tab === "gmail");
     document.querySelectorAll<HTMLButtonElement>("#tabGroup button").forEach((b) => b.classList.toggle("active", b.dataset.tab === tab));
     $("settingsGear").classList.toggle("on", tab === "update");
     document.querySelectorAll<HTMLElement>("[data-frame]").forEach((el) => {

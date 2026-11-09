@@ -47,8 +47,19 @@ const fs=require('node:fs'), path=require('node:path'), os=require('node:os'), h
     };
     await frame.evaluate(mountReader);
     await frame.evaluate(()=>document.getAnimations().forEach(animation=>animation.finish()));
-    await frame.locator('#back').getByText('메일함').waitFor();
+    await frame.locator('#back[aria-label="메일함"]').waitFor();
+    assert.equal(await frame.locator('#back').textContent(),'');
     assert.equal(await frame.locator('#forward').textContent(),'전달');
+    assert.equal(await frame.locator('.messageBody').evaluate(el=>getComputedStyle(el).zoom),'0.8');
+    await frame.locator('.be-body-zoom').click();
+    assert.equal(await frame.locator('.messageBody').evaluate(el=>getComputedStyle(el).zoom),'1');
+    await frame.locator('.be-body-zoom').click();
+    assert.ok(await frame.locator('#openEmailSection .site-header').evaluate(el=>el.getBoundingClientRect().height<=36));
+    for(const size of [{width:600,height:500},{width:1100,height:800},{width:780,height:590}]){
+      await page.setViewportSize(size);
+      const geometry=await frame.evaluate(()=>{const body=document.querySelector('.messageBody'),scroller=document.getElementById('openEmail');return {body:body.getBoundingClientRect().width,available:scroller.clientWidth,subject:document.getElementById('openEmailHeader').getBoundingClientRect().height};});
+      assert.ok(geometry.body<=geometry.available+1,JSON.stringify(geometry));assert.ok(geometry.subject<=40);
+    }
     const readColors=()=>frame.evaluate(()=>{
       const style=selector=>{const s=getComputedStyle(document.querySelector(selector));return {color:s.color,bg:s.backgroundColor,filter:s.filter};};
       return {body:style('.messageBody'),white:style('#whiteMail'),dark:style('#darkMail'),link:style('#whiteMail a'),image:style('#darkMail img'),header:getComputedStyle(document.querySelector('#openEmailSection .site-header')).display,back:getComputedStyle(document.querySelector('#back').parentElement).display};
