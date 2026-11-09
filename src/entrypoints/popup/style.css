@@ -33,7 +33,7 @@ html.resizing iframe { pointer-events: none; }
 .be-page .tabs .mouse-toggle.on { background: var(--be-accent); color: var(--be-accent-ink); border-color: transparent; }
 .be-page .tabs .mouse-toggle:hover:not(:disabled) { background: var(--be-surface-3); color: var(--be-text); }
 .be-page .tabs .mouse-toggle.on:hover:not(:disabled) { background: var(--be-accent-hover); color: var(--be-accent-ink); }
-.be-page .gear-fab { position: fixed; right: 14px; bottom: 14px; z-index: 20; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 14px; display: grid; place-items: center; background: var(--be-accent); color: #fff; box-shadow: 0 8px 18px rgba(0,0,0,.28); }
+.be-page .gear-fab { position: fixed; right: 44px; bottom: 14px; z-index: 20; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 14px; display: grid; place-items: center; background: var(--be-accent); color: #fff; box-shadow: 0 8px 18px rgba(0,0,0,.28); }
 .be-page .gear-fab svg { display: block; width: 22px; height: 22px; }
 .be-page .gear-fab.on, .be-page .gear-fab:hover:not(:disabled) { background: var(--be-accent-hover); color: #fff; }
 .gear-dot { position: absolute; top: 6px; right: 6px; width: 10px; height: 10px; border-radius: 50%; background: var(--be-error); box-shadow: 0 0 0 2px var(--be-bg); }
@@ -279,3 +279,7 @@ iframe.active { display: block; }
 #naverMailList{list-style:none;padding:0;margin:16px 0;display:grid;gap:8px}
 #naverMailList button{display:grid;gap:6px;text-align:left;width:100%;padding:14px;background:var(--be-surface);border:1px solid var(--be-border);border-radius:12px}
 #naverMailList strong{font-size:14px;color:var(--be-text)}#naverMailList span,#naverMailList time{font-size:12px;color:var(--be-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+.be-page .window-tools #openResizableWindow{width:auto;display:flex;gap:6px;padding:0 9px;font-size:11px;white-space:nowrap}
+.be-page #windowResizeHandle{width:30px;height:30px;border-radius:9px 0 0 0;background:var(--be-surface-2);border:1px solid var(--be-border);color:var(--be-text)}
+html.embed #windowResizeHandle{display:none}

@@ -9,7 +9,7 @@ export function setupWindowControls(selection: () => string) {
         width: Math.round(Math.min(Math.max(520, width), screen.availWidth || 1920)),
         height: Math.round(Math.min(Math.max(460, height), screen.availHeight || 1080))
     });
-    button.addEventListener('click', async () => {
+    async function openWindow(width?: number, height?: number) {
         button.disabled = true;
         try {
             const saved = (await chrome.storage.local.get(SIZE_KEY))[SIZE_KEY] as {width?:number; height?:number} | undefined;
@@ -17,10 +17,13 @@ export function setupWindowControls(selection: () => string) {
             url.searchParams.set('window', '1');
             const mail = selection();
             if (/^[a-zA-Z0-9_-]{1,128}$/.test(mail)) url.searchParams.set('mail', mail);
-            await chrome.windows.create({url:url.href, type:'popup', ...limits(Number(saved?.width)||1000, Number(saved?.height)||800)});
+            await chrome.windows.create({url:url.href, type:'popup', ...limits(width || Number(saved?.width)||1000, height || Number(saved?.height)||800)});
+            if (!await chrome.tabs.getCurrent()) window.close();
         } catch {button.title = '창을 열지 못했어요. 다시 눌러 주세요.';}
         finally {button.disabled = false;}
-    });
+    }
+    button.addEventListener('click', () => {void openWindow();});
+    handle.hidden = false;
     void chrome.windows.getCurrent().then(window => {
         if (window.type !== 'popup') return;
         own = window; root.classList.add('is-window'); button.hidden = true; handle.hidden = false;
@@ -49,7 +52,23 @@ export function setupWindowControls(selection: () => string) {
         finally {applying = false;}
     }
     handle.addEventListener('pointerdown', async event => {
-        if (!own || event.button !== 0) return;
+        if (event.button !== 0) return;
+        if (!own) {
+            event.preventDefault(); handle.setPointerCapture(event.pointerId);
+            const x = event.screenX, y = event.screenY;
+            let width = innerWidth, height = innerHeight;
+            root.classList.add('resizing');
+            const move = (e: PointerEvent) => {width = innerWidth + e.screenX-x; height = innerHeight + e.screenY-y;};
+            const end = (e: PointerEvent) => {
+                root.classList.remove('resizing');
+                handle.removeEventListener('pointermove', move); handle.removeEventListener('pointerup', end); handle.removeEventListener('lostpointercapture', cancel);
+                if (handle.hasPointerCapture(e.pointerId)) handle.releasePointerCapture(e.pointerId);
+                void openWindow(width, height);
+            };
+            const cancel = () => {root.classList.remove('resizing');handle.removeEventListener('pointermove', move);handle.removeEventListener('pointerup', end);};
+            handle.addEventListener('pointermove', move);handle.addEventListener('pointerup', end);handle.addEventListener('lostpointercapture', cancel, {once:true});
+            return;
+        }
         event.preventDefault(); handle.setPointerCapture(event.pointerId);
         const x = event.screenX, y = event.screenY;
         const initial = await chrome.windows.get(own.id!);
@@ -64,7 +83,12 @@ export function setupWindowControls(selection: () => string) {
         handle.addEventListener('pointermove', move); handle.addEventListener('lostpointercapture', end);
     });
     handle.addEventListener('keydown', async event => {
-        if (!own || !['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(event.key)) return;
+        if (!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(event.key)) return;
+        if (!own) {
+            event.preventDefault();
+            await openWindow(innerWidth + (event.key==='ArrowRight'?40:event.key==='ArrowLeft'?-40:0), innerHeight + (event.key==='ArrowDown'?40:event.key==='ArrowUp'?-40:0));
+            return;
+        }
         event.preventDefault(); const current = await chrome.windows.get(own.id!);
         if (current.state !== 'normal') return;
         await resize(current.width! + (event.key==='ArrowRight'?40:event.key==='ArrowLeft'?-40:0),

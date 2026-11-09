@@ -427,6 +427,7 @@ const check = async (force: boolean) => {
             UPDATE_TIMEOUT_MESSAGE
         );
         renderUpdate(status);
+        if (force && status.updateAvailable && !status.error) setStatus("새 버전을 확인했어요. 자동 업데이트를 시작해요.");
         if (updateStatus.textContent === CHECKING || updateStatus.textContent === "확인 전") {
             setStatus(UPDATE_UNKNOWN_MESSAGE, "error");
         }

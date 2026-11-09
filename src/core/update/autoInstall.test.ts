@@ -24,3 +24,11 @@ test('a second installer cannot enter while another owns the write lock', async 
     await withInstallLock(locks as unknown as LockManager,async()=>{entered++;},()=>{busy++;});
     expect(entered).toBe(0);expect(busy).toBe(1);
 });
+
+test('manual check installs with auto-check off and permits an explicit retry, without interrupting active writes',()=>{
+ expect(shouldLaunchUpdater({...ready,manual:true,enabled:false})).toBe(true);
+ expect(shouldLaunchUpdater({...ready,manual:true,state:{version:'2.0.0',phase:'blocked',message:''},attempt:{version:'2.0.0',at:999999,count:3}})).toBe(true);
+ expect(shouldLaunchUpdater({...ready,manual:true,hasUpdater:true,state:{version:'2.0.0',phase:'working',message:''}})).toBe(false);
+ expect(shouldLaunchUpdater({...ready,manual:true,state:{version:'2.0.0',phase:'done',message:''}})).toBe(false);
+ expect(shouldLaunchUpdater({...ready,manual:true,available:false})).toBe(false);
+});

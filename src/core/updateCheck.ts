@@ -249,35 +249,35 @@ export const getExtensionUpdateStatus = async (): Promise<ExtensionUpdateStatus>
 const MISSING_CHROME_ZIP = "Chrome용 설치 파일(*-chrome.zip)을 찾지 못했어요.";
 
 let autoLaunch: Promise<void> | null = null;
-const launchAutomaticInstall = async (status: ExtensionUpdateStatus): Promise<void> => {
+const launchAutomaticInstall = async (status: ExtensionUpdateStatus, manual = false): Promise<void> => {
     if (getUpdateBrowser() !== 'chrome' || !status.downloadUrl) return;
     if (autoLaunch) return autoLaunch;
     autoLaunch = (async () => {
         const saved = await browser.storage.local.get([AUTO_ATTEMPT_KEY, INSTALL_STATE_KEY]);
         const tabs = await browser.tabs.query({url: browser.runtime.getURL('/update.html') + '*'});
         const attempt = saved[AUTO_ATTEMPT_KEY] as AutoAttempt | undefined;
-        if (!shouldLaunchUpdater({enabled: status.autoCheck, available: status.updateAvailable, version: status.latestVersion,
+        if (!shouldLaunchUpdater({manual, enabled: status.autoCheck, available: status.updateAvailable, version: status.latestVersion,
             now: Date.now(), state: saved[INSTALL_STATE_KEY] as InstallState | undefined, attempt, hasUpdater: tabs.length > 0})) return;
         await browser.storage.local.set({
-            [AUTO_ATTEMPT_KEY]: {version: status.latestVersion, at: Date.now(), count: attempt?.version === status.latestVersion ? attempt.count + 1 : 1},
+            [AUTO_ATTEMPT_KEY]: {version: status.latestVersion, at: Date.now(), count: !manual && attempt?.version === status.latestVersion ? attempt.count + 1 : 1},
             [INSTALL_STATE_KEY]: {version: status.latestVersion, phase: 'launching', message: '자동 업데이트를 시작하고 있어요.'}
         });
-        const url = browser.runtime.getURL('/update.html?auto=1');
+        const url = browser.runtime.getURL(manual ? '/update.html?auto=1&manual=1' : '/update.html?auto=1');
         if (tabs[0]?.id != null) await browser.tabs.update(tabs[0].id, {url});
-        else await browser.tabs.create({url, active: false});
+        else await browser.tabs.create({url, active: manual});
     })().catch(async () => {
         await browser.storage.local.set({[INSTALL_STATE_KEY]: {version: status.latestVersion, phase: 'error', message: '업데이트 화면을 열지 못했어요. 다음 확인 때 다시 시도해요.'}});
     }).finally(() => {autoLaunch = null;});
     return autoLaunch;
 };
 
-const statusAndInstall = async (version: string) => {
+const statusAndInstall = async (version: string, manual = false) => {
     const status = await buildStatus(version);
-    await launchAutomaticInstall(status);
+    await launchAutomaticInstall(status, manual);
     return status;
 };
 
-export const checkExtensionUpdate = async (force = false): Promise<ExtensionUpdateStatus> => {
+export const checkExtensionUpdate = async (force = false, manualInstall = false): Promise<ExtensionUpdateStatus> => {
     const currentVersion = getCurrentExtensionVersion();
     const autoCheck = await updateStorage.autoCheck.getValue();
 
@@ -289,7 +289,7 @@ export const checkExtensionUpdate = async (force = false): Promise<ExtensionUpda
     const elapsed = Date.now() - lastCheckedAt;
 
     if (!force && elapsed >= 0 && elapsed < CHECK_INTERVAL_MS - CHECK_INTERVAL_SLACK_MS) {
-        return statusAndInstall(currentVersion);
+        return statusAndInstall(currentVersion, manualInstall);
     }
 
     const wasAvailable = await updateStorage.updateAvailable.getValue();
@@ -318,7 +318,7 @@ export const checkExtensionUpdate = async (force = false): Promise<ExtensionUpda
         ]);
 
         await publishAvailability(updateAvailable, !force && updateAvailable && !wasAvailable, latest.version);
-        return statusAndInstall(currentVersion);
+        return statusAndInstall(currentVersion, manualInstall);
     } catch (error) {
         const message = error instanceof UpdateCheckError
             ? error.message

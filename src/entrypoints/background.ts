@@ -602,7 +602,7 @@ export default defineBackground(() => {
     })();
 
     onMessage("getUpdateStatus", () => getExtensionUpdateStatus());
-    onMessage("checkForUpdate", ({data}) => checkExtensionUpdate(Boolean(data?.force)));
+    onMessage("checkForUpdate", ({data}) => checkExtensionUpdate(Boolean(data?.force), Boolean(data?.force)));
     onMessage("applyUpdate", () => applyExtensionUpdate());
     onMessage("setUpdateAutoCheck", ({data}) => setUpdateAutoCheck(data.enabled));
 

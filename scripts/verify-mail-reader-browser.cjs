@@ -70,6 +70,17 @@ const fs=require('node:fs'), path=require('node:path'), os=require('node:os'), h
       await page.screenshot({path:path.join(temp,`reader-${scheme}.png`)});
     }
     console.log('PASS dark/light mail: original colors, dark designed content, links, image colors, back toolbar');
+    assert.equal(await page.locator('#windowResizeHandle').isVisible(),true,'ordinary popup page exposes the resize grip');
+    const promotedPage=context.waitForEvent('page');
+    const ordinaryGrip=await page.locator('#windowResizeHandle').boundingBox();
+    await page.mouse.move(ordinaryGrip.x+10,ordinaryGrip.y+10);await page.mouse.down();
+    await page.mouse.move(ordinaryGrip.x-70,ordinaryGrip.y-60,{steps:4});await page.mouse.up();
+    const promoted=await promotedPage;await promoted.waitForLoadState();
+    await promoted.waitForFunction(()=>document.documentElement.classList.contains('is-window'));
+    assert.ok(promoted.url().includes('window=1'));
+    await promoted.locator('#windowResizeHandle').press('ArrowLeft');
+    await promoted.close();
+    console.log('PASS ordinary popup grip opens a real resizable app window');
     const opened=context.waitForEvent('page');
     await page.locator('#openResizableWindow').click();
     const floating=await opened; await floating.waitForLoadState();
@@ -93,6 +104,8 @@ const fs=require('node:fs'), path=require('node:path'), os=require('node:os'), h
     await floating.waitForFunction(()=>document.documentElement.classList.contains('resizing'));
     await floating.mouse.move(grip.x-30,grip.y-30,{steps:4}); await floating.mouse.up();
     await floating.waitForFunction(async()=>{const value=(await chrome.storage.local.get('core.popupWindowSize'))['core.popupWindowSize'];return value?.width===620&&value?.height===500;});
+    const gear=await floating.locator('.gear-fab').boundingBox(),handle=await floating.locator('#windowResizeHandle').boundingBox();
+    assert.ok(gear.x+gear.width<=handle.x || gear.y+gear.height<=handle.y,'settings must not overlap the resize grip');
     await floating.screenshot({path:path.join(temp,'resizable-window.png')});
     await floating.close();
     console.log('PASS real Chrome floating window: responsive fill, native resize, drag/keyboard grip, remembered dimensions');

@@ -60,6 +60,7 @@ if (import.meta.env.FIREFOX) {
     const running = browser.runtime.getManifest().version;
     let release: LatestRelease | null = null;
     const automatic = new URLSearchParams(location.search).has('auto');
+    const manualInstall = new URLSearchParams(location.search).get('manual') === '1';
     const publishInstall = async (phase: InstallState['phase'], message: string, version = release?.latest || running) => {
         await browser.storage.local.set({[INSTALL_STATE_KEY]: {version, phase, message}});
     };
@@ -271,7 +272,7 @@ if (import.meta.env.FIREFOX) {
     };
 
     const init = async () => {
-        if (automatic && (await browser.storage.local.get('core.update:autoCheck'))['core.update:autoCheck'] === false) {
+        if (automatic && !manualInstall && (await browser.storage.local.get('core.update:autoCheck'))['core.update:autoCheck'] === false) {
             setStatus('자동 업데이트가 꺼져 있어요. 설정에서 다시 켤 수 있어요.');
             return;
         }

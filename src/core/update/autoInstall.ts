@@ -4,15 +4,15 @@ export type InstallState = {version: string; phase: 'launching' | 'working' | 'b
 export type AutoAttempt = {version: string; at: number; count: number};
 
 export const shouldLaunchUpdater = (options: {
-    enabled: boolean; available: boolean; version: string; now: number;
+    manual?: boolean; enabled: boolean; available: boolean; version: string; now: number;
     state?: InstallState; attempt?: AutoAttempt; hasUpdater: boolean;
 }): boolean => {
-    if (!options.enabled || !options.available || !options.version) return false;
+    if ((!options.enabled && !options.manual) || !options.available || !options.version) return false;
     const state = options.state;
-    if (state?.version === options.version && (state.phase === 'blocked' || state.phase === 'done')) return false;
+    if (state?.version === options.version && (state.phase === 'done' || (state.phase === 'blocked' && !options.manual))) return false;
     if (options.hasUpdater && (!state || state.phase === 'working' || state.phase === 'launching')) return false;
     const attempt = options.attempt;
-    if (attempt?.version === options.version && (attempt.count >= 3 || options.now - attempt.at < 5 * 60_000)) return false;
+    if (!options.manual && attempt?.version === options.version && (attempt.count >= 3 || options.now - attempt.at < 5 * 60_000)) return false;
     return true;
 };
 

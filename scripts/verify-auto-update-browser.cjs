@@ -41,11 +41,12 @@ with zipfile.ZipFile(sys.argv[1],'w') as z:
     });
     await updater.close();
     await worker.evaluate(async()=>{
-      await chrome.storage.local.remove(['core.update:installState','core.update:autoAttempt']);
-      await chrome.storage.local.set({'core.update:lastCheck':0});
-      for(const fn of __alarms)fn({name:'refresher-update-check'});
+      await chrome.storage.local.set({'core.update:autoCheck':false,'core.popupTab':'update','core.update:lastCheck':0,'core.update:autoAttempt':{version:'100.0.0',at:Date.now(),count:3}});
     });
+    const popup=await context.newPage();await popup.goto(`chrome-extension://${id}/popup.html`);
+    await popup.locator('#checkUpdate').click();
     await waitState('done');
+    assert.equal(await worker.evaluate(async()=>(await chrome.storage.local.get('core.update:autoCheck'))['core.update:autoCheck']),false,'manual check preserves the automatic-check preference');
     updater=context.pages().find(p=>p.url().includes('/update.html'));
     const written=await updater.evaluate(async()=>{
       const dir=await (await navigator.storage.getDirectory()).getDirectoryHandle('synthetic-install');
@@ -54,7 +55,7 @@ with zipfile.ZipFile(sys.argv[1],'w') as z:
     assert.equal(written.manifest.version,'100.0.0');assert.equal(written.content,'automatic update succeeded');
     await updater.waitForFunction(async()=> (await chrome.storage.local.get('test.reloadRequested'))['test.reloadRequested']===true);
     await updater.screenshot({path:path.join(temp,'installed.png')});
-    console.log('PASS background detection, inactive updater, folder-needed state, native test-folder writes, pending cleanup and reload request');
+    console.log('PASS background detection, inactive updater, folder-needed state; manual check with auto-check disabled and exhausted retries installs immediately, writes test folder, cleans pending files and requests reload');
     const pending=await updater.evaluate(async()=>{
       const db=await new Promise(resolve=>{const r=indexedDB.open('bongextend-install',1);r.onsuccess=()=>resolve(r.result);});
       return new Promise(resolve=>{const tx=db.transaction('pending');const r=tx.objectStore('pending').get('pending');tx.oncomplete=()=>{db.close();resolve(r.result);};});
