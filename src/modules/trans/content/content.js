@@ -162,6 +162,10 @@
   // 글자 체계가 목표 언어와 같으면 번역하지 않는다.
   // 영어·프랑스어처럼 로마자를 쓰는 언어는 서로 구분하지 않으므로 여기서 건너뛰지 않는다.
   function isAlreadyTargetLanguage(text, language) {
+    // A target-language fragment does not make a mixed-language sentence
+    // translated. Ignore protected addresses before checking foreign words.
+    const prose = String(text || '').replace(/https?:\/\/\S+|[\w.+-]+@[\w.-]+\.[a-z]{2,}/gi, '');
+    if (/\p{Script=Latin}/u.test(prose)) return false;
     const counts = scriptCounts(text);
     const letters = counts.hangul + counts.han + counts.kana + counts.cyrillic + counts.thai;
     if (!letters) return false;

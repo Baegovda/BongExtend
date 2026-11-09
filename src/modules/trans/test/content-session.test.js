@@ -16,6 +16,13 @@ function textNode(value) {
   return { nodeType: 3, nodeValue: value, parentElement: null, isConnected: true };
 }
 
+test('mixed Korean inbox text is not mistaken for a fully translated tooltip', () => {
+  const api = loadContent();
+  assert.equal(api.isAlreadyTargetLanguage('Forwarded from sample@example.invalid 배송 확인', 'ko'), false);
+  assert.equal(api.isAlreadyTargetLanguage('배송 확인 sample@example.invalid', 'ko'), true);
+  assert.equal(api.isAlreadyTargetLanguage('배송 확인', 'ko'), true);
+});
+
 function element(tag, props = {}, children = []) {
   const node = {
     nodeType: 1,
