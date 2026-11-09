@@ -23,6 +23,8 @@ This is the owner's primary working agreement for this project, within higher-pr
 BongExtend는 치지직, Gemini 번역, 디시인사이드(green1052/DCRefresher-Reborn 포크)를 합친 크롬 MV3 확장. 라이선스 GPL-3.0.
 오너(Guilliman / GitHub Baegovda)는 개발자가 아님. 화면 글, README, CHANGELOG, 보고는 한국어로 쉽게.
 
+완료 보고는 구현·작업 항목마다 독립된 한 줄의 목록으로 쓰고, 항목 문장 전체를 굵게 표시해요. 예: `- **메일 계정 순서 변경 구현 완료**`. 길게 합치거나 중첩 목록으로 쓰지 않아요. 실제 끝낸 것만 완료로 쓰고, 검증 결과·미검증·남은 문제·사용자 조치는 아래 별도 문장으로 짧게 적어요.
+
 ## 꼭 지킬 것
 - `wxt.config.ts`의 `imports.parser: "oxc"`는 빼지 말 것 (기본 스캐너가 순환 import를 만들어 배경 스크립트가 죽음).
 - 단축키(`commands`)는 오너 요청으로 번역 켜기/끄기(`toggle-translation`) 하나만 허용. 다른 단축키는 따로 요청받기 전까지 추가하지 말 것.
