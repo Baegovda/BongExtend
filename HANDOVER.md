@@ -4,6 +4,7 @@
 
 ## 최신 인계 — v1.2.55
 
+- 최종 앱 커밋 **f4ffc8a**, main / [v1.2.55 Release](https://github.com/Baegovda/BongExtend/releases/tag/v1.2.55). CI **42648315178**·Release **42648319228** 모두 success. Chrome ZIP **4,822,834바이트**·Windows 보조 ZIP **22,613바이트** 게시 확인. 코드·검사·배포 완료, 담당팀 모두 idle이며 추가 실행 중인 작업은 없어요. 이후 문서 커밋은 앱 버전을 바꾸지 않아요.
 - 사용자 승인으로 BongExtend 전체 UI를 **세련됨·고급스러움·유리 질감·그라데이션·오묘한 색상·애플 감성** 방향으로 리메이크했어요. AGENTS.md에 지속 정책과 다크 모드의 “사이트를 디자이너가 직접 재설계한 듯한 자연스러움” 목표를 기록했어요.
 - 공통 theme.css/tokens.js에 남청색/진주색·청록/보라 sheen·glass/control/gradient 토큰, 대비·focus·모션/투명도 줄이기·불투명 fallback을 넣었어요. 앱 셸, 메일·다운로더·번역·치지직·디시·환율·다크·공통 설정/업데이트를 연결했어요. 메일 원색/80%·계정 순서·기존 기능/라이선스/데이터는 유지해요.
 - 다운로더 actual task row0은 기존 vendor에서도 재현됐어요. `__cdexp_$0` 로컬 DB 조회 export 부재로 wf.eg가 []를 반환하던 것을 public/download-module.js의 native **readonly** adapter로 복구했어요. 숫자 state3/4·exists/recycled는 원본과 맞췄고 DB migration/파일삭제/권한 확대는 없어요. focus/click으로 즉시 닫히던 검색도 고쳤어요.
