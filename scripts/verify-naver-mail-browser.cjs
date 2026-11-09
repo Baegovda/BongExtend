@@ -64,6 +64,7 @@ const {chromium}=require('playwright');const fs=require('node:fs'),os=require('n
   assert.deepEqual(await inbox.evaluate(()=>__fixtureCalls.filter(call=>call.command==='accountAction')),[],'order buttons must not trigger native Gmail account actions');
   await page.screenshot({path:path.join(folder,'unified-mail-light.png'),animations:'disabled'});
   await page.emulateMedia({colorScheme:'dark'});
+  assert.equal(await inbox.evaluate(()=>getComputedStyle(document.documentElement).backgroundColor),'rgb(23, 24, 27)','dark mail canvas keeps an opaque charcoal base below its glass');
   await page.screenshot({path:path.join(folder,'naver-mail-dark.png'),animations:'disabled'});
   // A timestamp-only poll must preserve the exact row and its keyboard focus.
   await frame.locator('#naverMailList button').first().focus();

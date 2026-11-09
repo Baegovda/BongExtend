@@ -54,4 +54,7 @@ legend { font-size: 12px; color: var(--be-text-2); }
 .actions { gap: 10px; }
 .be-page .actions button { border-radius: 10px; min-height: 36px; }
 .note { margin-top: 16px; }
+.be-advanced { margin-top: 18px; padding-top: 12px; border-top: 1px solid var(--be-border); }
+.be-advanced summary { cursor: pointer; font-size: 13px; font-weight: 600; color: var(--be-text-2); padding: 6px 0; }
+.be-advanced summary:focus-visible { outline: 2px solid var(--be-accent); outline-offset: 3px; border-radius: 5px; }
 @media (max-width: 480px) { main { padding: 20px 12px 40px; } header { align-items: flex-start; } h1 { font-size: 20px; } .be-card { padding: 16px; border-radius: 16px; } fieldset { padding: 12px; } }

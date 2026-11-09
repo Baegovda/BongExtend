@@ -100,6 +100,8 @@ chronoPopupFrame.addEventListener("load", () => {
     try {
         const doc = chronoPopupFrame.contentDocument;
         if (!doc) return;
+        // The native recent list already loads the shared theme before its own compact styles.
+        if (doc.location.pathname === "/recent-downloads.html") return;
         applyEmbeddedTheme(doc, "bongextend-chrono-embedded", "pop/pop-embed.css");
     } catch (error) {
         console.warn("다운로더 화면을 BongExtend 탭에 맞추지 못했어요.", error);
@@ -114,6 +116,23 @@ const paintModuleOptions = async () => {
     const modules = await getModules() as Record<ModuleId, boolean>;
     for (const input of moduleOptions) input.checked = modules[input.dataset.moduleToggle as ModuleId] !== false;
 };
+const paintCurrentModuleState = async () => {
+    const tab = current;
+    const modules = await getModules() as Record<ModuleId, boolean>;
+    if (tab !== current) return;
+    const off = tab !== "update" && modules[tab] === false;
+    $("moduleStateNotice").hidden = !off;
+    $("moduleStateText").textContent = off ? `${NAMES[tab]} 기능이 꺼져 있어요.` : "";
+};
+$("moduleEnableCurrent").addEventListener("click", async () => {
+    const tab = current;
+    if (tab === "update") return;
+    const button = $<HTMLButtonElement>("moduleEnableCurrent");
+    button.disabled = true;
+    try { await setModuleEnabled(tab, true); await paintCurrentModuleState(); }
+    catch { $("moduleStateText").textContent = "저장하지 못했어요. 다시 눌러 주세요."; }
+    finally { button.disabled = false; }
+});
 for (const input of moduleOptions) {
     input.addEventListener("change", async () => {
         const id = input.dataset.moduleToggle as ModuleId;
@@ -134,11 +153,12 @@ for (const input of moduleOptions) {
 }
 
 const embed = new URLSearchParams(location.search).get("embed");
-const embedded = embed === "gmail" || embed === "fx" || embed === "update";
+const embedded = embed === "gmail" || embed === "fx" || embed === "dark" || embed === "download" || embed === "update";
 
 const showTab = async (tab: TabId, persist = true) => {
     if (tab === "update" && current !== "update") pageBeforeSettings = current;
     current = tab;
+    void paintCurrentModuleState();
     document.documentElement.classList.toggle("mail-active", tab === "gmail");
     document.querySelectorAll<HTMLButtonElement>("#tabGroup button").forEach((b) => b.classList.toggle("active", b.dataset.tab === tab));
     $("settingsGear").classList.toggle("on", tab === "update");
@@ -652,6 +672,7 @@ const paintDarkValues = (config: DarkConfig) => {
     darkInputs.followSystem.checked = Boolean(config.followSystem);
     darkInputs.customSite.checked = Boolean(siteTheme);
     darkInputs.customSite.disabled = !darkHost;
+    $("darkThemeScope").textContent = siteTheme ? "이 사이트의 색상만 바꿔요." : "허용한 사이트에서 사용할 기본 색상을 바꿔요.";
     darkInputs.mode.value = String(theme.mode ?? 1);
     for (const key of ["brightness", "contrast", "sepia", "grayscale"] as const) {
         darkInputs[key].value = String(theme[key]);
@@ -700,6 +721,7 @@ const loadDarkConfig = async () => {
     darkNaverCssPermissionGranted = await chrome.permissions.contains({origins: ["https://*.pstatic.net/*"]});
     darkConfig = normalizeDarkSettings(stored[DARK_SETTINGS_KEY]) as DarkConfig;
     paintDarkValues(darkConfig);
+    setDarkStatus(!darkHost ? "사이트별 적용은 웹사이트를 연 뒤 BongExtend 팝업에서 바꿀 수 있어요." : darkInputs.currentSite.checked ? "이 사이트에서 사용 중이에요. 변경 사항은 바로 저장돼요." : "위 스위치를 켜면 이 사이트에 적용해요.");
 };
 const setDarkStatus = (message: string, error = false) => {
     darkStatus.textContent = message;
@@ -1324,7 +1346,10 @@ effects.storageGet(["gmail.intervalMs", "gmail.notify"]).then((stored: Record<st
 });
 effects.storageOnChanged((changes: Record<string, {newValue?: unknown}>, area: string) => {
     if (area !== "local") return;
-    if (changes["core.modules"] && current === "update") void paintModuleOptions();
+    if (changes["core.modules"]) {
+        if (current === "update") void paintModuleOptions();
+        void paintCurrentModuleState();
+    }
     if (changes["gmail.photos"]) gmailPhotos = (changes["gmail.photos"].newValue || {}) as Record<string, string>;
     if (changes["gmail.accountColors"]) gmailColors = (changes["gmail.accountColors"].newValue || {}) as Record<string, string>;
     if (changes[GMAIL_SOUND_KEY]) {
@@ -1492,7 +1517,8 @@ const renderFx = () => {
         button.type = "button";
         button.className = "fx-chip";
         button.dataset.code = code;
-        button.title = "끌어서 순서 바꾸기";
+        button.title = "누르면 이 통화로 비교 · 끌어서 순서 바꾸기";
+        button.setAttribute("aria-pressed", String(code === fxTo.value));
         if (code === fxTo.value) button.classList.add("on");
         const flag = currencyColor(code) as string;
         button.style.setProperty("--fx-flag", flag);

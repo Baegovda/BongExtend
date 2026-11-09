@@ -371,8 +371,17 @@ html.bongextend-checkerplus-embedded #accounts-and-inbox {height:100% !important
 @media(max-width:560px){.be-naver-time{font-size:10px}.be-naver-title strong{font-size:12px}}
 
 /* Pearl glass belongs to the mail chrome, never the sender's message canvas. */
+html.bongextend-checkerplus-embedded :is(.unreadCount,.be-naver-unread) {font-variant-numeric:tabular-nums;white-space:nowrap;}
+html.bongextend-checkerplus-embedded :is(.unreadCount,.be-naver-unread)::before {content:'안 읽음 ';font-size:10px;font-weight:500;color:var(--be-muted);}
+html.bongextend-checkerplus-embedded .be-account-fold {flex-shrink:0;font:600 11px/1.4 var(--be-font);padding:4px 6px;border:1px solid var(--be-control-border,var(--be-border));border-radius:8px;background:var(--be-control-bg,var(--be-surface-2));color:var(--be-text-2);cursor:pointer;}
+html.bongextend-checkerplus-embedded .be-account-fold:focus-visible {outline:2px solid var(--be-accent);outline-offset:2px;}
+html.bongextend-checkerplus-embedded .accountTitleArea:focus-visible {outline:2px solid var(--be-accent);outline-offset:2px;border-radius:6px;}
+html.bongextend-checkerplus-embedded [data-be-folded="true"] > :is(.mails,.be-naver-list,.be-naver-note) {display:none !important;}
+html.bongextend-checkerplus-embedded [data-be-folded="true"] .be-account-fold {color:var(--be-accent);}
+html.bongextend-checkerplus-embedded .be-inbox-next {margin:6px 0;padding:8px 12px;border:1px solid var(--be-glass-border,var(--be-border));border-radius:10px;background:var(--be-glass-strong,var(--be-surface));font:12px/1.6 var(--be-font);color:var(--be-text-2);}
+html.bongextend-checkerplus-embedded .be-inbox-next[hidden] {display:none;}
 html.bongextend-checkerplus-embedded {
-  background: var(--be-canvas-gradient, var(--be-bg)) !important;
+  background: var(--be-canvas-gradient, none), var(--be-bg) !important;
 }
 html.bongextend-checkerplus-embedded :is(body,.pageWrapper,#inboxSection,#accounts-and-inbox,#inbox,#openEmailSection,#openEmailSectionLayout,#openEmail) {
   background: transparent !important;

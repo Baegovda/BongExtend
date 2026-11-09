@@ -91,6 +91,7 @@
 
   // Only an actual wide-layout transition controls browser fullscreen, never a predicted button click.
   let lastWide = null, observedLayout = null, observedButton = null, frame = 0;
+  let reportGeneration = 0, reportAttempts = 0, reportPending = false, reportSettled = false, retryAt = 0;
   const wideObserver = new MutationObserver(() => {
     if (!frame) frame = requestAnimationFrame(() => {frame = 0; checkWide();});
   });
@@ -102,9 +103,24 @@
       if (button && button !== root) wideObserver.observe(button, {attributes:true, attributeFilter:['class','aria-pressed','aria-checked','aria-label','title']});
     }
     const wide = wideFullscreen && !!pageKey() && D.wideState(info(button)) === true;
-    if (!force && wide === lastWide) return;
-    lastWide = wide;
-    void chrome.runtime.sendMessage({type:'BONG_CHZZK_WIDE_FULLSCREEN', wide}).catch(() => {});
+    if (force || wide !== lastWide) {
+      lastWide = wide;
+      reportGeneration++;
+      reportAttempts = 0; reportPending = false; reportSettled = false; retryAt = 0;
+    }
+    if (reportSettled || reportPending || reportAttempts >= 4 || Date.now() < retryAt) return;
+    const generation = reportGeneration;
+    reportPending = true;
+    reportAttempts++;
+    // A detected layout is not an acknowledgement: focus/API failures can be temporary.
+    // Retry only a few times; an acknowledged manual F11 exit must remain untouched.
+    const complete = response => {
+      if (generation !== reportGeneration) return;
+      reportPending = false;
+      reportSettled = response?.ok === true || response?.status === 'disabled';
+      retryAt = Date.now() + RETRY_MS * reportAttempts;
+    };
+    void chrome.runtime.sendMessage({type:'BONG_CHZZK_WIDE_FULLSCREEN', wide}).then(complete, () => complete(null));
   }
   window.addEventListener('focus', () => checkWide(true));
   chrome.runtime.onMessage.addListener((message, sender) => {

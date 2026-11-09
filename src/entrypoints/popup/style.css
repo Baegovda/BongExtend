@@ -391,3 +391,30 @@ html.mail-active .gear-fab { width: 28px; height: 28px; }
   .module-options { gap: 0 12px; }
 }
 @media(prefers-reduced-transparency:reduce) { .tabs,.be-page .gear-fab,.mail-settings-dialog,#fxPicker { background:var(--be-surface);backdrop-filter:none; } }
+
+/* One toolbar geometry across every module. Mail actions keep reserved slots. */
+html:not(.embed) .tabs { grid-template-columns:auto minmax(0,1fr) 156px!important; height:38px!important; min-height:38px; gap:8px!important; padding:3px 10px!important; }
+html:not(.embed) .brand { grid-row:1; padding:0; font-size:12px; gap:6px; }
+html:not(.embed) .brand img { width:18px; height:18px; }
+html:not(.embed) .tab-group { grid-row:1; grid-column:2; height:30px; padding:2px; gap:2px; border-radius:9px; }
+html:not(.embed) .tabs .tab-group button { height:24px; padding:0 7px; font-size:11px; font-weight:600; border-radius:6px; }
+html:not(.embed) .tabs .tab-group button.active { font-weight:600; }
+html:not(.embed) .window-tools { grid-row:1; grid-column:3; display:grid; grid-template-columns:repeat(5,28px); gap:4px; width:156px; padding:0; }
+html:not(.embed) .tabs .window-tools button,html:not(.embed) .tabs .window-tools #openResizableWindow { display:grid; place-items:center; width:28px; height:28px; padding:0; border-radius:8px; }
+html:not(.embed):not(.mail-active) .tabs .mail-shell-action { visibility:hidden; pointer-events:none; }
+html:not(.embed) .tabs #openResizableWindow[hidden] { display:grid!important; visibility:hidden; pointer-events:none; }
+html:not(.embed) .tabs .tab-badge { font-variant-numeric:tabular-nums; }
+html:not(.embed) .tabs .window-tools .gear-fab { position:relative;inset:auto;width:28px;height:28px;box-shadow:none;color:var(--be-muted);background:var(--be-control-bg);border:1px solid var(--be-control-border); }
+html:not(.embed) .tabs .window-tools .gear-fab.on { color:var(--be-text);background:var(--be-surface-3); }
+html:not(.embed) .tabs .gear-dot { width:5px;height:5px;right:2px;top:2px; }
+html.embed .tabs #settingsGear { display:none!important; }
+@media(max-width:600px) { html:not(.embed) .tabs .tab-group button { padding-inline:4px; } }
+@media(max-width:720px) { html:not(.embed) .brand { font-size:0; gap:0; } }
+.module-state { display:flex;align-items:center;gap:12px;flex:0 0 auto;min-height:38px;padding:6px 14px;border-bottom:1px solid var(--be-glass-border);background:var(--be-accent-soft);font-size:12px;color:var(--be-text-2); }
+.module-state[hidden] { display:none; }.module-state span{flex:1}.module-state button{padding:5px 9px;font-size:11px}
+.fx-converter .fx-row { display:grid;grid-template-columns:110px minmax(0,1fr) 34px minmax(0,1fr);align-items:end;gap:12px; }
+.fx-field { display:flex;flex-direction:column;gap:7px;min-width:0;font-size:11px;color:var(--be-muted); }
+.fx-currency-control { display:flex;align-items:center;gap:7px;min-width:0; }.fx-currency-control select{flex:1;min-width:0}
+.be-page .fx-converter #fxSwap{height:38px;font-size:22px;padding:0}
+html:not(.embed) .be-page .gear-fab{width:30px;height:30px;right:40px;bottom:8px;border-radius:10px}html:not(.embed) .gear-fab svg{width:17px;height:17px}
+@media(max-width:560px){.fx-converter .fx-row{grid-template-columns:minmax(0,1fr) 30px minmax(0,1fr);gap:10px}.fx-field:first-child{grid-column:1/-1}.fx-converter .fx-row #fxSwap{width:30px}.fx-converter .fx-row select{width:100%}}

@@ -15,16 +15,19 @@
         <h3>디시 설정</h3>
         <span class="be-sub">디시인사이드 편의 기능</span>
       </div>
-      <div class="be-subnav float-right">
-        <p
+      <nav class="be-subnav float-right" aria-label="디시 설정 분류">
+        <button
             v-for="tabItem in tabs"
             :key="tabItem.id"
+            type="button"
+            :aria-pressed="tab === tabItem.id"
             :class="{ active: tab === tabItem.id }"
             @click="() => (tab = tabItem.id)"
         >
           {{ tabItem.label }}
-        </p>
-      </div>
+        </button>
+      </nav>
+      <p class="dc-flow-hint" role="status">{{ tab === 2 ? '차단할 대상을 추가하고, 목록에서 관리해요.' : tab === 3 ? '닉네임에 남길 메모를 추가하고 관리해요.' : tab === 6 ? '설정을 옮기기 전 먼저 백업해 주세요.' : '분류를 선택하고 필요한 기능을 조정해요.' }}</p>
     </div>
 
     <transition-group name="refresher-slide-left">

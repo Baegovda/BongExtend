@@ -3,36 +3,36 @@
    원격 폰트는 없다. 값은 src/modules/theme/tokens.js 와 같다. */
 :root {
   color-scheme: dark;
-  --be-bg: #0c1019;
-  --be-surface: #181e2c;
-  --be-surface-2: #20293a;
-  --be-surface-3: #2c374c;
-  --be-border: #36435b;
-  --be-border-strong: #51617b;
-  --be-text: #f4f6ff;
-  --be-text-2: #d8e0f0;
-  --be-muted: #abb8cd;
-  --be-accent: #405fc4;
+  --be-bg: #17181b;
+  --be-surface: #222327;
+  --be-surface-2: #292b30;
+  --be-surface-3: #36383e;
+  --be-border: #45484f;
+  --be-border-strong: #686c76;
+  --be-text: #f3f3f6;
+  --be-text-2: #dedee4;
+  --be-muted: #afb1ba;
+  --be-accent: #3d63bd;
   --be-accent-2: #5e5ce6;
-  --be-accent-hover: #405bb4;
+  --be-accent-hover: #3557a6;
   --be-accent-soft: rgba(134, 162, 235, 0.14);
   --be-accent-ink: #ffffff;
   --be-gradient: linear-gradient(115deg, #badcff 0%, #c9b9f0 48%, #9edbd0 100%);
   --be-accent-gradient: linear-gradient(125deg, #405fc4 0%, #5b53aa 56%, #326b89 100%);
-  --be-glass: rgba(24, 30, 44, 0.9);
-  --be-glass-strong: rgba(30, 39, 57, 0.96);
-  --be-glass-border: rgba(179, 199, 234, 0.2);
+  --be-glass: rgba(34, 35, 39, 0.91);
+  --be-glass-strong: rgba(40, 41, 46, 0.96);
+  --be-glass-border: rgba(214, 219, 234, 0.19);
   --be-glass-sheen: linear-gradient(135deg, rgba(182, 210, 255, 0.065), rgba(205, 177, 238, 0.025) 48%, rgba(134, 217, 202, 0.035));
   --be-glass-shadow: inset 0 1px 0 rgba(231, 240, 255, 0.065), 0 12px 28px rgba(0, 5, 17, 0.2);
-  --be-control-bg: rgba(151, 176, 220, 0.09);
-  --be-control-border: rgba(179, 199, 234, 0.22);
-  --be-canvas-gradient: radial-gradient(ellipse at 8% 0%, rgba(89, 113, 183, 0.18), transparent 55%), radial-gradient(ellipse at 100% 85%, rgba(121, 91, 160, 0.1), transparent 54%), radial-gradient(ellipse at 85% 0%, rgba(65, 138, 144, 0.08), transparent 55%);
+  --be-control-bg: rgba(210, 215, 230, 0.065);
+  --be-control-border: rgba(214, 219, 234, 0.23);
+  --be-canvas-gradient: radial-gradient(ellipse at 8% 0%, rgba(205, 213, 238, 0.035), transparent 55%), radial-gradient(ellipse at 100% 85%, rgba(215, 187, 218, 0.025), transparent 54%), radial-gradient(ellipse at 85% 0%, rgba(178, 215, 201, 0.025), transparent 55%);
   --be-focus: 0 0 0 3px rgba(100, 210, 255, 0.45);
-  --be-ok: #7ce0be;
-  --be-warn: #f4d49c;
-  --be-error: #ffadae;
-  --be-link: #acc7ff;
-  --be-separator: #303c52;
+  --be-ok: #95d5b2;
+  --be-warn: #e8cf92;
+  --be-error: #f3aaa7;
+  --be-link: #adc7fa;
+  --be-separator: #3b3e45;
   --be-knob: #ffffff;
   --be-radius-sm: 10px;
   --be-radius: 14px;
@@ -54,36 +54,36 @@
 @media (prefers-color-scheme: light) {
   :root {
     color-scheme: light;
-    --be-bg: #eef1f8;
-    --be-surface: #f9fbff;
-    --be-surface-2: #edf2fa;
-    --be-surface-3: #e0e7f3;
-    --be-border: #c6d0e0;
-    --be-border-strong: #a4b1c7;
-    --be-text: #192239;
-    --be-text-2: #34425c;
-    --be-muted: #53617a;
-    --be-accent: #455cc2;
+    --be-bg: #f3f4f6;
+    --be-surface: #fcfcfd;
+    --be-surface-2: #f1f2f4;
+    --be-surface-3: #e5e7eb;
+    --be-border: #d0d3da;
+    --be-border-strong: #a9aeb9;
+    --be-text: #24262d;
+    --be-text-2: #41444f;
+    --be-muted: #606570;
+    --be-accent: #3b5fba;
     --be-accent-2: #5856d6;
-    --be-accent-hover: #354cac;
+    --be-accent-hover: #304e99;
     --be-accent-soft: rgba(78, 104, 190, 0.1);
     --be-accent-ink: #ffffff;
     --be-gradient: linear-gradient(115deg, #3b619b 0%, #745c9f 48%, #2c766d 100%);
     --be-accent-gradient: linear-gradient(125deg, #455cc2 0%, #6351a6 56%, #336b85 100%);
-    --be-glass: rgba(249, 251, 255, 0.9);
-    --be-glass-strong: rgba(250, 252, 255, 0.97);
-    --be-glass-border: rgba(112, 133, 173, 0.25);
+    --be-glass: rgba(252, 252, 253, 0.91);
+    --be-glass-strong: rgba(252, 252, 253, 0.97);
+    --be-glass-border: rgba(125, 131, 150, 0.25);
     --be-glass-sheen: linear-gradient(135deg, rgba(255, 255, 255, 0.7), rgba(222, 223, 248, 0.12) 48%, rgba(214, 239, 234, 0.14));
     --be-glass-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95), 0 10px 28px rgba(55, 74, 110, 0.075);
-    --be-control-bg: rgba(242, 246, 254, 0.82);
-    --be-control-border: rgba(112, 133, 173, 0.32);
-    --be-canvas-gradient: radial-gradient(ellipse at 5% 0%, rgba(183, 204, 244, 0.42), transparent 58%), radial-gradient(ellipse at 100% 85%, rgba(214, 199, 236, 0.26), transparent 55%), radial-gradient(ellipse at 90% 0%, rgba(183, 224, 218, 0.26), transparent 55%);
+    --be-control-bg: rgba(244, 245, 247, 0.86);
+    --be-control-border: rgba(125, 131, 150, 0.32);
+    --be-canvas-gradient: radial-gradient(ellipse at 5% 0%, rgba(199, 211, 236, 0.13), transparent 58%), radial-gradient(ellipse at 100% 85%, rgba(225, 209, 228, 0.12), transparent 55%), radial-gradient(ellipse at 90% 0%, rgba(202, 226, 216, 0.1), transparent 55%);
     --be-focus: 0 0 0 3px rgba(0, 87, 194, 0.28);
-    --be-ok: #206a53;
-    --be-warn: #80601f;
-    --be-error: #aa3447;
-    --be-link: #3757b6;
-    --be-separator: #d5ddea;
+    --be-ok: #28674a;
+    --be-warn: #7c5b16;
+    --be-error: #a43c3c;
+    --be-link: #3558ac;
+    --be-separator: #dedfe4;
     --be-knob: #ffffff;
     --be-shadow: 0 10px 28px rgba(0, 0, 0, 0.08);
   }
@@ -247,6 +247,13 @@
 
 .be-empty { color: var(--be-muted); font-size: 14px; text-align: center; padding: 28px 16px; margin: 0; border-radius: var(--be-radius-lg); background: var(--be-surface); }
 .be-page button:focus-visible, .be-page a:focus-visible, .be-page input[type=checkbox]:focus-visible, .be-subnav > *:focus-visible { outline: none; box-shadow: var(--be-focus); }
+
+.be-advanced > summary { cursor:pointer; padding:5px 0; font-size:13px; font-weight:650; color:var(--be-text); }
+.be-advanced > summary::marker { color:var(--be-muted); }
+.be-advanced[open] > summary { margin-bottom:8px; }
+.be-advanced > summary:focus-visible { outline:2px solid var(--be-link); outline-offset:3px; border-radius:5px; }
+.be-flow-card { border-color:var(--be-border-strong); }
+.be-kicker { font-size:11px; font-weight:650; color:var(--be-muted); letter-spacing:.025em; }
 
 @media (prefers-reduced-motion: reduce) {
   .be-page *, .be-page *::after, .refresher-app-shell *, .refresher-app-shell *::after {

@@ -1,4 +1,21 @@
-# 디시·치지직·번역 설정 UI 리메이크 보고
+# 디시·치지직·번역 UI 작업 보고
+
+## 최신 배정 — 사용자 흐름 개선
+
+- 기준: 2026-11-10, main `9179f8c`, 앱 `1.2.55`예요.
+- 디시: `src/entrypoints/dc/App.vue`, `dc-options/App.vue`의 분류를 실제 button/nav로 전환했어요. Tab·Enter·Space 기본 조작과 aria-pressed 선택 상태를 제공해요.
+- 디시: `dc/popup.scss`의 하위 메뉴 스타일을 button에 연결하고 차단·메모·데이터 분류마다 다음 행동 안내를 추가했어요.
+- 치지직: `src/modules/chzzk/popup.html`에서 자동 저장 안내·관심 채널 등록 순서를 추가하고 복구 시간/알림·키보드 이동·랭킹/글씨 크기를 native details로 접었어요. 채널 입력의 접근성 이름과 viewport도 추가했어요.
+- 번역: `src/modules/trans/popup/popup.html/.css/.js`에서 현재 페이지 상태/실행 → 항상 번역 → 연결 설정 순서로 재구성했어요. 키가 없으면 API 키 설정 버튼/안내를 표시해요. 저장된 키가 있다는 표시만 하며 유효하다고 단정하지 않아요.
+- 번역 전체 설정: `src/modules/trans/options/options.html/.css`에서 API 키·언어·저장을 우선 노출하고 모델/대체 모델·화면 효과·캐시를 native details로 접었어요.
+- 보존: 기존 설정 ID와 핸들러·저장 스키마·기능 엔진·라이선스·기본 설정값을 유지했어요. 새 탭은 기존 설정 버튼을 사용자가 눌렀을 때만 열려요.
+- 최소 검사: happy-dom으로 HEAD 대비 세 HTML의 기존 ID 유일성/보존, ID가 있는 조작부 type/name/min/max/value 보존, details의 summary/기본 닫힘 구조를 확인했어요.
+- Vue 두 화면 template compile, 디시 Sass compile, 번역 CSS 및 치지직 inline CSS parse, 번역 popup.js node --check, git diff --check 모두 통과했어요.
+- 미검증: 실제 Chrome 배치/키보드 포커스/설정 저장·사이트 동작은 확인하지 않았어요. 원격 API 호출·전체 검사·빌드·버전·커밋·배포는 실행하지 않았어요.
+- 총괄 통합 검수 요청: 디시 탭 키보드 선택/선택 대비, details 펼침/조작 유지, 번역 무키 안내와 실행 상태, 360px/760px 및 테마별 배치를 확인해 주세요.
+- 작업을 마쳤으며 다음 명시 배정을 기다려요.
+
+## 이전 배정 — 유리 스타일
 
 - 총괄 통합: 신규 공통 토큰으로 밝음/어두움 7개 모듈 전환과 설정, 600/360px 치지직·번역 팝업·디시·번역 전체 설정의 가로 넘침 검사 통과. 디시는 캐시 schema를 임시 프로필에 넣어 실제 Vue 기본·range·select 렌더를 확인했어요. root가 range의 남은 하드코딩 녹색을 공통색으로 연결하고 하위 메뉴 선택 글자를 흰색으로 보정했어요. `C:/Users/REVAPT~1/AppData/Local/Temp/be-glass-ui-sCfWDu`. 합성 설정이고 실제 사이트 콘텐츠 동작 검증은 아니에요.
 - 배정 기준: 2026-11-10, `main` / `118f4f5`, 앱 `1.2.54`예요.

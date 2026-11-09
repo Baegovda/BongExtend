@@ -1,23 +1,24 @@
-# 메일 glass UI 작업 보고
+# 메일 사용자 흐름 개선 보고
 
-- 총괄 최종 통합: 신규 공통 토큰 빌드의 reader Chrome 검사 전체 통과. 본문 원색/이미지/80%배율, 붙은 팝업 크기·800px cap, 별도 앱 창 크기/기억/drag/keyboard, 메일·웹페이지 번역 메뉴 모두 통과했고 초기 일회성 연결 오류는 재발하지 않았어요. `C:/Users/REVAPT~1/AppData/Local/Temp/be-reader-pCE53f/reader-dark.png` 직접 확인했어요. 합성 메일이며 실계정은 아니에요.
-- 기준: main `118f4f5`, 앱 1.2.54, 2026-11-10 배정이에요.
-- 소유 변경 파일: `public/checkerplus-embed.css` 하나예요. JS·공통 popup/theme/token은 수정하지 않았어요.
-- 목록·Gmail/네이버 계정 카드·읽기 헤더/도크·배율/순서 버튼·더보기 메뉴에 공통 glass/control/gradient 토큰을 연결했어요.
-- 목록 카드는 얇은 빛 테두리와 은은한 그림자, 선택 행은 accent 선으로 구분해요.
-- blur는 상단/계정 헤더/메뉴에만 적용하고 목록 행에는 적용하지 않아요.
-- reduced-transparency 환경에서는 불투명 카드로 표시해요.
-- 컴팩트 도구 36px·제목 최대 40px·본문 80/100%·계정 순서·N 로고·발신자 원색 보존을 유지해요.
-- 본문/발신자 HTML을 대상으로 새 디자인 선택자를 추가하지 않았어요.
-- 공유 빌드를 실행하지 않았어요. 기존 산출물을 폐기용 프로필에 복사하고 현재 메일 CSS·theme 소스만 temp에 덮어씌워 검사했어요.
-- 임시 실행기: `C:/Users/Revaptor_FX/AppData/Local/Temp/be-mail-source-check.cjs`.
-- 네이버 fixture 검사 전체 통과: 순서·재열기·Enter·계정 ID·외부 storage·목적 URL·HTML 안전 표시 확인했어요.
-- reader fixture는 밝음/어두움·본문 색/이미지·배율·600×500/780×590/큰 창 크기·제목 높이·resize·번역까지 통과했어요.
-- reader 검사 마지막 worker 오류 배열에서 `Could not establish connection. Receiving end does not exist.` 1건으로 종료 코드 1이에요. CSS 관련 실패는 없었으나 전체 통과로 보고하지 않아요.
-- 읽기 캡처: `C:/Users/Revaptor_FX/AppData/Local/Temp/be-reader-gvy6ot/reader-dark.png`, 같은 폴더 reader-light.png/resizable-window.png.
-- 계정 캡처: `C:/Users/Revaptor_FX/AppData/Local/Temp/be-naver-mail-ZR9yJ3/unified-mail-light.png`, 같은 폴더 naver-mail-dark.png.
-- 캡처 직접 확인: 제목·도구·원색 본문·계정 카드의 겹침/잘림은 관찰하지 못했어요.
-- 이번 캡처 시 공통 신규 glass 토큰이 아직 소스에 없어서 fallback 색상으로 표시돼요. 진주빛 최종 색감은 총괄의 새 토큰 통합 후 확인해야 해요.
-- 메일 설정 dialog는 부모 popup 공통 영역이므로 총괄의 공통 glass 규칙에 의존해요.
-- 실계정·유료 API·개인 브라우저 접근은 없었어요. 전체 검사·최종 빌드·버전·배포는 총괄 담당이에요.
-- `git diff --check -- public/checkerplus-embed.css` 통과. 배정한 제품 파일 수정은 종료했어요.
+- 기준: main `9179f8c`, 앱 1.2.55, 2026-11-10 배정이에요.
+- 변경 파일: `public/js/bongextend-mail-ui.js`, `public/checkerplus-embed.css`예요.
+- 계정별 접기/펼치기 버튼을 추가했어요. 읽지 않은 수와 계정 작업은 헤더에 남고 목록만 접혀요.
+- 버튼에 계정명·aria-expanded·aria-controls를 제공하며 Enter/Space가 Gmail 전역 단축키로 전달되지 않아요.
+- 읽지 않은 수에 ‘안 읽음’ 시각 라벨과 ‘읽지 않은 메일 N통’ 접근성 이름을 추가했어요. 선택 행 강조는 기존 glass/accent 디자인을 유지해요.
+- Gmail 작성·검색·계정 더보기·모두 읽음·전체 메일 열기와 네이버 작성·열기에 대상 계정이 포함된 명확한 이름/힌트를 추가했어요.
+- Gmail 계정 이름을 키보드로 선택하고 Enter/Space로 기존 mouseup 열기 동작을 실행할 수 있어요. 새 경로/새 계정 로직은 없어요.
+- 빈 Gmail 목록은 계정 이름에서 전체 메일을 여는 다음 행동을 안내해요. 연결 오류는 로그인 상태 확인→상단 새로고침 순서로 안내해요.
+- 새 도움말은 독립적인 읽기 대비 면을 사용하고, 필요할 때만 표시해요. 신규 툴바는 없어요.
+- provider 엔진·폴링·계정 index·순서 저장·N 로고·발신자 HTML·본문80%·컴팩트 reader는 변경하지 않았어요.
+- inbox 변경 관찰은 requestAnimationFrame으로 합치고 속성/문구가 달라질 때만 갱신해요. 사용자 저장소는 추가하지 않았어요.
+- 접힘 상태는 현재 DOM의 화면 상태예요. 재열기/계정 엔진 재생성 후 영구 저장은 이번 범위에 포함하지 않았어요.
+- root 공통 파일·빌드·버전·권한·설정은 수정하지 않았어요.
+- 검증: JS syntax와 git diff --check 통과했어요.
+- 검증: 폐기용 Chrome에 현재 CSS/JS만 임시 복사하여 네이버 fixture 전체 통과했어요.
+- 추가 합성 확인: Gmail/네이버 접기·펼치기, Enter/Space, 네이티브 accountAction 불필요 호출 0회, Gmail DOM 재생성 후 키보드 열기 1회, 빈 목록·연결 실패 안내를 확인했어요.
+- reader fixture 전체 통과: 원색·이미지·배율·작은 창/큰 창·제목·resize·번역 동작이에요. 이후 inbox 전용 키보드/안내 CSS만 보정했어요.
+- 최종 계정 캡처: `C:/Users/Revaptor_FX/AppData/Local/Temp/be-naver-mail-gn8uwf/naver-mail-dark.png`, 같은 폴더 unified-mail-light.png/flow-600.png/flow-780.png예요.
+- reader 캡처: `C:/Users/Revaptor_FX/AppData/Local/Temp/be-reader-WEp2bJ` 폴더예요.
+- 밝음/어두움 캡처를 직접 확인했어요. 원본 계정 엔진이 resize 시 요구하는 getMails/getSetting은 합성 객체에 제공했으며 제품 오류를 숨기지 않았어요.
+- 작은 600px fixture는 이전 산출물의 부모 780px 고정 레이아웃 때문에 오른쪽 일부가 잘려요. 총괄의 이번 parent 고정폭 개선 소스가 포함되지 않은 상태이며 최종 통합 확인이 필요해요.
+- 실제 로그인/유료 API/개인 프로필 접근은 없었어요. 최종 앱 빌드·전체 검사·커밋·배포는 총괄 담당이에요.

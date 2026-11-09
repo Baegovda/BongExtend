@@ -20,4 +20,6 @@ html, body { height: 100%; margin: 0; }
 .settings-nav button.active { color: var(--be-text); background: var(--be-glass-strong); border-color: var(--be-glass-border); box-shadow: var(--be-glass-shadow); font-weight: 700; }
 .right-panel { max-width: 720px; margin-top: 40px; }
 .right-panel h1 { letter-spacing: -.04em; }
+.right-picker { display:flex;flex-direction:column;gap:8px;margin:24px 0 10px;font-size:12px;color:var(--be-text-2); }
+.right-picker select { width:100%;min-width:0;text-overflow:ellipsis; }
 @media(max-width:680px) { .settings { flex-direction: column; }.settings-nav{width:100%;flex:0 0 auto;flex-direction:row;flex-wrap:wrap;padding:10px;border-right:0;border-bottom:1px solid var(--be-glass-border);gap:5px}.settings-nav button{width:auto;min-height:32px;padding:7px 10px;font-size:12px}.right-panel{margin-top:24px} }

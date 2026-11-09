@@ -21,5 +21,8 @@ body.be-shell { margin: 0; min-width: 0; padding: 14px 16px; background: var(--b
 .be-row > button { white-space: normal; max-width: 45%; background: var(--be-control-bg, var(--be-surface-2)); border-color: var(--be-control-border, var(--be-border-strong)); border-radius: 9px; }
 #status { border-left: 2px solid var(--be-accent); padding-left: 10px; overflow-wrap: anywhere; }
 .be-hint { line-height: 1.65; }
+.be-advanced { margin-top: 8px; border-top: 1px solid var(--be-border); padding-top: 8px; }
+.be-advanced summary { cursor: pointer; color: var(--be-text-2); font-weight: 600; padding: 4px 0; }
+.be-advanced summary:focus-visible { outline: 2px solid var(--be-accent); outline-offset: 3px; border-radius: 5px; }
 @media (max-width: 600px) { .be-grid { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 360px) { body.be-shell { padding: 12px; } .be-row { flex-wrap: wrap; } .be-row > button, .be-row > input { margin-left: auto; max-width: 100%; } }

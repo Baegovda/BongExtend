@@ -109,6 +109,11 @@ async function init() {
   }
   metaEl.textContent = `${(LANGUAGES.find((l) => l.code === settings.targetLanguage) || { native: settings.targetLanguage }).native} · ${model}`;
   hasKey = Boolean(settings.apiKey);
+  document.querySelector('#connectionHint').textContent = hasKey
+    ? 'API 키가 저장돼 있어요. 언어나 모델은 설정에서 바꿀 수 있어요.'
+    : '처음 사용하시나요? 설정을 열어 API 키를 저장한 뒤 페이지 번역을 켜 주세요.';
+  optionsButton.textContent = hasKey ? '번역 설정' : 'API 키 설정하기';
+  optionsButton.classList.toggle('primary', !hasKey);
   if (!hasKey) setStatus(MESSAGES.NO_API_KEY, true);
   optionsButton.addEventListener('click', () => chrome.tabs.create({ url: chrome.runtime.getURL('trans/options/options.html') }));
   shortcutsButton.addEventListener('click', () => chrome.runtime.sendMessage({ type: 'OPEN_SHORTCUTS' }));
