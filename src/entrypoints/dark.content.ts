@@ -3,6 +3,7 @@ import {auto, disable, enable, setFetchMethod} from "darkreader";
 import {DARK_SETTINGS_KEY, darkSiteEnabled, darkThemeForSite, normalizeDarkSettings} from "@/modules/dark/settings.js";
 // @ts-ignore original Dark Reader fixes are plain JS
 import {darkReaderFixesForSite, withTranslationColors} from "@/modules/dark/site-fixes.js";
+import {darkStylesheetPermission} from "@/modules/dark/css-resource.js";
 
 const MODULES_KEY = "core.modules";
 
@@ -27,9 +28,7 @@ export default defineContentScript({
 
         setFetchMethod(async (resourceUrl: string) => {
             const url = new URL(resourceUrl, location.href);
-            if ((hostname === "naver.com" || hostname.endsWith(".naver.com")) &&
-                url.protocol === "https:" && (url.hostname === "pstatic.net" || url.hostname.endsWith(".pstatic.net") || url.hostname === "spastatic.naver.com") &&
-                url.pathname.toLowerCase().endsWith(".css")) {
+            if (darkStylesheetPermission(location.href, url.href)) {
                 // CSS 전용 연결로 다른 모듈의 응답과 섞이지 않게 해요.
                 const text = await new Promise<string>((resolve, reject) => {
                     const port = chrome.runtime.connect({name: "bongextend-dark-css"});
@@ -44,7 +43,7 @@ export default defineContentScript({
                     port.onDisconnect.addListener(disconnected);
                     port.onMessage.addListener(result => {
                         if (result?.ok && typeof result.text === "string") finish(undefined, result.text);
-                        else finish(new Error("네이버 CSS를 가져오지 못했어요."));
+                        else finish(new Error("사이트 CSS를 가져오지 못했어요."));
                     });
                     port.postMessage({url: url.href});
                 });

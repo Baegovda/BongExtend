@@ -1,5 +1,6 @@
 // @ts-ignore plain JS provider
 import {startNaverMail} from '@/modules/naver-mail/background.js';
+import {darkStylesheetPermission} from '@/modules/dark/css-resource.js';
 // @ts-ignore pure JS
 import {startVideoHost} from "@/modules/downloads/video.js";
 // @ts-ignore pure JS
@@ -140,10 +141,8 @@ export default defineBackground(() => {
                 try {
                     const page = new URL(sender?.url || "");
                     const url = new URL(message.url);
-                    if (sender?.id !== chrome.runtime.id || !(page.hostname === "naver.com" || page.hostname.endsWith(".naver.com")) ||
-                        url.protocol !== "https:" || !(url.hostname === "pstatic.net" || url.hostname.endsWith(".pstatic.net") || url.hostname === "spastatic.naver.com") ||
-                        !url.pathname.toLowerCase().endsWith(".css") || url.username || url.password || url.port) throw new Error("unsupported resource");
-                    const origin = url.hostname === "spastatic.naver.com" ? "https://*.naver.com/*" : "https://*.pstatic.net/*";
+                    const origin = darkStylesheetPermission(page.href, url.href);
+                    if (sender?.id !== chrome.runtime.id || !origin) throw new Error("unsupported resource");
                     if (!await chrome.permissions.contains({origins: [origin]})) throw new Error("missing permission");
                     const response = await fetch(url.href, {credentials: "omit", redirect: "error", signal: AbortSignal.timeout(12000)});
                     if (!response.ok || !(response.headers.get("content-type") || "").toLowerCase().startsWith("text/css")) throw new Error("invalid stylesheet");
