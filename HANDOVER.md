@@ -4,7 +4,8 @@
 
 ## 최신 인계 — v1.2.57
 
-- 검증 완료: 전체 JS262개+Bun+타입, release ZIP/eval/권한 검사 통과. 최종 SVG mask/상속 mask 두 형태는 alpha/brand 차이0·defs 보존, 실제 패키지 relay도 권한 거절/OFF 복원까지 확인했어요. 배포 결과는 이어서 기록해요.
+- 최종 앱 커밋 **3485bfc**, main / [v1.2.57 Release](https://github.com/Baegovda/BongExtend/releases/tag/v1.2.57). CI **42664124741**·Release **42664128999** 모두 success, Chrome ZIP **4,837,075바이트**·Windows 보조 ZIP **22,611바이트** 게시 확인. 이 버전의 코드·검사·푸시·릴리스를 마쳤고 팀/시험 프로세스는 idle/종료예요. 남은 몰테일 사진 진단은 사용자 OFF 대조 답변이 필요하며 백그라운드에서 계속 작업 중인 상태가 아니에요. 이후 문서 커밋은 앱 버전을 바꾸지 않아요.
+- 검증 완료: 전체 JS262개+Bun+타입, release ZIP/eval/권한 검사 통과. 최종 SVG mask/상속 mask 두 형태는 alpha/brand 차이0·defs 보존, 실제 패키지 relay도 권한 거절/OFF 복원까지 확인했어요.
 - 사용자 최신 요청은 Gmail·네이버 통합 계정의 드래그 정렬과 네이버 앱 내부 본문 읽기예요. 추가로 몰테일 다크 화면의 로고/아이콘 저대비와 상품 빈칸을 조사했어요. 이전 항목의 완료를 새 실계정/사이트 검증으로 간주하지 않아요.
 - 계정 정렬: public/js/bongextend-mail-ui.js 전용 grip(pointer/가장자리 스크롤/Escape·cancel), naver-mail.ts가 cancelable `bongextend-mail-account-move` {sourceKey,targetKey,placement}를 실제 계정 DOM 키로 검증하고 기존 core.mailAccountOrder에 저장해요. native Gmail 객체·index·위/아래 버튼을 보존하고 리스너는 iframe 문서마다 한 번 설치해요.
 - 네이버 읽기: naver-reader.ts, modules/naver-mail/client.js/message.js, public/naver-reader.css. 사용자가 선택한 mailSN만 /json/read로 session POST, redirect:error/no-store/15초/계정·모듈·기존 권한 확인. 닫기/연결 변경/모듈 OFF는 본문을 비우고 늦은 응답을 무시해요. 제목·발신자·80/100%·재시도·명시적 네이버에서 열기를 제공해요.
