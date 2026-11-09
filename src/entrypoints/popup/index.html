@@ -78,7 +78,13 @@
           <iframe id="chronoPopupFrame" title="다운로더" data-src="/recent-downloads.html"></iframe>
     </section>
     <section class="panel be-shell mail-panel" data-frame="gmail" hidden>
-        <div class="mail-module-toolbar"><div><strong>메일</strong><small>Gmail 세션 자동 확인</small></div><div class="be-actions"><button id="mailRefreshNow" type="button">새로고침</button><button id="mailSettingsOpen" type="button">메일 설정</button></div></div>
+        <div class="mail-module-toolbar"><div><strong>메일</strong><small>Gmail · 네이버 메일</small></div><div class="be-actions"><button id="mailRefreshNow" type="button">새로고침</button><button id="mailSettingsOpen" type="button">메일 설정</button></div></div>
+        <div class="mail-provider-tabs" role="group" aria-label="메일 서비스"><button id="providerGmail" type="button" aria-pressed="true">Gmail</button><button id="providerNaver" type="button" aria-pressed="false">네이버 메일</button></div>
+        <section id="naverMailPanel" hidden aria-label="네이버 메일">
+            <form id="naverMailForm" class="naver-mail-connect"><label for="naverMailId">네이버 아이디</label><input id="naverMailId" placeholder="아이디 또는 @naver.com 주소" autocomplete="off" maxlength="60"><button id="naverMailConnect" type="submit">연결</button><button id="naverMailDisconnect" type="button" hidden>연결 해제</button></form>
+            <div class="naver-mail-actions"><label><input id="naverMailNotify" type="checkbox" checked>새 메일 알림</label><button id="naverMailRefresh" type="button">다시 확인</button><button id="naverMailOpen" type="button">네이버 메일 열기</button><button id="naverMailCompose" type="button">메일 쓰기</button></div>
+            <p id="naverMailStatus" role="status"></p><p class="naver-mail-hint">브라우저의 네이버 로그인 상태로 미읽음 받은 메일을 최대 30개 보여 줘요. 본문 열기·작성·답장은 네이버 메일에서 이어져요.</p><ul id="naverMailList"></ul>
+        </section>
         <button id="checkerPlusMailHome" class="checkerplus-mail-home" type="button" hidden>메일함으로 돌아가기</button>
         <iframe id="checkerPlusMailFrame" class="checkerplus-mail-frame" title="메일" data-src="/checkerplus-popup.html?source=bongextend"></iframe>
         <div id="legacyGmailPanel" hidden aria-hidden="true">

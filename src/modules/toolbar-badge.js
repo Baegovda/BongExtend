@@ -79,7 +79,7 @@ const clearTabBadges = async (api) => {
 export async function paintToolbarBadge(knownCheckerPlusCount = null) {
     const api = badgeApi();
     if (!api?.setBadgeText) return;
-    const stored = await chrome.storage.local.get(["gmail.unread", "gmail.snapshot", "gmail.disabled", "core.modules"]);
+    const stored = await chrome.storage.local.get(["gmail.unread", "gmail.snapshot", "gmail.disabled", "core.modules", "core.naverMailUnread", "core.mailUnreadTotal"]);
     const modules = stored["core.modules"] && typeof stored["core.modules"] === "object" ? stored["core.modules"] : {};
     const checkerPlusCount = modules.gmail === false
         ? null
@@ -88,7 +88,9 @@ export async function paintToolbarBadge(knownCheckerPlusCount = null) {
         ? 0
         : toolbarUnreadCount(stored["gmail.snapshot"], stored["gmail.disabled"], stored["gmail.unread"], checkerPlusCount);
     if (Number(stored["gmail.unread"]) !== unread) await chrome.storage.local.set({"gmail.unread": unread});
-    const text = toolbarBadgeText(unread);
+    const total = unread + (modules.gmail === false ? 0 : Math.max(0, Number(stored["core.naverMailUnread"]) || 0));
+    if (stored["core.mailUnreadTotal"] !== total) await chrome.storage.local.set({"core.mailUnreadTotal":total});
+    const text = toolbarBadgeText(total);
     try {
         await clearTabBadges(api);
         await api.setBadgeText({text});

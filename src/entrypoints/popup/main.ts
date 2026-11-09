@@ -1,3 +1,4 @@
+import {setupNaverMail} from './naver-mail';
 import {setupMailSettings} from "./mail-settings";
 import {setupWindowControls} from "./window-controls";
 // BongExtend 팝업: 탭 하나에 모듈 화면 하나. 각 모듈 화면은 옛 확장 팝업을 그대로 iframe으로 띄운다.
@@ -55,6 +56,7 @@ const DEFAULT_ORDER: TabId[] = ["chzzk", "trans", "dc", "gmail", "fx", "dark", "
 const TAB_IDS: TabId[] = [...DEFAULT_ORDER, "update"];
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
+setupNaverMail();
 const checkerPlusMailFrame = $("checkerPlusMailFrame") as HTMLIFrameElement;
 const initialMail = new URLSearchParams(location.search).get('mail');
 if (initialMail && /^[a-zA-Z0-9_-]{1,128}$/.test(initialMail)) {
@@ -1306,10 +1308,10 @@ effects.storageGet(ACCOUNT_ORDER_KEY).then((stored: Record<string, unknown>) => 
     if (gmailView) renderGmail(gmailView);
 });
 const mailBadgeReadRevision = mailBadgeRevision;
-effects.storageGet(["gmail.snapshot", "gmail.disabled", "gmail.unread"]).then((stored: Record<string, unknown>) => {
+effects.storageGet(["gmail.snapshot", "gmail.disabled", "gmail.unread", "core.mailUnreadTotal"]).then((stored: Record<string, unknown>) => {
     if (mailBadgeRevision !== mailBadgeReadRevision) return;
     const snapshot = stored["gmail.snapshot"] as GmailSnapshot | undefined;
-    const unread = Number(stored["gmail.unread"]);
+    const unread = Number(stored["core.mailUnreadTotal"] ?? stored["gmail.unread"]);
     mailBadgeUnreadOverride = Number.isFinite(unread) && unread >= 0 ? Math.floor(unread) : null;
     paintMailBadge(snapshot?.accounts, stored["gmail.disabled"]);
 });
@@ -1336,10 +1338,12 @@ effects.storageOnChanged((changes: Record<string, {newValue?: unknown}>, area: s
         mailOrder = Array.isArray(changes["gmail.accountOrder"].newValue) ? changes["gmail.accountOrder"].newValue as string[] : [];
         if ((current === "gmail" || embed === "gmail") && gmailView && !gmailAccounts.classList.contains("reordering")) renderGmail(gmailView);
     }
-    if (changes["gmail.unread"]) {
-        const unread = Number(changes["gmail.unread"].newValue);
-        mailBadgeUnreadOverride = Number.isFinite(unread) && unread >= 0 ? Math.floor(unread) : null;
-        paintMailBadge(undefined, mailBadgeDisabled);
+    if (changes["core.mailUnreadTotal"] || changes["gmail.unread"]) {
+        void effects.storageGet(["core.mailUnreadTotal", "gmail.unread"]).then((stored: Record<string, unknown>) => {
+            const unread = Number(stored["core.mailUnreadTotal"] ?? stored["gmail.unread"]);
+            mailBadgeUnreadOverride = Number.isFinite(unread) && unread >= 0 ? Math.floor(unread) : null;
+            paintMailBadge(undefined, mailBadgeDisabled);
+        });
     }
     if (changes["gmail.snapshot"] || changes["gmail.disabled"]) {
         const snapshot = changes["gmail.snapshot"]?.newValue as GmailSnapshot | undefined;

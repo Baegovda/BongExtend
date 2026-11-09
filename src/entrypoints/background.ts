@@ -1,3 +1,5 @@
+// @ts-ignore plain JS provider
+import {startNaverMail} from '@/modules/naver-mail/background.js';
 // @ts-ignore pure JS
 import {startVideoHost} from "@/modules/downloads/video.js";
 // @ts-ignore pure JS
@@ -44,6 +46,7 @@ import {createMailOtpHandler} from "@/modules/gmail/otp.js";
 import {createOtpToast} from "@/modules/gmail/otp-toast.js";
 
 export default defineBackground(() => {
+    startNaverMail();
     startVideoHost();
     startWideFullscreenBridge();
     const showOtpToast=createOtpToast();
