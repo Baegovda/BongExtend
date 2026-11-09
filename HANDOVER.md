@@ -5,6 +5,7 @@
 ## 최신 인계 — v1.2.54
 
 - 최신 구현은 package.json/CHANGELOG의 **1.2.54**예요. 아래 v1.2.40 상태·파일 지도는 과거 기준이며 최신 상태를 덮어쓰지 않아요. 배포 결과·커밋은 최신 GitHub Release/main을 확인하세요.
+- 앱 커밋 **bf6d335** main, [v1.2.54 Release](https://github.com/Baegovda/BongExtend/releases/tag/v1.2.54). CI **42642155913**·Release **42642160225** 모두 성공했고 Chrome ZIP(4,812,254바이트)·Windows 영상 보조 ZIP(22,615바이트) 게시를 확인했어요. 이후 문서 커밋은 앱 버전을 바꾸지 않아요. 이 요청의 코드·검사·배포는 완료했고 담당 다크팀은 idle이에요. 실제 사용자 Chrome 설치·실계정 쪽지 검증은 하지 않았어요.
 - 1.2.41~53: 통나무 자동 받기, 네이버 통합 메일/N 로고, 브라우저에 붙은 크기 조절, 업데이트 확인 후 자동 진행, 통화 선택, 번역 누락·진행 표시, 메일 상단 축소/본문80%/계정 순서 등 변경은 CHANGELOG와 모듈 REPORT를 확인해요. 이미 passing한 검사를 인계만을 위해 반복하지 않아요.
 - 1.2.54: **공통** 대비 엔진(중립 글자/SVG/카드/범례·칸), 작은 투명 조작 bitmap의 중립 픽셀 보정, 사진·캐릭터 원색 보존, 원래 투명한 root/body가 음수 iframe을 가리는 조건 보호, document.open 문서 교체 뒤 테마·MAIN proxy/CSSOM 재연결을 구현했어요.
 - 주요 파일: dark.content.ts/dark-proxy.content.ts, dark/contrast.js, icon-contrast.js, paint-guard.js, site-fixes.js, proxy.js, DarkReader dependency patch. 패치는 URL 이미지 원색을 보존하면서 CSS gradient는 계속 테마 처리해요. proxy.js는 upstream에 cleanup 반환 adapter 하나만 추가하고 sync script가 검증해요.

@@ -2,6 +2,7 @@
 
 ## 총괄 통합 v1.2.54 (2026-11-10)
 
+- 최종 배포: 앱 commit bf6d335 main + v1.2.54. GitHub CI42642155913 / Release42642160225 모두 success. Chrome ZIP4,812,254바이트·Windows 보조 ZIP22,615바이트 게시 확인. 사용자 Chrome에 실제 적용됐다는 뜻은 아니에요.
 - 공통 대비·투명 bitmap 조작 아이콘·paint guard를 dark.content.ts의 켜기/끄기/시스템 테마/재설정 수명에 연결했어요. 도메인 특례를 새로 추가하지 않았어요.
 - DarkReader의 URL 이미지 자동 반전·숨김은 공통으로 막고 CSS 그라데이션 보정은 유지해요. dependency patch는 mjs/standalone js 모두 반영했어요. 기존 CSP MAIN proxy 패치도 보존했어요.
 - `icon-contrast.js`는 작은 투명 PNG/WebP 조작 배경의 저대비 중립 픽셀만 로컬로 바꿔요. 컬러 픽셀·alpha는 그대로이며 opaque/큰/짙게 채운 이미지·불확실한 합성은 제외해요. CORS/페이지 CSP가 막으면 원본을 유지해요. credentials omit, 동시 요청2·URL48·응답128KiB·픽셀65536·3초 제한이에요.
