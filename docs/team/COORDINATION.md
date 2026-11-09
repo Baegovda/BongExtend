@@ -7,7 +7,7 @@
 - 앱 기준: 1.2.49, `ae2dfd6`, main. 최신 상태는 항상 실제 Git과 package.json을 다시 확인해요.
 - 실제 Git 루트: `C:/Users/Revaptor_FX/Documents/Codex/2026-11-04/https-github-com-baegovda-bongextend-https/work/BongExtend`.
 - 저장된 BongExtend 프로젝트 폴더 `C:/Users/Revaptor_FX/Documents/BongExtend`는 배포 폴더이므로 그곳을 소스 체크아웃으로 오인하지 않아요.
-- 총괄 채팅: `01a1bb89-9992-7853-86aa-786939c62cff`, host `local`. 공통 코드, 파일 배정, 결과 통합, 검수, 커밋·푸시·릴리스 소유자예요.
+- 총괄 채팅 **BongExtend 총괄팀**: `01a1bb89-9992-7853-86aa-786939c62cff`, host `local`. 공통 코드, 파일 배정, 결과 통합, 검수, 커밋·푸시·릴리스 소유자예요.
 - 각 담당의 세션 ID는 아래 명단에 기록해요. 채팅이 완료됐다는 표시는 해당 배정이 끝났다는 뜻이며 계속 실행 중이라는 뜻은 아니에요.
 
 ## 초기 배정
@@ -38,4 +38,4 @@
 - 다운로더: `01a1c01c-c622-7883-b2a0-930a8e2b748b`, host `local`; 역할 `.cursor/agents/bong-downloader.md`; 보고서 `docs/team/downloader/REPORT.md`.
 - 디시: `01a1c01c-c749-7091-98c6-32ae53aab03a`, host `local`; 역할 `.cursor/agents/bong-dc.md`; 보고서 `docs/team/dc/REPORT.md`.
 - 환율: `01a1c01c-c8a1-70e1-82ec-98e9c7e20d67`, host `local`; 역할 `.cursor/agents/bong-fx.md`; 보고서 `docs/team/fx/REPORT.md`.
-- 우클릭 복구: `01a1c01c-ca13-70c1-ab40-b7d280388d35`, host `local`; 역할 `.cursor/agents/bong-rightclick.md`; 보고서 `docs/team/rightclick/REPORT.md`.
+- 우클릭팀 (**BongExtend 우클릭팀**): `01a1c01c-ca13-70c1-ab40-b7d280388d35`, host `local`; 역할 `.cursor/agents/bong-rightclick.md`; 보고서 `docs/team/rightclick/REPORT.md`.
