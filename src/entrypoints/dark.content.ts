@@ -28,10 +28,27 @@ export default defineContentScript({
         setFetchMethod(async (resourceUrl: string) => {
             const url = new URL(resourceUrl, location.href);
             if ((hostname === "naver.com" || hostname.endsWith(".naver.com")) &&
-                url.protocol === "https:" && (url.hostname === "pstatic.net" || url.hostname.endsWith(".pstatic.net")) &&
+                url.protocol === "https:" && (url.hostname === "pstatic.net" || url.hostname.endsWith(".pstatic.net") || url.hostname === "spastatic.naver.com") &&
                 url.pathname.toLowerCase().endsWith(".css")) {
-                const result = await chrome.runtime.sendMessage({type: "dark-fetch-naver-css", url: url.href});
-                if (result?.ok) return new Response(result.text, {headers: {"Content-Type": "text/css"}});
+                // CSS 전용 연결로 다른 모듈의 응답과 섞이지 않게 해요.
+                const text = await new Promise<string>((resolve, reject) => {
+                    const port = chrome.runtime.connect({name: "bongextend-dark-css"});
+                    const finish = (error?: Error, text?: string) => {
+                        clearTimeout(timer);
+                        port.onDisconnect.removeListener(disconnected);
+                        port.disconnect();
+                        if (error) reject(error); else resolve(text!);
+                    };
+                    const disconnected = () => finish(new Error(chrome.runtime.lastError?.message || "CSS connection closed"));
+                    const timer = setTimeout(() => finish(new Error("CSS request timed out")), 15000);
+                    port.onDisconnect.addListener(disconnected);
+                    port.onMessage.addListener(result => {
+                        if (result?.ok && typeof result.text === "string") finish(undefined, result.text);
+                        else finish(new Error("네이버 CSS를 가져오지 못했어요."));
+                    });
+                    port.postMessage({url: url.href});
+                });
+                return new Response(text, {headers: {"Content-Type": "text/css"}});
             }
             return fetch(url.href, {credentials: "omit"});
         });

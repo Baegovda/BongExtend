@@ -128,24 +128,28 @@ export default defineBackground(() => {
     });
 
     // 다크 모드: 사용자가 권한을 허용한 사이트에만 런타임 콘텐츠 스크립트를 등록한다.
-    chrome.runtime.onMessage.addListener((message, sender, respond) => {
-        if (message?.type !== "dark-fetch-naver-css") return;
-        void (async () => {
-            try {
-                const page = new URL(sender.url || "");
-                const url = new URL(message.url);
-                if (sender.id !== chrome.runtime.id || !(page.hostname === "naver.com" || page.hostname.endsWith(".naver.com")) ||
-                    url.protocol !== "https:" || !(url.hostname === "pstatic.net" || url.hostname.endsWith(".pstatic.net")) ||
-                    !url.pathname.toLowerCase().endsWith(".css") || url.username || url.password || url.port) throw new Error("unsupported resource");
-                if (!await chrome.permissions.contains({origins: ["https://*.pstatic.net/*"]})) throw new Error("missing permission");
-                const response = await fetch(url.href, {credentials: "omit", redirect: "error"});
-                if (!response.ok || !(response.headers.get("content-type") || "").toLowerCase().startsWith("text/css")) throw new Error("invalid stylesheet");
-                const text = await response.text();
-                if (text.length > 5_000_000) throw new Error("stylesheet too large");
-                respond({ok: true, text});
-            } catch { respond({ok: false}); }
-        })();
-        return true;
+    chrome.runtime.onConnect.addListener(port => {
+        if (port.name !== "bongextend-dark-css") return;
+        const sender = port.sender;
+        port.onMessage.addListener(message => {
+            const respond = (value: unknown) => { try { port.postMessage(value); } catch { /* 문서가 닫힌 경우 */ } };
+            void (async () => {
+                try {
+                    const page = new URL(sender?.url || "");
+                    const url = new URL(message.url);
+                    if (sender?.id !== chrome.runtime.id || !(page.hostname === "naver.com" || page.hostname.endsWith(".naver.com")) ||
+                        url.protocol !== "https:" || !(url.hostname === "pstatic.net" || url.hostname.endsWith(".pstatic.net") || url.hostname === "spastatic.naver.com") ||
+                        !url.pathname.toLowerCase().endsWith(".css") || url.username || url.password || url.port) throw new Error("unsupported resource");
+                    const origin = url.hostname === "spastatic.naver.com" ? "https://*.naver.com/*" : "https://*.pstatic.net/*";
+                    if (!await chrome.permissions.contains({origins: [origin]})) throw new Error("missing permission");
+                    const response = await fetch(url.href, {credentials: "omit", redirect: "error", signal: AbortSignal.timeout(12000)});
+                    if (!response.ok || !(response.headers.get("content-type") || "").toLowerCase().startsWith("text/css")) throw new Error("invalid stylesheet");
+                    const text = await response.text();
+                    if (text.length > 5_000_000) throw new Error("stylesheet too large");
+                    respond({ok: true, text});
+                } catch { respond({ok: false}); }
+            })();
+        });
     });
     const syncDarkReaderScript = async () => {
         try {
