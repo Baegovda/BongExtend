@@ -34,3 +34,12 @@ test('temporary prism colors survive theming without replacing site fixes',()=>{
     assert.deepEqual(original.ignoreInlineStyle,[]);
     assert.ok(withTranslationColors(undefined).ignoreInlineStyle.length>0);
 });
+
+test('Naver homepage brightens only monochrome toolbar sprites and neutral text in dark mode',()=>{
+ const fixes=darkReaderFixesForSite('www.naver.com');assert.equal(darkReaderFixesForSite('naver.com'),fixes);
+ for(const icon of ['.btn_menu','.link_pay','.btn_notify','.link_shopping'])assert.ok(fixes.css.includes(icon));
+ assert.match(fixes.css,/data-darkreader-scheme="dark"/);assert.match(fixes.css,/foreground-subtle-3/);
+ assert.deepEqual(fixes.invert,[]);assert.doesNotMatch(fixes.css,/(?:img|body)\s*\{/);
+ assert.notEqual(darkReaderFixesForSite('search.naver.com'),fixes);
+ assert.equal(darkReaderFixesForSite('mail.naver.com'),undefined);
+});

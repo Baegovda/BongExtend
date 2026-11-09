@@ -16,11 +16,22 @@ const fs=require('node:fs'),os=require('node:os'),path=require('node:path');
   await page.goto('https://www.naver.com/',{waitUntil:'domcontentloaded'});await page.waitForTimeout(6000);
   const waitDark=async()=>page.waitForFunction(()=>['body','#account'].every(s=>{const e=document.querySelector(s);return e&&Number(getComputedStyle(e).backgroundColor.match(/\d+/)[0])<100;}),null,{timeout:20000});
   await waitDark();
+  const iconSelectors=['.btn_menu','.link_pay','.btn_notify','.link_shopping'];
+  for(const selector of iconSelectors){
+   const filter=await page.locator('#header '+selector).evaluate(e=>getComputedStyle(e,'::after').filter);
+   assert.match(filter,/brightness\(0\).*invert\(0.88\)/,selector);
+  }
+  const helperColor=await page.locator('#account [class*="link_more"]').first().evaluate(e=>getComputedStyle(e).color);
+  assert.equal(helperColor,'rgb(197, 203, 212)');
+  // Logged-in logout UI uses the same real stylesheet; fixture does not access an account.
+  await page.evaluate(()=>{const row=document.createElement('div');row.className='MyView-module__my_info___fixture';row.innerHTML='<button class="MyView-module__btn_logout___fixture" id="fixtureLogout">로그아웃</button>';document.querySelector('#account').append(row);});
+  assert.equal(await page.locator('#fixtureLogout').evaluate(e=>getComputedStyle(e).color),'rgb(197, 203, 212)');
   const bodyColor=()=>page.locator('body').evaluate(e=>getComputedStyle(e).backgroundColor);
   const dark=await bodyColor();
   await worker.evaluate(()=>chrome.storage.local.set({'core.darkMode':{enabledSites:[],followSystem:false}}));
   await page.waitForFunction(()=>!document.querySelector('.darkreader'));
   assert.notEqual(await bodyColor(),dark);
+  assert.equal(await page.locator('#header .btn_notify').evaluate(e=>getComputedStyle(e,'::after').filter),'none');
   await worker.evaluate(()=>chrome.storage.local.set({'core.darkMode':{enabledSites:['naver.com'],followSystem:false}}));
   await waitDark();await page.reload({waitUntil:'domcontentloaded'});await waitDark();
   // A different module may answer general messages immediately; the CSS port must still work.
@@ -28,6 +39,7 @@ const fs=require('node:fs'),os=require('node:os'),path=require('node:path');
   await page.reload({waitUntil:'domcontentloaded'});await waitDark();
   const denied=await worker.evaluate(async url=>{const tab=(await chrome.tabs.query({url}))[0];return chrome.scripting.executeScript({target:{tabId:tab.id},func:()=>new Promise(resolve=>{const port=chrome.runtime.connect({name:'bongextend-dark-css'});port.onMessage.addListener(result=>{port.disconnect();resolve(result.ok)});port.postMessage({url:'https://example.com/private.css'});})});},page.url());
   assert.equal(denied[0].result,false);
+  console.log('PASS Naver contrast: toolbar sprites and account helper/logout text brightened; disable restores original icon filter.');
   console.log('PASS public Naver: live external CSS, dark body/account, disable/enable, reload, unrelated response isolation, disallowed URL rejection. No logged-in account tested.');
   await page.screenshot({path:path.join(folder,'naver-dark.png')});console.log('Evidence:',folder);
  }finally{await context.close();}

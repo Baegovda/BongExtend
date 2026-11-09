@@ -1,3 +1,38 @@
+// Homepage toolbar icons are monochrome sprites, not inherited text colors.
+// Limit the correction to dark mode so photos, logos and light-mode colors remain intact.
+const NAVER_HOME_FIXES = Object.freeze({
+  invert: [],
+  css: `
+html[data-darkreader-scheme="dark"] {
+  --color-neutral-foreground-default: #e8e6e3 !important;
+  --color-neutral-foreground-alpha: #c5cbd4 !important;
+  --darkreader-text--color-neutral-foreground-alpha: #c5cbd4 !important;
+  --color-neutral-foreground-decorative-1: #c5cbd4 !important;
+  --color-neutral-foreground-decorative-2: #b8c0cc !important;
+  --darkreader-text--color-neutral-foreground-decorative-1: #c5cbd4 !important;
+  --darkreader-text--color-neutral-foreground-decorative-2: #b8c0cc !important;
+  --color-neutral-foreground-subtle-1: #d5d9df !important;
+  --color-neutral-foreground-subtle-2: #c5cbd4 !important;
+  --color-neutral-foreground-subtle-3: #b8c0cc !important;
+  --darkreader-text--color-neutral-foreground-default: #e8e6e3 !important;
+  --darkreader-text--color-neutral-foreground-subtle-1: #d5d9df !important;
+  --darkreader-text--color-neutral-foreground-subtle-2: #c5cbd4 !important;
+  --darkreader-text--color-neutral-foreground-subtle-3: #b8c0cc !important;
+}
+html[data-darkreader-scheme="dark"] #header :is(.btn_menu, .link_pay, .btn_notify, .link_shopping)::after,
+html[data-darkreader-scheme="dark"] #account [class*="btn_logout"]::after {
+  filter: brightness(0) invert(0.88) !important;
+}
+html[data-darkreader-scheme="dark"] #account :is([class*="btn_logout"], [class*="link_more"]) {
+  color: #c5cbd4 !important;
+}
+`,
+  ignoreInlineStyle: [],
+  ignoreImageAnalysis: [],
+  disableStyleSheetsProxy: false,
+  ignoreCSSUrl: []
+});
+
 // Naver Search fix copied from Dark Reader's MIT-licensed dynamic-theme-fixes.config.
 // https://github.com/darkreader/darkreader/blob/main/src/config/dynamic-theme-fixes.config
 const NAVER_SEARCH_FIXES = Object.freeze({
@@ -49,6 +84,7 @@ const COUPANG_FIXES = Object.freeze({
 
 export const darkReaderFixesForSite = (hostname) => {
   const host = String(hostname || "").toLowerCase().replace(/^www\./, "");
+  if (host === "naver.com") return NAVER_HOME_FIXES;
   if (host === "search.naver.com" || host === "m.search.naver.com") return NAVER_SEARCH_FIXES;
   if (host === "coupang.com" || host.endsWith(".coupang.com")) return COUPANG_FIXES;
   if (host === "fab.com" || host.endsWith(".fab.com")) return FAB_CSP_FIXES;
