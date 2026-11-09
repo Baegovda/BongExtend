@@ -50,5 +50,37 @@ const assert = require('node:assert/strict');
     assert.equal(result.overlays,0);
     assert.equal(result.draft,'Keep my draft'); assert.equal(result.code,'SKU-123');
     assert.equal(await page.evaluate(() => finishFixture()), result.source);
+    const { createTranslator } = await import('../src/modules/trans/lib/translator.js');
+    const { makeCacheKey } = await import('../src/modules/trans/lib/cache.js');
+    const stored=new Map([[await makeCacheKey('gemini-3.5-flash-lite','ko',result.source),result.source]]);
+    let repairCalls=0;
+    const repair=createTranslator({persistentCache:{get:async key=>stored.get(key),setMany:async pairs=>pairs.forEach(([k,v])=>stored.set(k,v))},
+      loadSettings:async()=>({}),translateFn:async texts=>{repairCalls++;return texts.map(()=>result.target);}});
+    await page.exposeFunction('repairBatch',async texts=>({ok:true,...await repair.translateMany(texts)}));
+    const repaired=await page.evaluate(async source=>{
+      const root=document.createElement('section');root.textContent=source;document.body.append(root);
+      const session=__pageTranslator.createSession({root,enableBanner:false,revealAnimation:false,sendBatch:texts=>repairBatch(texts)});
+      session.start();await session.whenIdle();return {text:root.textContent,status:session.getStatus()};
+    },result.source);
+    assert.equal(repaired.text,result.target);assert.equal(repaired.status.done,1);assert.equal(repairCalls,1);
+    let failedCalls = 0;
+    const translator = createTranslator({ persistentCache:{get:async()=>null,setMany:async()=>{throw new Error('must not cache');}},
+      loadSettings:async()=>({}), translateFn:async texts=>{failedCalls++;return texts;} });
+    await page.exposeFunction('incompleteBatch',async texts=>{
+      try { return {ok:true,...await translator.translateMany(texts)}; }
+      catch(error) {return {ok:false,code:error.code,message:error.message};}
+    });
+    const failed = await page.evaluate(async source=>{
+      const root = document.createElement('section');root.textContent=source;document.body.append(root);
+      const session=__pageTranslator.createSession({root,enableBanner:true,sendBatch:texts=>incompleteBatch(texts)});
+      session.start();await session.whenIdle();
+      const status=session.getStatus();
+      session.start();await session.whenIdle();
+      return {status,afterRetry:session.getStatus(),text:root.textContent};
+    },result.source);
+    assert.match(failed.status.error,/翻訳|번역/);
+    assert.equal(failed.text,result.source);assert.equal(failedCalls,1);
+    await page.screenshot({path:path.join(folder,'incomplete.png')});
+    console.log(JSON.stringify({failed,failedCalls,errorScreenshot:path.join(folder,'incomplete.png')},null,2));
   } finally { await browser.close(); }
 })().catch(error => { console.error(error); process.exitCode=1; });

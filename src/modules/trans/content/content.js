@@ -481,7 +481,7 @@
         'border: 1px solid #fecaca; border-radius: 10px; padding: 8px 10px;',
         'box-shadow: 0 4px 14px rgba(0,0,0,.12); max-width: 280px; }',
         '.msg { white-space: pre-wrap; }',
-        'button { all: initial; font: 12px/1 system-ui, sans-serif; cursor: pointer;',
+        'button { all: initial; font: 12px/1 system-ui, sans-serif; cursor: pointer; flex-shrink: 0; white-space: nowrap;',
         'color: #7f1d1d; padding: 2px; }',
       ].join('');
       const box = document.createElement('div');

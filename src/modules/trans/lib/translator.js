@@ -1,5 +1,6 @@
 import { chunkTexts } from './chunk.js';
 import { makeCacheKey } from './cache.js';
+import { isIncompleteTranslation, incompleteTranslationError } from './translation-quality.js';
 import { isValidModelId, normalizeSettings, resolveModel, stripModelPrefix } from './settings.js';
 
 function logicalKey(model, targetLanguage, text) {
@@ -46,9 +47,16 @@ async function runPool(items, limit, worker) {
   await Promise.all(runners);
 }
 
-export function createTranslator({ persistentCache, translateFn, loadSettings }) {
+export function createTranslator({ persistentCache, translateFn, loadSettings, now = Date.now }) {
   const memory = new Map();
   const inflight = new Map();
+  const failures = new Map();
+
+  function noteIncomplete(key) {
+    failures.delete(key);
+    failures.set(key, now() + 30_000);
+    if (failures.size > MEMORY_LIMIT) failures.delete(failures.keys().next().value);
+  }
 
   function remember(key, value) {
     if (memory.has(key)) memory.delete(key);
@@ -106,7 +114,7 @@ async function fulfill(claimed, settings, memoryTexts = []) {
         } catch {
           stored = null;
         }
-        if (typeof stored === 'string') {
+        if (typeof stored === 'string' && !isIncompleteTranslation(item.text, stored, settings.targetLanguage)) {
           hitTexts.push(item.text);
           hitKeys.push(cacheKey);
           remember(item.key, stored);
@@ -141,6 +149,16 @@ async function fulfill(claimed, settings, memoryTexts = []) {
             throw error;
           }
           const pairs = [];
+          // Validate before any cache write or success resolution. One bad item
+          // rejects this batch; only its own key gets the bounded failure memo.
+          let incomplete = false;
+          for (let index = 0; index < items.length; index += 1) {
+            if (isIncompleteTranslation(items[index].text, translated[index], settings.targetLanguage)) {
+              noteIncomplete(items[index].key);
+              incomplete = true;
+            }
+          }
+          if (incomplete) throw incompleteTranslationError();
           for (let index = 0; index < items.length; index += 1) {
             if (usedModel === settings.model) remember(items[index].key, translated[index]);
             const storedKey = await makeCacheKey(usedModel, settings.targetLanguage, items[index].text);
@@ -186,6 +204,12 @@ async function fulfill(claimed, settings, memoryTexts = []) {
       const model = resolveModel(settings);
       const resolved = { ...settings, model, servedModel: model };
       const keys = texts.map((text) => logicalKey(model, resolved.targetLanguage, text));
+      for (let index = 0; index < keys.length; index += 1) {
+        const key = keys[index];
+        if (failures.get(key) > now()) throw incompleteTranslationError();
+        failures.delete(key);
+        if (memory.has(key) && isIncompleteTranslation(texts[index], memory.get(key), resolved.targetLanguage)) memory.delete(key);
+      }
       const claimed = [];
       const seen = new Set();
       const memoryTexts = [];
@@ -214,6 +238,7 @@ async function fulfill(claimed, settings, memoryTexts = []) {
     },
     async clearCache() {
       memory.clear();
+      failures.clear();
       for (const deferred of inflight.values()) {
         const error = new Error('번역 캐시를 지우는 중이에요.');
         error.code = 'CACHE_CLEARED';
