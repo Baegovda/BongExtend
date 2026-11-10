@@ -4,10 +4,12 @@
 
 ## 최신 인계 — v1.2.60
 
+- 앱 커밋 **410663e**, main / [v1.2.60 Release](https://github.com/Baegovda/BongExtend/releases/tag/v1.2.60). CI **42755182217**·Release **42755188452** success 확인. 앱 구현·검수·푸시·릴리스가 끝났으며 사용자 실제 설치/로그인 화면 검증과는 별개예요. 이후 문서 커밋은 앱 버전을 바꾸지 않아요. 사용자 새 무신사 부분 테마 요청은 다크팀에 별도 배정 중이에요.
+- Chrome ZIP **4,878,494바이트**·Windows 보조 ZIP **22,614바이트** uploaded 확인.
 - 사용자 네이버페이 구매내역의 흰 경계선 지적을 공통 회귀로 조사했어요. 실제 로그인 DOM은 확보하지 못했지만, upstream 단독이면 어두운 inline border/shadow가 helper marker 추가 뒤 흰색으로 돌아오는 경로를 합성 Chrome에서 확정 재현했어요. site-fixes.js의 요소전체 ignore를 HTML 카드/아이콘에서 제거하고 SVG paint 격리만 유지해요. upstream 추가 패치·도메인별 dim 규칙은 넣지 않았어요.
 - helper가 직접 쓴 inline!important 속성은 유지하고 같은 요소의 나머지 경계/그림자는 upstream이 계속 처리해요. source fixture에서 baseline→helper ON→helper stop 동일·전체 OFF white 원복, alpha/opacity·브랜드/선택·hidden/disabled/사진·SVG/data 아이콘·observer 안정화를 확인했어요(be-dark-boundaries-tFcRvz). 이전 버전 white 회귀 근거는 be-dark-boundaries-rELQTU예요.
 - root 최종 패키지 fixture는 실제 content/worker/등록과 inline 3px white border·white shadow가 어두운 원래 변환을 유지하는지 통과했어요. 키보드 focus outline을 보강 inline outline이 덮는 문제도 발견해 contrast.js :focus-visible 예외와 focusin/out 재평가로 수정했어요. 작성자 semantic border 변경과 OFF 원복·hidden/disabled·안정구간 mutation0도 확인했어요. scripts/verify-dark-boundary-product-browser.cjs, be-boundary-product-lJg4lu(최종), 8lXQNV(직접 시각검수·동일 HTML 경계 시나리오).
-- 전체 JS265+Bun+타입 및 빌드/ZIP/eval/권한 필수 검사를 적용해요. 최종 배포 SHA·CI/Release·양쪽 ZIP은 확인 후 이곳에 기록해요. 다크팀 한 곳 Sol/medium만 배정했고 담당은 완료/idle, Astra 미사용이에요. 네이버페이 실제 사용자 설치/로그인 결과는 여전히 미확인이며 아래 과거 미확인 항목은 유지해요.
+- 전체 JS265+Bun+타입 및 빌드/ZIP/eval/권한 필수 검사를 통과했어요. 다크팀 한 곳 Sol/medium만 배정했고 이 흰 경계선 배정은 완료, Astra 미사용이에요. 네이버페이 실제 사용자 설치/로그인 결과는 여전히 미확인이며 아래 과거 미확인 항목은 유지해요.
 
 ## 이전 인계 — v1.2.59
 

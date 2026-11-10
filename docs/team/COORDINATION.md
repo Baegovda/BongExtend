@@ -4,6 +4,7 @@
 
 ## 기준과 총괄
 
+- 1.2.60 배포 완료: 앱410663e CI42755182217/Release42755188452 success, Chrome ZIP4,878,494바이트·Windows 보조 ZIP22,614바이트 uploaded. 다크팀은 다음 사용자 무신사 부분 테마(밝은 섹션·검정 상품명) 진단으로 별도 재배정했어요. 같은 Sol/medium, 실제 사용자 설치는 미확인이에요.
 - 1.2.60 통합: 다크팀 한 곳(Sol/medium)이 흰 경계선의 marker-wide inline ignore 회귀를 재현·최소 수정·source검사를 마치고 idle이에요. root는 focus 경계 보존·최종 실제 패키지 검수/배포 담당. HTML 전역dim/추가 upstream patch/사이트 특례는 없고 실제 로그인 네이버페이 결과는 미확인이에요.
 - 1.2.59 배포 완료: 앱d62968a, CI42754068705/Release42754074042 success, Chrome ZIP4,878,450바이트·Windows 보조 ZIP22,614바이트. 담당 모두 idle·추가 시험 프로세스 없음. 공개 나무위키 helper/패키지 합성 안정성·메일 공통헤더 검수 완료, 로그인 네이버페이 실제 버튼은 미확인이에요. 사용자 설치와 페이지 새로고침은 별개예요.
 - 1.2.59 통합: 다크팀은 작은 활성 SVG/data 이미지 대비 규칙, 메일팀은 네이버 헤더 공통 구조를 마치고 idle이에요. root는 upstream 보조 변수/transitionend 상호작용의 깜빡임 수정·제품 검사·배포를 맡아요. 두 팀 Sol/medium, Astra 미사용. 네이버페이 실제 로그인 carousel은 미확인이에요.
