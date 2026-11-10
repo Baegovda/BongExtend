@@ -1,5 +1,5 @@
 diff --git a/darkreader.js b/darkreader.js
-index c38c5002d1232a83a287a820f4d8b1bb155c38f8..63917d823e94eb35a449cfe3180cbbd593f24eda 100644
+index c38c5002d1232a83a287a820f4d8b1bb155c38f8..e15c60923d1feef488068c3ef89c4ba276947102 100644
 --- a/darkreader.js
 +++ b/darkreader.js
 @@ -3764,7 +3764,9 @@
@@ -21,8 +21,20 @@ index c38c5002d1232a83a287a820f4d8b1bb155c38f8..63917d823e94eb35a449cfe3180cbbd5
                  return async (theme) => {
                      if (isURLEmpty) {
                          return "url('')";
+@@ -9539,6 +9542,10 @@ _______|_______/__/ ____ \\__\\__|___\\__\\__|___\\__\\____
+     }
+     const setFetchMethod = setFetchMethod$1;
+-
++
++    // BongExtend: same color mapping for scoped mail bodies.
++    exports.modifyBackgroundColor = modifyBackgroundColor;
++    exports.modifyForegroundColor = modifyForegroundColor;
++    exports.modifyBorderColor = modifyBorderColor;
+     exports.auto = auto;
+     exports.disable = disable;
+     exports.enable = enable;
 diff --git a/darkreader.mjs b/darkreader.mjs
-index 90eb131d3f417cf9ce7141d956ce64f88988aaa4..1984028bd8b20811a4b27bf4469196b22f40fe8d 100644
+index 90eb131d3f417cf9ce7141d956ce64f88988aaa4..f0e9ed102b99aa92f16d49de79fb718053e29d04 100644
 --- a/darkreader.mjs
 +++ b/darkreader.mjs
 @@ -3651,7 +3651,9 @@ function getBgImageModifier(
@@ -64,11 +76,32 @@ index 90eb131d3f417cf9ce7141d956ce64f88988aaa4..1984028bd8b20811a4b27bf4469196b2
      }
      staticStyleInjector.inject(
          "override",
+@@ -9202,4 +9209,5 @@ async function exportGeneratedCSS() {
+ }
+ const setFetchMethod = setFetchMethod$1;
+-
++
+-export {auto, disable, enable, exportGeneratedCSS, isEnabled, setFetchMethod};
++// BongExtend: reuse upstream color mapping in isolated mail subtrees.
++export {auto, disable, enable, exportGeneratedCSS, isEnabled, setFetchMethod, modifyBackgroundColor, modifyForegroundColor, modifyBorderColor};
 diff --git a/index.d.ts b/index.d.ts
-index 093103e730f86ea33d0549f34d0e1510b9de73e8..9a4e01c80983fe9e33143d5b7e482b379f02c1c6 100644
+index 093103e730f86ea33d0549f34d0e1510b9de73e8..86dd6d265d966ca85dbb6e732e8e0902956dd35d 100644
 --- a/index.d.ts
 +++ b/index.d.ts
-@@ -157,6 +157,12 @@ declare namespace DarkReader {
+@@ -39,6 +39,11 @@ declare namespace DarkReader {
+      */
+     function exportGeneratedCSS(): Promise<string>;
+-
++
++    /** BongExtend scoped mail rendering: pinned upstream color transforms. */
++    function modifyBackgroundColor(rgb: {r: number; g: number; b: number; a: number}, theme: Partial<Theme>, register?: boolean): string;
++    function modifyForegroundColor(rgb: {r: number; g: number; b: number; a: number}, theme: Partial<Theme>, register?: boolean): string;
++    function modifyBorderColor(rgb: {r: number; g: number; b: number; a: number}, theme: Partial<Theme>, register?: boolean): string;
++
+     /**
+      * Theme options.
+      */
+@@ -157,6 +162,12 @@ declare namespace DarkReader {
           * who are using the Dark Reader API.
           */
          disableStyleSheetsProxy: boolean;

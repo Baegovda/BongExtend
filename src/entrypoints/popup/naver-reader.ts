@@ -2,9 +2,12 @@
 import {CONFIG_KEY,fetchNaverMessage,mailUrl} from '@/modules/naver-mail/client.js';
 // @ts-ignore scriptless message document
 import {messageDocument} from '@/modules/naver-mail/message.js';
+import {createMailThemeView} from './mail-appearance';
 type Summary={id:string;subject:string;sender:string;snippet?:string;time?:number};
 type Body={id:string;html:string;plain?:boolean;subject?:string;sender?:string;address?:string};
 export function createNaverReader(doc:Document){
+ const appearance=createMailThemeView(doc,'mail.naver.com');
+ let unbindWheel:(()=>void)|undefined;
  const sheet=doc.createElement('link');sheet.rel='stylesheet';sheet.href=chrome.runtime.getURL('naver-reader.css');doc.head.append(sheet);
  const view=doc.createElement('section');view.id='beNaverReader';view.className='be-naver-reader';view.hidden=true;
  view.setAttribute('role','region');view.setAttribute('aria-labelledby','beNaverSubject');
@@ -16,18 +19,29 @@ export function createNaverReader(doc:Document){
  let current:{account:string;summary:Summary}|null=null,opener:HTMLElement|null=null,controller:AbortController|null=null,generation=0,zoom=80;
  const connected=(stored:Record<string,unknown>,account:string)=>{const config=stored[CONFIG_KEY] as {enabled?:boolean;id?:string}|undefined;return config?.enabled&&config.id===account&&(stored['core.modules'] as {gmail?:boolean}|undefined)?.gmail!==false;};
  let wrapper:HTMLElement|null=null,wasInert=false;
- const close=()=>{generation++;controller?.abort();controller=null;current=null;body.srcdoc='';body.hidden=true;view.hidden=true;doc.documentElement.classList.remove('be-naver-reading');if(wrapper)wrapper.inert=wasInert;wrapper=null;if(opener?.isConnected)opener.focus();else doc.querySelector<HTMLButtonElement>('#naverMailList button')?.focus();};
+ const close=()=>{generation++;controller?.abort();controller=null;current=null;unbindWheel?.();unbindWheel=undefined;appearance.sync([],bar);body.srcdoc='';body.hidden=true;view.hidden=true;doc.documentElement.classList.remove('be-naver-reading');if(wrapper)wrapper.inert=wasInert;wrapper=null;if(opener?.isConnected)opener.focus();else doc.querySelector<HTMLButtonElement>('#naverMailList button')?.focus();};
  const back=make('← 메일함',close),original=make('네이버에서 열기',()=>{if(current)void chrome.tabs.create({url:mailUrl(current.summary.id)});});
  original.title='답장·첨부 파일 등 전체 기능은 네이버에서 사용할 수 있어요.';
- const scale=make('80%',()=>{zoom=zoom===80?100:80;scale.textContent=zoom+'%';scale.setAttribute('aria-pressed',String(zoom===100));if(body.contentDocument)body.contentDocument.body.style.zoom=String(zoom/100);});
- scale.title='메일 본문 배율 전환 (80% / 100%)';scale.setAttribute('aria-label',scale.title);scale.setAttribute('aria-pressed','false');
+ const setZoom=(value:number)=>{zoom=value;scale.textContent=zoom+'%';scale.setAttribute('aria-pressed',String(zoom===100));if(body.contentDocument?.body)body.contentDocument.body.style.zoom=String(zoom/100);};
+ const scale=make('80%',()=>setZoom(zoom===100?80:100));
+ scale.title='Ctrl+휠로 본문 확대·축소 (50~200%) · 클릭하면 80% / 100%';scale.setAttribute('aria-label',scale.title);scale.setAttribute('aria-pressed','false');
  const retry=make('다시 시도',()=>{if(current)void load();});retry.hidden=true;
  bar.append(back,original,scale);view.append(bar,subject,sender,notice,retry,body);doc.body.append(view);
  view.addEventListener('keydown',event=>{event.stopPropagation();if(event.key==='Escape'){event.preventDefault();close();}});
  view.addEventListener('mouseup',event=>event.stopPropagation());
+ body.addEventListener('load',()=>{
+  unbindWheel?.();unbindWheel=undefined;
+  const root=body.contentDocument?.body;
+  if(view.hidden||!root||body.hidden)return;
+  const zoomApi=(doc.defaultView as unknown as {BongExtendReaderZoom?:{bind(target:EventTarget,options:{get:()=>number;set:(n:number)=>void}):()=>void}}).BongExtendReaderZoom;
+  unbindWheel=zoomApi?.bind(root.ownerDocument,{get:()=>zoom,set:setZoom});
+  // This isolated document contains only sender content, including its canvas.
+  appearance.sync([root.ownerDocument.documentElement],bar);
+ });
  async function load(){
   if(!current)return;const selected=current,own=++generation;controller?.abort();const request=controller=new AbortController();body.srcdoc='';body.hidden=true;retry.hidden=true;
   notice.textContent='메일 본문을 불러오고 있어요…';view.setAttribute('aria-busy','true');
+  appearance.sync([],bar);
   try{
    const local=await chrome.storage.local.get([CONFIG_KEY,'core.modules']);
    if(!connected(local,selected.account))throw Error('네이버 계정을 다시 연결해 주세요.');
@@ -48,6 +62,6 @@ export function createNaverReader(doc:Document){
    view.hidden=false;doc.documentElement.classList.add('be-naver-reading');subject.textContent=summary.subject;sender.textContent=summary.sender;back.focus();void load();
   },
   close,
-  dispose(){close();view.remove();sheet.remove();},
+  dispose(){close();appearance.stop();view.remove();sheet.remove();},
  };
 }

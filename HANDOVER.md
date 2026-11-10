@@ -2,7 +2,17 @@
 
 기준일: 2026-11-10. 이 문서는 기존 v1.2.10 인수인계를 대체해요. 이후 변경은 package.json, CHANGELOG.md, GitHub Releases를 우선 확인하세요.
 
-## 최신 인계 — v1.2.57
+## 최신 인계 — v1.2.58
+
+- 사용자 요청: 메일 본문 Ctrl+휠 배율과 본문에도 같은 다크 모드를 적용해요. 이전의 ‘발신자 색 원형 보존’ 요청은 원본 모드 복원 기준으로 유지하고 새 자동 다크를 막는 조건으로 쓰지 않아요. AGENTS와 README/CHANGELOG에 반영했어요.
+- public/js/bongextend-reader-zoom.js는 Gmail·Naver 공통 몸체 배율 helper예요. Ctrl/Meta+휠만50~200%, 일반 휠은 소비하지 않아요. Gmail은 messageBody 위의 wheel만, Naver는 scriptless 본문 document에서 parent realm listener로 처리해요. 80/100 버튼과 상단 UI 크기를 보존해요.
+- mail-appearance.ts가 앱의 prefers-color-scheme와 core.modules.dark를 따르고 core.mailBodyTheme(auto/dark/original)를 저장해요. dark면 앱이 밝아도 강제, original/모듈 OFF는 원래 inline 색/priority 복원. 공통 밝기/대비/sepia/grayscale/배경·글자 및 mail.google.com/mail.naver.com siteTheme를 사용하고 사진 보존을 위해 동적색 변환 mode1로 처리해요.
+- patches/darkreader@4.9.134.patch는 기존 artwork URL/MAIN proxy 보완을 유지하며 upstream Background/Foreground/Border 색 함수3개만 추가 export해요. 색 호출의 register=false로 문서 전역 CSS를 만들지 않아요. **API import가 chrome.runtime.sendMessage의 Promise 반환을 가로채는 upstream shim을 설치하므로 color-only 동적 import 직후 native sendMessage/onMessage.addListener를 복원해요.** 이 분리를 삭제하면 공통 메일 설정 요청이 실패해요. Bun frozen install·patch reverse check·proxy sync check 통과했어요.
+- 새 dark/mail-theme.js는 지정된 메일 subtree만 변환해요. Gmail은 .messageBody, Naver는 외부 앱을 포함하지 않는 sandbox 본문 문서의 html canvas예요. readonly 관찰/rAF batch120·8ms, 사전6000요소 상한/큐32개이며 넘으면 일부 테마를 남기지 않고 전체 원본으로 복원해요. legacy bgcolor/font attrs·이미지URL/filter·SVG currentColor·편집/disabled/hidden·레이아웃·이벤트는 보존해요. 복잡한 pseudo/shadow/nested iframe/일부 CSS color·이미지 위 글자는 전체 변환을 보장하지 않아요.
+- 검증: 전체 JS265개+Bun+타입 통과. Chrome 제품 fixture에서 Gmail 원본/자동 다크/앱 밝음 복원/강제 다크/색상 설정 변경/모듈 OFF·재ON/원본 복원, 실 Ctrl+휠 본문 배율과 일반 휠 스크롤·상단 크기 불변·resize/문맥 메뉴를 통과했어요(be-reader-VFhhIz). Naver 설정 통신·본문 sandbox·html canvas dark·Ctrl+휠·원본색·오류/취소·520px도 통과했어요(be-naver-mail-T3z4RI). 모두 별도 Chrome의 합성 메일이며 실제 로그인 계정의 동작 증거는 아니에요.
+- agent source-helper fixture는 before/dark/restored·큰 본문 원본 보존을 be-mail-theme-fu2GPT에서 확인했어요. DOM에서 script를 실행하거나 외부로 메일을 보내지 않아요. 큰 메일과 지원하지 않는 CSS는 원본 색으로 볼 수 있어요. 아래 1.2.57의 실계정 API와 몰테일 사진 미확인 사항은 여전히 남아 있어요.
+
+## 이전 인계 — v1.2.57
 
 - 최종 앱 커밋 **3485bfc**, main / [v1.2.57 Release](https://github.com/Baegovda/BongExtend/releases/tag/v1.2.57). CI **42664124741**·Release **42664128999** 모두 success, Chrome ZIP **4,837,075바이트**·Windows 보조 ZIP **22,611바이트** 게시 확인. 이 버전의 코드·검사·푸시·릴리스를 마쳤고 팀/시험 프로세스는 idle/종료예요. 남은 몰테일 사진 진단은 사용자 OFF 대조 답변이 필요하며 백그라운드에서 계속 작업 중인 상태가 아니에요. 이후 문서 커밋은 앱 버전을 바꾸지 않아요.
 - 검증 완료: 전체 JS262개+Bun+타입, release ZIP/eval/권한 검사 통과. 최종 SVG mask/상속 mask 두 형태는 alpha/brand 차이0·defs 보존, 실제 패키지 relay도 권한 거절/OFF 복원까지 확인했어요.

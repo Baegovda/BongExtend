@@ -95,7 +95,16 @@ const {chromium}=require('playwright');const fs=require('node:fs'),os=require('n
   assert.equal(await inbox.evaluate(()=>Boolean(window.__mailAttack)),false);
   assert.equal(await frame.locator('#beNaverBody').getAttribute('sandbox'),'allow-same-origin allow-popups allow-popups-to-escape-sandbox');
   await page.screenshot({path:path.join(folder,'naver-reader-dark.png'),animations:'disabled'});
-  await reader.getByRole('button',{name:'메일 본문 배율 전환 (80% / 100%)'}).click();assert.equal(await body.locator('body').evaluate(e=>getComputedStyle(e).zoom),'1');assert.equal(reads.length,1);
+  await worker.evaluate(async()=>{const stored=await chrome.storage.local.get('core.modules');await chrome.storage.local.set({'core.modules':{...stored['core.modules'],dark:true}});});
+  await page.waitForFunction(()=>{const doc=document.querySelector('#checkerPlusMailFrame').contentDocument.querySelector('#beNaverBody').contentDocument;return getComputedStyle(doc.documentElement).backgroundColor!=='rgb(255, 255, 255)';});
+  await page.screenshot({path:path.join(folder,'naver-reader-body-dark.png'),animations:'disabled'});
+  await page.evaluate(()=>{window.__wheelTrace=[];const doc=document.querySelector('#checkerPlusMailFrame').contentDocument.querySelector('#beNaverBody').contentDocument;doc.addEventListener('wheel',event=>window.__wheelTrace.push({delta:event.deltaY,ctrl:event.ctrlKey,prevented:event.defaultPrevented}),{passive:false});});
+  const bodyBox=await frame.locator('#beNaverBody').boundingBox();await page.mouse.move(bodyBox.x+80,bodyBox.y+60);await page.keyboard.down('Control');await page.mouse.wheel(0,-120);await page.keyboard.up('Control');
+  await page.waitForFunction(()=>getComputedStyle(document.querySelector('#checkerPlusMailFrame').contentDocument.querySelector('#beNaverBody').contentDocument.body).zoom==='0.9',null,{timeout:5000}).catch(async error=>{console.log('wheel diagnostic',await page.evaluate(()=>({trace:window.__wheelTrace,zoom:document.querySelector('#checkerPlusMailFrame').contentDocument.querySelector('#beNaverBody').contentDocument.body.style.zoom,helper:typeof document.querySelector('#checkerPlusMailFrame').contentWindow.BongExtendReaderZoom?.bind})));throw error;});
+  await reader.locator('.be-mail-body-theme').selectOption('original');
+  await page.waitForFunction(()=>getComputedStyle(document.querySelector('#checkerPlusMailFrame').contentDocument.querySelector('#beNaverBody').contentDocument.documentElement).backgroundColor==='rgb(255, 255, 255)');
+  assert.equal(await body.locator('h2').evaluate(e=>getComputedStyle(e).color),'rgb(171, 18, 52)');
+  await reader.getByRole('button',{name:/Ctrl.+휠/}).click();assert.equal(await body.locator('body').evaluate(e=>getComputedStyle(e).zoom),'1');assert.equal(reads.length,1);
   await reader.getByRole('button',{name:'네이버에서 열기'}).click();assert.equal(await page.evaluate(()=>window.__naverOpens[0]?.url),'https://mail.naver.com/v2/read/0/125');
   await reader.getByRole('button',{name:'← 메일함'}).click();await reader.waitFor({state:'hidden'});assert.equal(await inbox.evaluate(()=>document.activeElement===window.__naverFirst),true);
   readMode='error';await frame.locator('#naverMailList button').first().click();await reader.getByRole('button',{name:'다시 시도'}).waitFor({state:'visible'});

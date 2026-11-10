@@ -339,14 +339,16 @@ html.bongextend-checkerplus-embedded #openEmail {padding:8px 12px !important;}
 html.bongextend-checkerplus-embedded #openEmail .messageHeader {padding:5px 8px !important;margin-bottom:6px !important;gap:6px;border-radius:8px;}
 html.bongextend-checkerplus-embedded .messageHeader .contactPhoto {width:26px !important;height:26px !important;}
 html.bongextend-checkerplus-embedded #openEmail .message {margin-bottom:8px !important;}
-html.bongextend-checkerplus-embedded #openEmail .messageBody {zoom:.8;width:100%;box-sizing:border-box;padding:10px !important;}
-html.bongextend-checkerplus-embedded #openEmailSection[data-body-zoom="100"] .messageBody {zoom:1;width:100%;}
+html.bongextend-checkerplus-embedded #openEmail .messageBody {zoom:var(--be-mail-body-zoom,.8);width:100%;box-sizing:border-box;padding:10px !important;}
+html.bongextend-checkerplus-embedded #openEmailSection[data-body-zoom="100"] .messageBody {zoom:var(--be-mail-body-zoom,1);width:100%;}
 html.bongextend-checkerplus-embedded #openEmailSection footer {padding:4px 54px 4px 10px !important;}
 html.bongextend-checkerplus-embedded #replyButtons j-button {--button-padding:4px 9px;}
 .be-body-zoom,.be-account-order button {font:600 11px/1.4 var(--be-font);color:var(--be-text);background:var(--be-surface-2);border:1px solid var(--be-border);border-radius:5px;padding:3px 5px;cursor:pointer;}
 .be-account-order {display:inline-flex;gap:2px;margin-left:6px;flex-shrink:0;}
 .be-account-order button:disabled {opacity:.35;cursor:default;}
 .be-body-zoom:focus-visible,.be-account-order button:focus-visible {outline:2px solid var(--be-accent);outline-offset:1px;}
+.be-mail-body-theme{max-width:94px;min-width:0;font:600 11px/1.4 var(--be-font);color:var(--be-text);background:var(--be-control-bg,var(--be-surface-2));border:1px solid var(--be-control-border,var(--be-border));border-radius:6px;padding:4px;cursor:pointer;}
+.be-mail-body-theme:focus-visible{outline:2px solid var(--be-link);outline-offset:1px;}
 /* Naver is rendered next to Gmail accounts in the same inbox; it has its own actions. */
 html.bongextend-checkerplus-embedded #accounts-and-inbox {height:100% !important;}
 .be-naver-account {margin:0 0 10px;color:var(--be-text);font-family:var(--be-font);}

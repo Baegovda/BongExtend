@@ -1,5 +1,6 @@
 import {setupCurrencyPicker} from './fx-picker';
 import {setupNaverMail} from './naver-mail';
+import {watchGmailTheme} from './mail-appearance';
 import {setupMailSettings} from "./mail-settings";
 import {setupWindowControls} from "./window-controls";
 // BongExtend 팝업: 탭 하나에 모듈 화면 하나. 각 모듈 화면은 옛 확장 팝업을 그대로 iframe으로 띄운다.
@@ -81,13 +82,16 @@ const applyEmbeddedTheme = (doc: Document, className: string, stylePath: string)
         doc.head?.appendChild(stylesheet);
     }
 };
+let stopGmailTheme:(()=>void)|undefined;
 checkerPlusMailFrame.addEventListener("load", () => {
+    stopGmailTheme?.();stopGmailTheme=undefined;
     try {
         const doc = checkerPlusMailFrame.contentDocument;
         const optionsPage = checkerPlusMailFrame.contentWindow?.location.pathname.endsWith("/checkerplus-options.html");
         checkerPlusMailHome.hidden = !optionsPage;
         if (doc?.body?.id === "gmail-extension-popup") {
             applyEmbeddedTheme(doc, "bongextend-checkerplus-embedded", "checkerplus-embed.css");
+            stopGmailTheme=watchGmailTheme(doc);
         }
     } catch {
         checkerPlusMailHome.hidden = true;

@@ -10,4 +10,5 @@ html.be-naver-reading .pageWrapper{visibility:hidden}
 .be-naver-reader-status{margin:0;padding:14px;color:var(--be-muted)}.be-naver-reader-status:empty{display:none}
 .be-naver-reader>button{margin:0 14px 12px;align-self:flex-start}
 .be-naver-reader iframe{flex:1;min-height:0;width:calc(100% - 20px);margin:0 10px 10px;border:1px solid var(--be-glass-border);border-radius:12px;background:#fff;display:block}
+.be-naver-reader header .be-mail-body-theme{max-width:94px;min-width:0;font:600 11px/1.4 var(--be-font);color:var(--be-text);background:var(--be-control-bg,var(--be-surface-2));border:1px solid var(--be-control-border);border-radius:6px;padding:4px;}
 @media(prefers-reduced-transparency:reduce){.be-naver-reader,.be-naver-reader header{background:var(--be-bg)}}

@@ -1,5 +1,21 @@
 # 공통 대비 보정과 긴급 쪽지 조사 보고
 
+## 신규 메일 하위 DOM 테마 — root 제품 통합 완료
+
+- root 통합: 실제 제품 fixture에서 Gmail·Naver의 본문 다크/원본 복원과 Ctrl+휠이 통과했어요. Gmail은 앱 밝음/강제 다크·색 설정 변경·모듈OFF/재ON도 확인. Naver는 sandbox의 html canvas까지 포함해 빈 여백도 맞추고 script 금지는 유지했어요. Temp/be-reader-VFhhIz, be-naver-mail-T3z4RI 캡처 직접 검수예요.
+- root가 upstream API import의 Chrome 메시지 shim을 color-only 사용 직후 복원해 네이버 메일 설정 Promise 통신을 보존했어요. 새 mapper/register=false와 전역 DarkReader.enable 미호출을 유지해요. 전체 JS265+Bun+타입 통과.
+
+- createMailThemeController(root, {background,foreground,border}) → update(enabled, theme), stop(). mapper는 (rgbaArray, theme)→CSS 색 문자열이며 upstream 실제 함수는 root가 주입해요. 외부 document/전체 checker에는 테마를 켜지 않아요.
+- 각 theme 세션 최대6000요소, mutation queue32개, frame당 최대120요소/약8ms. **초기 bounded 사전 순회에서6000초과면 한 요소도 테마하지 않고 본문 전체 원본 유지**예요. 뒤늦게 거대 본문이 도착해 한도/queue 상한을 넘으면 소유 변경을 전부 복원하고 멈춰요. stats.limitHit=true로 표시해요. stop은 observer/예약작업/소유 inline 속성만 정리하고 원래 bgcolor/font color 속성은 전혀 편집하지 않아요.
+- 기준08c92f4/1.2.57에서 담당 변경: src/modules/dark/mail-theme.js/.d.ts, test/mail-theme.test.js, scripts/verify-mail-theme-browser.cjs, REPORT. 기존 엔진/메일 UI/권한/버전/패치/빌드 파일은 수정하지 않았어요.
+- root/자손의 computed 색을 주입 upstream mapper로 변환해요. 투명 하위 배경은 그대로, 투명 root에는 scoped dark canvas를 제공해요. rgba 색과 표시 중인 border, URL없는 rgb/rgba CSS gradient stop만 변환하고 이미지URL/filter/구조/이벤트/본문은 그대로 둬요.
+- hidden/inert/disabled/editable/이미지/SVG/iframe 등의 하위는 제외해요. currentColor SVG·disabled·editor가 들어 있는 조상은 inherited color를 바꾸지 않아 원래 그림/편집 색을 지켜요. 그 조상에 직접 달린 raw text는 보수적으로 미보정일 수 있어요. 일반 자식 p/font/link의 글자는 각각 변환돼요.
+- 원래 inline value/important는 소유 값이 남아 있는 속성만 복원해요. 사이트가 새 inline 값을 쓰면 그 값을 보존해요. 기존 bgcolor/font color 속성은 수정하지 않으며 CSSOM 직렬화 공백은 달라질 수 있지만 값/우선순위는 복원돼요.
+- Node happy-dom 주입 mapper2개 통과: scope 밖 UI/legacy attrs/hidden/editor/나중 번역문/자기 observer 안정화/stop·사이트 새 inline 보존. 실제 Chrome은 DarkReader named export3개를 직접 주입해 링크·파란 버튼·밝은/기존 어두운 카드·gradient·SVG currentColor/이미지/hidden/editor·OFF/동적본문을 검증했어요. 전체 문서 DarkReader.enable은 호출하지 않았어요.
+- 거대 메일 Chrome 검사: 처음10000요소는 root 포함 한 부분도 테마되지 않고 원래 white/#111 유지, small→late10000요소 전환도 전체 원본 복원 통과. 초기 제한 확인 누적 visited13/writes17(앞선 작은 본문), passes54/maxBatch120/limitHittrue, 이후 pass 증가 없이 안정됐어요.
+- 직접 시각 확인: C:/Users/REVAPT~1/AppData/Local/Temp/be-mail-theme-b12fBI/dark.png에서 본문만 어두워지고 파란 링크/버튼·그림 원색·밝은 편집 영역 유지 확인. 최종 회귀 캡처는 be-mail-theme-fu2GPT/before.png/dark.png/restored.png예요. 모두 합성 메일/소스 helper이며 실제 계정이나 제품 통합검사라고 주장하지 않아요.
+- 미검증/한계: 실제 Gmail/Naver 메일 DOM과 발신자 CSS/pseudo-element/닫힌 shadow DOM/중첩iframe 내부는 검증하지 않았고 처리하지 않아요. 모던 oklch/color()/named gradient stop은 computed RGB로 나오지 않으면 미보정이에요. 사진 위에 인쇄된 글자는 수정하지 않아요. root가 자동/다크/원본 선택·모듈OFF 정책·통합 빌드/릴리스를 소유해요. 담당 추가 build/전체test/커밋/푸시 없이 종료해요.
+
 ## 2026-11-10 Malltail 최종 담당 보고 — root 통합 완료
 
 - root 최종 패키지 검사: scripts/verify-dark-image-relay-browser.cjs에서 실제 content→CORS 실패→권한 검증 worker→보정을 확인했어요. 중립1076픽셀 변화/브랜드0·alpha0 차이, 사진 보존, 허용하지 않은 자원·다크 OFF 거절, OFF 스타일 복원 통과. Temp/be-image-relay-u7mEq7/dark.png/off.png 직접 확인이에요. 공개 사이트의 완전한 테마 재현 증거와는 구분해요.

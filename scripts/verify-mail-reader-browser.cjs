@@ -22,7 +22,7 @@ const fs=require('node:fs'), path=require('node:path'), os=require('node:os'), h
     const worker=context.serviceWorkers()[0] || await context.waitForEvent('serviceworker');
     const page=await context.newPage(), errors=[]; page.on('pageerror',e=>errors.push(e.message));
     await page.setViewportSize({width:780,height:590}); // The action popup's real content size.
-    await worker.evaluate(()=>chrome.storage.local.set({'core.popupTab':'gmail'}));
+    await worker.evaluate(()=>chrome.storage.local.set({'core.popupTab':'gmail','core.mailBodyTheme':'original'}));
     await page.goto(`chrome-extension://${id}/popup.html`);
     await page.frameLocator('#checkerPlusMailFrame').locator('html.bongextend-checkerplus-embedded').waitFor();
     const frame=page.frames().find(frame=>frame.url().includes('/checkerplus-popup.html'));
@@ -80,7 +80,38 @@ const fs=require('node:fs'), path=require('node:path'), os=require('node:os'), h
       await frame.evaluate(()=>document.getElementById('openEmail').scrollTop=0);
       await page.screenshot({path:path.join(temp,`reader-${scheme}.png`)});
     }
-    console.log('PASS dark/light mail: original colors, dark designed content, links, image colors, back toolbar');
+    console.log('PASS original mode: sender colors/images and mail controls');
+    await page.emulateMedia({colorScheme:'dark'});
+    await frame.locator('.be-mail-body-theme').selectOption('auto');
+    await frame.waitForFunction(()=>getComputedStyle(document.querySelector('#whiteMail')).backgroundColor!=='rgb(255, 255, 255)');
+    let themed=await readColors();assert.equal(themed.body.filter,'none');assert.equal(themed.image.filter,'none');
+    assert.notEqual(themed.white.color,'rgb(32, 33, 36)');
+    assert.equal(await frame.locator('style.darkreader').count(),0,'only mail bodies are themed, never the entire app');
+    await page.screenshot({path:path.join(temp,'reader-body-dark.png'),animations:'disabled'});
+    await page.evaluate(()=>document.querySelector('#checkerPlusMailFrame').contentDocument.getElementById('openEmail').scrollTop=0);
+    const bodyPoint=await frame.locator('#whiteMail').boundingBox(),headerBefore=await frame.locator('#openEmailSection .site-header').boundingBox();
+    await page.mouse.move(bodyPoint.x+40,bodyPoint.y+40);await page.keyboard.down('Control');await page.mouse.wheel(0,-120);await page.keyboard.up('Control');
+    await frame.waitForFunction(()=>getComputedStyle(document.querySelector('.messageBody')).zoom==='0.9');
+    assert.equal((await frame.locator('#openEmailSection .site-header').boundingBox()).height,headerBefore.height,'wheel changes body scale only');
+    await page.mouse.wheel(0,240);await frame.waitForFunction(()=>document.getElementById('openEmail').scrollTop>0);
+    assert.equal(await frame.locator('.messageBody').evaluate(el=>getComputedStyle(el).zoom),'0.9','ordinary wheel still scrolls');
+    await frame.locator('.be-body-zoom').click();await frame.locator('.be-body-zoom').click();
+    await page.emulateMedia({colorScheme:'light'});
+    await frame.waitForFunction(()=>getComputedStyle(document.querySelector('#whiteMail')).backgroundColor==='rgb(255, 255, 255)');
+    await frame.locator('.be-mail-body-theme').selectOption('dark');
+    await frame.waitForFunction(()=>getComputedStyle(document.querySelector('#whiteMail')).backgroundColor!=='rgb(255, 255, 255)');
+    const defaultBackground=(await readColors()).white.bg;
+    await worker.evaluate(()=>chrome.storage.local.set({'core.darkMode':{darkSchemeBackgroundColor:'#29282e'}}));
+    await frame.waitForFunction(before=>getComputedStyle(document.querySelector('#whiteMail')).backgroundColor!==before,defaultBackground);
+    await worker.evaluate(async()=>{const stored=await chrome.storage.local.get('core.modules');await chrome.storage.local.set({'core.modules':{...stored['core.modules'],dark:false}});});
+    await frame.waitForFunction(()=>getComputedStyle(document.querySelector('#whiteMail')).backgroundColor==='rgb(255, 255, 255)');
+    assert.equal(await frame.locator('.be-mail-body-theme').isDisabled(),true);
+    await worker.evaluate(async()=>{const stored=await chrome.storage.local.get('core.modules');await chrome.storage.local.set({'core.modules':{...stored['core.modules'],dark:true},'core.darkMode':{}});});
+    await frame.waitForFunction(()=>getComputedStyle(document.querySelector('#whiteMail')).backgroundColor!=='rgb(255, 255, 255)');
+    await frame.locator('.be-mail-body-theme').selectOption('original');
+    await frame.waitForFunction(()=>getComputedStyle(document.querySelector('#whiteMail')).backgroundColor==='rgb(255, 255, 255)');
+    themed=await readColors();assert.equal(themed.white.color,'rgb(32, 33, 36)');assert.equal(themed.dark.bg,'rgb(23, 32, 51)');
+    console.log('PASS scoped upstream dark theme, original restoration, Ctrl+wheel zoom and normal scrolling');
     assert.equal(await page.locator('#windowResizeHandle').isVisible(),true,'ordinary popup page exposes the resize grip');
     const pagesBefore=context.pages().length;
     const ordinaryGrip=await page.locator('#windowResizeHandle').boundingBox();

@@ -19,8 +19,12 @@
     const tools=section.querySelector('.utility-items');
     if(tools&&!tools.querySelector('.be-body-zoom')){
       const zoom=document.createElement('button');zoom.className='be-body-zoom';zoom.type='button';
-      const update=()=>{const full=section.dataset.bodyZoom==='100';zoom.textContent=full?'100%':'80%';zoom.title='메일 본문 배율 전환 (80% / 100%)';zoom.setAttribute('aria-label',zoom.title);zoom.setAttribute('aria-pressed',String(full));};
-      zoom.addEventListener('click',()=>{section.dataset.bodyZoom=section.dataset.bodyZoom==='100'?'80':'100';update();});update();tools.append(zoom);
+      const get=()=>Number(section.dataset.bodyZoom)||80;
+      const update=()=>{zoom.textContent=get()+'%';zoom.title='Ctrl+휠로 본문 확대·축소 (50~200%) · 클릭하면 80% / 100%';zoom.setAttribute('aria-label',zoom.title);zoom.setAttribute('aria-pressed',String(get()===100));};
+      const set=value=>{section.dataset.bodyZoom=String(value);section.style.setProperty('--be-mail-body-zoom',String(value/100));update();};
+      zoom.addEventListener('click',()=>set(get()===100?80:100));
+      globalThis.BongExtendReaderZoom?.bind(section,{get,set,accept:event=>section.classList.contains('active')&&Boolean(event.target.closest?.('.messageBody'))});
+      update();tools.append(zoom);
     }
     const nav = section.querySelector('.primary-nav');
     if (nav && !nav.dataset.beLabel) {nav.dataset.beLabel='true'; nav.textContent='메일 읽기';}
