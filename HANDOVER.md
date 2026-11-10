@@ -6,7 +6,7 @@
 
 - 무신사 products/4677950 대표/thumbnail IMG의 원래 multiply 합성과 어두워진 부모 배경이 곱해져 사진까지 검게 보이는 실제 원인을 확인했어요. 도메인 특례 없이 불투명 JPEG·충분한 자연크기/표시크기·확정된 어두운 중립 배경에서만 normal 합성으로 보호해요. 사진 source/filter/opacity/geometry 보존, 최대96개 소유·기존 bounded walker 재사용·별도 fetch/observer 없음, OFF/cleanup/error 경로에서 원래 inline/priority 복원이에요. 불명확한 조상 합성/투명도/필터는 제외해요.
 - 전체 JS267+Bun+타입, ZIP/eval 통과. source 공개 진단과 제품 공개 페이지13장 복원/OFF(APN79p)·캡처 직접 검수, 최종 제품 합성 pixel equality/thumbnail/filter/alpha/geometry/author 변경/OFF(JW9VwC) 통과. 공개 캡처 이후 마지막 변경은 조상 opacity/filter/blend 안전 제외 조건이며 동일 원인 보정은 유지해요. 초기 제품 fixture는 wildcard grant 누락, pixel fixture는 fractional clip 경계 때문에 실패했고 fixture 권한/정수 geometry 수정 뒤 통과했어요. 제품 동작을 가짜로 대체하지 않았어요.
-- PNG/WebP·확장자 없는 이미지/배경이미지/다른 합성은 안전 판별 범위 밖이에요. 사용자 실제 설치·프로필은 접근하지 않았어요. 다크팀 Sol/medium source 완료/idle, root 통합·배포 담당이에요. 배포 결과는 아래 후속 기록으로 갱신해요.
+- PNG/WebP·확장자 없는 이미지/배경이미지/다른 합성은 안전 판별 범위 밖이에요. 사용자 실제 설치·프로필은 접근하지 않았어요. 다크팀 Sol/medium source 완료/idle, root 통합·배포 담당이에요. 배포 완료: 앱907dc38d6a5e12f0c61164ede318065cf182e95e main/v1.2.66, CI42801198965·Release42801206295 모두 success. Chrome ZIP4,882,558바이트·Windows ZIP22,614바이트 uploaded 확인. 이후 문서 커밋은 앱 버전을 바꾸지 않아요.
 
 ## 이전 인계 — v1.2.65 / 세션2 인수
 

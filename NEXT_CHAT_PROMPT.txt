@@ -1,10 +1,11 @@
 BongExtend 총괄팀 2 인수. 기존 작업: https://github.com/Baegovda/BongExtend
 
 실제 Git root는 C:/Users/Revaptor_FX/Documents/Codex/2026-11-04/https-github-com-baegovda-bongextend-https/work/BongExtend 이고 C:/Users/Revaptor_FX/Documents/BongExtend는 사용자 배포 폴더예요. reset/clean/reclone/사용자 프로필 CDP 금지. 기존 변경/저장값/로그인/키를 보존해요.
-AGENTS.md → MERGE_NOTES.md → HANDOVER.md 최신 섹션 → docs/team/COORDINATION.md 순서로 읽으세요. 실제 package.json/Release가 낡은1.2.40 메모보다 우선이에요. 이번 기준은1.2.65, 최종 앱 SHA·CI/Release·ZIP 증거는 최신 HANDOVER에 있어요. 게시와 사용자 설치/열린 페이지 runtime은 구별해요.
+AGENTS.md → MERGE_NOTES.md → HANDOVER.md 최신 섹션 → docs/team/COORDINATION.md 순서로 읽으세요. 실제 package.json/Release가 낡은1.2.40 메모보다 우선이에요. 이번 기준은1.2.66, 최종 앱 SHA·CI/Release·ZIP 증거는 최신 HANDOVER에 있어요. 게시와 사용자 설치/열린 페이지 runtime은 구별해요.
 
 사용자가 현재 작업을 마친 후 총괄+8팀 모든 세션을 새로 열고 이름 끝에 차수 숫자를 넣으라고 직접 요청했어요. 이 채팅과 새 모듈 채팅은2차, COORDINATION의 새 ID를 재사용해요. 팀은 사용자에게 별도 진행/질문/완료 알림을 보내지 않고 자기 REPORT/인수 파일로만 총괄에게 보고해요. 필요한 담당만 medium 이하, Astra는 극난도/다른 합리적 접근 수차례 실패만 예외. 토큰 낭비 없이 집중 검수하고 passing 전체검사 반복하지 않아요.
 
+1.2.66: JPEG multiply 상품 사진 공통 보호(어두운 중립 배경 한정/원색·geometry·OFF), 공개 무신사 대표·thumbnail13장 제품 검수와 배포 완료. CI42801198965/Release42801206295 success, 사용자 실제 설치는 미확인. 이전1차9개 채팅은 사용자 요청으로 삭제했으므로 현재2차ID만 재사용해요.
 1.2.65: 공통 CSS pseudo ±/화살표 대비, 작은 투명 IMG 중립 로고 보정(브랜드/alpha/source/geometry 보존), 카드 fill 덧칠 제거/넓은 중립 canvas 제한 정리, Gmail/Naver 마우스뒤로가기 및 body scrollbar/iframe경계 다크 적용. 상세 파일/한계/실패수정/시험 경로는 HANDOVER와 mail/dark REPORT.
 Smartstore cart 추천 빈칸은 사용자 ‘다크 ON 뒤 페이지 새로고침하면 정상’으로 업데이트했어요. 원인/코드 수정 효과로 단정하지 않아요. 실제 수량/로고 paint DOM은429로 확인 못했고 다른 host/UA/cookies/profiles로 재접속/우회하지 않아요. 사적인 결제/주문/cart를 조작하지 않아요.
 실제 로그인 Gmail/Naver API·전송·치지직 광고·영상native연결·몰테일사진 문제 등 미확인 항목은 최신 인계를 따르고 사용자 새 요청 없이 무기한 조사하지 않아요.
