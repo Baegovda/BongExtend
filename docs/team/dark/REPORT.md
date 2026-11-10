@@ -2,6 +2,7 @@
 
 ## 무신사 신규 배정 — 공개 원인 재현·공통 helper 완료 / root 통합 대기
 
+- root 1.2.61 최종 배포 완료: 앱70dbfdc, CI42756864720/Release42756868180 success, Chrome ZIP4,879,332바이트·Windows 보조 ZIP22,617바이트. 최종 패키지+공개 상하단·사진20개 검수는 be-css-product-t2aoka. 전체 JS267+Bun+타입/ZIP/eval/권한 통과. 담당 idle, 실사용자grant/설치는 미확인.
 - root 최종 통합: 실제 1.2.61 패키지 content→CORS 실패→worker relay·현재설정/양쪽grant/미허용/private/비CSS/비웹sender/OFF거절·동시4/대기 처리·본문색/배경 전환 통과. popup은 linked CSS만 읽어 missing exact origins를 요청하고 거절유지·360px 검수. 별도 public grant 복사본에서 무신사 상단/하단 큰면·상품명 개선, 사진20개URL/filter 원형 확인(be-css-product-t2aoka). 실사용자grant/설치는 미확인, 실제권한창승인 자동우회 없음.
 - root 최신 연결 정책 확인: background/content/popup에서 darkStylesheetOrigins 사용, 기존 darkStylesheetPermission 유지. root의 별도 css-fetch.js가5MB streaming을 소유하므로 담당 fetchDarkStylesheet export는 호환 보조 API이며 별도 중복 연결을 강제하지 않아요.12초/동시4/대기24/disconnect abort·명시적 페이지 스타일 연결 grant·연결후재적용 및 실제 패키지검수는 root가 맡아요.
 - source 공개 실증/단위/helper API는 위 최종 상태로 완료했고 추가 수정·시험은 실행하지 않았어요. 사용자 grant를 자동 추가하거나 root의 shared 파일을 수정하지 않았어요.
