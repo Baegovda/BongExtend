@@ -2,6 +2,8 @@
 
 ## root 깜빡임 통합 검증
 
+- 최종 실제 패키지 content/worker fixture도 카드 배경1색·mutation0·OFF white 복원을 확인했어요(be-dark-stability-iGjb4C). 첫 시험 manifest exact grant는 wildcard 등록에 맞지 않아 timeout했고 시험용 서브도메인 권한으로 고쳤어요. 실제 manifest/등록은 변경하지 않았어요. 캡처에서 fixture 한글 인코딩 누락을 확인해 후속 test-only charset 선언을 보완했으며 배경 안정성 검증과 제품 본문에는 영향이 없어요.
+- 1.2.59 앱d62968a CI42754068705/Release42754074042 success·양쪽 ZIP 게시 확인. 담당 idle·실제 설치와 로그인 네이버페이는 미확인.
 - contrast.js styleSignature는 --darkreader-* 보조 변수만 제외하며 실제 작성자 style/class/fill/stroke 변경을 관찰해요. owned 속성 transitionend가 자기 복원/보정 루프를 만들지 않게 했어요.
 - upstream+실제 공통 fixes+transition 카드에서 이전 HEAD는 idle2.5초 동안78 mutation/16pass/29색 반복, 수정 후0 mutation/0 추가pass/1색. 작성자 갱신·OFF 원복과 기존 contrast 합성/10000요소 상한 검사 통과. be-dark-stability-s06fEz(이전 실패), V9rE1h(수정)와 be-contrast-37yB5j.
 - 공개 나무위키 WARDOGS 소스 helper 검수: 회색 패널3개/배경 모두 색1개, 추가 보정0회. 실시간 데이터 갱신에 따른 legitimate scan과 구분했어요. 실제 설치 환경 증거는 아니에요.

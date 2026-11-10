@@ -4,7 +4,8 @@
 
 ## 최신 인계 — v1.2.59
 
-- 사용자 새 요청: 네이버페이 3/4 좌우 버튼 저대비, 네이버 계정만 다른 UI, 나무위키 WARDOGS 회색 깜빡임. 모든 사이트 지적은 공통규칙이라는 기준을 유지했어요. 다크·메일팀 Sol/medium 두 곳만 배정했고 Astra는 사용하지 않았어요. 배포 결과는 최종 확인 뒤 이 문서에 기록해요.
+- 최종 앱 커밋 **d62968a**, main / [v1.2.59 Release](https://github.com/Baegovda/BongExtend/releases/tag/v1.2.59). CI **42754068705**·Release **42754074042** 모두 success, Chrome ZIP **4,878,450바이트**·Windows 보조 ZIP **22,614바이트** uploaded 확인. 구현·검수·푸시·릴리스 완료, 담당팀 idle·추가 시험 프로세스 없어요. 실제 Chrome 설치·열린 페이지 새로고침·로그인 네이버페이 화살표 검증과는 별개예요. 이후 증거 문서/fixture charset 보완 커밋은 앱 버전을 바꾸지 않아요.
+- 사용자 새 요청: 네이버페이 3/4 좌우 버튼 저대비, 네이버 계정만 다른 UI, 나무위키 WARDOGS 회색 깜빡임. 모든 사이트 지적은 공통규칙이라는 기준을 유지했어요. 다크·메일팀 Sol/medium 두 곳만 배정했고 Astra는 사용하지 않았어요.
 - contrast.js는 실제 작성자 inline 선언과 기반 엔진의 --darkreader-* 보조 변수를 구분해요. 직접 보정한 속성의 transitionend도 새 사이트 변경으로 처리하지 않아요. 기존 소스로 upstream+공통 fixes+색 전환 카드를 검사하면 2.5초 동안78 style mutation/16 pass와29 배경색이 반복됐고, 수정 후 안정 구간은0 mutation/0 추가 pass/1색이에요. 실제 작성자 style/class 변경과 OFF 원복도 확인했어요.
 - 공개 namu.wiki/w/WARDOGS에 소스 helper+기반 엔진을 적용해 회색 패널3개와 배경의 색이 안정적이고 표본2.5초 동안 추가 보정0회였어요. 실시간 최근 변경으로 scan pass는 계속 발생할 수 있어요. 이는 공개 페이지 helper 검증이며 사용자의 실제 설치/동일 환경 재현 증거가 아니에요. 캡처 be-dark-stability-V9rE1h/public-dark.png.
 - 작은 활성 컨트롤의 명시적 중립 SVG fill/stroke와 bounded data SVG/PNG/WebP 배경 보정을 추가했어요. 색상/사진/hidden/disabled/복잡한 SVG 보호·OFF 원복, 나중 fill/stroke 속성 변경 반영을 합성 Chrome에서 확인했어요. 네이버페이 history는 로그인으로 이동해 실제 carousel의 DOM은 확보하지 못했어요. pseudo/border/mask 형태는 아직 이 보완 대상이 아니므로 실제 사용자 버튼 해결을 확정하지 않아요.
