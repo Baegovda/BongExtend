@@ -2,7 +2,15 @@
 
 기준일: 2026-11-10. 이 문서는 기존 v1.2.10 인수인계를 대체해요. 이후 변경은 package.json, CHANGELOG.md, GitHub Releases를 우선 확인하세요.
 
-## 최신 인계 — v1.2.61
+## 최신 인계 — v1.2.62
+
+- 사용자 최신 요청: 스타일 연결을 사이트마다 반복 클릭하지 않고 한 번 허용하면 자동 적용해요. popup은 Chrome 실제 `permissions.contains({origins:['https://*/*']})`로 상태를 확인하고, 명시적인 ‘스타일 자동 연결 한 번 허용’ 클릭에서만 기존 optional HTTPS 전체 권한을 요청해요. 기존 사이트별 CSS 수집/요청 helper는 제거했어요. 새 필수 권한·자동 grant·새 storage key는 없어요.
+- 모든 사이트에서 다크 켜기와 스타일 권한은 분리해요. 기존 enabledSites/disabledSites/모듈 OFF를 유지하고 이미 전체 HTTPS grant가 있으면 연결 버튼은 표시하지 않아요. 권한 회수 시 다시 표시되며 background permissions.onAdded/onRemoved에서 기존 sync를 호출해 열린 허용 탭에도 재적용해요. 현재 사이트 켜기는 기존 사이트 권한만 요청해요.
+- 실제 패키지 합성 Chrome: 권한 미허용에서 전체 HTTPS 한 번 요청/거절 시 기존 설정 보존, 승인 상태의 실제 Chrome fixture grant에서 팝업 재열기·다른 사이트/새 CDN의 relay에 추가 permission request 없음, 미선택 사이트는 다크 OFF 보존을 확인했어요. 360px light/dark 검수: be-css-product-HOgEqx / iuL4EU. 이 fixture grant는 폐기용 확장 복사본에만 선언했고 사용자 프로필/실제 승인창을 조작하지 않았어요.
+- 총괄 단독으로 범위가 작은 UI/권한 이벤트 변경을 진행했어요. 별도 팀을 깨우지 않았고 Astra 미사용. AGENTS에 현재 요청을 기록했어요. 전체 검사/최종 패키지/배포 결과는 확인 뒤 이곳에 추가해요. 아래 1.2.61 CSS 제한과 실제 사용자 설치 미확인 사항은 그대로예요.
+- 최종 1.2.62 검증: 전체 JS267+Bun+타입, ZIP/eval/권한·diff 검사 통과. 실제 패키지 fixture 최종 dy6fMk(미허용/거절), aA1lTn(실제 시험 프로필의 전체 HTTPS grant 재사용/다른 사이트+새 CDN/재열기/미선택 OFF). 사용자 실제 Chrome 권한 승인·설치 여부는 시험하지 않았어요. 스크린샷 직접 검수는 같은 코드의 앞선 HOgEqx/iuL4EU light/dark360px이며 최종 변경은 권한 event 갱신 listener뿐이에요.
+
+## 이전 인계 — v1.2.61
 
 - 최종 앱 커밋 **70dbfdc**, main / [v1.2.61 Release](https://github.com/Baegovda/BongExtend/releases/tag/v1.2.61). CI **42756864720**·Release **42756868180** success, Chrome ZIP **4,879,332바이트**·Windows 보조 ZIP **22,617바이트** uploaded 확인. 구현·검수·푸시·릴리스 완료, 다크팀 idle·추가 시험 프로세스 없음. 사용자 Chrome 설치·권한·열린 페이지 적용은 별개예요. 후속 증거 문서 커밋은 앱 버전을 바꾸지 않아요.
 - 사용자 무신사 브랜드 페이지의 부분 흰 배경/검정 상품명 문제를 공통 CSS 읽기 경로로 수정했어요. 실제 공개 https://www.musinsa.com/brand/musinsastandard?gf=A 의 msscdn 스타일2개가 CORS 읽기 실패했고, 해당 CSS를 읽으면 흰 bg-white 영역과 글자가 정상 테마되는 것을 source before/direct/relay/OFF로 확인했어요(be-musinsa-css-lvf6Yg). 사진을 덮는 사이트 전용 CSS는 추가하지 않았어요.

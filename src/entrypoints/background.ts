@@ -279,6 +279,8 @@ export default defineBackground(() => {
     browser.storage.onChanged.addListener((changes, area) => {
         if (area === "local" && (changes[DARK_SETTINGS_KEY] || changes[MODULES_KEY])) void syncDarkReaderScript();
     });
+    browser.permissions.onAdded.addListener(() => void syncDarkReaderScript());
+    browser.permissions.onRemoved.addListener(() => void syncDarkReaderScript());
 
     // 다운로드 관리: Chrome 자체 다운로드 API를 사용하며 저장 경로는 다운로드 폴더 아래로 제한한다.
     const syncDownloadUi = async () => {

@@ -4,6 +4,7 @@
 
 ## 기준과 총괄
 
+- 1.2.62 통합: 총괄이 사용자 ‘스타일 한 번 허용 뒤 자동’ 요청의 popup/permission 이벤트·focused fixture를 단독 처리해요. 별도 팀 배정 없이 모두 idle, Astra 미사용. 1.2.61의 사이트별 CSS 수집 helper는 제거하고 실제 HTTPS 전체 grant를 재사용하며 다크 적용 사이트 설정은 보존해요.
 - 1.2.61 배포 완료: 앱70dbfdc CI42756864720/Release42756868180 success, Chrome ZIP4,879,332바이트·Windows 보조 ZIP22,617바이트 uploaded. 담당 idle·시험프로세스 없음, 새 요청/자체백로그 없이 종료해요. 공개 무신사 실제패키지 상하단·사진20개와 권한UX검수 완료이며 실제 사용자 grant/설치는 미확인이에요.
 - 1.2.61 통합: 다크팀은 무신사 CORS CSS2개의 실제 공개 원인 비교·도메인 중립 CSS helper·단위시험을 마치고 idle이에요. root는 generic CSS relay/페이지 스타일 권한 UX/실제 제품·공개 검수/배포를 맡아요. Sol/medium 한 곳, Astra 미사용. 사용자의 실제 Chrome grant·설치는 미확인이에요.
 - 1.2.60 배포 완료: 앱410663e CI42755182217/Release42755188452 success, Chrome ZIP4,878,494바이트·Windows 보조 ZIP22,614바이트 uploaded. 다크팀은 다음 사용자 무신사 부분 테마(밝은 섹션·검정 상품명) 진단으로 별도 재배정했어요. 같은 Sol/medium, 실제 사용자 설치는 미확인이에요.
