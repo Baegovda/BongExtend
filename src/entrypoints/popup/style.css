@@ -26,7 +26,6 @@ html.resizing iframe { pointer-events: none; }
 .be-page .tabs button { position: relative; height: 44px; padding: 0 10px; background: transparent; border: 0; border-radius: 0; color: var(--be-muted); font-size: 13px; font-weight: 500; }
 .be-page .tabs .tab-badge[hidden] { display: none; }
 .be-page .tabs .tab-badge:not([hidden]) { display: inline-grid; place-items: center; min-width: 16px; height: 16px; margin-left: 4px; padding: 0 4px; border-radius: 999px; background: #d70015; color: #fff; font-size: 11px; font-weight: 700; line-height: 1; letter-spacing: 0; vertical-align: 1px; }
-.be-page .tabs .tab-badge.fx:not([hidden]) { background: var(--be-accent); color: var(--be-accent-ink); }
 .be-page .tabs .tab-badge.download:not([hidden]) { background: #0f766e; color: #fff; }
 .be-page .tabs .mouse-toggle { justify-self: end; width: 36px; height: 36px; padding: 0; border: 1px solid var(--be-border); border-radius: 10px; color: var(--be-muted); background: transparent; display: grid; place-items: center; }
 .be-page .tabs .mouse-toggle::after { display: none; }

@@ -2,8 +2,15 @@
 
 기준일: 2026-11-10. 이 문서는 기존 v1.2.10 인수인계를 대체해요. 이후 변경은 package.json, CHANGELOG.md, GitHub Releases를 우선 확인하세요.
 
-## 최신 인계 — v1.2.62
+## 최신 인계 — v1.2.63
 
+- 사용자 상단 환율 탭이 혼자 보기 싫다는 요청으로 파란 시세 숫자 배지를 제거했어요. popup index/style/main의 badge DOM·색 규칙·갱신 경로만 정리했고 환율 변환/카드/가격 갱신·메일/다운로드 알림과 기존 탭 순서/선택 규칙은 보존해요. 총괄 단독의 작은 수정이며 팀은 추가 호출하지 않았어요.
+- 기존 scripts/verify-ui-workflows.cjs를 새 탭 기준으로 보완하고 --tabs-only 집중 모드를 추가했어요. 실제 별도 Chrome 제품에서780/600/520px·7모듈 전환 때 고정38px 헤더 geometry, 환율과 다른 두글자 탭의 같은 크기/폰트, 변환 결과 유지와 light/dark 캡처를 확인했어요. be-ui-flow-a08GgE/fx-dark-780.png, fx-light-520.png 직접 검수예요. 합성 환율/계정이며 사용자 실제 설치 증거는 아니에요.
+- 전체 검사/배포 결과는 확인 후 아래에 추가해요. 이전1.2.62의 스타일 한 번 허용 기능은 이미 배포 성공했고 Chrome 승인/실제 설치는 별도예요.
+
+## 이전 인계 — v1.2.62
+
+- 앱 커밋 **65e668f**, main / [v1.2.62 Release](https://github.com/Baegovda/BongExtend/releases/tag/v1.2.62). CI **42757771767**·Release **42757774840** success, Chrome ZIP **4,878,891바이트**·Windows 보조 ZIP **22,613바이트** uploaded 확인. 한 번 허용 기능 구현·검사·배포 완료이며 실제 사용자 설치·승인은 미확인. 사용자가 이어서 요청한 환율 탭 숫자 배지 정리를 총괄이 작업 중이에요.
 - 사용자 최신 요청: 스타일 연결을 사이트마다 반복 클릭하지 않고 한 번 허용하면 자동 적용해요. popup은 Chrome 실제 `permissions.contains({origins:['https://*/*']})`로 상태를 확인하고, 명시적인 ‘스타일 자동 연결 한 번 허용’ 클릭에서만 기존 optional HTTPS 전체 권한을 요청해요. 기존 사이트별 CSS 수집/요청 helper는 제거했어요. 새 필수 권한·자동 grant·새 storage key는 없어요.
 - 모든 사이트에서 다크 켜기와 스타일 권한은 분리해요. 기존 enabledSites/disabledSites/모듈 OFF를 유지하고 이미 전체 HTTPS grant가 있으면 연결 버튼은 표시하지 않아요. 권한 회수 시 다시 표시되며 background permissions.onAdded/onRemoved에서 기존 sync를 호출해 열린 허용 탭에도 재적용해요. 현재 사이트 켜기는 기존 사이트 권한만 요청해요.
 - 실제 패키지 합성 Chrome: 권한 미허용에서 전체 HTTPS 한 번 요청/거절 시 기존 설정 보존, 승인 상태의 실제 Chrome fixture grant에서 팝업 재열기·다른 사이트/새 CDN의 relay에 추가 permission request 없음, 미선택 사이트는 다크 OFF 보존을 확인했어요. 360px light/dark 검수: be-css-product-HOgEqx / iuL4EU. 이 fixture grant는 폐기용 확장 복사본에만 선언했고 사용자 프로필/실제 승인창을 조작하지 않았어요.

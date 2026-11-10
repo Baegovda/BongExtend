@@ -17,7 +17,7 @@ import {createPointerDrag, edgeScrollDelta, gridDropIndex} from "@/core/popup/po
 import type {DragEnd} from "@/core/popup/pointerDrag";
 import {exportAllSettings, importSettingsText} from "@/modules/settings-io";
 // @ts-ignore 순수 JS
-import {FX_SELECTED_KEY, FX_DAILY_KEY, availableCurrencyCodes, selectedCurrencyCards, mergeRateTables, COMMON_CODES, CURRENCY_TINT, FX_FORM_KEY, FX_ORDER_KEY, FX_POPUP_REFRESH_MS, FX_URL, convertAmount, currencyCode, currencyColor, currencyIconPath, currencyLabel, currencyName, formatMoney, fxTabBadge, normalizeFxForm, orderCurrencyCards, parseRatePayload, shouldRefreshRates} from "@/modules/fx/convert.js";
+import {FX_SELECTED_KEY, FX_DAILY_KEY, availableCurrencyCodes, selectedCurrencyCards, mergeRateTables, COMMON_CODES, CURRENCY_TINT, FX_FORM_KEY, FX_ORDER_KEY, FX_POPUP_REFRESH_MS, FX_URL, convertAmount, currencyCode, currencyColor, currencyIconPath, currencyLabel, currencyName, formatMoney, normalizeFxForm, orderCurrencyCards, parseRatePayload, shouldRefreshRates} from "@/modules/fx/convert.js";
 // @ts-ignore 순수 JS
 import {openQuoteStream} from "@/modules/fx/tradingview.js";
 // @ts-ignore 순수 JS
@@ -1397,7 +1397,6 @@ effects.storageOnChanged((changes: Record<string, {newValue?: unknown}>, area: s
     if ((changes["gmail.snapshot"] || changes["gmail.photos"] || changes["gmail.accountColors"]) && (current === "gmail" || embed === "gmail")) {
         renderGmail((changes["gmail.snapshot"]?.newValue as GmailSnapshot) || gmailView);
     }
-    if (changes["fx.table"]) paintFxBadge((changes["fx.table"].newValue as FxTable | undefined)?.rates);
     if (changes["core.update:available"]) {
         const on = changes["core.update:available"].newValue === true;
         $("updateDot").hidden = !on;
@@ -1485,14 +1484,6 @@ const paintUnitIcons = () => {
     paint("fxToIcon", fxTo.value);
 };
 
-const paintFxBadge = (rates: Record<string, number> | undefined) => {
-    const badge = $("fxBadge");
-    if (!badge) return;
-    const text = fxTabBadge(rates) as string;
-    badge.textContent = text;
-    badge.hidden = !text;
-};
-
 const fxSurface = () => window.matchMedia("(prefers-color-scheme: light)").matches ? "#ffffff" : "#2c2c2e";
 
 const fillFxSelects = (codes: string[]) => {
@@ -1516,7 +1507,6 @@ const fillFxSelects = (codes: string[]) => {
 };
 
 const renderFx = () => {
-    paintFxBadge(fxTable?.rates);
     fxMore.replaceChildren();
     if (!fxTable) {
         fxResult.textContent = "환율표를 아직 받지 못했어요.";
@@ -1606,7 +1596,6 @@ const refreshFx = async () => {
         await effects.storageSet({[FX_KEY]: parsed});
         fillFxSelects(Object.keys(parsed.rates).sort());
         renderFx();
-        paintFxBadge(parsed.rates);
     } catch (error) {
         if (showCached("새 시세를 받지 못해 저장해 둔 표를 보여 줘요.")) return;
         fxResult.textContent = "환율표를 받지 못했어요.";
@@ -1682,7 +1671,6 @@ openQuoteStream({
         void effects.storageSet({[FX_KEY]: fxTable});
         fillFxSelects(availableCurrencyCodes(fxTable!.rates));
         renderFx();
-        paintFxBadge(table.rates);
         if (table.source === "tradingview") fxStatus.textContent = "주요 통화는 트레이딩뷰 실시간 시세, 나머지는 일일 시세예요.";
     },
     onError() { void refreshFx(); }
@@ -1695,7 +1683,6 @@ effects.storageGet([FX_KEY, FX_DAILY_KEY, FX_ORDER_KEY, FX_FORM_KEY, FX_SELECTED
     savedForm = normalizeFxForm(stored[FX_FORM_KEY]) as {amount: string; from: string; to: string};
     fxAmount.value = savedForm.amount;
     fxFormReady = true;
-    paintFxBadge(cached?.rates);
     if (cached?.rates) {
         const full = mergeRateTables(stored[FX_DAILY_KEY] as FxTable | undefined, cached) as FxTable;
         fxTable = fxTable ? mergeRateTables(full, fxTable) as FxTable : full;

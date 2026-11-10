@@ -25,7 +25,7 @@ const fs=require('node:fs'),os=require('node:os'),path=require('node:path'),asse
    await page.setViewportSize({width,height:590});
    await worker.evaluate(width=>chrome.storage.local.set({'core.popupSize':{width,height:590}}),width);
    await page.goto(`chrome-extension://${id}/popup.html`);await page.emulateMedia({colorScheme:'dark',reducedMotion:'reduce'});
-   await page.locator('#fxBadge:not([hidden])').waitFor();
+   await page.getByRole('tab',{name:'환율',exact:true}).waitFor();
    let geometry;
    for(const tab of tabs){
     await page.locator(`[data-tab="${tab}"]`).click();await page.waitForTimeout(180);
@@ -36,6 +36,12 @@ const fs=require('node:fs'),os=require('node:os'),path=require('node:path'),asse
     if(!geometry)geometry=current;else assert.deepEqual(current,geometry,`stable ${width}px header when selecting ${tab}`);
     assert.equal(current.bar[3],38);
    }
+   await page.locator('[data-tab="fx"]').click();await page.locator('#fxResult').filter({hasText:'='}).waitFor();
+   assert.equal(await page.locator('[data-tab="fx"]').innerText(),'환율');
+   const fxGeometry=await page.locator('[data-tab="fx"]').evaluate(e=>({width:e.offsetWidth,height:e.offsetHeight,font:getComputedStyle(e).fontSize}));
+   const peerGeometry=await page.locator('[data-tab="dark"]').evaluate(e=>({width:e.offsetWidth,height:e.offsetHeight,font:getComputedStyle(e).fontSize}));assert.deepEqual(fxGeometry,peerGeometry,'FX label uses the same plain tab shape as other two-character modules');
+   await page.screenshot({path:path.join(folder,`fx-dark-${width}.png`),animations:'disabled'});await page.emulateMedia({colorScheme:'light'});await page.screenshot({path:path.join(folder,`fx-light-${width}.png`),animations:'disabled'});await page.emulateMedia({colorScheme:'dark'});
+   if(process.argv.includes('--tabs-only'))continue;
    await page.locator('[data-tab="download"]').click();
    const frame=page.frameLocator('#chronoPopupFrame');await frame.locator('.download-row').nth(3).waitFor();
    const rows=await frame.locator('.download-row').evaluateAll(rows=>rows.map(row=>{
@@ -48,6 +54,7 @@ const fs=require('node:fs'),os=require('node:os'),path=require('node:path'),asse
    await page.screenshot({path:path.join(folder,`download-dark-${width}.png`),animations:'disabled'});
    await page.emulateMedia({colorScheme:'light'});await page.screenshot({path:path.join(folder,`download-light-${width}.png`),animations:'disabled'});
   }
+  if(process.argv.includes('--tabs-only')){console.log('PASS uniform plain FX tab, converter retained, stable header through module selection at780/600/520px;',folder);return;}
   await worker.evaluate(()=>chrome.storage.local.set({'core.modules':{fx:false}}));
   await page.locator('[data-tab="fx"]').click();await page.locator('#moduleStateNotice').waitFor({state:'visible'});
   await page.locator('#moduleEnableCurrent').click();await page.locator('#moduleStateNotice').waitFor({state:'hidden'});
