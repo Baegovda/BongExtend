@@ -4,9 +4,10 @@
 
 ## 최신 인계 — v1.2.63
 
+- 앱 커밋 **a2f9722**, main / [v1.2.63 Release](https://github.com/Baegovda/BongExtend/releases/tag/v1.2.63). CI **42758291292**·Release **42758295193** success, Chrome ZIP **4,878,784바이트**·Windows 보조 ZIP **22,613바이트** uploaded 확인. 환율 탭 정리 구현·검사·배포 완료, 실제 사용자 설치는 미확인. 이후 사용자 Smartstore 상품/장바구니 다크 문제를 다크팀에 새로 배정했어요.
 - 사용자 상단 환율 탭이 혼자 보기 싫다는 요청으로 파란 시세 숫자 배지를 제거했어요. popup index/style/main의 badge DOM·색 규칙·갱신 경로만 정리했고 환율 변환/카드/가격 갱신·메일/다운로드 알림과 기존 탭 순서/선택 규칙은 보존해요. 총괄 단독의 작은 수정이며 팀은 추가 호출하지 않았어요.
 - 기존 scripts/verify-ui-workflows.cjs를 새 탭 기준으로 보완하고 --tabs-only 집중 모드를 추가했어요. 실제 별도 Chrome 제품에서780/600/520px·7모듈 전환 때 고정38px 헤더 geometry, 환율과 다른 두글자 탭의 같은 크기/폰트, 변환 결과 유지와 light/dark 캡처를 확인했어요. be-ui-flow-a08GgE/fx-dark-780.png, fx-light-520.png 직접 검수예요. 합성 환율/계정이며 사용자 실제 설치 증거는 아니에요.
-- 전체 검사/배포 결과는 확인 후 아래에 추가해요. 이전1.2.62의 스타일 한 번 허용 기능은 이미 배포 성공했고 Chrome 승인/실제 설치는 별도예요.
+- 전체 JS267+Bun+타입 및 ZIP/eval/권한/diff 검사 통과했어요. 이전1.2.62의 스타일 한 번 허용 기능은 이미 배포 성공했고 Chrome 승인/실제 설치는 별도예요.
 
 ## 이전 인계 — v1.2.62
 

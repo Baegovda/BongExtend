@@ -4,6 +4,7 @@
 
 ## 기준과 총괄
 
+- 1.2.63 배포 완료: 앱a2f9722 CI42758291292/Release42758295193 success, Chrome ZIP4,878,784바이트·Windows 보조 ZIP22,613바이트. 사용자 새 Smartstore 상품/장바구니 문제는 다크팀 Sol/medium으로 공개 전후 진단 재배정했어요. root는 경계 보강 규칙 리뷰·통합 담당, 사용자 실제설치는 미확인.
 - 1.2.63 통합: 총괄이 환율 상단 숫자 배지만 제거해 다른 모듈과 동일한 탭 모양으로 정리했어요. 기존 workflow fixture의 tabs-only 검수780/600/520px·light/dark·모듈 전환을 마쳤고 팀 추가 호출 없음. 앞선1.2.62는 앱65e668f/CI42757771767/Release42757774840 success, Chrome4,878,891바이트·Windows22,613바이트 게시 확인이에요.
 - 1.2.62 통합: 총괄이 사용자 ‘스타일 한 번 허용 뒤 자동’ 요청의 popup/permission 이벤트·focused fixture를 단독 처리해요. 별도 팀 배정 없이 모두 idle, Astra 미사용. 1.2.61의 사이트별 CSS 수집 helper는 제거하고 실제 HTTPS 전체 grant를 재사용하며 다크 적용 사이트 설정은 보존해요.
 - 1.2.61 배포 완료: 앱70dbfdc CI42756864720/Release42756868180 success, Chrome ZIP4,879,332바이트·Windows 보조 ZIP22,617바이트 uploaded. 담당 idle·시험프로세스 없음, 새 요청/자체백로그 없이 종료해요. 공개 무신사 실제패키지 상하단·사진20개와 권한UX검수 완료이며 실제 사용자 grant/설치는 미확인이에요.
