@@ -42,7 +42,7 @@ export function createMailOtpHandler({load, save, copy, notify, now = Date.now})
                     if (code) {
                         // 복사가 실패해도 인증번호 알림은 표시하고 다음 수신 확인 때 복사를 재시도해요.
                         let copied = false;
-                        try { await copy(code); copied = true; } catch { /* 알림은 계속 표시해요. */ }
+                        try { await copy(code, mail); copied = true; } catch { /* 알림은 계속 표시해요. */ }
                         await notify(key, code);
                         handled.push(key);
                         if (!copied) continue;

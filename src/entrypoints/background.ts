@@ -47,23 +47,30 @@ import {DOWNLOAD_SETTINGS_KEY, cleanSuggestedFilename, makeDownloadFilename, nor
 import {createMailOtpHandler} from "@/modules/gmail/otp.js";
 // @ts-ignore pure JS
 import {createOtpToast} from "@/modules/gmail/otp-toast.js";
+// @ts-ignore memory-only OTP source tracking
+import {createOtpPasteTracker} from "@/modules/gmail/otp-paste.js";
+// @ts-ignore isolated trusted-paste bridge
+import {startOtpPasteBridge} from "@/modules/gmail/otp-paste-bridge.js";
 
 export default defineBackground(() => {
     startNaverMail();
     startVideoHost();
     startWideFullscreenBridge();
     const showOtpToast=createOtpToast();
+    const otpPasteTracker=createOtpPasteTracker();
+    const otpPasteBridge=startOtpPasteBridge(otpPasteTracker);
     const otpHandler = createMailOtpHandler({
         load: async () => {
             const stored = await chrome.storage.local.get(["core.mailOtpSeen", "core.mailOtpEnabled", MODULES_KEY]);
             return {seen: stored["core.mailOtpSeen"], enabled: stored["core.mailOtpEnabled"] !== false && (stored[MODULES_KEY] as Record<string, unknown> | undefined)?.gmail !== false};
         },
         save: (seen: unknown) => chrome.storage.local.set({"core.mailOtpSeen": seen}),
-        copy: async (code: string) => {
+        copy: async (code: string, mail: unknown) => {
             const send = (globalThis as any).sendToOffscreenDoc;
             if (typeof send !== "function") throw new Error("clipboard unavailable");
             const result = await send("bongextend-copy-otp", {code});
             if (!result?.ok) throw new Error("clipboard copy failed");
+            try {await otpPasteBridge.arm(mail,code);await otpPasteBridge.refresh();} catch { /* Clipboard copy succeeded; leave mail unread when monitoring is unavailable. */ }
             const shown=await showOtpToast(code);
             await chrome.storage.local.set({'core.mailOtpOverlayStatus':shown?'shown':'page-unavailable'});
         },

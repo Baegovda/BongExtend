@@ -1,3 +1,16 @@
+## root OTP 통합 검수 — 1.2.67
+
+- background 복사성공 후 tracker/isolated watcher 연결 완료. trusted paste와 실제 input 확인, 원본계정/메일만기존 읽음API, 기존권한만재사용, source메타만session 저장해워커재시작복구. 아래 tracker 메모리 한계는 source단독 설명이며 root session bridge가 기존주입문서 경로를 보완해요. 전체 JS275+Bun+타입, session/사칭/동시/TTL source와 실제패키지clipboard→Ctrl+V→합성원본만읽음(pKd8h6),차단/오번호/가짜/중복/OFF 및ZIP/eval PASS. 실제계정미검증, 권한없는페이지/다른앱은지원하지않아요.
+
+# OTP 붙여넣기 원본 읽음 처리 — 담당 구현/집중 검사 완료
+
+- 기준 main `28e68dd` / 앱1.2.66. 변경은 src/modules/gmail/otp.js, 신규 otp-paste.js 및 test/otp-paste.test.js예요. 공통 background/content watcher·제품 통합·빌드/배포는 총괄 담당이에요.
+- API: `createOtpPasteTracker({now = Date.now} = {})`. `arm(mail, code)`는 crypto.randomUUID 토큰(유효하지 않은 mail/code는 null), `current()`는 `{token,code}` 또는 null, `consume(token)`은 성공 true/만료·구토큰·중복·동시호출 false예요. markAsRead 실패는 reject하며 같은 유효 토큰으로 재시도 가능해요. `invalidate()`/`clear()`는 현재 항목을 폐기해요.
+- 최신 복사 1건·10분 TTL·메모리 전용이에요. 같은 번호라도 새 복사의 토큰은 달라요. 소비 중 새 복사를 arm하거나 clear하면 이전 요청의 완료가 새 토큰을 지우지 않아요. 이미 시작된 읽음 API 자체는 취소할 수 없어요. 워커 재시작 시 정보가 사라져요.
+- otp.js는 `copy(code, mail)`로 원본 객체를 전달해요. 기존 1인자 copy와 호환해요. root는 실제 복사 성공 후에만 arm하고 trusted paste/정확한 코드 일치를 검증한 뒤 consume해야 해요. tracker 자체는 붙여넣기 출처를 검증하지 않아요. baseline에는 copy 호출이 없고 복사 실패 후 arm하지 않는 연동 예제를 집중 검사했어요.
+- UI/배지 조사: public/js/mail.js:105의 markAsRead→account.executeMailAction(MARK_AS_READ). public/js/account.js:2560 이후 autoDetect는 HTTP action→getEmails→mailUpdate를 await해요. public/js/background.js:3241~3266의 mailUpdate는 updateBadge·unreadCount 저장·initPopup·serializeAccounts·mailUpdate 메시지까지 수행해요. OAuth는 account.js:2690 이후 removeMail/계정 unreadCount 감소·updateBadge·serializeAccounts를 수행하지만 별도 mailUpdate 메시지는 그 경로에 없어요. updateBadge는 await되지 않으므로 markAsRead resolve 시점에 배지 반영 완료까지 보장되지는 않아요. root가 사용하는 autoDetect 기본 경로는 기존 동기화 흐름을 재사용할 수 있어요.
+- 기존 account.executeMailAction에는 params/mail을 console.log하는 진단 로그가 있어요(account.js:2561). tracker는 코드/메일/토큰을 로그하거나 저장하지 않아요. 실제 계정 검증은 하지 않았어요.
+- 실행 검증: `node --test src/modules/gmail/test/otp.test.js src/modules/gmail/test/otp-paste.test.js` 11개 통과, 담당 파일 diff --check 통과. 최신 원본만 처리·중복/동시 소비·실패 재시도·TTL·새 복사와 진행 중 요청 경쟁·baseline/복사 실패를 합성 객체로 확인했어요. 제품 UI/실계정·실제 붙여넣기 통합은 미검증이며 총괄 검수 대상으로 남아요. 빌드/커밋/배포·실계정 접근·팀 호출은 하지 않았어요.
 # 메일 뒤로가기·스크롤바 수정 — source·root 패키지 검사 완료
 
 - root 최종 검수: 최신 source 재빌드, fixture에 원래 initOpenEmailEventListeners()를 추가한 뒤 Gmail button3/history/기존 초안·휠·resize/문맥 메뉴 통과(be-reader-THmrS4). Naver source/API fixture의 body button3/history·다크/원본·zoom·취소/오류는 be-naver-mail-ReQUwD, 긴본문의 dark scrollbar-color·얇은 경계는 tZC7cS에서 통과하고 직접 시각 확인했어요. 실제 계정/설치 확인과 별개예요. 담당 idle.
