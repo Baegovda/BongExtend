@@ -4,6 +4,7 @@
 
 ## 최신 인계 — v1.2.58
 
+- 최종 앱 커밋 **3a9db99**, main / [v1.2.58 Release](https://github.com/Baegovda/BongExtend/releases/tag/v1.2.58). CI **42751010897**·Release **42751014261** 모두 success. Chrome ZIP **4,878,179바이트**·Windows 보조 ZIP **22,614바이트** 게시 확인. 이 배정의 구현·검수·푸시·릴리스 완료, 담당팀 idle·추가 코딩/시험 프로세스 없음. 사용자 Chrome 적용·실계정 검증과는 별개예요. 이후 문서 커밋은 앱 버전을 바꾸지 않아요.
 - 사용자 요청: 메일 본문 Ctrl+휠 배율과 본문에도 같은 다크 모드를 적용해요. 이전의 ‘발신자 색 원형 보존’ 요청은 원본 모드 복원 기준으로 유지하고 새 자동 다크를 막는 조건으로 쓰지 않아요. AGENTS와 README/CHANGELOG에 반영했어요.
 - public/js/bongextend-reader-zoom.js는 Gmail·Naver 공통 몸체 배율 helper예요. Ctrl/Meta+휠만50~200%, 일반 휠은 소비하지 않아요. Gmail은 messageBody 위의 wheel만, Naver는 scriptless 본문 document에서 parent realm listener로 처리해요. 80/100 버튼과 상단 UI 크기를 보존해요.
 - mail-appearance.ts가 앱의 prefers-color-scheme와 core.modules.dark를 따르고 core.mailBodyTheme(auto/dark/original)를 저장해요. dark면 앱이 밝아도 강제, original/모듈 OFF는 원래 inline 색/priority 복원. 공통 밝기/대비/sepia/grayscale/배경·글자 및 mail.google.com/mail.naver.com siteTheme를 사용하고 사진 보존을 위해 동적색 변환 mode1로 처리해요.

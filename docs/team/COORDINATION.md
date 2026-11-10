@@ -4,6 +4,7 @@
 
 ## 기준과 총괄
 
+- 1.2.58 배포 완료: 앱3a9db99, CI42751010897/Release42751014261 success, Chrome ZIP4,878,179바이트·Windows 보조 ZIP22,614바이트. 본문 다크/원본 복원·Ctrl+휠·메일 통신·resize 검수와 배포를 마쳤어요. 담당 idle, 실제 설치/실계정은 미확인이며 이전 몰테일 질문도 답변 대기예요.
 - 1.2.58 통합: 다크팀(Sol/medium)은 새 scoped mail-theme 엔진/복원·성능 상한·검사를 마쳤고 idle이에요. root는 upstream 색 export/Chrome API shim 분리, Gmail·Naver 자동/강제/원본 선택, Ctrl+휠 공통 helper, 제품 검수·배포를 맡아요. Astra 미사용. 이전 몰테일 사진 대조 답변 없이 그 조사를 재시작하지 않았어요.
 - 1.2.57 배포 검증 완료: 앱3485bfc, CI42664124741/Release42664128999 success, Chrome ZIP4,837,075바이트·Windows 보조 ZIP22,611바이트. 담당팀 모두 idle·실행 중인 추가 코딩/시험 없음. 남은 몰테일 상품 사진 빈칸은 미재현으로 사용자 OFF 대조 답변 대기이며 해결 완료가 아니에요. 실제 Naver 계정의 본문 API·읽음 처리도 미검증이에요.
 - 1.2.57 통합: 메일팀은 계정 grip/drag/cancel/스크롤, 다크팀은 몰테일 공개 비교/SVG 공통 보정·fetch hook·mask 보존을 마쳤고 idle이에요. root는 실제 계정순서 저장 어댑터/네이버 앱내 reader·안전한 본문/제한된 이미지 worker relay/최종 통합 시험·배포 담당이에요. Sol/medium만 사용했어요. 사진 빈칸은 미재현으로 사용자 다크 OFF 대조 답변을 기다리며, 이 증상까지 완료했다고 하지 않아요.
