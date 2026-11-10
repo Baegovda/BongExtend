@@ -112,5 +112,11 @@ export const withTranslationColors = (fixes) => ({
   // Artwork is never globally inverted/hidden. Small transparent controls are
   // examined separately by the bounded local bitmap contrast controller.
   ignoreImageAnalysis: ['*', ...(fixes?.ignoreImageAnalysis || [])],
-  ignoreInlineStyle: [...(fixes?.ignoreInlineStyle || []), '.pt-page-translator-sweep', '.pt-page-translator-sweep *', '[data-bong-contrast-owned="1"]', '[data-bong-icon-owned="1"]'],
+  // Helpers own only their individual inline !important properties. Excluding
+  // their whole element would remove upstream theming of unrelated borders,
+  // shadows and author colors, exposing original white separators.
+  // Retain isolation only for owned SVG glyph paint: upstream's SVG attribute
+  // path otherwise interferes with the explicit fill/stroke repair. HTML card
+  // and icon containers still receive normal upstream boundary theming.
+  ignoreInlineStyle: [...(fixes?.ignoreInlineStyle || []), '.pt-page-translator-sweep', '.pt-page-translator-sweep *', 'svg[data-bong-contrast-owned="1"]', 'svg [data-bong-contrast-owned="1"]'],
 });

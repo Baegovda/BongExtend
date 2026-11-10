@@ -39,7 +39,8 @@ test('common rules preserve artwork colors independently of the site hostname',(
  for(const hostname of ['example.com','naver.com','lostark.game.onstove.com']){
   const f=withTranslationColors(darkReaderFixesForSite(hostname));
   assert.ok(f.ignoreImageAnalysis.includes('*'));
-  assert.ok(f.ignoreInlineStyle.includes('[data-bong-icon-owned="1"]'));
+  assert.ok(!f.ignoreInlineStyle.includes('[data-bong-icon-owned="1"]'));
+  assert.ok(!f.ignoreInlineStyle.includes('[data-bong-contrast-owned="1"]'));
  }
 });
 

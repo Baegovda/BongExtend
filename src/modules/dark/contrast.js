@@ -167,7 +167,7 @@ export function createContrastController(doc = document, {inspectImage} = {}) {
     const selectionParent = selected && el.parentElement && background(el.parentElement);
     const selectionEdge = selected && ['Top','Right','Bottom','Left'].some(side => {const color = parseColor(s[`border${side}Color`]); return parseFloat(s[`border${side}Width`]) > 0 && color && contrastRatio(composite(color, bg), bg) >= 2;});
     if (selected && selectionParent && contrastRatio(bg, selectionParent) < 1.3 && !selectionEdge && s.boxShadow === 'none' && s.outlineStyle === 'none') {write(el, 'outline', '1px solid rgba(190, 202, 218, 0.65)'); write(el, 'outline-offset', '-1px');}
-    if (el === doc.body || el === doc.documentElement || el.namespaceURI !== 'http://www.w3.org/1999/xhtml' || rect.width < 80 || rect.height < 32 || s.outlineStyle !== 'none' || selected) return;
+    if (el === doc.body || el === doc.documentElement || el.namespaceURI !== 'http://www.w3.org/1999/xhtml' || rect.width < 80 || rect.height < 32 || s.outlineStyle !== 'none' || selected || el.matches(':focus-visible')) return;
     const hasEdge = s.boxShadow !== 'none' || ['Top','Right','Bottom','Left'].some(side => parseFloat(s[`border${side}Width`]) > 0 && s[`border${side}Style`] !== 'none');
     const surface = parseColor(s.backgroundColor), parent = el.parentElement && background(el.parentElement);
     // A compact semantic control strip may have a real opaque surface but no
@@ -248,6 +248,7 @@ export function createContrastController(doc = document, {inspectImage} = {}) {
     }
   });
   const update = () => enqueue(doc.documentElement);
+  const focusChanged = event => enqueue(event.target);
   const settledEffect = event => {
     if (event.type === 'transitionend' && records.get(event.target)?.has(event.propertyName)) return;
     enqueue(event.target);
@@ -259,6 +260,7 @@ export function createContrastController(doc = document, {inspectImage} = {}) {
       observer.observe(doc, {subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['style','class','fill','stroke','hidden','disabled','aria-disabled','aria-hidden','aria-selected','aria-current','role','data-darkreader-scheme']});
       win.addEventListener('scroll', update, {passive: true, capture: true}); win.addEventListener('resize', update); update();
       doc.addEventListener('transitionend', settledEffect); doc.addEventListener('animationend', settledEffect);
+      doc.addEventListener('focusin', focusChanged); doc.addEventListener('focusout', focusChanged);
     },
     update,
     stop() {
@@ -266,6 +268,7 @@ export function createContrastController(doc = document, {inspectImage} = {}) {
       if (scheduled) {if (win.cancelIdleCallback) win.cancelIdleCallback(scheduled); else win.clearTimeout(scheduled);} scheduled = 0;
       win.removeEventListener('scroll', update, true); win.removeEventListener('resize', update);
       doc.removeEventListener('transitionend', settledEffect); doc.removeEventListener('animationend', settledEffect);
+      doc.removeEventListener('focusin', focusChanged); doc.removeEventListener('focusout', focusChanged);
       roots.clear(); swatches.clear(); semanticColors = new WeakMap(); iterator = null;
       for (const ref of refs) {const el = ref.deref(); if (el) restore(el);} refs.clear();
     },

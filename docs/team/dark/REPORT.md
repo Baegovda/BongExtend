@@ -1,5 +1,23 @@
 # 공통 대비 보정과 긴급 쪽지 조사 보고
 
+## 신규 흰 구분선 — 공통 self-induced 회귀 수정·집중검사 완료
+
+- 최종 담당 변경은 site-fixes.js의 ignore 선택자 범위, 해당 단위 시험, 새 scripts/verify-dark-boundaries-browser.cjs, REPORT뿐이에요. contrast의 scheduler/복원 로직·메일·upstream patch는 변경하지 않았어요. 총괄의 focused interactive/focusin-out 별도 수정도 보존해요.
+- **최종 범위**: HTML 카드/아이콘 container의 marker-wide ignore 제거. SVG paint 속성 충돌만 `svg[data-bong-contrast-owned]`/`svg [data-bong-contrast-owned]`로 좁혀 유지해요. 완전 제거 상태에서는 upstream SVG attribute 경로가 helper stroke를 상쇄하는 실제 Chrome 회귀가 있어 SVG-only 격리를 남겼어요. HTML 경계·shadow 변환에는 이 선택자가 영향을 주지 않아요.
+- 최종 집중 source검사 통과: 실제 upstream→helper ON→helper stop에서 border/shadow baseline동일, 전체 OFF의 원래 white 복원, 브랜드선/선택focus/hidden/disabled/사진 보존, 안정된 opacity.72·color alpha.85 보존, inlineSVG/data SVG 보정·원복, observer700ms 추가pass0. 관련 단위8개·별도 arrow Chrome도 통과했어요.
+- 최종 직접 시각검수: C:/Users/Revaptor_FX/AppData/Local/Temp/be-dark-boundaries-tFcRvz/helper-dark.png (base-dark 포함), 별도 arrow be-dark-arrows-X1brjJ. 카드 junction은 upstream의 rgb(48,52,54), white shadow는rgb(24,26,27)을 유지하고 카드면/outline만 helper 값이에요. 이 캡처는 합성이에요.
+- 원래 사용자 네이버페이 카드의 exact border/hr/pseudo 구조는 로그인 장벽 때문에 미확인. 공통회귀 수정은 검증됐지만 실제 사용자 경계 해결 완료라고 주장하지 않아요. 새 네이버특례/전역dim/추가 upstream hook/빌드/버전/릴리스는 만들지 않았어요. 총괄이 실제 패키지 boundary/focus회귀와 최종 배포를 맡아요. 배정 종료해요.
+
+### 원인 재현·최소수정 기록 (위 최종 결과 우선)
+
+- **최소 수정 통과**: site-fixes.js의 withTranslationColors.ignoreInlineStyle에서 HTML contrast/icon marker의 요소전체 제외만 제거했어요(SVG paint 격리는 위 범위로 유지). helper는 자기 속성을 inline!important로 쓰므로 그 값은 정상 유지되고, upstream은 그 요소의 나머지 border/shadow를 계속 테마 처리해요. upstream 패치/전역 경계 dim은 필요하지 않았어요.
+- 실제 DarkReader+helper 검증: border-bottom baseline rgb(48,52,54)→helper ON 동일→helper stop 동일. white shadow baseline rgb(24,26,27)→ON 동일→stop 동일. 카드면 RGB31/33/34 및 outline 보강은 정상 유지. 자기 observer pass도700ms 동안 증가 없이 안정됐어요. 최종 캡처 be-dark-boundaries-dvnDiB/base-dark.png/helper-dark.png.
+
+- 공개 pay.naver.com history와 루트는 다시 로그인으로 redirect되므로 해당 로그인 카드의 정적 CSS/JS URL은 확보하지 못했어요. 실제 사용자 row 구현을 border/pseudo/shadow로 확정하지 않아요.
+- **공통 원인 확정 재현**: 실제 DarkReader+helper 합성에서 inline border-bottom:3px solid white는 engine만 켜면 rgb(48,52,54), helper 카드 marker 추가 후 rgb(255,255,255)로 되돌아가요. inline white box-shadow도 baseline rgb(24,26,27)→helper rgb(255,255,255)로 튀어요. broad dim 문제가 아니라 ignoreInlineStyle의 요소 전체 제외로 기존 upstream 변환이 빠지는 경로예요.
+- 증거: scripts/verify-dark-boundaries-browser.cjs, C:/Users/REVAPT~1/AppData/Local/Temp/be-dark-boundaries-rELQTU/base-dark.png/helper-dark.png. helper.stop만으로 upstream inline이 즉시 재처리되지 않는 점도 관찰했어요. 기존 흰선이 helper가 생긴 순간 복귀하는 회귀를 정확히 막아야 해요.
+- 공유 제안: marker ignore를 요소전체가 아니라 helper 소유 property 단위로 좁히는 upstream inline-property hook이 가장 정확해요. 대안은 helper가 marker를 추가하기 직전 해당요소에서 기존 upstream inline 변환값(경계/shadow/색)을 보존해 소유 속성으로 유지하는 방식이에요. 원래 의미색/selected 경계까지 임의 dim하는 규칙은 추가하지 않아요. 현재 담당은 self-induced 최소수정안을 검토 중이에요.
+
 ## root 깜빡임 통합 검증
 
 - 최종 실제 패키지 content/worker fixture도 카드 배경1색·mutation0·OFF white 복원을 확인했어요(be-dark-stability-iGjb4C). 첫 시험 manifest exact grant는 wildcard 등록에 맞지 않아 timeout했고 시험용 서브도메인 권한으로 고쳤어요. 실제 manifest/등록은 변경하지 않았어요. 캡처에서 fixture 한글 인코딩 누락을 확인해 후속 test-only charset 선언을 보완했으며 배경 안정성 검증과 제품 본문에는 영향이 없어요.
