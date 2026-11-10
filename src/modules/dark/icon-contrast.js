@@ -129,9 +129,12 @@ export function createIconContrastController(doc = document, onSettled = () => {
     const style=win.getComputedStyle(el);
     if(style.filter!=='none'||style.visibility!=='visible'||Number(style.opacity)<.99)return;
     const originalImage=style.backgroundImage, originalSignature=signature(el);
-    const match=originalImage.match(/^url\(["']?(https?:[^"')]+)["']?\)$/);
+    const match=originalImage.match(/^url\(["']?((?:https?:|data:image\/)[^"']+?)["']?\)$/);
     if(!match)return;
-    let url;try{url=new URL(match[1]);if(url.username||url.password||!/^https?:$/.test(url.protocol))return;}catch{return;}
+    let url;try{url=new URL(match[1]);if(url.username||url.password)return;
+      if(url.protocol==='data:'){if(url.href.length>174764||!/^data:image\/(?:svg\+xml|png|webp)(?:;[^,]*)?,/i.test(url.href))return;}
+      else if(!/^https?:$/.test(url.protocol))return;
+    }catch{return;}
     const bg=backdrop(el);if(!bg||contrastRatio([255,255,255,1],bg)<4.5)return;
     const key=url.href+'|'+bg.slice(0,3).map(Math.round).join(',');
     const apply=result=>{

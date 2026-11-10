@@ -2,7 +2,7 @@
 const {chromium}=require('playwright');const fs=require('node:fs'),os=require('node:os'),path=require('node:path'),assert=require('node:assert/strict');
 (async()=>{
  const folder=fs.mkdtempSync(path.join(os.tmpdir(),'be-naver-mail-')),extension=path.join(folder,'extension');
- fs.cpSync('.output/chrome-mv3',extension,{recursive:true});const mp=path.join(extension,'manifest.json'),manifest=JSON.parse(fs.readFileSync(mp));
+ fs.cpSync(process.env.MAIL_EXTENSION_SOURCE||'.output/chrome-mv3',extension,{recursive:true});const mp=path.join(extension,'manifest.json'),manifest=JSON.parse(fs.readFileSync(mp));
  manifest.host_permissions.push('https://mail.naver.com/*');fs.writeFileSync(mp,JSON.stringify(manifest));
  const context=await chromium.launchPersistentContext(path.join(folder,'profile'),{executablePath:'C:/Program Files/Google/Chrome/Application/chrome.exe',headless:true,viewport:{width:780,height:590},ignoreDefaultArgs:['--disable-extensions'],args:['--enable-unsafe-extension-debugging']});
  try{
@@ -72,11 +72,22 @@ const {chromium}=require('playwright');const fs=require('node:fs'),os=require('n
   const logo=frame.locator('.be-naver-logo');assert.ok(await logo.evaluate(e=>e.complete&&e.naturalWidth>0));
   const lb=await logo.boundingBox(),email=await frame.locator('.be-naver-title strong').boundingBox();assert.ok(lb.x+lb.width<=email.x);
   assert.equal(await frame.locator('.be-naver-title strong').textContent(),'fixture-user@naver.com');
+  assert.equal(await frame.locator('.be-naver-actions j-button[icon]').count(),2);
+  assert.ok((await frame.locator('.be-naver-actions').textContent()).trim()==='','Naver actions stay icon-only');
+  const accountGeometry=await inbox.evaluate(()=>{const n=document.querySelector('.be-naver-header'),g=document.querySelector('#fixtureGmail .accountHeader');return {nh:n.getBoundingClientRect().height,gh:g.getBoundingClientRect().height,nw:n.querySelector('.be-account-order button').getBoundingClientRect().width,gw:g.querySelector('.be-account-order button').getBoundingClientRect().width};});
+  assert.ok(Math.abs(accountGeometry.nh-accountGeometry.gh)<=1,JSON.stringify(accountGeometry));assert.ok(Math.abs(accountGeometry.nw-accountGeometry.gw)<=1,JSON.stringify(accountGeometry));
   assert.deepEqual(await inbox.evaluate(()=>__fixtureCalls.filter(call=>call.command==='accountAction')),[],'order buttons must not trigger native Gmail account actions');
   await page.screenshot({path:path.join(folder,'unified-mail-light.png'),animations:'disabled'});
   await page.emulateMedia({colorScheme:'dark'});
   assert.equal(await inbox.evaluate(()=>getComputedStyle(document.documentElement).backgroundColor),'rgb(23, 24, 27)','dark mail canvas keeps an opaque charcoal base below its glass');
   await page.screenshot({path:path.join(folder,'naver-mail-dark.png'),animations:'disabled'});
+  for(const width of [480,360]){
+   await frame.locator('.be-naver-header').evaluate((header,width)=>header.style.maxWidth=width+'px',width);
+   const fit=await frame.locator('.be-naver-header').evaluate(header=>{const rect=header.getBoundingClientRect();return [...header.children].every(child=>child.getBoundingClientRect().right<=rect.right+1);});assert.ok(fit,'all Naver header actions fit '+width+'px');
+   await frame.locator('.be-naver-header').screenshot({path:path.join(folder,'naver-header-'+width+'.png')});
+  }
+  await frame.locator('.be-naver-header').evaluate(header=>header.style.removeProperty('max-width'));
+  if(process.argv.includes('--header-only')){console.log('PASS unified account icon actions, equal header/order dimensions, native IDs, drag persistence, 360/480px fit;',folder);return;}
   // A timestamp-only poll must preserve the exact row and its keyboard focus.
   await frame.locator('#naverMailList button').first().focus();
   await inbox.evaluate(()=>{window.__naverFirst=document.querySelector('#naverMailList button');});

@@ -1,5 +1,21 @@
 # 공통 대비 보정과 긴급 쪽지 조사 보고
 
+## root 깜빡임 통합 검증
+
+- contrast.js styleSignature는 --darkreader-* 보조 변수만 제외하며 실제 작성자 style/class/fill/stroke 변경을 관찰해요. owned 속성 transitionend가 자기 복원/보정 루프를 만들지 않게 했어요.
+- upstream+실제 공통 fixes+transition 카드에서 이전 HEAD는 idle2.5초 동안78 mutation/16pass/29색 반복, 수정 후0 mutation/0 추가pass/1색. 작성자 갱신·OFF 원복과 기존 contrast 합성/10000요소 상한 검사 통과. be-dark-stability-s06fEz(이전 실패), V9rE1h(수정)와 be-contrast-37yB5j.
+- 공개 나무위키 WARDOGS 소스 helper 검수: 회색 패널3개/배경 모두 색1개, 추가 보정0회. 실시간 데이터 갱신에 따른 legitimate scan과 구분했어요. 실제 설치 환경 증거는 아니에요.
+
+## 새 네이버페이 화살표 배정 — 담당 보완·검사 완료 / root 통합
+
+- 담당은 contrast.js의 inspect() 내 **smallIcon 조건/중립 fill·stroke 처리 구간만** 수정했어요. scheduler/observer/run/캐시는 편집하지 않았고 총괄이 나무위키 flicker 경로를 소유해요. root의 styleSignature/ownStyles/settledEffect flicker 수정도 보존해요.
+- 공개 pay history URL은 nid 로그인으로 redirect되어 실제 carousel DOM/CSS 자산을 확보하지 못했어요. 로그인/개인 프로필 접근 없이 일반 엔진 gap(명시적 검정 SVG fill/stroke, data:image 배경)이 재현되어 소형 enabled 조작아이콘 조건으로만 보완했어요. 실제 사용자 원인 확정은 아니에요.
+- 구현: enabled button/a/role=button 안의40px 이하 단순 inline SVG(최대24자손)의 중립 fill/stroke만 실제 배경대비3:1에 맞춰 보완해요. saturated paint는 그대로, role=img/disabled/hidden/편집/복잡한 mask/filter/use/style/pattern/animation SVG는 기존 보호를 유지해요. defs/clip/gradient 정의는 수정하지 않아요.
+- 단일 background URL 범위를 bounded data:image/svg+xml/png/webp로 넓혔어요. 같은 기존 크기/투명도/중립 픽셀 검사·정적 SVG 제한·원색/alpha 보존과 OFF 복원을 그대로 사용하며, data URI는 네트워크 relay나 새 권한이 필요 없어요.
+- 소유 변경: contrast.js의 inspect smallIcon 구간, icon-contrast.js의 URL 허용 검사, 새 scripts/verify-dark-arrow-browser.cjs, REPORT. root가 편집 중인 records/write/restore/observer/scheduler는 건드리지 않았어요.
+- 검증: 관련 단위5개 통과, 로컬 Chrome 합성 carousel(명시 검정 stroke + data SVG)의 보정, 기존 stroke attribute 원형 유지, 컬러/hidden/disabled 보호, 자기 pass 안정화와 OFF 원복 통과. 직접 검수 C:/Users/REVAPT~1/AppData/Local/Temp/be-dark-arrows-7jff1X/dark.png (before 포함).
+- 미확인: 실제 네이버페이 로그인 carousel은 검사하지 않았어요. 사용자의 화살표가 CSS pseudo/border/mask라면 이 보완으로 해결된다고 할 수 없고 그 형태는 무작정 추가하지 않았어요. author가 fill/stroke attribute를 나중 바꾸는 경우 즉시 재검사하려면 root 소유 observer attributeFilter 추가 검토가 필요해요(현재 다음 일반 pass에서 재평가). 새도메인 패치/전체빌드/버전/배포는 하지 않았어요.
+
 ## 신규 메일 하위 DOM 테마 — root 제품 통합 완료
 
 - root 통합: 실제 제품 fixture에서 Gmail·Naver의 본문 다크/원본 복원과 Ctrl+휠이 통과했어요. Gmail은 앱 밝음/강제 다크·색 설정 변경·모듈OFF/재ON도 확인. Naver는 sandbox의 html canvas까지 포함해 빈 여백도 맞추고 script 금지는 유지했어요. Temp/be-reader-VFhhIz, be-naver-mail-T3z4RI 캡처 직접 검수예요.

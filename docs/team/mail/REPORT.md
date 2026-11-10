@@ -1,30 +1,22 @@
-# 1.2.57 총괄 통합 — 계정 드래그와 네이버 앱내 읽기
+# 네이버·Gmail 계정 헤더 통일 완료
 
-- root가 parent 어댑터를 결합했어요. 실제 패키지에서 Gmail↔Naver pointer drop, core.mailAccountOrder 저장·재열기, native account id/index 보존과 기존 위/아래 이동을 확인했어요.
-- Naver 메시지는 선택 시 /json/read 응답을 HTML 허용목록+scriptless sandbox로 표시해요. 원색·raster 이미지·80/100%·목록 복귀·오류 재시도·취소 뒤 응답·520px 검사 통과. 본문은 저장소에 보관하지 않아요. 답장·첨부 전체 기능은 명시적인 네이버에서 열기예요.
-- 실제 로그인 계정의 API 응답 형식·읽음 처리·CID/첨부 및 Naver 본문 번역 전체 경로는 미검증이에요. 합성 통과와 실계정 성공을 구분해요.
-- root 증거: Temp/be-naver-mail-0jmXEq (합성 Naver/정렬/520px), be-reader-UeRJmm (Gmail reader/문맥 메뉴/resize), 집중 JS3개. 실제 계정·유료 요청·개인 프로필 접근은 없었어요.
-
-# 계정 드래그 담당 보고 (통합 계약 이행 완료)
-
-- 기준 main `13661f0`, 앱 1.2.56. 소유 변경: public/js/bongextend-mail-ui.js, public/checkerplus-embed.css, scripts/verify-mail-account-drag.cjs예요.
-- **통합 계약**: naver-mail.ts loaded()에서 iframe document의 `bongextend-mail-account-move` 이벤트를 수신해 주세요.
-- cancelable CustomEvent detail은 `{sourceKey,targetKey,placement}`, placement는 `before` 또는 `after`예요.
-- 키는 기존과 동일한 gmail:소문자주소 / naver:소문자주소예요.
-- 현재 DOM에서 두 키가 존재하고 서로 다른지 검증한 뒤 기존 core.mailAccountOrder 정렬·저장 경로로 적용해 주세요.
-- 수락한 요청은 `event.preventDefault()`로 응답해 주세요. 수락하지 않으면 UI는 DOM·저장소를 변경하지 않아요.
-- parent의 loaded() 재호출 시 옛 document 리스너 해제, 새 document에 1회 설치가 필요해요.
-- 담당은 naver-mail.ts를 수정하지 않았어요. 위/아래 버튼이 쓰는 저장·복원 경로를 root가 공유해 주면 돼요.
-- 구현: Gmail/네이버 헤더 왼쪽 전용 grip에서 pointer capture로 드래그해요. 일반 계정명·본문·입력 영역은 드래그 시작점이 아니에요.
-- 5px 이동부터 드래그 활성화하고 대상 계정의 앞/뒤 위치를 선으로 표시해요. 실제 DOM은 drop 이벤트 수락 시 parent만 변경해요.
-- 화면 안 드래그에 한해 inbox 가장자리 32px에서 자동 스크롤해요.
-- Escape·pointercancel·capture 해제·창 blur/pagehide·원본 계정 제거·영역 밖 놓기는 저장하지 않고 정리해요.
-- 마우스업/클릭이 계정/메일 열기로 전달되지 않으며, grip 위/아래 방향키는 기존 이동 버튼을 호출해요.
-- native account 객체/index·로그인·폴링·본문·N 로고·기존 설정은 변경하지 않아요.
-- 검증: `node scripts/verify-mail-account-drag.cjs` 최종 통과. 소스 HTML 합성 헤더를 폐기용 실제 Chrome에서 실행했어요.
-- 검증 범위: Gmail↔네이버 pointer 이동 이벤트/위치, native ID 보존, 취소/영역 밖/수락 거절 무변경, grip 키보드 이동, 자동 스크롤, 메일 열기 0회, 밝음/어두움·600×500예요.
-- 검사는 parent 어댑터를 모의 구현해 프로토콜을 확인해요. 실제 parent core.mailAccountOrder 저장/재열기는 root 통합 후 기존 네이버 fixture로 확인해야 해요.
-- 캡처: `C:/Users/Revaptor_FX/AppData/Local/Temp/be-mail-drag-61Rumd`의 light.png/dark.png/drag-scroll.png를 직접 확인했어요.
-- JS syntax 및 집중 변경 git diff --check 통과했어요.
-- 앱 build·전체 검사·버전·커밋·배포는 실행하지 않았어요. 실계정·개인 프로필·유료 API 접근은 없었어요.
-- 배정 파일 구현은 종료했어요. root 어댑터 결합 외 추가 사용자 선택은 필요 없어요.
+- 기준: main `0dd8d78`, 앱 1.2.58, 2026-11-10 배정이에요.
+- 변경: src/entrypoints/popup/naver-mail.ts, public/checkerplus-embed.css, scripts/verify-naver-mail-browser.cjs.
+- 네이버 헤더에 공통 accountHeader 구조를 적용했어요. 로고·계정명·미읽음 수를 같은 제목 영역, 작업을 별도 아이콘 영역에 배치해요.
+- 큰 메일함/작성 텍스트 버튼을 기존 Gmail과 같은 j-button의 전체 메일 열기/작성 아이콘으로 바꿨어요. 대상 계정이 포함된 한국어 title/aria-label을 제공해요.
+- 미연결 상태도 같은 아이콘 구조의 계정 연결 버튼으로 동작해요. 검색·더보기 등 없는 네이버 기능은 추가하지 않았어요.
+- 네이버 전체 하위 button에 적용되던 큰 padding을 제거해 정렬·접기·grip 크기가 Gmail과 동일한 규칙을 사용해요.
+- N 로고 28px·core.mailAccountOrder·실제 pointer drag·위/아래·접기·내부 reader를 보존했어요.
+- 네이버 목록 첫 행 여백을 Gmail과 같은 7px로 맞추고, 기본 브라우저 button의 두꺼운 테두리 대신 명시적 1px 공통 카드 경계를 사용해요.
+- 360px에서도 로고/미읽음/모든 작업 컨트롤은 남고 계정명만 말줄임돼요.
+- 검증: TypeScript noEmit, git diff --check 통과했어요.
+- 공유 .output을 수정하지 않고 WXT programmatic build의 outDir을 Temp로 지정해 실제 확장 패키지를 만들었어요.
+- 임시 패키지: C:/Users/Revaptor_FX/AppData/Local/Temp/be-mail-unified-20261110/chrome-mv3.
+- 전체 네이버 Chrome fixture 통과: 연결·통합 목록·실제 drag 저장/복원·native ID·내부 reader·색/배율/오류/재시도/닫힘 경합·모듈·연결 해제예요.
+- 전체 검사 근거 폴더: C:/Users/Revaptor_FX/AppData/Local/Temp/be-naver-mail-RUZx8q.
+- 추가 집중 검사 --header-only 통과: 아이콘 2개/빈 텍스트, Gmail과 헤더 높이·정렬 버튼 폭 1px 이내, 360/480px 모든 컨트롤 포함을 확인했어요.
+- 집중 시각 근거: C:/Users/Revaptor_FX/AppData/Local/Temp/be-naver-mail-QOW8cv 의 unified-mail-light.png, naver-mail-dark.png, naver-header-360.png, naver-header-480.png.
+- 밝음/어두움 및 360px 캡처를 직접 확인했어요. 실계정 접근은 없고 폐기용 Chrome·합성 메일만 사용했어요.
+- root 재현: MAIL_EXTENSION_SOURCE에 위 Temp 패키지를 지정한 뒤 node scripts/verify-naver-mail-browser.cjs --header-only.
+- 실제 Gmail 로그인 계정과 네이버 로그인 서비스의 화면/동작은 미검증이에요. 버전·커밋·릴리스·최종 통합은 총괄 담당이에요.
+- 담당 파일 수정은 종료했어요. 다른 팀의 다크 모드 변경은 보존했어요.

@@ -33,6 +33,12 @@ export function createContrastController(doc = document, {inspectImage} = {}) {
   let semanticColors = new WeakMap();
   const stats = {visited: 0, measured: 0, changed: 0, passes: 0, maxBatch: 0, styleReads: 0, animationReads: 0};
   let styleCache = new WeakMap(), animationCache = new WeakMap();
+  // Upstream annotates our inline repair with its own derived custom properties.
+  // Those annotations are not a new author style and must not start another
+  // restore/repair pass (especially on pages with background transitions).
+  const styleSignature = el => Array.from(el.style || [])
+    .filter(name => !name.startsWith('--darkreader-'))
+    .map(name => `${name}:${el.style.getPropertyValue(name)}!${el.style.getPropertyPriority(name)}`).join(';');
   const styleOf = el => {
     if (!styleCache.has(el)) {styleCache.set(el, win.getComputedStyle(el)); stats.styleReads++;}
     return styleCache.get(el);
@@ -56,7 +62,7 @@ export function createContrastController(doc = document, {inspectImage} = {}) {
       const old = markers.get(el); if (old == null) el.removeAttribute('data-bong-contrast-owned'); else el.setAttribute('data-bong-contrast-owned', old);
     }
     markers.delete(el);
-    ownStyles.set(el, el.getAttribute('style'));
+    ownStyles.set(el, styleSignature(el));
   };
   const write = (el, name, value) => {
     let props = records.get(el);
@@ -66,7 +72,7 @@ export function createContrastController(doc = document, {inspectImage} = {}) {
     el.style.setProperty(name, value, 'important');
     // CSSOM canonicalizes color strings.
     props.get(name).written = el.style.getPropertyValue(name);
-    ownStyles.set(el, el.getAttribute('style'));
+    ownStyles.set(el, styleSignature(el));
     stats.changed++;
   };
   const background = el => {
@@ -142,11 +148,20 @@ export function createContrastController(doc = document, {inspectImage} = {}) {
       }
     }
     if (luminance(bg) > .25) return;
-    const smallIcon = el.namespaceURI === 'http://www.w3.org/2000/svg' && el.tagName.toLowerCase() === 'svg' && rect.width <= 40 && rect.height <= 40 && el.closest('button,a,[role="button"]') && !el.querySelector('[fill]:not([fill="currentColor"]):not([fill="none"]),[stroke]:not([stroke="currentColor"]):not([stroke="none"])');
+    const iconSvg = el.namespaceURI === 'http://www.w3.org/2000/svg' && el.closest('svg');
+    const iconRect = iconSvg && (iconSvg === el ? rect : iconSvg.getBoundingClientRect());
+    const smallIcon = iconSvg && iconRect.width <= 40 && iconRect.height <= 40 && el.closest('button,a,[role="button"]') && !iconSvg.querySelector('mask,filter,use,style,pattern,animate,animateTransform,animateMotion,set') && iconSvg.querySelectorAll('*').length <= 24;
     const fg = parseColor(s.color);
     if (smallIcon && fg) {
       const color = readableColor(fg, bg, 3);
       if (color) write(el, 'color', color);
+      if (!el.closest('defs,clipPath,pattern,linearGradient,radialGradient')) {
+        const paint = styleOf(el);
+        for (const property of ['fill','stroke']) {
+          const value = parseColor(paint[property]);
+          if (value && value[3] > 0) {const next = readableColor(value, bg, 3); if (next) write(el, property, next);}
+        }
+      }
     }
     const selected = el.matches('[role="tab"][aria-selected="true"],a[aria-current]:not([aria-current="false"]),[role="menuitem"][aria-current]:not([aria-current="false"])');
     const selectionParent = selected && el.parentElement && background(el.parentElement);
@@ -226,7 +241,7 @@ export function createContrastController(doc = document, {inspectImage} = {}) {
   }
   const observer = new win.MutationObserver(mutations => {
     for (const m of mutations) {
-      if (m.type === 'attributes' && m.attributeName === 'style' && ownStyles.has(m.target) && ownStyles.get(m.target) === m.target.getAttribute('style')) continue;
+      if (m.type === 'attributes' && m.attributeName === 'style' && ownStyles.has(m.target) && ownStyles.get(m.target) === styleSignature(m.target)) continue;
       if (m.target.closest?.('style,script')) continue;
       if (m.type === 'childList') for (const node of m.addedNodes) {if (node.nodeType === 1) enqueue(node); else enqueue(m.target);}
       else enqueue(m.target.nodeType === 1 ? m.target : m.target.parentElement);
@@ -234,14 +249,14 @@ export function createContrastController(doc = document, {inspectImage} = {}) {
   });
   const update = () => enqueue(doc.documentElement);
   const settledEffect = event => {
-    if (event.type === 'transitionend' && records.has(event.target) && event.propertyName === 'color') return;
+    if (event.type === 'transitionend' && records.get(event.target)?.has(event.propertyName)) return;
     enqueue(event.target);
   };
   return {
     start() {
       if (active) return;
       active = true;
-      observer.observe(doc, {subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['style','class','hidden','disabled','aria-disabled','aria-hidden','aria-selected','aria-current','role','data-darkreader-scheme']});
+      observer.observe(doc, {subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['style','class','fill','stroke','hidden','disabled','aria-disabled','aria-hidden','aria-selected','aria-current','role','data-darkreader-scheme']});
       win.addEventListener('scroll', update, {passive: true, capture: true}); win.addEventListener('resize', update); update();
       doc.addEventListener('transitionend', settledEffect); doc.addEventListener('animationend', settledEffect);
     },
