@@ -1,10 +1,26 @@
 # BongExtend 모듈 담당 팀
 
+## 세션 2 — 현재 담당 명단
+
+사용자 요청으로 2026-11-10 총괄과 모든 8개 모듈 팀을 새로 열었어요. **이 명단이 아래 1차 채팅 기록보다 우선**이에요. 이름 끝 숫자는 세션 차수이며 현재 2, 다음 교체는 3이에요. 새 세션의 최초 과제는 문서 인수/자기 준비 파일뿐이며 자동 개발/시험/배포 과제는 없어요. **총괄+8팀 READY 파일과 실제 idle 상태를 확인**했어요. 팀원은 사용자 개별 알림 없이 준비 파일과 REPORT로 총괄에게만 보고해요.
+
+- 총괄 **BongExtend 총괄팀 2**: `01a1c3f1-e0d1-7231-8706-47fba0a051a0`, host `local`; 인수 `docs/team/session-2/root.md`.
+- 메일: `01a1c3f1-4345-7cb3-9c2a-2f20699b3216`, host `local`; 역할 `.cursor/agents/bong-mail.md`, 보고서 `docs/team/mail/REPORT.md`, 인수 `docs/team/session-2/mail.md`.
+- 번역: `01a1c3f1-4554-7280-96e4-7b383e0829c5`, host `local`; 역할 `.cursor/agents/bong-translation.md`, 보고서 `docs/team/translation/REPORT.md`, 인수 `docs/team/session-2/translation.md`.
+- 다크 모드: `01a1c3f1-47c4-7863-aa4e-8fc88e0c80dc`, host `local`; 역할 `.cursor/agents/bong-dark.md`, 보고서 `docs/team/dark/REPORT.md`, 인수 `docs/team/session-2/dark.md`.
+- 치지직: `01a1c3f1-49ac-7111-86fe-813fab68b557`, host `local`; 역할 `.cursor/agents/bong-chzzk.md`, 보고서 `docs/team/chzzk/REPORT.md`, 인수 `docs/team/session-2/chzzk.md`.
+- 다운로더: `01a1c3f1-8085-7b02-a153-9650412ef18b`, host `local`; 역할 `.cursor/agents/bong-downloader.md`, 보고서 `docs/team/downloader/REPORT.md`, 인수 `docs/team/session-2/downloader.md`.
+- 디시: `01a1c3f1-8267-7971-8b81-4eb6a3974c95`, host `local`; 역할 `.cursor/agents/bong-dc.md`, 보고서 `docs/team/dc/REPORT.md`, 인수 `docs/team/session-2/dc.md`.
+- 환율: `01a1c3f1-8447-73d2-838d-301414ef1dac`, host `local`; 역할 `.cursor/agents/bong-fx.md`, 보고서 `docs/team/fx/REPORT.md`, 인수 `docs/team/session-2/fx.md`.
+- 우클릭: `01a1c3f1-867d-71d2-9bd8-91d0cf26a02d`, host `local`; 역할 `.cursor/agents/bong-rightclick.md`, 보고서 `docs/team/rightclick/REPORT.md`, 인수 `docs/team/session-2/rightclick.md`.
+
+앱1.2.65/98a044c, CI42762509817·Release42762520141 success 및 Chrome/Windows ZIP 게시 확인. 소스 변경·focused 검수·배포가 끝났고 새 요청을 기다려요. 실제 설치/로그인 사이트 결과는 미확인이에요. 새 담당은 HANDOVER 최신 섹션과 자기 REPORT의 최신 root 검수 결과를 우선하며 오래된 ‘패키지 검사 필요’ 중간 보고를 다시 작업하지 않아요. 이전 1차 채팅은 기록으로 보존해요.
+
 2026-11-09 사용자 요청으로 ForgeLens의 실제 독립 채팅·공통 조정 문서·담당 보고서 방식을 참고했어요. ForgeLens 자체의 작업이나 정책을 가져오는 문서는 아니에요.
 
 ## 기준과 총괄
 
-- 1.2.65 통합 중: root는pseudo통합·IMG로고·canvas톤·검수/배포, 다크팀pseudo source완료/idle, 메일팀button3/historyback·스크롤바/경계 source검수 마무리. 사용자ON+새로고침후Smartstore추천정상으로확인, 원인확정과구별해요. 완료후사용자명시지시로총괄+8팀새세션2를생성하며아래명단을새ID로갱신해요. Astra미사용.
+- 1.2.65 배포/2차 인수 완료: 앱98a044c, CI42762509817/Release42762520141 success, Chrome4,882,143·Windows22,614바이트. 총괄+8팀 새 세션2/READY/idle, 새 ID는 상단 현재명단이에요. 사용자 ON+새로고침 후 Smartstore 추천 정상 확인, 원인 확정과 구별해요. 새 배정 없이 자동 작업하지 않아요.
 
 - 1.2.64 경계 수정 배포 완료: 앱cf7b14a CI42759682072/Release42759685437 success, Chrome ZIP4,878,892바이트·Windows 보조 ZIP22,616바이트. 팀 idle·시험 없음. cart 추천 빈칸/수량아이콘은 미해결이며 사용자 OFF정상 확인 후 ON+새로고침 대조 답변 대기예요. 공개429를 다른방법으로우회하거나 미재현을해결완료로표현하지않아요.
 - 1.2.64 통합: 다크팀은Smartstore 429 실제접근제한·합성nested/overlay진단을 마치고idle, root가 확인된공통 과테두리조건만수정·제품검수/배포해요. 사용자OFF정상확인, ON+새로고침후cart추천빈칸대조답변대기. 빈칸/수량아이콘은미해결·실제구조미확인이며 해결완료로표현하지않아요. Sol/medium1팀, Astra미사용.
