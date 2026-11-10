@@ -8,7 +8,7 @@ import {darkFrameHost} from "@/modules/dark/frame-host.js";
 import {createContrastController} from "@/modules/dark/contrast.js";
 import {createPseudoContrastController} from "@/modules/dark/pseudo-contrast.js";
 import {createIconContrastController} from "@/modules/dark/icon-contrast.js";
-import {createPaintGuard} from "@/modules/dark/paint-guard.js";
+import {createPaintGuard, createImageBlendGuard} from "@/modules/dark/paint-guard.js";
 
 const MODULES_KEY = "core.modules";
 
@@ -62,16 +62,18 @@ export default defineContentScript({
         let generation = 0;
         const icons = createIconContrastController(document, () => contrast.update(), {fetchImage: fetchDarkImage});
         const pseudo = createPseudoContrastController(document);
-        const contrast = createContrastController(document, {inspectImage: icons.inspect, inspectPseudo: pseudo.inspect});
+        const photos = createImageBlendGuard(document);
+        const contrast = createContrastController(document, {inspectImage: icons.inspect, inspectPseudo: pseudo.inspect, inspectPhoto: photos.inspect});
         const paint = createPaintGuard(document);
         let contrastEnabled = false;
         const syncContrast = () => {
             if (contrastEnabled && document.documentElement?.getAttribute("data-darkreader-scheme") === "dark") {paint.start(); icons.start(); pseudo.start(); contrast.start();}
-            else {paint.stop(); icons.stop(); pseudo.stop(); contrast.stop();}
+            else {paint.stop(); photos.stop(); icons.stop(); pseudo.stop(); contrast.stop();}
         };
         let observedRoot: HTMLElement | null = null;
         const onCleanup = () => {
             paint.stop();
+            photos.stop();
             icons.stop(); pseudo.stop();
             contrast.stop();
             document.documentElement?.removeAttribute("data-bong-dark-proxy");
@@ -136,6 +138,7 @@ export default defineContentScript({
                 const modules = (stored[MODULES_KEY] && typeof stored[MODULES_KEY] === "object" ? stored[MODULES_KEY] : {}) as Record<string, unknown>;
                 contrastEnabled = false;
                 paint.stop();
+                photos.stop();
                 icons.stop(); pseudo.stop();
                 contrast.stop();
                 if (modules.dark === false || !darkSiteEnabled(settings, hostname)) {
@@ -173,6 +176,7 @@ export default defineContentScript({
             } catch (error) {
                 contrastEnabled = false;
                 paint.stop();
+                photos.stop();
                 icons.stop(); pseudo.stop();
                 contrast.stop();
                 console.error("BongExtend 다크 모드를 적용하지 못했어요.", error);

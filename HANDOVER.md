@@ -2,7 +2,13 @@
 
 기준일: 2026-11-10. 이 문서는 기존 v1.2.10 인수인계를 대체해요. 이후 변경은 package.json, CHANGELOG.md, GitHub Releases를 우선 확인하세요.
 
-## 최신 인계 — v1.2.65 / 세션2 인수
+## 최신 인계 — v1.2.66 상품 사진 합성 보호
+
+- 무신사 products/4677950 대표/thumbnail IMG의 원래 multiply 합성과 어두워진 부모 배경이 곱해져 사진까지 검게 보이는 실제 원인을 확인했어요. 도메인 특례 없이 불투명 JPEG·충분한 자연크기/표시크기·확정된 어두운 중립 배경에서만 normal 합성으로 보호해요. 사진 source/filter/opacity/geometry 보존, 최대96개 소유·기존 bounded walker 재사용·별도 fetch/observer 없음, OFF/cleanup/error 경로에서 원래 inline/priority 복원이에요. 불명확한 조상 합성/투명도/필터는 제외해요.
+- 전체 JS267+Bun+타입, ZIP/eval 통과. source 공개 진단과 제품 공개 페이지13장 복원/OFF(APN79p)·캡처 직접 검수, 최종 제품 합성 pixel equality/thumbnail/filter/alpha/geometry/author 변경/OFF(JW9VwC) 통과. 공개 캡처 이후 마지막 변경은 조상 opacity/filter/blend 안전 제외 조건이며 동일 원인 보정은 유지해요. 초기 제품 fixture는 wildcard grant 누락, pixel fixture는 fractional clip 경계 때문에 실패했고 fixture 권한/정수 geometry 수정 뒤 통과했어요. 제품 동작을 가짜로 대체하지 않았어요.
+- PNG/WebP·확장자 없는 이미지/배경이미지/다른 합성은 안전 판별 범위 밖이에요. 사용자 실제 설치·프로필은 접근하지 않았어요. 다크팀 Sol/medium source 완료/idle, root 통합·배포 담당이에요. 배포 결과는 아래 후속 기록으로 갱신해요.
+
+## 이전 인계 — v1.2.65 / 세션2 인수
 
 - 앱1.2.65는 CSS pseudo 수량/화살표, 작은 투명 IMG 로고, 넓은 중립 canvas 톤 및 메일 뒤로가기/스크롤바·프레임 경계 요청을 통합해요. 앱 **98a044c46ad19880f96f06d58c4f8997c33e2097** main / v1.2.65 배포 완료예요. CI **42762509817**·Release **42762520141** success, Chrome ZIP **4,882,143바이트**·Windows 보조 ZIP **22,614바이트** uploaded 확인. 앱 코드/검수/배포 작업은 완료했고 별도 시험 프로세스는 종료됐어요. 이후 문서 커밋은 앱 버전을 바꾸지 않아요.
 - 사용자 최신 대조: Smartstore 추천 빈칸은 **다크 ON 후 페이지 새로고침하면 정상**이라고 확인했어요. 새로고침으로 증상이 해소된 사실만 확정이며 원인/특정 코드 수정 효과는 입증되지 않았어요. 이전의 ‘응답 대기/계속 빈칸’ 문구는 이 답변으로 대체해요. 수량 +/−·회색 띠·검은 로고는 별도 공통규칙 요청이에요.

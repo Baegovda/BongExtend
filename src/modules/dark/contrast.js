@@ -23,7 +23,7 @@ const repairColor = (foreground, ratio, target) => {
   return null;
 };
 
-export function createContrastController(doc = document, {inspectImage, inspectPseudo} = {}) {
+export function createContrastController(doc = document, {inspectImage, inspectPseudo, inspectPhoto} = {}) {
   const win = doc.defaultView;
   const excluded = 'img,picture,video,canvas,iframe,script,style,noscript,[hidden],[inert],[aria-hidden="true"],[disabled],[aria-disabled="true"],[contenteditable="true"],[data-bong-contrast-ignore],.pt-page-translator-sweep,[role="img"],.gmail_quote,.a3s,.ii,[data-message-id]';
   const records = new WeakMap(), refs = new Set(), elementRefs = new WeakMap(), ownStyles = new WeakMap(), markers = new WeakMap();
@@ -113,7 +113,19 @@ export function createContrastController(doc = document, {inspectImage, inspectP
   const inspect = el => {
     restore(el);
     // Small transparent logo images use the image classifier, never text/card repair.
-    if (el.tagName === 'IMG') {inspectImage?.(el); return;}
+    if (el.tagName === 'IMG') {
+      inspectImage?.(el);
+      if (inspectPhoto) {
+        let safe = true, depth = 0;
+        for (let parent = el.parentElement; parent; parent = parent.parentElement) {
+          if (++depth > 24) {safe = false; break;}
+          const s = styleOf(parent);
+          if (Number(s.opacity) < 1 || s.filter !== 'none' || s.mixBlendMode !== 'normal' || s.visibility !== 'visible') {safe = false; break;}
+        }
+        inspectPhoto(el, safe && el.parentElement ? background(el.parentElement) : null);
+      }
+      return;
+    }
     if (!el.isConnected || el.closest(excluded)) return;
     const rect = el.getBoundingClientRect();
     if (rect.width < 1 || rect.height < 1 || rect.bottom < -100 || rect.top > win.innerHeight + 100 || rect.right < 0 || rect.left > win.innerWidth) return;

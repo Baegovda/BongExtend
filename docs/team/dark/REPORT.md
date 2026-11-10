@@ -1,3 +1,18 @@
+## root 통합 검수 — 1.2.66
+
+- helper를 실제 content 수명과 bounded contrast walker에 연결했어요. source의 아래 연결 필요 메모는 이 결과로 대체해요. 전체 JS267+Bun+타입/ZIP/eval, 제품 합성 원본 pixel equality/author 변경/OFF(JW9VwC), 제품 공개 무신사13장/APN79p 복원·OFF 통과와 직접 시각검수 완료예요. 실제 사용자 설치는 미확인이에요.
+
+# 무신사 상품 사진 dim — 공통 multiply 원인 확인 / source helper 완료
+
+- 기준 main 앱1.2.65, 배정 source 사진 조사예요. 공개 https://www.musinsa.com/products/4677950 1회 접속 HTTP200으로 실제 상품 DOM을 확인했어요. 로그인/cart/주문/결제 조작·프로필 접근·재접속 우회는 없어요.
+- 실제 원인: 대표 사진과 왼쪽 thumbnails의 IMG는 원래부터 mix-blend-mode:multiply예요. 원래 부모 rgb(245,245,245)가 upstream 다크 후 rgb(30,32,33)이 되어 사진 RGB가 어두운 바탕과 곱해져 거의 검게 보여요. 원본 URL/필터는 그대로이고 옵션/본문 사진은 blend normal이라 영향이 달라요. 이미지 자동 반전과 다른 공통 CSS 합성 문제예요.
+- 소유 변경: src/modules/dark/paint-guard.js/.d.ts에 createImageBlendGuard(doc) helper만 추가했어요. API inspect(img, composedBackgroundRGBA), stop()이며 자체 DOM 스캔/observer/타이머는 없어요. 불투명 JPEG 자연크기128×128 이상·표시40×40 이상·multiply 사진과 확정된 어두운 중립 배경에서만 소유 mix-blend-mode:normal!important를 써요. 다른 blend/PNG/SVG/alpha 포맷·filter·hidden·disabled·강한 배경 의미색은 보존해요. 최대 소유96개, OFF는 원래 inline 값/priority 복원하고 사이트가 덮어쓴 값은 보존해요. 도메인/클래스 예외나 사진 fetch/픽셀 변경은 없어요.
+- **총괄 연결 필요**: dark.content.ts에서 helper 생성·OFF stop(), contrast walker에서 IMG의 non-normal blend 제외 전에 inspect(el, 실제 합성 opaque 배경 배열)를 호출해 주세요. 사진은 부모 배경을 계산해야 하며 불명확한 합성/조상 opacity·filter/blend는 호출하지 않아요. 공유 파일은 담당이 수정하지 않았어요. 이 helper 단독으로는 제품에 아직 연결되지 않아요.
+- 검증: 실제 공개 상품 + upstream API에서 dim 재현, helper 직접 호출 후 대표/thumbnails 13개 복원과 원색 사진 직접 확인, stop으로13개 모두 원래 multiply/inline무값 복원 통과했어요. 전달 bg는 해당 대표/thumbnail 부모의 관찰값[30,32,33,1]을 사용했으며 제품 walker 증거는 아니에요. 공개 API 진단은 CORS CSS 일부 미적용 상태라 주변 글자/쿠폰 UI를 제품 품질로 판단하지 않아요.
+- 폐기 Chrome 합성 focused검사 fixed/OFF/brand배경/alpha배경/filter/hidden/원래inline!important복원/사이트new screen값보존 8개 모두 통과. 증거 C:/Users/REVAPT~1/AppData/Local/Temp/be-musinsa-photo-nzCtfG/{before.png,dim.png,fixed.png,off.png,diagnosis.json,focused-results.json}. fixed.png를 직접 열어 양말 원색/사진 밝기 회복을 확인했어요. 첫 실행 Chrome 사용자경로 탐색 실패 후 실제 Program Files Chrome으로 전환했어요. git diff --check 통과.
+- 추가 상한/수명 focused검사: opaque JPEG 100장 중 소유96개,20회 반복 inspect에서 inline값 추가변경0, 사이트 screen!important 갱신 양보, hidden 전환 즉시 소유값 해제, OFF 전체 복원과 사이트 screen 보존 PASS예요. cap-results.json에 기록했고 폐기 Chrome을 종료했어요. 총괄의 contrast.js/.d.ts·dark.content.ts·제품 fixture 동시 변경은 확인했으며 수정하지 않았어요.
+- 한계: PNG/WebP 투명 여부·확장자 없는 이미지·배경이미지·다른 합성모드는 안전하게 미보정해요. 전 사이트 사진 완전 보존이나 사용자 설치 해결을 주장하지 않아요. 통합 후 제품 수명/동적페이지/상한/반복 안정성과 최종 배포는 총괄 영역이에요. 담당 앱 build/전체시험/패키지/공통문서/배포는 수행하지 않았고 이번 source 배정을 마쳐요.
+
 # 공통 대비 보정과 긴급 쪽지 조사 보고
 
 ## CSS pseudo·IMG 로고·canvas — root 통합/제품 검수 완료

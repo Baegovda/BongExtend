@@ -120,3 +120,39 @@ export function createPaintGuard(doc = document) {
     stop
   };
 }
+
+// Product photographs using multiply were authored against a pale backdrop.
+// A darkened backdrop multiplies every photo pixel toward black. Keep the image
+// paint independent only for opaque JPEG photos on a neutral dark surface.
+// Call inspect from the bounded contrast walker, using its composed background.
+export function createImageBlendGuard(doc = document) {
+  const owned = new Map();
+  const release = (el, state) => {
+    if (el.style.getPropertyValue('mix-blend-mode') === 'normal' && el.style.getPropertyPriority('mix-blend-mode') === 'important') {
+      if (state.value) el.style.setProperty('mix-blend-mode', state.value, state.priority);
+      else el.style.removeProperty('mix-blend-mode');
+    }
+    owned.delete(el);
+  };
+  return {
+    inspect(el, bg) {
+      if (el.tagName !== 'IMG') return;
+      const previous = owned.get(el);
+      // Yield to a site's new inline paint instead of overwriting it.
+      if (previous && (el.style.getPropertyValue('mix-blend-mode') !== 'normal' || el.style.getPropertyPriority('mix-blend-mode') !== 'important')) { owned.delete(el); return; }
+      const source = el.currentSrc || el.src;
+      const s = doc.defaultView.getComputedStyle(el);
+      const eligible = doc.documentElement.getAttribute('data-darkreader-scheme') === 'dark' &&
+        /\.jpe?g(?:[?#]|$)/i.test(source) && el.complete && el.naturalWidth >= 128 && el.naturalHeight >= 128 &&
+        el.width >= 40 && el.height >= 40 && !el.closest('[hidden],[inert],[aria-hidden="true"],[disabled],[aria-disabled="true"]') &&
+        s.visibility === 'visible' && s.display !== 'none' && s.opacity === '1' && s.filter === 'none' &&
+        (previous ? previous.source === source : s.mixBlendMode === 'multiply') &&
+        bg && bg[3] === 1 && Math.max(...bg.slice(0, 3)) <= 96 && Math.max(...bg.slice(0, 3)) - Math.min(...bg.slice(0, 3)) <= 20;
+      if (!eligible) { if (previous) release(el, previous); return; }
+      if (previous || owned.size >= 96) return;
+      owned.set(el, {source, value: el.style.getPropertyValue('mix-blend-mode'), priority: el.style.getPropertyPriority('mix-blend-mode')});
+      el.style.setProperty('mix-blend-mode', 'normal', 'important');
+    },
+    stop() { for (const [el, state] of owned) release(el, state); }
+  };
+}

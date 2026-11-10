@@ -1,0 +1,37 @@
+// Product content script in disposable Chrome. No live account or shopping requests.
+const {chromium}=require('playwright'),fs=require('node:fs'),os=require('node:os'),path=require('node:path'),assert=require('node:assert/strict');
+(async()=>{
+ const folder=fs.mkdtempSync(path.join(os.tmpdir(),'be-photo-product-')),extension=path.join(folder,'extension');fs.cpSync('.output/chrome-mv3',extension,{recursive:true});
+ const manifestPath=path.join(extension,'manifest.json'),manifest=JSON.parse(fs.readFileSync(manifestPath));manifest.host_permissions.push('https://*.bongextend.example.com/*');if(process.argv.includes('--public'))manifest.host_permissions.push('https://*.musinsa.com/*','https://static.msscdn.net/*');fs.writeFileSync(manifestPath,JSON.stringify(manifest));
+ const context=await chromium.launchPersistentContext(path.join(folder,'profile'),{executablePath:'C:/Program Files/Google/Chrome/Application/chrome.exe',headless:true,ignoreDefaultArgs:['--disable-extensions'],args:['--enable-unsafe-extension-debugging'],viewport:{width:1100,height:800}});
+ context.setDefaultTimeout(12000); console.log(folder);
+ try{
+  await(await context.browser().newBrowserCDPSession()).send('Extensions.loadUnpacked',{path:extension});const worker=context.serviceWorkers()[0]||await context.waitForEvent('serviceworker');
+  await worker.evaluate(()=>chrome.storage.local.set({'core.update:autoCheck':false,'core.modules':{gmail:false,chzzk:false,trans:false,dc:false,dark:true},'core.darkMode':{enabledSites:[],followSystem:false}}));
+  const source='data:image/svg+xml;base64,'+Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300"><path fill="#fff" d="M0 0h300v300H0z"/><path fill="#c4b6a1" d="M80 40h50v160l-35 50H50l30-70z"/><path fill="#698155" d="M170 40h50v160l-35 50h-45l30-70z"/><circle fill="#e34931" cx="260" cy="40" r="18"/></svg>').toString('base64');
+  const maker=await context.newPage();await maker.goto(source);const jpeg=await maker.screenshot({type:'jpeg',quality:95,clip:{x:0,y:0,width:300,height:300}});await maker.close();const image='https://photo.bongextend.example.com/photo.jpg';
+  await context.route('https://photo.bongextend.example.com/**',r=>r.fulfill({contentType:'text/html; charset=utf-8',body:`<!doctype html><meta charset="utf-8"><style>body{background:white;color:#111;font:18px Arial}.gallery{background:#fff;display:flex;gap:15px;padding:20px}h1{line-height:42px;margin:20px 0}img{width:300px;height:300px;flex:none}.multiply{mix-blend-mode:multiply}#thumb{width:60px;height:60px}#alpha{opacity:.4;width:60px;height:60px}</style><h1>상품 사진 원색 보존</h1><div class="gallery"><img id="main" class="multiply" src="${image}"><img id="thumb" class="multiply" src="${image}"><img id="original" src="${image}"><img id="alpha" class="multiply" src="${image}"></div>`}));
+  await context.route(image,r=>r.fulfill({contentType:'image/jpeg',body:jpeg}));
+  const page=await context.newPage();page.on('console',m=>console.log('CONSOLE',m.text()));page.on('pageerror',e=>console.log('PAGEERROR',e.message));await page.goto('https://photo.bongextend.example.com/');await page.locator('#main').evaluate(e=>e.decode());
+  const sample=()=>page.locator('img').evaluateAll(es=>es.map(e=>({id:e.id,src:e.src,filter:getComputedStyle(e).filter,opacity:getComputedStyle(e).opacity,blend:getComputedStyle(e).mixBlendMode,display:getComputedStyle(e).display,width:e.width,height:e.height})));
+  const before=await sample(),photoBefore=await page.locator('#main').screenshot();await page.screenshot({path:path.join(folder,'off.png')});
+  await worker.evaluate(()=>chrome.storage.local.set({'core.darkMode':{enabledSites:['photo.bongextend.example.com'],followSystem:false}}));await page.locator('html[data-darkreader-scheme="dark"]').waitFor();
+  try{await page.waitForFunction(()=>getComputedStyle(document.querySelector('#main')).mixBlendMode==='normal',null,{timeout:10000})}catch(e){console.log('DIAGNOSTIC',await sample(),await page.locator('.gallery').evaluate(e=>getComputedStyle(e).backgroundColor));throw e}await page.waitForTimeout(300);
+  const after=await sample();for(const b of before){const a=after.find(x=>x.id===b.id);for(const key of ['src','filter','opacity','display','width','height'])assert.equal(a[key],b[key],`${b.id} ${key}`)}
+  assert.deepEqual(await page.locator('#main').screenshot(),photoBefore,'actual photo pixels remain identical on dark canvas');assert.equal(after.find(x=>x.id==='original').blend,'normal');
+  await page.screenshot({path:path.join(folder,'dark.png')});
+  await page.evaluate(()=>{const e=document.querySelector('#main');e.style.setProperty('mix-blend-mode','screen','important')});await page.waitForTimeout(150);assert.equal(await page.locator('#main').evaluate(e=>getComputedStyle(e).mixBlendMode),'screen','author replacement preserved');
+  await worker.evaluate(()=>chrome.storage.local.set({'core.darkMode':{enabledSites:[],followSystem:false}}));await page.locator('html[data-darkreader-scheme]').waitFor({state:'detached'});await page.waitForTimeout(150);
+  const off=await sample();assert.equal(off.find(x=>x.id==='main').blend,'screen');assert.equal(off.find(x=>x.id==='thumb').blend,'multiply');
+  fs.writeFileSync(path.join(folder,'results.json'),JSON.stringify({before,after,off},null,2));console.log('PASS packaged photo pixels, thumbnail, original/filter/alpha/geometry, author updates and OFF:',folder);
+  if(process.argv.includes('--public')){
+   const live=await context.newPage(),response=await live.goto('https://www.musinsa.com/products/4677950',{waitUntil:'domcontentloaded',timeout:30000});assert.equal(response.status(),200,'public access barrier: do not retry');await live.waitForTimeout(2000);
+   const collect=()=>live.locator('img').evaluateAll(es=>es.filter(e=>e.complete&&e.naturalWidth>=128&&e.width>=40).map(e=>({src:e.currentSrc,blend:getComputedStyle(e).mixBlendMode,filter:getComputedStyle(e).filter,width:e.width,height:e.height})));
+   const initial=await collect();assert.ok(initial.some(e=>e.blend==='multiply'));await live.screenshot({path:path.join(folder,'public-off.png')});
+   await worker.evaluate(()=>chrome.storage.local.set({'core.darkMode':{enabledSites:['musinsa.com'],followSystem:false}}));await live.locator('html[data-darkreader-scheme="dark"]').waitFor();await live.waitForFunction(()=>[...document.images].filter(e=>e.style.mixBlendMode==='normal').length>=2,null,{timeout:12000});await live.waitForTimeout(1200);
+   const themed=await collect();let fixed=0;for(const b of initial.filter(e=>e.blend==='multiply')){const a=themed.find(e=>e.src===b.src);if(a&&a.blend==='normal'){fixed++;for(const key of ['src','filter','width','height'])assert.equal(a[key],b[key])}}assert.ok(fixed>=2);await live.screenshot({path:path.join(folder,'public-dark.png')});
+   await worker.evaluate(()=>chrome.storage.local.set({'core.darkMode':{enabledSites:[],followSystem:false}}));await live.locator('html[data-darkreader-scheme]').waitFor({state:'detached'});const restored=await collect();for(const b of initial.filter(e=>e.blend==='multiply')){const a=restored.find(e=>e.src===b.src);if(a)assert.equal(a.blend,'multiply')}
+   fs.writeFileSync(path.join(folder,'public-results.json'),JSON.stringify({initial,themed,restored,fixed},null,2));console.log('PASS public product packaged representative/thumbnail photos and OFF',fixed,folder);
+  }
+ }finally{await context.close()}
+})().catch(e=>{console.error(e);process.exitCode=1});
