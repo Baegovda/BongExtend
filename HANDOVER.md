@@ -2,13 +2,15 @@
 
 기준일: 2026-11-10. 이 문서는 기존 v1.2.10 인수인계를 대체해요. 이후 변경은 package.json, CHANGELOG.md, GitHub Releases를 우선 확인하세요.
 
-## 최신 작업 — v1.2.64
+## 최신 인계 — v1.2.64
+
+- 확인된 경계 보강 수정은 앱 **cf7b14a**, main / [v1.2.64 Release](https://github.com/Baegovda/BongExtend/releases/tag/v1.2.64)로 배포 완료했어요. CI **42759682072**·Release **42759685437** success, Chrome ZIP **4,878,892바이트**·Windows 보조 ZIP **22,616바이트** uploaded 확인. 팀 idle·실행 중인 시험 없음. **장바구니 추천 빈칸과 실제 수량 아이콘은 아직 미해결**이며 새로고침 대조 질문 답변/실제 구조 증거가 필요해요. 스스로 백그라운드에서 계속 진행하는 작업은 없어요.
 
 - 사용자 Smartstore https://smartstore.naver.com/v_air/products/4182023833 기본 화면의 과한 경계/어두운 수량버튼과 cart sidebar의 검은 배경/빈 추천 사진·글자 두 상태를 지적했어요. 다크팀 Sol/medium이 disposable 공개 접속1회에서429를 받아 실제상품/추천 DOM을 확보하지 못했고 추가host/UA/쿠키/사용자프로필로 우회하거나 반복접속하지 않았어요. 실제 구매/결제/cart 변경 없음. 사용자 **다크 OFF면 추천 사진/글자가 보인다**고 확인했으며, **다크 ON→페이지 새로고침→cart 다시 열어도 같은지** 추가 응답 대기예요.
 - root는 독립된 공통 경계 회귀를 확인·수정했어요. contrast.js가 border-bottom 구분선·평면/넓은 구조 프레임·이미 대비있는 경계도 full box outline으로 덮던 것을, radius>=4px +4면closed border 또는shadow가 있는 저대비 카드만 후보로 좁혔어요. 기존 border 합성대비>=1.6/shadow>=1.8면 추가 보강을 생략해요. 문서구조/visibility/opacity/사진 표시를 임의 수정하지 않았어요.
 - source 증거: be-nested-surfaces-YkjNPX(평면/중첩/divider/이미 선명한 둥근경계5개 유지·저대비 둥근1개만 보강·OFF), be-dark-overlay-NrO4tR(일반 rgba backdrop와 동적sidebar의 사진/text 유지·OFF). 합성overlay에서는 실제 blank 추천이 재현되지 않았어요. 수량 +/- 실제 paint도 미확인이에요.
 - Chrome 실행 메타데이터와 **BongExtend 항목의 파일 버전/권한 메타데이터만 읽기 전용**으로 확인: 사용자 Chrome Profile2 등록 경로는 C:/Users/Revaptor_FX/Documents/BongExtend, 그 manifest 파일1.2.63, 저장된 active/granted/runtime HTTPS 전체권한은 true예요. 이것은 열린 페이지의 런타임 버전·현재 DOM 검증이 아니에요. 사용자 프로필에 Playwright/CDP를 연결하거나 로그인/쿠키/계정 내용을 가져오지 않았어요.
-- root source contrast 합성·10000요소상한·stability 검수 통과(be-contrast-4DYvLG / be-dark-stability-3fsP8Q). 기존 fixture는 둥근 카드로 보강대상을 명확히 하고, 제품 boundary fixture는 raw 저대비 글자 보정과 한쪽 divider가 full box가 되지 않는지 함께 검증하도록 조정했어요. 전체검사·최종제품·배포 결과는 추가 예정이며 실제 cart 빈칸 해결은 미확정이에요. 다크팀 source진단 종료/idle, root 통합 중. Astra 미사용.
+- root source contrast 합성·10000요소상한·stability 검수 통과(be-contrast-4DYvLG / be-dark-stability-3fsP8Q). 기존 fixture는 둥근 카드로 보강대상을 명확히 하고, 제품 boundary fixture는 raw 저대비 글자 보정과 한쪽 divider가 full box가 되지 않는지 함께 검증하도록 조정했어요. 확인된 경계 수정은 통합/배포를 마쳤고 실제 cart 빈칸 해결은 미확정이에요. 다크팀 source진단 종료/idle, Astra 미사용.
 - 최종 검증: 전체 JS267+Bun+타입, ZIP/eval/권한/diff 통과. 제품 boundary(TvFwx6)는 한쪽 divider outline 없음·흰 경계/shadow 재노출 없음·글자/선택focus/hidden/disabled/작성자 semantic 변경/OFF 원복을 확인했어요. 실제 패키지 저대비 둥근 카드의 보강은 유지되고 2.5초안정구간 배경1색·style mutation0, OFF white 원복도 통과(be-dark-stability-n0Lvbu). nested와 boundary 캡처를 root가 직접 검수했어요.
 - Chrome 등록 항목의 저장된 active/granted/runtime HTTPS 전체 권한도 true로 읽기 전용 확인했어요. 이 메타데이터로 사용자 페이지 내용이나 살아 있는 runtime 상태를 읽지 않았고, cart 빈칸 원인을 단순 권한 누락으로 확정하지 않아요.
 

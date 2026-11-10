@@ -2,6 +2,8 @@
 
 ## Smartstore 초기 진단 — 429 장벽 / 실제 상품·cart 미접근
 
+- root 경계 수정 1.2.64 배포 완료: 앱cf7b14a CI42759682072/Release42759685437 success, 양쪽 ZIP 게시. 전체 JS267+Bun+타입·ZIP/eval/권한과 실제 제품 divider/글자/focus/OFF, 저대비라운드카드 안정성 검사 통과. source/제품 합성 검증이며 실제 cart blank 해결 증거는 아니에요.
+- 사용자 OFF 정상 확인. Chrome 등록 폴더 manifest1.2.63과 저장된HTTPS전체grant true를 읽기전용 확인했지만 살아 있는 페이지runtime 버전/DOM은 읽지 않았어요. root가 ON+상품 페이지 새로고침 뒤 cart 재열기 대조 질문을 보냈고 응답 대기예요. 실제 빈 추천/수량 paint는 미해결, 팀 idle·추가 실행 없음.
 - 시작 기준 앱a2f9722/1.2.63, 현재 문서HEAD06e476a. 공개 disposable Chrome에서 지정 상품 URL 1회 접근 결과 HTTP429, title `[에러] 에러페이지 - 시스템오류`, 본문 `현재 서비스 접속이 불가합니다`였어요. 상품 HTML/CSS/추천 sidebar/상품사진은 전달되지 않았고 stylesheet link도 없었어요.
 - 증거 C:/Users/Revaptor_FX/AppData/Local/Temp/be-smartstore-UUye7L/public.png. 오류 화면 외 상품 검사 결과는 없어요. 별도 host/UA/쿠키/개인프로필로 우회하거나 반복 재접속하지 않았고 장바구니 버튼도 누르지 않았어요. 구매/결제/실사용자 cart 변경 없음.
 - 따라서 실제 추천사진 빈칸이 로딩/레이어/엔진 때문인지, +/-가 SVG/border/mask인지 확정 불가. 원인보고 전 임의 표시/opacity/filter/사이트패치는 넣지 않아요. 현재 source 변경 없음.
