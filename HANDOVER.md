@@ -2,7 +2,20 @@
 
 기준일: 2026-11-10. 이 문서는 기존 v1.2.10 인수인계를 대체해요. 이후 변경은 package.json, CHANGELOG.md, GitHub Releases를 우선 확인하세요.
 
-## 최신 인계 — v1.2.64
+## 최신 인계 — v1.2.65 (이번 통합, 배포 결과는 아래 갱신)
+
+- 앱1.2.65는 CSS pseudo 수량/화살표, 작은 투명 IMG 로고, 넓은 중립 canvas 톤 및 메일 뒤로가기/스크롤바·프레임 경계 요청을 통합해요. root가 최종 검수를 마쳤고 배포를 진행해요. 아래 배포 결과가 기록되기 전까지 게시 완료로 간주하지 않아요.
+- 사용자 최신 대조: Smartstore 추천 빈칸은 **다크 ON 후 페이지 새로고침하면 정상**이라고 확인했어요. 새로고침으로 증상이 해소된 사실만 확정이며 원인/특정 코드 수정 효과는 입증되지 않았어요. 이전의 ‘응답 대기/계속 빈칸’ 문구는 이 답변으로 대체해요. 수량 +/−·회색 띠·검은 로고는 별도 공통규칙 요청이에요.
+- 다크: pseudo-contrast.js/.d.ts는 작은 활성 control의 ::before/after 단색 선·경계 화살표·짧은 중립 glyph만3:1로 보정해요. 실제 배경/alpha 보존, 브랜드/사진/mask/gradient/disabled/hidden/animation 제외,96요소/192규칙 상한·소유 stylesheet/marker OFF 복원이에요. dark.content.ts와 contrast callback에 통합했어요.
+- icon-contrast.js는 기존 background-image 분류에 작은 투명 IMG 로고를 추가해요. source/currentSrc/alt/크기/filter는 그대로 두고 소유 CSS content로 중립 paint만 표시해요. standalone은 labelled·short/wide 후보만, 기존 PNG/WebP/SVG 정적/alpha/희소픽셀·크기/캐시/동시성 상한을 따르며 author content/src 교체와 OFF 복원을 보존해요. 기존 worker 권한/보안 검증을 재사용하고 새 권한/도메인 특례 없음.
+- contrast.js는 저대비 카드에 +7 배경 덧칠을 제거하고 경계만 보강해요. near-neutral dark, 실제 opaque body와 대비<=1.25, viewport폭85%·높이40% 이상인 border/radius/shadow 없는 흐름 canvas만 body톤에 맞춰요. form/header/footer/nav/dialog/selected/fixed/brand/사진/불명확 합성은 보존해요. 모든 영역을 동일색으로 평탄화하지 않아요.
+- 메일: ReaderZoom.navigation 공통 helper와 Gmail/Naver 어댑터, body color-scheme/scrollbar-color 및 Naver outer iframe data-be-mail-theme 경계. mouse button3과 history back은 기존 메일함 동작을 호출하고 일반 휠/배율/기존 초안 유지. 상세 검수 결과는 mail REPORT를 참고해요.
+- 검증: JS267+Bun+타입, ZIP/eval/manifest snapshot 통과. source neutral logo/alpha/brand/geometry·canvas·author 변경/OFF(be-logo-surfaces-4FQ9aO), source nested카드/OFF(6jORZP), common contrast10000노드 상한(pw2xtZ), pseudo96요소/disabled/alpha/OFF(wUsM5Y) 통과. 제품 controls/pseudo/IMG/OFF/안정성(R57MNh), divider/focus/경계(q9Ndtz), upstream+제품 깜빡임0 mutation(yiv42o), Gmail button3/history·기존reply draft/zoom/resize(THmrS4), Naver bodybutton3/history·프레임dark/original·zoom/error/close(ReQUwD), 긴본문 dark scrollbar-color/경계(tZC7cS) 통과·화면 직접 확인. 모두 사용자 Temp 아래 합성 Chrome, 실계정 증거가 아니에요.
+- Gmail 첫 패키지 검사 실패는 fixture가 합성 layout을 만든 뒤 원래 initOpenEmailEventListeners()를 누락한 것과 중간 build staleness를 확인했어요. fixture에 실제 원래 초기화 추가·최종소스 재빌드 후 통과했으며 제품 back을 가짜로 교체하지 않았어요.
+- 사용자 지시: 이번 작업을 끝낸 뒤 **총괄과8개 모듈팀 전체를 새 세션으로 열고 이름 끝에 차수 숫자**를 붙여요. 기존 명단은1차이고 다음은 ‘BongExtend 총괄팀 2’·‘BongExtend 메일팀 2’ 등2차예요. 새 세션ID/소유권/ready는 COORDINATION에서 갱신해요. 새 담당은 읽기 인수만 하며 자체 백로그/전체 시험/코딩/배포를 시작하지 않아요.
+- 실제 로그인 주문/결제/cart/메일 API·설치 runtime 검증은 하지 않았어요. Smartstore 상품429 장벽은 재접속/우회하지 않으며 사적인 주문 페이지/결제 상태를 조작하지 않아요. 합성 Chrome 통과는 실제 페이지 해결 증거가 아니에요.
+
+## 이전 인계 — v1.2.64
 
 - 확인된 경계 보강 수정은 앱 **cf7b14a**, main / [v1.2.64 Release](https://github.com/Baegovda/BongExtend/releases/tag/v1.2.64)로 배포 완료했어요. CI **42759682072**·Release **42759685437** success, Chrome ZIP **4,878,892바이트**·Windows 보조 ZIP **22,616바이트** uploaded 확인. 팀 idle·실행 중인 시험 없음. **장바구니 추천 빈칸과 실제 수량 아이콘은 아직 미해결**이며 새로고침 대조 질문 답변/실제 구조 증거가 필요해요. 스스로 백그라운드에서 계속 진행하는 작업은 없어요.
 

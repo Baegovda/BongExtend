@@ -4,6 +4,8 @@
 
 ## 기준과 총괄
 
+- 1.2.65 통합 중: root는pseudo통합·IMG로고·canvas톤·검수/배포, 다크팀pseudo source완료/idle, 메일팀button3/historyback·스크롤바/경계 source검수 마무리. 사용자ON+새로고침후Smartstore추천정상으로확인, 원인확정과구별해요. 완료후사용자명시지시로총괄+8팀새세션2를생성하며아래명단을새ID로갱신해요. Astra미사용.
+
 - 1.2.64 경계 수정 배포 완료: 앱cf7b14a CI42759682072/Release42759685437 success, Chrome ZIP4,878,892바이트·Windows 보조 ZIP22,616바이트. 팀 idle·시험 없음. cart 추천 빈칸/수량아이콘은 미해결이며 사용자 OFF정상 확인 후 ON+새로고침 대조 답변 대기예요. 공개429를 다른방법으로우회하거나 미재현을해결완료로표현하지않아요.
 - 1.2.64 통합: 다크팀은Smartstore 429 실제접근제한·합성nested/overlay진단을 마치고idle, root가 확인된공통 과테두리조건만수정·제품검수/배포해요. 사용자OFF정상확인, ON+새로고침후cart추천빈칸대조답변대기. 빈칸/수량아이콘은미해결·실제구조미확인이며 해결완료로표현하지않아요. Sol/medium1팀, Astra미사용.
 - 1.2.63 배포 완료: 앱a2f9722 CI42758291292/Release42758295193 success, Chrome ZIP4,878,784바이트·Windows 보조 ZIP22,613바이트. 사용자 새 Smartstore 상품/장바구니 문제는 다크팀 Sol/medium으로 공개 전후 진단 재배정했어요. root는 경계 보강 규칙 리뷰·통합 담당, 사용자 실제설치는 미확인.

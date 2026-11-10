@@ -1,9 +1,21 @@
 # 공통 대비 보정과 긴급 쪽지 조사 보고
 
+## CSS pseudo·IMG 로고·canvas — root 통합/제품 검수 완료
+
+- root 통합: callback/lifecycle, IMG의 작은 labelled/wide 투명 로고 CSS content 대비, 카드 fill+7 제거·borderless 넓은 near-neutral canvas 정리. source logo/brand/alpha/geometry/author/OFF(4FQ9aO), source nested(6jORZP), 제품 controls/OFF(R57MNh), 경계/focus(q9Ndtz), 깜빡임0mutation(yiv42o) 통과·직접 화면 확인. 실제 Smartstore 수량paint/비공개주문 로고는 미확인이며 공개429 우회 없음. 새로고침 후 cart 추천 정상은 사용자 보고 사실로만 기록해요.
+
+- 담당 파일은 신규 `src/modules/dark/pseudo-contrast.js/.d.ts`, `scripts/verify-dark-pseudo-browser.cjs`와 REPORT예요. contrast.js·dark.content.ts·기존 공통 fixture·버전·빌드는 수정하지 않았어요. 공개 Smartstore 재접속/우회/실제 cart 조작 없음. 실제 사이트 glyph 구현을 확인하거나 그 문제를 해결했다고 주장하지 않아요.
+- API `createPseudoContrastController(doc)` → `start()`, `inspect(el, bgRGBA)`, `stop()`, `stats`. root contrast walker가 실제 합성한 불투명 배경 배열을 `inspect`로 넘기고, OFF 때 `stop`하면 돼요. `start()` 자체는 문서 전체를 스캔하지 않아요. 기존 marker가 있는 대상의 hidden/disabled/사이트 속성 변경은 모듈 내부 제한 observer로도 원복하며, 새 대상과 다시 enabled된 대상 발견은 root walker callback이 맡아요. walker의 작은 glyph 후보 처리를 큰 카드 조건 이전에 호출해야 해요.
+- 작고 활성인 button/a[href]/rolebutton 및 내부 span/i의 ::before/::after만 검사해요. host와 control 모두64×64 이하, 빈 32px 이하·두께4px 이하 단색 막대, 24px 이하 1~2면 solid border, 알려진 짧은 중립 문자 glyph만 대상이에요. 실제 배경 합성 후3:1에 닿을 때만 밝히며 색 alpha·폭/높이·transform·content·HTML inline은 유지해요.
+- 사진/이미지/gradient/mask URL·geometry/브랜드색/hidden/disabled/inert/editable/불명확한 조상 합성/opacity/애니메이션·transition·filter·blend는 건너뛰어요. mask 자체를 수정하지 않아요. 자체 class=darkreader stylesheet에 pseudo paint 전용 규칙을 두고, 임시 marker 제거로 원래 paint를 동기 측정한 뒤 같은 task 안에 돌려놔요. marker 원래값을 저장하고 사이트가 marker를 바꾸면 양보해요. OFF는 자체 규칙·style node를 제거하고 소유 marker만 원복해요.
+- 상한은 소유96요소·최대192규칙, 신규 측정96/16ms예요. 비후보는 DOM 저비용 검사로 먼저 빠지고, 규칙 변경은 microtask로 모아 한 번만 기록해요. 안정 상태에서는 CSSOM/marker 재작성 없이 유지해요. 상태 observer가 재측정할 때는 현재 배경을 다시 합성해 이전 배경을 재사용하지 않아요.
+- `node scripts/verify-dark-pseudo-browser.cjs` PASS. 실제 upstream에서 배경으로 그린 +/−가 계속 검은 상태가 로컬에서 관찰됐고 helper 후3:1·alpha .85를 확인했어요. border chevron, 내부 span, 중립 text glyph, disabled/brand/mask/gradient/transition/넓은 면/photo/opacity/hidden 보존, enabled↔disabled·brand 동적 상태, 원래 marker 복원·사이트 marker 변경 보존, OFF/style cleanup, 반복 재검사와 observer 정지 안정성도 통과했어요. text glyph의 저대비 입력은 별도 명시적인 로컬 paint fixture이며 실제 upstream은 일반 text를 이미 밝게 만들어요.
+- 최종 증거 `C:/Users/Revaptor_FX/AppData/Local/Temp/be-dark-pseudo-wUsM5Y/{baseline.png,on.png,results.json}`. 이미지를 직접 열어 활성 +/−·chevron이 보이고 disabled·브랜드·기타 제외군은 그대로인 것을 확인했어요. 부하 표본: maxOwned96, 규칙98, cap20, changed99, 전체 sheetWrites7. 수량 UI는 합성 검수이며 실제 제품/사이트 검수와 배포는 root가 맡아요. 담당 구현 완료·통합 대기예요.
+
 ## Smartstore 초기 진단 — 429 장벽 / 실제 상품·cart 미접근
 
 - root 경계 수정 1.2.64 배포 완료: 앱cf7b14a CI42759682072/Release42759685437 success, 양쪽 ZIP 게시. 전체 JS267+Bun+타입·ZIP/eval/권한과 실제 제품 divider/글자/focus/OFF, 저대비라운드카드 안정성 검사 통과. source/제품 합성 검증이며 실제 cart blank 해결 증거는 아니에요.
-- 사용자 OFF 정상 확인. Chrome 등록 폴더 manifest1.2.63과 저장된HTTPS전체grant true를 읽기전용 확인했지만 살아 있는 페이지runtime 버전/DOM은 읽지 않았어요. root가 ON+상품 페이지 새로고침 뒤 cart 재열기 대조 질문을 보냈고 응답 대기예요. 실제 빈 추천/수량 paint는 미해결, 팀 idle·추가 실행 없음.
+- 사용자 OFF 정상 확인. Chrome 등록 폴더 manifest1.2.63과 저장된HTTPS전체grant true를 읽기전용 확인했지만 살아 있는 페이지runtime 버전/DOM은 읽지 않았어요. 사용자가 ON+새로고침 후 cart 추천이 정상이라고 확인했어요. 새로고침 해소와 원인/코드 효과는 구별해요. 실제 수량 paint는 미확인, 팀 idle·추가 실행 없음.
 - 시작 기준 앱a2f9722/1.2.63, 현재 문서HEAD06e476a. 공개 disposable Chrome에서 지정 상품 URL 1회 접근 결과 HTTP429, title `[에러] 에러페이지 - 시스템오류`, 본문 `현재 서비스 접속이 불가합니다`였어요. 상품 HTML/CSS/추천 sidebar/상품사진은 전달되지 않았고 stylesheet link도 없었어요.
 - 증거 C:/Users/Revaptor_FX/AppData/Local/Temp/be-smartstore-UUye7L/public.png. 오류 화면 외 상품 검사 결과는 없어요. 별도 host/UA/쿠키/개인프로필로 우회하거나 반복 재접속하지 않았고 장바구니 버튼도 누르지 않았어요. 구매/결제/실사용자 cart 변경 없음.
 - 따라서 실제 추천사진 빈칸이 로딩/레이어/엔진 때문인지, +/-가 SVG/border/mask인지 확정 불가. 원인보고 전 임의 표시/opacity/filter/사이트패치는 넣지 않아요. 현재 source 변경 없음.

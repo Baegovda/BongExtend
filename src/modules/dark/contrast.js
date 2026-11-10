@@ -23,7 +23,7 @@ const repairColor = (foreground, ratio, target) => {
   return null;
 };
 
-export function createContrastController(doc = document, {inspectImage} = {}) {
+export function createContrastController(doc = document, {inspectImage, inspectPseudo} = {}) {
   const win = doc.defaultView;
   const excluded = 'img,picture,video,canvas,iframe,script,style,noscript,[hidden],[inert],[aria-hidden="true"],[disabled],[aria-disabled="true"],[contenteditable="true"],[data-bong-contrast-ignore],.pt-page-translator-sweep,[role="img"],.gmail_quote,.a3s,.ii,[data-message-id]';
   const records = new WeakMap(), refs = new Set(), elementRefs = new WeakMap(), ownStyles = new WeakMap(), markers = new WeakMap();
@@ -112,6 +112,8 @@ export function createContrastController(doc = document, {inspectImage} = {}) {
   };
   const inspect = el => {
     restore(el);
+    // Small transparent logo images use the image classifier, never text/card repair.
+    if (el.tagName === 'IMG') {inspectImage?.(el); return;}
     if (!el.isConnected || el.closest(excluded)) return;
     const rect = el.getBoundingClientRect();
     if (rect.width < 1 || rect.height < 1 || rect.bottom < -100 || rect.top > win.innerHeight + 100 || rect.right < 0 || rect.left > win.innerWidth) return;
@@ -130,6 +132,7 @@ export function createContrastController(doc = document, {inspectImage} = {}) {
     if (Number(s.opacity) < .99) return;
     const bg = background(el);
     if (!bg) return;
+    if (luminance(bg) <= .25) inspectPseudo?.(el, bg);
     // Associate only explicit legend modifiers with matching data category values.
     // No domain names, dates, counts, text rewriting or chart-wide recoloring.
     if (rect.width >= 4 && rect.width <= 40 && rect.height >= 4 && rect.height <= 40 && !el.textContent.trim()) {
@@ -178,6 +181,21 @@ export function createContrastController(doc = document, {inspectImage} = {}) {
         return;
       }
     }
+    // Unify only near-identical neutral, borderless, broad document canvases.
+    // Cards, controls, overlays, branded bands and artwork keep their own depth.
+    const canvasStyle = styleOf(doc.body || doc.documentElement);
+    const canvas = parseColor(canvasStyle.backgroundColor);
+    if (el.matches('main,section,div') && !el.closest('header,footer,nav,form,dialog,[role="dialog"],[role="button"],[aria-selected="true"]') &&
+        ['static','relative'].includes(s.position) && rect.width >= win.innerWidth * .85 && rect.height >= win.innerHeight * .4 &&
+        surface?.[3] >= .99 && canvas?.[3] >= .99 && canvasStyle.backgroundImage === 'none' &&
+        Math.max(...canvas.slice(0,3)) <= 45 && Math.max(...surface.slice(0,3)) <= 45 &&
+        Math.max(...surface.slice(0,3))-Math.min(...surface.slice(0,3)) <= 12 &&
+        Math.max(...canvas.slice(0,3))-Math.min(...canvas.slice(0,3)) <= 12 && contrastRatio(surface,canvas) <= 1.25 &&
+        s.boxShadow === 'none' && ['Top','Right','Bottom','Left'].every(side => !parseFloat(s[`border${side}Width`])) &&
+        ['TopLeft','TopRight','BottomLeft','BottomRight'].every(corner => !parseFloat(s[`border${corner}Radius`])) && !changingPaint(el,s)) {
+      if (surface.slice(0,3).some((v,i)=>v !== canvas[i])) write(el,'background-color',`rgb(${canvas.slice(0,3).join(', ')})`);
+      return;
+    }
     const sides = ['Top','Right','Bottom','Left'];
     const closedBorder = sides.every(side => parseFloat(s[`border${side}Width`]) > 0 && !['none','hidden'].includes(s[`border${side}Style`]));
     const rounded = ['TopLeft','TopRight','BottomLeft','BottomRight'].some(corner => parseFloat(s[`border${corner}Radius`]) >= 4);
@@ -189,7 +207,7 @@ export function createContrastController(doc = document, {inspectImage} = {}) {
       if (visibleBorder || visibleShadow) return;
       write(el, 'outline', '1px solid rgba(190, 202, 218, 0.35)');
       write(el, 'outline-offset', '-1px');
-      if (Math.max(...bg.slice(0,3)) - Math.min(...bg.slice(0,3)) < 35) write(el, 'background-color', `rgb(${bg.slice(0,3).map(v => Math.round(Math.min(255,v+7))).join(', ')})`);
+      // Strengthen the edge without conditionally tinting nested card fills.
     }
   };
   const enqueue = root => {
@@ -264,10 +282,10 @@ export function createContrastController(doc = document, {inspectImage} = {}) {
     start() {
       if (active) return;
       active = true;
-      observer.observe(doc, {subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['style','class','fill','stroke','hidden','disabled','aria-disabled','aria-hidden','aria-selected','aria-current','role','data-darkreader-scheme']});
+      observer.observe(doc, {subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['style','class','src','srcset','sizes','fill','stroke','hidden','disabled','aria-disabled','aria-hidden','aria-selected','aria-current','role','data-darkreader-scheme']});
       win.addEventListener('scroll', update, {passive: true, capture: true}); win.addEventListener('resize', update); update();
       doc.addEventListener('transitionend', settledEffect); doc.addEventListener('animationend', settledEffect);
-      doc.addEventListener('focusin', focusChanged); doc.addEventListener('focusout', focusChanged);
+      doc.addEventListener('load', focusChanged, true); doc.addEventListener('focusin', focusChanged); doc.addEventListener('focusout', focusChanged);
     },
     update,
     stop() {
@@ -275,7 +293,7 @@ export function createContrastController(doc = document, {inspectImage} = {}) {
       if (scheduled) {if (win.cancelIdleCallback) win.cancelIdleCallback(scheduled); else win.clearTimeout(scheduled);} scheduled = 0;
       win.removeEventListener('scroll', update, true); win.removeEventListener('resize', update);
       doc.removeEventListener('transitionend', settledEffect); doc.removeEventListener('animationend', settledEffect);
-      doc.removeEventListener('focusin', focusChanged); doc.removeEventListener('focusout', focusChanged);
+      doc.removeEventListener('load', focusChanged, true); doc.removeEventListener('focusin', focusChanged); doc.removeEventListener('focusout', focusChanged);
       roots.clear(); swatches.clear(); semanticColors = new WeakMap(); iterator = null;
       for (const ref of refs) {const el = ref.deref(); if (el) restore(el);} refs.clear();
     },

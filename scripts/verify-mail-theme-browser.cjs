@@ -20,11 +20,14 @@ const {chromium}=require('playwright'),fs=require('node:fs'),path=require('node:
   },settings.DEFAULT_DARK_SETTINGS);await page.waitForTimeout(350);
   assert.equal(await page.locator('#ui').evaluate(e=>e.style.cssText),ui);assert.equal(await page.locator('#editor').evaluate(e=>e.style.cssText),editor);assert.equal(await page.locator('#art').getAttribute('src'),image);
   assert.notEqual(await page.locator('#mail').evaluate(e=>getComputedStyle(e).backgroundColor),'rgb(255, 255, 255)');
+  assert.equal(await page.locator('#mail').evaluate(e=>getComputedStyle(e).colorScheme),'dark');
+  assert.notEqual(await page.locator('#mail').evaluate(e=>getComputedStyle(e).scrollbarColor),'auto');
   assert.equal(await page.locator('#hidden').evaluate(e=>getComputedStyle(e).display),'none');
   assert.deepEqual(await page.locator('#vector').evaluate(e=>({html:e.outerHTML,color:getComputedStyle(e).color})),vector);
   const passes=await page.evaluate(()=>mailTheme.stats.passes);await page.waitForTimeout(150);assert.equal(await page.evaluate(()=>mailTheme.stats.passes),passes);
   await page.evaluate(()=>document.querySelector('#mail').insertAdjacentHTML('beforeend','<p id="late" style="background:white;color:#111">나중에 도착한 번역문</p>'));await page.waitForTimeout(100);assert.notEqual(await page.locator('#late').evaluate(e=>getComputedStyle(e).backgroundColor),'rgb(255, 255, 255)');
   await page.screenshot({path:path.join(folder,'dark.png')});await page.evaluate(()=>mailTheme.stop());assert.equal(await page.locator('#mail').evaluate(e=>e.style.backgroundColor),'white');
+  assert.equal(await page.locator('#mail').evaluate(e=>e.style.getPropertyValue('color-scheme')),'');assert.equal(await page.locator('#mail').evaluate(e=>e.style.getPropertyValue('scrollbar-color')),'');
   assert.equal(await page.locator('table').getAttribute('bgcolor'),'#ffffff');await page.screenshot({path:path.join(folder,'restored.png')});
   await page.evaluate(()=>{const root=document.querySelector('#mail');root.innerHTML=Array.from({length:10000},()=>'<p style="background:white;color:#111">Large mail</p>').join('');mailTheme.update(true,{darkSchemeBackgroundColor:'#181a1b',darkSchemeTextColor:'#e8e6e3',lightSchemeBackgroundColor:'#fff',lightSchemeTextColor:'#181a1b',mode:1,brightness:100,contrast:100,grayscale:0,sepia:0})});
   await page.waitForTimeout(2000);const stats=await page.evaluate(()=>({...mailTheme.stats}));assert.equal(stats.limitHit,true);assert.ok(stats.maxBatch<=120);

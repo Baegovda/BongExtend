@@ -1,19 +1,12 @@
-Continue the existing BongExtend project: https://github.com/Baegovda/BongExtend
+BongExtend 총괄팀 2 인수. 기존 작업: https://github.com/Baegovda/BongExtend
 
-Use the existing checkout. Its Git root may be work/BongExtend beneath the workspace; locate it first. Do not reset, clean or reclone unnecessarily.
+실제 Git root는 C:/Users/Revaptor_FX/Documents/Codex/2026-11-04/https-github-com-baegovda-bongextend-https/work/BongExtend 이고 C:/Users/Revaptor_FX/Documents/BongExtend는 사용자 배포 폴더예요. reset/clean/reclone/사용자 프로필 CDP 금지. 기존 변경/저장값/로그인/키를 보존해요.
+AGENTS.md → MERGE_NOTES.md → HANDOVER.md 최신 섹션 → docs/team/COORDINATION.md 순서로 읽으세요. 실제 package.json/Release가 낡은1.2.40 메모보다 우선이에요. 이번 기준은1.2.65, 최종 앱 SHA·CI/Release·ZIP 증거는 최신 HANDOVER에 있어요. 게시와 사용자 설치/열린 페이지 runtime은 구별해요.
 
-Read in order: AGENTS.md, MERGE_NOTES.md, HANDOVER.md. The handoff replaces stale v1.2.10 notes. Current user instructions and higher-priority instructions override old repository notes.
+사용자가 현재 작업을 마친 후 총괄+8팀 모든 세션을 새로 열고 이름 끝에 차수 숫자를 넣으라고 직접 요청했어요. 이 채팅과 새 모듈 채팅은2차, COORDINATION의 새 ID를 재사용해요. 팀은 사용자에게 별도 진행/질문/완료 알림을 보내지 않고 자기 REPORT/인수 파일로만 총괄에게 보고해요. 필요한 담당만 medium 이하, Astra는 극난도/다른 합리적 접근 수차례 실패만 예외. 토큰 낭비 없이 집중 검수하고 passing 전체검사 반복하지 않아요.
 
-Baseline: app v1.2.40, application commit 4172675 on main. Both Chrome and Windows video-helper ZIPs were published and CI/Release passed. Later documentation commits do not change the app version. Publication does NOT prove installation in the user's Chrome or refresh of existing pages.
+1.2.65: 공통 CSS pseudo ±/화살표 대비, 작은 투명 IMG 중립 로고 보정(브랜드/alpha/source/geometry 보존), 카드 fill 덧칠 제거/넓은 중립 canvas 제한 정리, Gmail/Naver 마우스뒤로가기 및 body scrollbar/iframe경계 다크 적용. 상세 파일/한계/실패수정/시험 경로는 HANDOVER와 mail/dark REPORT.
+Smartstore cart 추천 빈칸은 사용자 ‘다크 ON 뒤 페이지 새로고침하면 정상’으로 업데이트했어요. 원인/코드 수정 효과로 단정하지 않아요. 실제 수량/로고 paint DOM은429로 확인 못했고 다른 host/UA/cookies/profiles로 재접속/우회하지 않아요. 사적인 결제/주문/cart를 조작하지 않아요.
+실제 로그인 Gmail/Naver API·전송·치지직 광고·영상native연결·몰테일사진 문제 등 미확인 항목은 최신 인계를 따르고 사용자 새 요청 없이 무기한 조사하지 않아요.
 
-Completed:
-- 1.2.40: BongExtend-themed mail detail UI, pinned subject, Korean actions, preserved sender HTML colors/images, resizable separate app window with drag/keyboard grip and remembered dimensions.
-- 1.2.39: removed Ctrl+Shift+L and its native shortcut helper. Chzzk wide mode uses chrome.windows fullscreen (F11 behavior) and restores owned changes. Never reintroduce that tab shortcut.
-- 1.2.38: fixed repeated Dark Reader inline-script CSP errors with a packaged MAIN-world upstream proxy. A separate Failed to fetch remains untraced.
-- 1.2.37: list-style downloader with OS icons, video context menu, frameless in-page OTP card, mail profile restoration and original sounds. User-facing module name: 다운로더. Keep BongExtend's shell and theme.
-
-HANDOVER.md records files, storage keys, exact tests and unverified live scenarios. Synthetic Chrome fixtures do not prove live Gmail/Chzzk/Taobao behavior. Real-account sending, mail/draft transfer to new windows, live ad cycles, latest installed Chrome version and native video-host connection are not proven. There is no unfinished coding task or background agent at this handoff.
-
-Respond in easy Korean 해요체. Own authorized diagnosis, fixes, focused validation, push and release without repeated approval already granted. Respect higher-priority instructions and actual tool permissions. Preserve data and credentials. Reuse evidence instead of repeating passing checks to take over. Follow the read-only Windows inspection rule; use disposable browser profiles for fixtures, never the user's real profile via Playwright/CDP. Never bypass a safety barrier.
-
-Continue the next concrete user request from this context. Without a new task, briefly acknowledge the handoff; do not invent an endless backlog or rerun all tests. Ask only for indispensable information after independent useful work. Do not claim continued work after the session ends unless a real authorized process is running.
+이번 인수는 필요한 문서 읽기와 준비 상태 기록만 하고, 새 요청이 없으면 짧게 인수 확인 후 대기해요. 임의 앱 수정/추가 릴리스/전체 재시험/자체백로그를 만들지 않아요. 쉬운 한국어 해요체, 완료 항목은 한 줄 전체 굵은 목록. 실제 실행 프로세스 없으면 계속 작업 중이라고 주장하지 않아요.

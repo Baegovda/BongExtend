@@ -44,6 +44,8 @@ const fs=require('node:fs'), path=require('node:path'), os=require('node:os'), h
       const body=document.querySelector('.messageBody');
       setSafeHTML(body,`<div id="whiteMail" style="background:#fff;color:#202124;padding:24px;border:1px solid #dadce0;border-radius:12px"><div style="font-size:24px;font-weight:700;color:#1a73e8">MAIL</div><h2 style="color:#202124">Security notice</h2><p style="color:#202124">Security details for your account</p><p>Plain text stays readable.</p><a href="https://example.invalid/" style="background:#1a73e8;color:#fff;padding:10px 18px;display:inline-block;border-radius:6px">Review activity</a></div><div id="darkMail" style="background:#172033;color:#fff;padding:24px;margin-top:18px;border-radius:12px"><h3 style="color:#fff">Original dark email</h3><p style="color:#fff">White text on the sender's dark background.</p><img alt="테스트 이미지" width="48" height="24" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='24'%3E%3Crect width='48' height='24' fill='red'/%3E%3C/svg%3E"></div>`);
       hideRemoteMessageBackgrounds(body);
+      // The synthetic mount bypasses openEmailPromise; bind its real controls.
+      initOpenEmailEventListeners();
     };
     await frame.evaluate(mountReader);
     await frame.evaluate(()=>document.getAnimations().forEach(animation=>animation.finish()));
@@ -187,6 +189,15 @@ const fs=require('node:fs'), path=require('node:path'), os=require('node:os'), h
     }
     assert.equal(webStatus?.enabled,true);
     console.log('PASS website context menu enables translation on the clicked tab');
+    const popupBeforeBack=page.url();
+    await frame.evaluate(()=>{const draft=document.getElementById('reply-textarea');if(draft)draft.textContent='작성 중인 합성 답장';});
+    const backInput=await context.newCDPSession(page),mailBox=await frame.locator('#openEmailSection').boundingBox();
+    await backInput.send('Input.dispatchMouseEvent',{type:'mousePressed',button:'back',buttons:8,x:mailBox.x+40,y:mailBox.y+120});await backInput.send('Input.dispatchMouseEvent',{type:'mouseReleased',button:'back',buttons:0,x:mailBox.x+40,y:mailBox.y+120});
+    await frame.waitForFunction(()=>!document.getElementById('openEmailSection').classList.contains('active'));
+    assert.equal(page.url(),popupBeforeBack);assert.equal(await frame.locator('#reply-textarea').textContent(),'작성 중인 합성 답장');
+    await frame.evaluate(mountReader);await page.waitForFunction(()=>history.state?.beReaderNavigation===true);await page.evaluate(()=>history.back());
+    await frame.waitForFunction(()=>!document.getElementById('openEmailSection').classList.contains('active'));assert.equal(page.url(),popupBeforeBack);
+    console.log('PASS Gmail auxiliary/history back stays in popup and keeps the existing reply draft');
     assert.deepEqual(errors,[]); assert.deepEqual(await worker.evaluate(()=>__testErrors),[]);
     console.log('screenshots',temp);
   } finally {await context.close();server.closeAllConnections();await new Promise(resolve=>server.close(resolve));}

@@ -43,6 +43,10 @@ export function createMailThemeController(root, mappers) {
     if (el !== root && !root.contains(el)) return;
     if (el.closest(exclude)) return;
     const style = win.getComputedStyle(el);
+    if(el===root){
+      write(el,'color-scheme','dark',style.colorScheme);
+      write(el,'scrollbar-color',`#70757d ${theme.darkSchemeBackgroundColor||'#181a1b'}`,style.scrollbarColor);
+    }
     if (style.display === 'none' || style.visibility !== 'visible' || style.filter !== 'none' || style.mixBlendMode !== 'normal') return;
     const original = {color: inheritedSource(el, style.color), background: style.backgroundColor, image: style.backgroundImage};
     const edges = ['Top','Right','Bottom','Left'].filter(side => parseFloat(style[`border${side}Width`]) > 0 && style[`border${side}Style`] !== 'none').map(side => [side, style[`border${side}Color`]]);

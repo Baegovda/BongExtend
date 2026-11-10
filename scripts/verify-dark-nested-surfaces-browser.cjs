@@ -17,7 +17,7 @@ const assert=require('node:assert/strict');
   fs.writeFileSync(path.join(folder,'results.json'),JSON.stringify({baseline,helper,stopped},null,2));
   for(const id of ['frame','flat','nested','divider','clear']) assert.deepEqual(helper.find(e=>e.id===id),baseline.find(e=>e.id===id),id+' preserved');
   assert.match(helper.find(e=>e.id==='low').outline,/solid/,'low-contrast rounded card strengthened');
-  assert.notEqual(helper.find(e=>e.id==='low').bg,baseline.find(e=>e.id==='low').bg);
+  assert.equal(helper.find(e=>e.id==='low').bg,baseline.find(e=>e.id==='low').bg,'card fill preserved');
   assert.deepEqual(stopped,baseline,'helper stop restores upstream');
   await page.evaluate(()=>DarkReader.disable());await page.waitForTimeout(100);
   assert.equal(await page.locator('#low').evaluate(e=>getComputedStyle(e).backgroundColor),'rgb(255, 255, 255)');

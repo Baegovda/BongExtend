@@ -8,6 +8,7 @@ type Body={id:string;html:string;plain?:boolean;subject?:string;sender?:string;a
 export function createNaverReader(doc:Document){
  const appearance=createMailThemeView(doc,'mail.naver.com');
  let unbindWheel:(()=>void)|undefined;
+ let unbindBodyNavigation:(()=>void)|undefined;
  const sheet=doc.createElement('link');sheet.rel='stylesheet';sheet.href=chrome.runtime.getURL('naver-reader.css');doc.head.append(sheet);
  const view=doc.createElement('section');view.id='beNaverReader';view.className='be-naver-reader';view.hidden=true;
  view.setAttribute('role','region');view.setAttribute('aria-labelledby','beNaverSubject');
@@ -19,7 +20,8 @@ export function createNaverReader(doc:Document){
  let current:{account:string;summary:Summary}|null=null,opener:HTMLElement|null=null,controller:AbortController|null=null,generation=0,zoom=80;
  const connected=(stored:Record<string,unknown>,account:string)=>{const config=stored[CONFIG_KEY] as {enabled?:boolean;id?:string}|undefined;return config?.enabled&&config.id===account&&(stored['core.modules'] as {gmail?:boolean}|undefined)?.gmail!==false;};
  let wrapper:HTMLElement|null=null,wasInert=false;
- const close=()=>{generation++;controller?.abort();controller=null;current=null;unbindWheel?.();unbindWheel=undefined;appearance.sync([],bar);body.srcdoc='';body.hidden=true;view.hidden=true;doc.documentElement.classList.remove('be-naver-reading');if(wrapper)wrapper.inert=wasInert;wrapper=null;if(opener?.isConnected)opener.focus();else doc.querySelector<HTMLButtonElement>('#naverMailList button')?.focus();};
+ const close=()=>{generation++;controller?.abort();controller=null;current=null;unbindWheel?.();unbindWheel=undefined;unbindBodyNavigation?.();unbindBodyNavigation=undefined;appearance.sync([],bar);body.srcdoc='';body.hidden=true;view.hidden=true;doc.documentElement.classList.remove('be-naver-reading');if(wrapper)wrapper.inert=wasInert;wrapper=null;if(opener?.isConnected)opener.focus();else doc.querySelector<HTMLButtonElement>('#naverMailList button')?.focus();};
+ const navigation=(doc.defaultView as unknown as {BongExtendReaderZoom?:{navigation(options:{isOpen:()=>boolean;back:()=>void}):{sync():void;addDocument(doc:Document):()=>void;stop():void}}}).BongExtendReaderZoom?.navigation({isOpen:()=>!view.hidden,back:close});
  const back=make('← 메일함',close),original=make('네이버에서 열기',()=>{if(current)void chrome.tabs.create({url:mailUrl(current.summary.id)});});
  original.title='답장·첨부 파일 등 전체 기능은 네이버에서 사용할 수 있어요.';
  const setZoom=(value:number)=>{zoom=value;scale.textContent=zoom+'%';scale.setAttribute('aria-pressed',String(zoom===100));if(body.contentDocument?.body)body.contentDocument.body.style.zoom=String(zoom/100);};
@@ -31,10 +33,12 @@ export function createNaverReader(doc:Document){
  view.addEventListener('mouseup',event=>event.stopPropagation());
  body.addEventListener('load',()=>{
   unbindWheel?.();unbindWheel=undefined;
+  unbindBodyNavigation?.();unbindBodyNavigation=undefined;
   const root=body.contentDocument?.body;
   if(view.hidden||!root||body.hidden)return;
   const zoomApi=(doc.defaultView as unknown as {BongExtendReaderZoom?:{bind(target:EventTarget,options:{get:()=>number;set:(n:number)=>void}):()=>void}}).BongExtendReaderZoom;
   unbindWheel=zoomApi?.bind(root.ownerDocument,{get:()=>zoom,set:setZoom});
+  unbindBodyNavigation=navigation?.addDocument(root.ownerDocument);
   // This isolated document contains only sender content, including its canvas.
   appearance.sync([root.ownerDocument.documentElement],bar);
  });
@@ -59,9 +63,9 @@ export function createNaverReader(doc:Document){
   open(account:string,summary:Summary,trigger:HTMLElement){
    opener=trigger;current={account,summary};zoom=80;scale.textContent='80%';scale.setAttribute('aria-pressed','false');
    if(view.hidden){wrapper=doc.querySelector<HTMLElement>('.pageWrapper');wasInert=Boolean(wrapper?.inert);if(wrapper)wrapper.inert=true;}
-   view.hidden=false;doc.documentElement.classList.add('be-naver-reading');subject.textContent=summary.subject;sender.textContent=summary.sender;back.focus();void load();
+   view.hidden=false;navigation?.sync();doc.documentElement.classList.add('be-naver-reading');subject.textContent=summary.subject;sender.textContent=summary.sender;back.focus();void load();
   },
   close,
-  dispose(){close();appearance.stop();view.remove();sheet.remove();},
+  dispose(){close();navigation?.stop();appearance.stop();view.remove();sheet.remove();},
  };
 }

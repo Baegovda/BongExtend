@@ -5,6 +5,13 @@
   function enhance() {
     const section = document.getElementById('openEmailSection');
     if (!section) return;
+    navigation?.sync();
+    for(const [frame,state] of bodyFrameDocs)if(!section.contains(frame)){state.remove?.();bodyFrameDocs.delete(frame);}
+    for(const frame of section.querySelectorAll('iframe')){
+      if(!watchedFrames.has(frame)){watchedFrames.add(frame);frame.addEventListener('load',enhance);}
+      let doc;try{doc=frame.contentDocument;}catch{continue;}
+      if(doc&&bodyFrameDocs.get(frame)?.doc!==doc){bodyFrameDocs.get(frame)?.remove?.();bodyFrameDocs.set(frame,{doc,remove:navigation?.addDocument(doc)});}
+    }
     const title = section.querySelector('#openEmailHeader'), scroller = section.querySelector('#openEmail');
     if (title && scroller && title.parentElement === scroller) scroller.before(title);
     for (const [id, text] of Object.entries(labels)) {
@@ -46,7 +53,10 @@
     }
   };
   const section = document.getElementById('openEmailSection');
-  if (section) new MutationObserver(enhance).observe(section, {childList:true, subtree:true});
+  const bodyFrameDocs=new Map(),watchedFrames=new WeakSet();
+  const navigation=globalThis.BongExtendReaderZoom?.navigation({isOpen:()=>Boolean(section?.classList.contains('active')),back:()=>section?.querySelector('#back')?.click()});
+  window.addEventListener('pagehide',()=>navigation?.stop(),{once:true});
+  if (section) new MutationObserver(enhance).observe(section, {childList:true, subtree:true,attributes:true,attributeFilter:['class']});
   enhance();
   // Presentation only: native account objects, indexes and mouseup actions stay intact.
   const inbox=document.getElementById('inbox');

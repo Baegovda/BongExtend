@@ -35,7 +35,10 @@ export function createMailThemeView(doc:Document,hostname:string){
   const enabled=loaded&&moduleOn&&mode!=='original'&&(mode==='dark'||media.matches);
   const theme={lightSchemeBackgroundColor:'#dcdad7',lightSchemeTextColor:'#181a1b',...darkThemeForSite(settings,hostname),mode:1};
   select.value=mode;select.disabled=!loaded||!moduleOn;select.title=!moduleOn?'다크 모듈을 켜면 본문에도 적용할 수 있어요.':'자동: 앱 테마에 맞춤 · 다크: 항상 적용 · 원본 색: 발신자 색으로 보기';
-  for(const controller of controllers.values())controller.update(enabled,theme);
+  for(const [root,controller] of controllers){
+   controller.update(enabled,theme);
+   if(root===root.ownerDocument.documentElement){const frame=root.ownerDocument.defaultView?.frameElement as HTMLElement|null;if(frame)frame.dataset.beMailTheme=enabled?'dark':'original';}
+  }
  };
  listeners.add(apply);void ready.then(apply);
  return {

@@ -33,15 +33,15 @@ export function createIconContrastController(doc = document, onSettled = () => {
   let active = false, generation = 0, pending = 0;
   const restore = el => {
     const r = records.get(el); if (!r) return;
-    if (el.style.getPropertyValue('background-image') === r.written && el.style.getPropertyPriority('background-image') === 'important') {
-      if (r.value) el.style.setProperty('background-image', r.value, r.priority); else el.style.removeProperty('background-image');
+    if (el.style.getPropertyValue(r.property) === r.written && el.style.getPropertyPriority(r.property) === 'important') {
+      if (r.value) el.style.setProperty(r.property, r.value, r.priority); else el.style.removeProperty(r.property);
     }
     if (el.getAttribute('data-bong-icon-owned') === '1') {
       if (r.marker == null) el.removeAttribute('data-bong-icon-owned'); else el.setAttribute('data-bong-icon-owned', r.marker);
     }
     records.delete(el);
   };
-  const signature = el => [el,el.parentElement,el.parentElement?.parentElement].map(e=>e?.getAttribute('class') || '').join('|');
+  const signature = el => [el,el.parentElement,el.parentElement?.parentElement].map(e=>e?.getAttribute('class') || '').join('|') + '|' + (el.tagName === 'IMG' ? el.currentSrc : '');
   const backdrop = el => {
     for (let n = el, depth = 0; n && depth++ < 16; n = n.parentElement) {
       const s = win.getComputedStyle(n);
@@ -117,30 +117,38 @@ export function createIconContrastController(doc = document, onSettled = () => {
     } catch {return null;} finally {bitmap?.close?.();if(objectURL)win.URL.revokeObjectURL(objectURL);win.clearTimeout(timer);aborts.delete(controller);}
   };
   const inspect = el => {
-    if (!active || !el.isConnected || el.namespaceURI !== 'http://www.w3.org/1999/xhtml' || el.closest('[hidden],[disabled],[aria-disabled="true"],[contenteditable],.a3s,.ii,[data-message-id]')) return;
-    const control = el.closest('button,a,[role="button"]');
-    const searchControl = !control && /^(SPAN|I)$/.test(el.tagName) && el.parentElement?.children.length <= 2 && el.parentElement?.parentElement?.querySelector('input[type="search"],input[type="text"],input:not([type])');
-    if (!control && !searchControl) return;
+    if (!active || !el.isConnected || el.namespaceURI !== 'http://www.w3.org/1999/xhtml') return;
     const old=records.get(el);
-    if (old && old.written === el.style.getPropertyValue('background-image') && old.signature === signature(el)) return;
+    if (el.closest('[hidden],[inert],[aria-hidden="true"],[disabled],[aria-disabled="true"],[contenteditable],[data-bong-contrast-ignore],.a3s,.ii,[data-message-id]')) {if(old)restore(el);return;}
+    const control = el.closest('button,a,[role="button"]');
+    const image = el.tagName === 'IMG';
+    const searchControl = !control && /^(SPAN|I)$/.test(el.tagName) && el.parentElement?.children.length <= 2 && el.parentElement?.parentElement?.querySelector('input[type="search"],input[type="text"],input:not([type])');
+    if (!image && !control && !searchControl) return;
+    const bg=backdrop(el);
+    if (old && old.written === el.style.getPropertyValue(old.property) && old.signature === signature(el) && bg && old.background === bg.join(',')) return;
     if (old) restore(el);
     const rect=el.getBoundingClientRect();
-    if(rect.width<4||rect.height<4||rect.width>160||rect.height>64)return;
+    if(rect.width<4||rect.height<4||rect.width>160||rect.height>64||rect.bottom<0||rect.top>win.innerHeight||rect.right<0||rect.left>win.innerWidth)return;
+    // Standalone logos must be short, wide, labelled glyph assets. Square
+    // images require a genuine control; product photos remain original.
+    if(image && !control && (rect.height>40 || rect.width/rect.height<1.4 || !el.alt?.trim()))return;
     const style=win.getComputedStyle(el);
     if(style.filter!=='none'||style.visibility!=='visible'||Number(style.opacity)<.99)return;
-    const originalImage=style.backgroundImage, originalSignature=signature(el);
-    const match=originalImage.match(/^url\(["']?((?:https?:|data:image\/)[^"']+?)["']?\)$/);
-    if(!match)return;
+    const property=image?'content':'background-image';
+    if(image && (el.style.getPropertyValue('content') || style.content!=='normal'))return;
+    const originalImage=image?el.currentSrc:style.backgroundImage, originalSignature=signature(el);
+    const match=image?[null,originalImage]:originalImage.match(/^url\(["']?((?:https?:|data:image\/)[^"']+?)["']?\)$/);
+    if(!match || !match[1])return;
     let url;try{url=new URL(match[1]);if(url.username||url.password)return;
       if(url.protocol==='data:'){if(url.href.length>174764||!/^data:image\/(?:svg\+xml|png|webp)(?:;[^,]*)?,/i.test(url.href))return;}
       else if(!/^https?:$/.test(url.protocol))return;
     }catch{return;}
-    const bg=backdrop(el);if(!bg||contrastRatio([255,255,255,1],bg)<4.5)return;
+    if(!bg||contrastRatio([255,255,255,1],bg)<4.5)return;
     const key=url.href+'|'+bg.slice(0,3).map(Math.round).join(',');
     const apply=result=>{
-      if(!active||!result||!el.isConnected||win.getComputedStyle(el).backgroundImage!==originalImage||signature(el)!==originalSignature)return;
-      const record={value:el.style.getPropertyValue('background-image'),priority:el.style.getPropertyPriority('background-image'),marker:el.getAttribute('data-bong-icon-owned'),signature:signature(el),written:''};
-      el.setAttribute('data-bong-icon-owned','1');el.style.setProperty('background-image',`url("${result}")`,'important');record.written=el.style.getPropertyValue('background-image');
+      if(!active||!result||!el.isConnected||(image?el.currentSrc:win.getComputedStyle(el).backgroundImage)!==originalImage||signature(el)!==originalSignature||el.closest('[hidden],[inert],[aria-hidden="true"],[disabled],[aria-disabled="true"]')||backdrop(el)?.join(',')!==bg.join(','))return;
+      const record={property,background:bg.join(','),value:el.style.getPropertyValue(property),priority:el.style.getPropertyPriority(property),marker:el.getAttribute('data-bong-icon-owned'),signature:signature(el),written:''};
+      el.setAttribute('data-bong-icon-owned','1');el.style.setProperty(property,`url("${result}")`,'important');record.written=el.style.getPropertyValue(property);
       records.set(el,record);refs.add(new WeakRef(el));
     };
     if(cache.has(key)){const cached=cache.get(key);if(typeof cached==='string')apply(cached);return;}
