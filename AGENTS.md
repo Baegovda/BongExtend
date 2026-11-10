@@ -10,6 +10,8 @@
 
 ## Primary execution policy — act first, report after
 
+최우선 작업 기조는 **토큰 낭비를 최소화하면서 효율적이고 꼼꼼하고 빠르게 끝내기**예요. 기존 근거를 재사용하고 검색·출력 범위를 좁히며, 독립 작업만 묶어서 병렬 처리해요. 팀은 꼭 필요한 담당만 호출하고 변경 위험에 맞는 검증으로 마무리해요. 중복 조사·통과한 검사 반복·과도한 지시 왕복·불필요한 설명은 줄이되, 필수 검증·데이터 보호·실제 화면 확인·미검증 한계 보고는 생략하지 않아요.
+
 This is the owner's primary working agreement for this project, within higher-priority instructions and actual tool permissions.
 
 - Complete authorized work end to end, including an already authorized release. Do not stop at a plan, partial fix, routine obstacle, or permission already granted.
