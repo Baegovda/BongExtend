@@ -5,9 +5,9 @@
 ## 최신 인계 — v1.2.67 인증번호 붙여넣기 후 읽음
 
 - 사용자 요청대로 기존 메일 OTP 자동복사 성공 후 원본mail을10분/최신1건 opaque token에 연결해요. 허용된 웹페이지의 ISOLATED watcher에서 trusted paste + 정확한 코드일치 + 실제 insertFromPaste input/값변화를 확인한 뒤 해당 mail.markAsRead()만 호출해요. 복사만/다른번호/예방된paste/가짜event/중복/OFF/만료는 읽음 처리하지 않아요. 기존 Gmail API·배지·메일함 갱신 경로를 재사용하고 새 단축키/권한요청/클립보드 읽기 권한 없음.
-- tracker·watcher의 코드는 메모리 전용, source mail/account 식별자·opaque token/허용tab/frame/document·만료시각만 trusted extension session storage core.mailOtpPastePending에 보관해요. 워커 재시작 때 이미 주입된 웹문서가 붙여넣기를 보내면 정확한 계정email의 현재 getMails()에서 같은mailId만 복구해 읽음처리해요. 번호/본문은 저장·전송하지 않아요. sender/runtime ID·웹 URL·document ID·token·TTL·설정·동시1회 검증을 거쳐요.
+- tracker·watcher의 코드는 메모리 전용, source mail/account 식별자·opaque token/허용tab/frame/document·만료시각만 trusted extension session storage core.mailOtpPastePending에 보관해요. 워커 재시작 때 이미 주입된 웹문서가 붙여넣기를 보내면 정확한 계정email의 현재 getMails()에서 같은mailId만 복구해 읽음처리해요. 번호/본문은 저장하거나 외부 전송하지 않아요. sender/runtime ID·웹 URL·document ID·token·TTL·설정·동시1회 검증을 거쳐요.
 - 등록은 기존권한/activeTab을 쓰는 최대64웹탭(활성우선),동시4주입,허용frame이며 탭선택/로드에도 갱신해요. 권한없는페이지·브라우저내부/다른앱 붙여넣기·10분초과·워커재시작후 새탭에 새주입이 필요한경우·계정cache미복원은 안전하게 미처리해요. 사용자 실제 메일/계정 동작은 시험하지 않았어요.
-- 검증: 전체 JS275+Bun+타입 통과. bridge source session복구/같은account+mail/문서사칭거절/동시1회/만료/OFF 통과. 최종 제품 실제 offscreen clipboard→native Ctrl+V→원본합성mail만읽음, 복사만/가짜/차단/다른코드/중복/OFF(pKd8h6) PASS, 같은제품 앞선ePCASH 캡처 직접검수. ZIP/eval통과. 메일팀 Sol/medium source완료/idle, root 통합·검수·배포 담당. 배포 결과는 확인 후 추가해요.
+- 검증: 전체 JS275+Bun+타입 통과. bridge source session복구/같은account+mail/문서사칭거절/동시1회/만료/OFF 통과. 최종 제품 실제 offscreen clipboard→native Ctrl+V→원본합성mail만읽음, 복사만/가짜/차단/다른코드/중복/OFF(pKd8h6) PASS, 같은제품 앞선ePCASH 캡처 직접검수. ZIP/eval통과. 메일팀 Sol/medium source완료/idle, root 통합·검수·배포 담당. 배포 완료: 앱f26dbcbf4eec2fda60ae194a56f05ea5943d7637 main/v1.2.67, CI42803628247·Release42803632685 success, Chrome4,884,177바이트·Windows22,615바이트 uploaded 확인. 이후 문서 커밋은 앱 버전을 바꾸지 않아요. 사이트 자체가 paste를 막고 별도 이벤트로 번호를 분배하는 입력기는 안전하게 자동 읽음을 생략할 수 있어요.
 
 ## 이전 인계 — v1.2.66 상품 사진 합성 보호
 

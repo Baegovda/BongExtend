@@ -14,7 +14,7 @@
 - 환율: `01a1c3f1-8447-73d2-838d-301414ef1dac`, host `local`; 역할 `.cursor/agents/bong-fx.md`, 보고서 `docs/team/fx/REPORT.md`, 인수 `docs/team/session-2/fx.md`.
 - 우클릭: `01a1c3f1-867d-71d2-9bd8-91d0cf26a02d`, host `local`; 역할 `.cursor/agents/bong-rightclick.md`, 보고서 `docs/team/rightclick/REPORT.md`, 인수 `docs/team/session-2/rightclick.md`.
 
-앱1.2.66/907dc38, CI42801198965·Release42801206295 success, Chrome4,882,558바이트·Windows22,614바이트 게시 확인. JPEG multiply 상품 사진 공통 보호 통합/공개13장·제품원색/OFF 검수 완료, 담당 idle이에요. 소스 변경·focused 검수·배포가 끝났고 새 요청을 기다려요. 실제 설치/로그인 사이트 결과는 미확인이에요. 새 담당은 HANDOVER 최신 섹션과 자기 REPORT의 최신 root 검수 결과를 우선하며 오래된 ‘패키지 검사 필요’ 중간 보고를 다시 작업하지 않아요. 사용자 후속 요청으로 이전1차 총괄+8팀 채팅9개는 영구 삭제했고 현재2차9개는 유지해요. 아래1차 ID는 과거 기록이며 호출하지 않아요.
+앱1.2.67/f26dbcb, CI42803628247·Release42803632685 success, Chrome4,884,177바이트·Windows22,615바이트 게시 확인. OTP 복사 후 trusted 실제붙여넣기의 원본메일 읽음/토큰·sender·session복구/제품clipboard-Ctrl+V 검수 완료, 메일팀 Sol/medium 완료/idle이에요. 소스 변경·focused 검수·배포가 끝났고 새 요청을 기다려요. 실제 설치/로그인 사이트 결과는 미확인이에요. 새 담당은 HANDOVER 최신 섹션과 자기 REPORT의 최신 root 검수 결과를 우선하며 오래된 ‘패키지 검사 필요’ 중간 보고를 다시 작업하지 않아요. 사용자 후속 요청으로 이전1차 총괄+8팀 채팅9개는 영구 삭제했고 현재2차9개는 유지해요. 아래1차 ID는 과거 기록이며 호출하지 않아요.
 
 2026-11-09 사용자 요청으로 ForgeLens의 실제 독립 채팅·공통 조정 문서·담당 보고서 방식을 참고했어요. ForgeLens 자체의 작업이나 정책을 가져오는 문서는 아니에요.
 
