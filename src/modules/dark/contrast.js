@@ -168,7 +168,6 @@ export function createContrastController(doc = document, {inspectImage} = {}) {
     const selectionEdge = selected && ['Top','Right','Bottom','Left'].some(side => {const color = parseColor(s[`border${side}Color`]); return parseFloat(s[`border${side}Width`]) > 0 && color && contrastRatio(composite(color, bg), bg) >= 2;});
     if (selected && selectionParent && contrastRatio(bg, selectionParent) < 1.3 && !selectionEdge && s.boxShadow === 'none' && s.outlineStyle === 'none') {write(el, 'outline', '1px solid rgba(190, 202, 218, 0.65)'); write(el, 'outline-offset', '-1px');}
     if (el === doc.body || el === doc.documentElement || el.namespaceURI !== 'http://www.w3.org/1999/xhtml' || rect.width < 80 || rect.height < 32 || s.outlineStyle !== 'none' || selected || el.matches(':focus-visible')) return;
-    const hasEdge = s.boxShadow !== 'none' || ['Top','Right','Bottom','Left'].some(side => parseFloat(s[`border${side}Width`]) > 0 && s[`border${side}Style`] !== 'none');
     const surface = parseColor(s.backgroundColor), parent = el.parentElement && background(el.parentElement);
     // A compact semantic control strip may have a real opaque surface but no
     // border/shadow. Distinguish that group without recoloring its controls.
@@ -179,7 +178,15 @@ export function createContrastController(doc = document, {inspectImage} = {}) {
         return;
       }
     }
-    if (hasEdge && surface && surface[3] > .9 && parent && contrastRatio(bg, parent) < 1.3) {
+    const sides = ['Top','Right','Bottom','Left'];
+    const closedBorder = sides.every(side => parseFloat(s[`border${side}Width`]) > 0 && !['none','hidden'].includes(s[`border${side}Style`]));
+    const rounded = ['TopLeft','TopRight','BottomLeft','BottomRight'].some(corner => parseFloat(s[`border${corner}Radius`]) >= 4);
+    // A divider or a flat page frame is not a card. Preserve existing legible
+    // edges instead of turning every nested region into another full box.
+    if (rounded && (closedBorder || s.boxShadow !== 'none') && surface?.[3] > .9 && parent && contrastRatio(bg, parent) < 1.3) {
+      const visibleBorder = sides.some(side => {const color = parseColor(s[`border${side}Color`]); return parseFloat(s[`border${side}Width`]) > 0 && !['none','hidden'].includes(s[`border${side}Style`]) && color && contrastRatio(composite(color, bg), bg) >= 1.6;});
+      const visibleShadow = (s.boxShadow.match(/rgba?\([^)]+\)/g) || []).some(value => {const color = parseColor(value); return color && contrastRatio(composite(color, parent), parent) >= 1.8;});
+      if (visibleBorder || visibleShadow) return;
       write(el, 'outline', '1px solid rgba(190, 202, 218, 0.35)');
       write(el, 'outline-offset', '-1px');
       if (Math.max(...bg.slice(0,3)) - Math.min(...bg.slice(0,3)) < 35) write(el, 'background-color', `rgb(${bg.slice(0,3).map(v => Math.round(Math.min(255,v+7))).join(', ')})`);

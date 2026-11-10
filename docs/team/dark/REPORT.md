@@ -1,5 +1,20 @@
 # 공통 대비 보정과 긴급 쪽지 조사 보고
 
+## Smartstore 초기 진단 — 429 장벽 / 실제 상품·cart 미접근
+
+- 시작 기준 앱a2f9722/1.2.63, 현재 문서HEAD06e476a. 공개 disposable Chrome에서 지정 상품 URL 1회 접근 결과 HTTP429, title `[에러] 에러페이지 - 시스템오류`, 본문 `현재 서비스 접속이 불가합니다`였어요. 상품 HTML/CSS/추천 sidebar/상품사진은 전달되지 않았고 stylesheet link도 없었어요.
+- 증거 C:/Users/Revaptor_FX/AppData/Local/Temp/be-smartstore-UUye7L/public.png. 오류 화면 외 상품 검사 결과는 없어요. 별도 host/UA/쿠키/개인프로필로 우회하거나 반복 재접속하지 않았고 장바구니 버튼도 누르지 않았어요. 구매/결제/실사용자 cart 변경 없음.
+- 따라서 실제 추천사진 빈칸이 로딩/레이어/엔진 때문인지, +/-가 SVG/border/mask인지 확정 불가. 원인보고 전 임의 표시/opacity/filter/사이트패치는 넣지 않아요. 현재 source 변경 없음.
+- root의 공통 카드 보강 조건 리뷰와 연결할 최소 로컬 중첩 카드/흰 경계 관찰만 준비할 수 있어요. 실제 사용자 Smartstore와 구조가 같다고 주장하지 않아요.
+
+### Smartstore 담당 source 진단 종료 — 공개 429 유지 / 로컬 fixture 2개 PASS
+
+- 담당 변경은 `scripts/verify-dark-nested-surfaces-browser.cjs`, `scripts/verify-dark-overlay-browser.cjs`, 이 REPORT뿐이에요. root가 소유한 contrast.js 마지막 카드 조건과 공통 stability/contrast/product 검증 파일은 수정하지 않았어요. source 배포·빌드·버전·커밋·릴리스는 root 소유예요.
+- root 수정 뒤 nested fixture 실제 Chrome+현재 upstream+현재 contrast에서 PASS: 넓은 프레임/평면/중첩 평면/한쪽 divider/이미 대비 있는 라운드 경계 5개 그대로, 저대비 라운드 카드 1개만 outline·배경 보강, helper stop의 upstream 상태 복원과 OFF 흰 배경·owned 제거 확인했어요. `#ddd` 경계는 upstream 변환 뒤 이미 새 1.6 기준을 넘으므로 저대비 fixture는 원래 흰 경계로 분리했어요. 증거 `C:/Users/Revaptor_FX/AppData/Local/Temp/be-nested-surfaces-YkjNPX/{baseline.png,helper.png,results.json}`. helper 이미지 직접 열어 평면 사각형에 추가 outline이 없고 저대비 라운드만 구별되는 것을 확인했어요.
+- overlay fixture는 네트워크 없는 자체 도형 이미지와 동적 sidebar예요. theme/helper를 먼저 켠 뒤 sidebar를 추가했어요. before/ON/OFF PASS: 사진 src·크기180×120·load·filter none·opacity1 보존, 추천 글자 표시와 opacity1 보존, 글자색은 ON rgb(211,207,201), OFF 전체 표본 원복. backdrop `rgba(0,0,0,.45)`도 동일해요. 상속 text color는 불투명 사진의 paint에 영향이 없어 이미지 보존 assertion에서만 제외했어요.
+- overlay 증거 `C:/Users/Revaptor_FX/AppData/Local/Temp/be-dark-overlay-NrO4tR/{before.png,on.png,off.png,results.json}`. ON/OFF를 직접 열어 ON에서 backdrop 아래 본문이 더 어두워지고 sidebar 사진·추천 글자는 남는 것을 확인했어요. 일반 rgba overlay만으로 배경이 매우 어두워질 수 있다는 로컬 관찰이며, 실제 Smartstore blank 추천/수량 icon 원인을 재현하거나 해결했다는 뜻은 아니에요. 실제 수량 icon의 DOM/paint는 여전히 미접근이에요.
+- 공개 URL은 추가 요청하지 않았고 보호 우회/로그인/사용자 cart 조작 없음. 실제 sidebar 사진·글자 OFF 대조는 root의 사용자 응답과 이후 허용된 실제 증거가 필요해요. 이 담당은 source fixture 인계 후 idle이에요.
+
 ## 무신사 신규 배정 — 공개 원인 재현·공통 helper 완료 / root 통합 대기
 
 - root 1.2.61 최종 배포 완료: 앱70dbfdc, CI42756864720/Release42756868180 success, Chrome ZIP4,879,332바이트·Windows 보조 ZIP22,617바이트. 최종 패키지+공개 상하단·사진20개 검수는 be-css-product-t2aoka. 전체 JS267+Bun+타입/ZIP/eval/권한 통과. 담당 idle, 실사용자grant/설치는 미확인.
