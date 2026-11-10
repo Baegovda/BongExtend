@@ -2,7 +2,17 @@
 
 기준일: 2026-11-10. 이 문서는 기존 v1.2.10 인수인계를 대체해요. 이후 변경은 package.json, CHANGELOG.md, GitHub Releases를 우선 확인하세요.
 
-## 최신 인계 — v1.2.60
+## 최신 인계 — v1.2.61
+
+- 사용자 무신사 브랜드 페이지의 부분 흰 배경/검정 상품명 문제를 공통 CSS 읽기 경로로 수정했어요. 실제 공개 https://www.musinsa.com/brand/musinsastandard?gf=A 의 msscdn 스타일2개가 CORS 읽기 실패했고, 해당 CSS를 읽으면 흰 bg-white 영역과 글자가 정상 테마되는 것을 source before/direct/relay/OFF로 확인했어요(be-musinsa-css-lvf6Yg). 사진을 덮는 사이트 전용 CSS는 추가하지 않았어요.
+- css-resource.js/.d.ts의 darkStylesheetOrigins는 HTTPS 공개형 주소·.css 경로·exact page/resource origin 패턴을 반환하고 기존 Naver/DC permission helper는 호환용으로 남겨요. fetchDarkStylesheet는 credentials omit/redirect error/text-css/UTF-8/5MiB streaming 상한·cancel을 적용해요. IP/local/private형 이름은 image-resource 검증 재사용, DNS의 실제 사설주소 해석까지 판별하는 함수는 아니에요.
+- background의 기존 bongextend-dark-css port를 공통화했어요. 실제 sender.id/tab/문서기원·현재 module/site ON과 양쪽 기존 origin 권한을 검사, 동시4/대기24/queue+fetch 총12초·disconnect abort·대기 뒤 재검증이에요. content는 일반 fetch가 실패하고 공통 조건이 맞을 때만 relay해요. 새 필수 권한·자동 grant·로그인 정보 전송은 없어요.
+- popup/dark-css-access.ts는 현재 top 문서의 stylesheet 주소만128개 이내 읽고 부족한 외부 origin 최대16개만 확인해요. 현재사이트 켜기 시 요청에 포함하고 이미 켠 사이트는 ‘페이지 스타일 연결’을 표시해 사용자 Chrome 권한 승인 뒤 재적용해요. 거절은 기존 설정 유지. 실제 사용자 Chrome 권한은 접근하지 않았어요.
+- root 실제 패키지 fixture: 합성 직접 fetch 실패를 강제해 실제 content→worker→CSS/글자·면 전환, 미허용/private/비CSS/비웹sender/OFF 거절,12개 요청의 동시4 상한, permission UI의 exact origin 요청·거절유지·360px 검수 통과. public 모드는 fixture용 musinsa/msscdn grant를 별도 복사본에만 추가하고 실제 공개 페이지에서 밝은 면/상품명 개선과 사진20개 URL/filter 원형을 확인했어요(be-css-product-zFSTkj, 최종 검사 결과 아래 추가).
+- 최종 1.2.61 패키지 증거는 **be-css-product-t2aoka**예요. 공개 페이지의 안내 modal 확인을 닫은 뒤 상단·900px 아래 신상품 영역까지 검사/직접 캡처 검수, 흰 큰 면 없음·상품명 대비·사진20개 원색 보존과 OFF 복원. permission-360.png는 거절 후 안내가 읽히는지 확인했어요. 실제 Chrome 권한 승인 dialog를 자동 우회하지 않았고 fixture는 요청 origin/거절 흐름만 주입 시험했어요.
+- 전체 JS267+Bun+타입 및 ZIP/eval/권한 검사를 통과했어요. agent source 진단과 root 제품 경로를 구분하고, 실제 사용자 설치·CDN 권한·로그인 상태는 미확인이에요. 다크팀 Sol/medium 한 곳만 배정해 담당 완료/idle, Astra 미사용. 이전 1.2.60 흰 경계선과 1.2.59 flicker/메일 수정은 보존해요. 배포 SHA·CI/Release/양쪽 ZIP은 확인 후 기록해요.
+
+## 이전 인계 — v1.2.60
 
 - 앱 커밋 **410663e**, main / [v1.2.60 Release](https://github.com/Baegovda/BongExtend/releases/tag/v1.2.60). CI **42755182217**·Release **42755188452** success 확인. 앱 구현·검수·푸시·릴리스가 끝났으며 사용자 실제 설치/로그인 화면 검증과는 별개예요. 이후 문서 커밋은 앱 버전을 바꾸지 않아요. 사용자 새 무신사 부분 테마 요청은 다크팀에 별도 배정 중이에요.
 - Chrome ZIP **4,878,494바이트**·Windows 보조 ZIP **22,614바이트** uploaded 확인.

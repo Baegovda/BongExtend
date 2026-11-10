@@ -1,6 +1,7 @@
 import {setupCurrencyPicker} from './fx-picker';
 import {setupNaverMail} from './naver-mail';
 import {watchGmailTheme} from './mail-appearance';
+import {missingDarkStylesheetOrigins} from './dark-css-access';
 import {setupMailSettings} from "./mail-settings";
 import {setupWindowControls} from "./window-controls";
 // BongExtend 팝업: 탭 하나에 모듈 화면 하나. 각 모듈 화면은 옛 확장 팝업을 그대로 iframe으로 띄운다.
@@ -652,6 +653,9 @@ let darkSiteOrigin = "";
 let darkPermissionGranted = false;
 let darkAllSitesPermissionGranted = false;
 let darkNaverCssPermissionGranted = false;
+let darkCssOrigins: string[] = [];
+let darkLoadRevision = 0;
+const darkCssAccess = $<HTMLButtonElement>('darkCssAccess');
 const darkStatus = $("darkStatus");
 const darkInputs = {
     everywhere: $<HTMLInputElement>("darkEverywhere"),
@@ -695,6 +699,10 @@ const paintDarkValues = (config: DarkConfig) => {
     $<HTMLTextAreaElement>("darkSiteList").value = config.siteList.join("\n");
 };
 const loadDarkConfig = async () => {
+    const revision = ++darkLoadRevision;
+    darkCssOrigins = [];
+    darkCssAccess.hidden = true;
+    $('darkCssNote').hidden = true;
     const [tabs, stored] = await Promise.all([
         effects.tabsQuery({active: true, lastFocusedWindow: true}),
         effects.storageGet(DARK_SETTINGS_KEY)
@@ -726,6 +734,11 @@ const loadDarkConfig = async () => {
     darkConfig = normalizeDarkSettings(stored[DARK_SETTINGS_KEY]) as DarkConfig;
     paintDarkValues(darkConfig);
     setDarkStatus(!darkHost ? "사이트별 적용은 웹사이트를 연 뒤 BongExtend 팝업에서 바꿀 수 있어요." : darkInputs.currentSite.checked ? "이 사이트에서 사용 중이에요. 변경 사항은 바로 저장돼요." : "위 스위치를 켜면 이 사이트에 적용해요.");
+    const missing = darkTabId != null && darkSiteOrigin ? await missingDarkStylesheetOrigins(darkTabId, darkSiteOrigin) : [];
+    if (revision !== darkLoadRevision) return;
+    darkCssOrigins = missing;
+    darkCssAccess.hidden = !missing.length;
+    $('darkCssNote').hidden = !missing.length;
 };
 const setDarkStatus = (message: string, error = false) => {
     darkStatus.textContent = message;
@@ -754,12 +767,13 @@ darkInputs.currentSite.addEventListener("change", async () => {
     if (!darkHost) return;
     const enabling = darkInputs.currentSite.checked;
     const naverCss = darkHost === "naver.com" || darkHost.endsWith(".naver.com");
-    if (enabling && (!darkPermissionGranted || (naverCss && !darkNaverCssPermissionGranted))) {
+    if (enabling && (!darkPermissionGranted || darkCssOrigins.length || (naverCss && !darkNaverCssPermissionGranted))) {
         const protocol = new URL(darkSiteOrigin).protocol;
         const pattern = darkSitePattern(darkHost).find((item: string) => item.startsWith(`${protocol}//`));
         const origins = pattern ? [pattern] : [];
         if (naverCss) origins.push("https://*.pstatic.net/*");
-        const granted = pattern ? await requestDarkOrigin(origins) : false;
+        origins.push(...darkCssOrigins);
+        const granted = pattern ? await requestDarkOrigin([...new Set(origins)]) : false;
         if (!granted) {
             darkInputs.currentSite.checked = false;
             setDarkStatus("사이트 권한을 허용하지 않아 켜지 않았어요.", true);
@@ -773,6 +787,15 @@ darkInputs.currentSite.addEventListener("change", async () => {
     if (enabling) { enabledSites.add(darkHost); disabledSites.delete(darkHost); }
     else { enabledSites.delete(darkHost); if (darkConfig.enabledByDefault) disabledSites.add(darkHost); else disabledSites.delete(darkHost); }
     await saveDarkConfig({...darkConfig, enabledSites: [...enabledSites], disabledSites: [...disabledSites]});
+});
+
+darkCssAccess.addEventListener('click', async () => {
+    if (!darkCssOrigins.length) return;
+    const granted = await requestDarkOrigin(darkCssOrigins);
+    if (!granted) {setDarkStatus('페이지 스타일 연결을 허용하지 않았어요. 기존 적용은 유지해요.', true); return;}
+    await saveDarkConfig(darkConfig);
+    await loadDarkConfig();
+    setDarkStatus('페이지 스타일을 연결하고 다시 적용했어요.');
 });
 darkInputs.everywhere.addEventListener("change", async () => {
     const enabling = darkInputs.everywhere.checked;

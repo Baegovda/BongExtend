@@ -1,5 +1,29 @@
 # 공통 대비 보정과 긴급 쪽지 조사 보고
 
+## 무신사 신규 배정 — 공개 원인 재현·공통 helper 완료 / root 통합 대기
+
+- root 최종 통합: 실제 1.2.61 패키지 content→CORS 실패→worker relay·현재설정/양쪽grant/미허용/private/비CSS/비웹sender/OFF거절·동시4/대기 처리·본문색/배경 전환 통과. popup은 linked CSS만 읽어 missing exact origins를 요청하고 거절유지·360px 검수. 별도 public grant 복사본에서 무신사 상단/하단 큰면·상품명 개선, 사진20개URL/filter 원형 확인(be-css-product-t2aoka). 실사용자grant/설치는 미확인, 실제권한창승인 자동우회 없음.
+- root 최신 연결 정책 확인: background/content/popup에서 darkStylesheetOrigins 사용, 기존 darkStylesheetPermission 유지. root의 별도 css-fetch.js가5MB streaming을 소유하므로 담당 fetchDarkStylesheet export는 호환 보조 API이며 별도 중복 연결을 강제하지 않아요.12초/동시4/대기24/disconnect abort·명시적 페이지 스타일 연결 grant·연결후재적용 및 실제 패키지검수는 root가 맡아요.
+- source 공개 실증/단위/helper API는 위 최종 상태로 완료했고 추가 수정·시험은 실행하지 않았어요. 사용자 grant를 자동 추가하거나 root의 shared 파일을 수정하지 않았어요.
+
+- 담당 최종 변경: src/modules/dark/css-resource.js/.d.ts, test/css-resource.test.js, 신규 scripts/verify-musinsa-dark-browser.cjs, REPORT. 기존 mail/contrast/flicker/흰 경계/브랜드 보존 코드에는 손대지 않았어요. background/content/권한UX와 최종 제품 build/검사는 root 소유예요.
+- 관련 단위5개 통과, source 실제 공개 before/direct-ON/relay-ON/OFF 통과, 직접 스크린샷 검수 완료. generic relay helper는 특정사이트를 검사하지 않으며 기존 Naver/DC compatibility도 통과했어요. 불필요한 기존 전체시험/빌드/커밋/푸시/릴리스는 실행하지 않았어요.
+- 남은 한계: source diagnostic bridge는 Node 공개fetch이므로 제품 권한경로 성공을 의미하지 않아요. 현재 사용자 grant/설치적용은 접근하지 않았어요. root 통합 뒤 이미 허용된 두 origin에서만 제품 relay 성공/미허용 거절·OFF·sender검사 및 권한연결 UX를 확인해야 해요. 이번 담당 배정 종료해요.
+
+- **공유 helper 구현 완료(root 연결용)**: css-resource.js/.d.ts에 darkStylesheetOrigins(pageUrl,resourceUrl):string[]|null 추가. exact HTTPS page/resource origin의 기존 grant 패턴 반환(동일기원 중복제거), .css pathname 필수. image-resource.darkImageOrigins의 public/private/local/IP/credentials/port 검증을 재사용해요. 기존 darkStylesheetPermission Naver/DC 경로는 그대로예요.
+- fetchDarkStylesheet(url,{fetchImpl=fetch,signal}):Promise<string>도 제공해요. caller가 위 origins/권한/설정을 먼저 검사해야 하며, fetch는 omit/redirect:error/force-cache, 응답 text/css, declared+stream byte **5MiB 상한**, stream cancel+lock release, UTF-8 decode예요. 시간/동시/sender검증은 root backend 소유예요.
+- 신규 helper의 도메인 중립성·private/local/IP·비CSS/비HTTPS·MIME·크기·stream cancel 검사를 추가했어요. 제품 endpoint는 root가 구현하므로 담당은 source 공개 진단 결과와 이 API만 전달해요.
+
+- **원인 비교 확정**: scripts/verify-musinsa-dark-browser.cjs 실제 공개 Chrome에서 direct fetch는 2개 msscdn CSS CORS 실패, .bg-white 구매버튼3곳 배경 white/검정글자 유지. 같은 문서/동일 upstream에서 공개 CSS를 diagnostic bridge로 가져오면 배경 rgb(24,26,27)/글자 rgb(232,230,227)로 모두 전환되고 OFF는 white/black 정확 복귀. 대표 사진20개 중 동일URL로 남아 있는 사진들의 filter 원본 일치 확인했어요. source CSS-only 비교이며 제품 relay 성공 증거는 아니에요.
+- 직접 검수 증거 C:/Users/Revaptor_FX/AppData/Local/Temp/be-musinsa-css-lvf6Yg/before.png/direct-dark.png/relay-dark.png/off.png. source fullscreen에서 흰 검색/추천/랭킹 영역의 큰 면도 relay 뒤 어두워지는 것을 확인했어요. 로그인/사적계정 없이 재현됐고 CORS외 iframe/shadow/legacy색을 추측 원인으로 패치하지 않아요.
+- **권한 구분**: 현재 저장소 css-resource.js에 musinsa/msscdn 경로가 없다는 것은 확인했지만 사용자 Chrome의 실제 optional_host_permissions grant는 접근하지 않아 미확인이에요. diagnostic Node 공개fetch는 확장 host 권한을 입증하지 않아요. 일반 relay는 두 origin 권한이 이미 허용된 경우만 작동해야 하고, 부족한 CDN 권한을 자동으로 확장하면 안 돼요. root가 설정/권한 UI 정책을 정해야 해요.
+- root 공유 endpoint 수정이 선행되어야 하므로 담당은 background/content/shared permission helper에 임의 변경하지 않고 결과·fixture를 먼저 전달했어요. 도메인 목록 추가나 문서전체 색 강제덮기보다 누락 CSS를 안전하게 읽는 경로 수정이 적합해요.
+
+- 공개 musinsa 브랜드 페이지 직접 접근 성공, 주 콘텐츠는 top document이며 열린 shadow root 없음. 제3자 광고 iframe은 주 검색/상품 영역과 무관해요.
+- 실제 page fetch 비교: mds-with-prefix/common-mobile/Next CSS는 성공하지만 `static.msscdn.net/static/mds/2.0.0/mds@1da2919514f3.css` 및 `static/common/layout-pc/style@d6f0cf79a159.css`는 CORS 실패해요. 두 원본 응답에 ACAO가 없음을 공개 원본 GET으로 확인했어요.
+- 막힌 mds CSS에 실제 `.bg-white{...background-color:rgb(255 255 255/var(--tw-bg-opacity,1))}` 규칙이 있어요. 현재 css-resource.js는 Naver/DC 목록만 relay하므로 도메인 예외를 더하는 대신 일반 권한검증 CSS relay가 필요할 가능성이 커요. source API direct/relay 비교로 원인 확정 중이에요.
+- 공유 제안(root background 소유): 기존 연결 `bongextend-dark-css`에 실제 sender HTTPS document/유효 inherited origin, dark+모듈 ON, 현재 page와 resource 양 origin의 기존 권한, omit credentials/redirect:error/MIME text/css/byte·동시·시간 상한을 검사하는 공통 경로를 추가해요. 특정 msscdn/musinsa 도메인 하드코딩이나 새 자동권한은 추가하지 않아요. CSS는 이미지와 달리 iframe 문서기원 처리·기존 Naver/DC 경로 호환이 필요해 root와 조율 후 연결할게요.
+
 ## 신규 흰 구분선 — 공통 self-induced 회귀 수정·집중검사 완료
 
 - 최종 담당 변경은 site-fixes.js의 ignore 선택자 범위, 해당 단위 시험, 새 scripts/verify-dark-boundaries-browser.cjs, REPORT뿐이에요. contrast의 scheduler/복원 로직·메일·upstream patch는 변경하지 않았어요. 총괄의 focused interactive/focusin-out 별도 수정도 보존해요.

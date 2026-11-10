@@ -1,6 +1,6 @@
 // @ts-ignore plain JS provider
 import {startNaverMail} from '@/modules/naver-mail/background.js';
-import {darkStylesheetPermission} from '@/modules/dark/css-resource.js';
+import {darkStylesheetOrigins, fetchDarkStylesheet} from '@/modules/dark/css-resource.js';
 // @ts-ignore bounded static image relay
 import {darkImageOrigins,fetchDarkImage} from '@/modules/dark/image-resource.js';
 // @ts-ignore pure JS
@@ -134,26 +134,41 @@ export default defineBackground(() => {
     });
 
     // 다크 모드: 사용자가 권한을 허용한 사이트에만 런타임 콘텐츠 스크립트를 등록한다.
+    let activeDarkStylesheets = 0, queuedDarkStylesheets = 0;
     chrome.runtime.onConnect.addListener(port => {
         if (port.name !== "bongextend-dark-css") return;
         const sender = port.sender;
+        let received = false;
+        const controller = new AbortController();
+        port.onDisconnect.addListener(() => controller.abort());
         port.onMessage.addListener(message => {
+            if (received) return; received = true;
             const respond = (value: unknown) => { try { port.postMessage(value); } catch { /* 문서가 닫힌 경우 */ } };
             void (async () => {
+                let acquired = false, queued = false, timer: ReturnType<typeof setTimeout> | undefined;
                 try {
                     // Chrome supplies the actual origin of blank/srcdoc frames; never trust a page message for it.
                     const senderUrl = sender?.url || "";
                     const page = new URL(/^(about|blob|data):/.test(senderUrl) ? sender?.origin || "" : senderUrl);
                     const url = new URL(message.url);
-                    const origin = darkStylesheetPermission(page.href, url.href);
-                    if (sender?.id !== chrome.runtime.id || !origin) throw new Error("unsupported resource");
-                    if (!await chrome.permissions.contains({origins: [origin]})) throw new Error("missing permission");
-                    const response = await fetch(url.href, {credentials: "omit", redirect: "error", signal: AbortSignal.timeout(12000)});
-                    if (!response.ok || !(response.headers.get("content-type") || "").toLowerCase().startsWith("text/css")) throw new Error("invalid stylesheet");
-                    const text = await response.text();
-                    if (text.length > 5_000_000) throw new Error("stylesheet too large");
+                    const origins = darkStylesheetOrigins(page.href, url.href);
+                    if (sender?.id !== chrome.runtime.id || sender.tab?.id == null || !origins || queuedDarkStylesheets >= 24) throw new Error("unsupported resource");
+                    const stored = await chrome.storage.local.get([DARK_SETTINGS_KEY, MODULES_KEY]);
+                    if ((stored[MODULES_KEY] as {dark?: boolean} | undefined)?.dark === false || !darkSiteEnabled(normalizeDarkSettings(stored[DARK_SETTINGS_KEY]), page.hostname) || !await chrome.permissions.contains({origins})) throw new Error("missing permission");
+                    if (controller.signal.aborted || queuedDarkStylesheets >= 24) throw new Error("busy");
+                    queued = true; queuedDarkStylesheets++;
+                    timer = setTimeout(() => controller.abort(), 12000);
+                    while (activeDarkStylesheets >= 4 && !controller.signal.aborted) await new Promise(resolve => setTimeout(resolve, 50));
+                    queued = false; queuedDarkStylesheets--;
+                    if (controller.signal.aborted) throw new Error("cancelled");
+                    acquired = true; activeDarkStylesheets++;
+                    const latest = await chrome.storage.local.get([DARK_SETTINGS_KEY, MODULES_KEY]);
+                    if ((latest[MODULES_KEY] as {dark?: boolean} | undefined)?.dark === false || !darkSiteEnabled(normalizeDarkSettings(latest[DARK_SETTINGS_KEY]), page.hostname) || !await chrome.permissions.contains({origins})) throw new Error("permission changed");
+                    const text = await fetchDarkStylesheet(url.href, {signal: controller.signal});
+                    if (controller.signal.aborted) return;
                     respond({ok: true, text});
                 } catch { respond({ok: false}); }
+                finally {if (timer) clearTimeout(timer); if (queued) queuedDarkStylesheets--; if (acquired) activeDarkStylesheets--;}
             })();
         });
     });
