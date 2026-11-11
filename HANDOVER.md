@@ -2,7 +2,13 @@
 
 기준일: 2026-11-10. 이 문서는 기존 v1.2.10 인수인계를 대체해요. 이후 변경은 package.json, CHANGELOG.md, GitHub Releases를 우선 확인하세요.
 
-## 최신 인계 — v1.2.67 인증번호 붙여넣기 후 읽음
+## 최신 인계 — v1.2.68 알리익스프레스 메일 자동 읽음
+
+- 사용자 요청: 알리익스프레스 메일은 Windows 알림으로 띄우고 자동 읽음 처리해요. Checker Plus mailUpdate에 훅을 달았어요(public/js/background.js의 BongExtendNoteNotified/BongExtendAutoReadMails). 알림 생성이 성공한 메일만 알림 뒤에 mail.markAsRead()를 호출하고, 실패하면 1회 재시도해요. 알림이 안 뜬 경우(방해 금지·꺼짐·시작 확인)와 OTP 메일은 읽음 처리하지 않아요.
+- 알리 판별은 보낸 주소 도메인이 aliexpress.com 또는 하위 도메인일 때만이에요(표시 이름 무시). 끄는 키는 core.mailAutoReadAli=false. 구현은 src/modules/gmail/auto-read.js, 시험은 test/auto-read.test.js예요. src/modules/gmail/background.js의 자체 Gmail 감시는 어디서도 시작되지 않는 코드예요.
+- 검증: 전체 JS283+Bun+타입, 빌드, eval/권한 검사 통과. **실제 Gmail 계정에서의 알림·읽음 흐름은 미검증**이고 다른 도메인에서 오는 알리 메일은 처리하지 않아요.
+
+## 이전 인계 — v1.2.67 인증번호 붙여넣기 후 읽음
 
 - 사용자 요청대로 기존 메일 OTP 자동복사 성공 후 원본mail을10분/최신1건 opaque token에 연결해요. 허용된 웹페이지의 ISOLATED watcher에서 trusted paste + 정확한 코드일치 + 실제 insertFromPaste input/값변화를 확인한 뒤 해당 mail.markAsRead()만 호출해요. 복사만/다른번호/예방된paste/가짜event/중복/OFF/만료는 읽음 처리하지 않아요. 기존 Gmail API·배지·메일함 갱신 경로를 재사용하고 새 단축키/권한요청/클립보드 읽기 권한 없음.
 - tracker·watcher의 코드는 메모리 전용, source mail/account 식별자·opaque token/허용tab/frame/document·만료시각만 trusted extension session storage core.mailOtpPastePending에 보관해요. 워커 재시작 때 이미 주입된 웹문서가 붙여넣기를 보내면 정확한 계정email의 현재 getMails()에서 같은mailId만 복구해 읽음처리해요. 번호/본문은 저장하거나 외부 전송하지 않아요. sender/runtime ID·웹 URL·document ID·token·TTL·설정·동시1회 검증을 거쳐요.

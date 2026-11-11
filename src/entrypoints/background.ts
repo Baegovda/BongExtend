@@ -51,6 +51,8 @@ import {createOtpToast} from "@/modules/gmail/otp-toast.js";
 import {createOtpPasteTracker} from "@/modules/gmail/otp-paste.js";
 // @ts-ignore isolated trusted-paste bridge
 import {startOtpPasteBridge} from "@/modules/gmail/otp-paste-bridge.js";
+// @ts-ignore pure JS, memory-only auto read for AliExpress mail
+import {createMailAutoRead} from "@/modules/gmail/auto-read.js";
 
 export default defineBackground(() => {
     startNaverMail();
@@ -79,6 +81,17 @@ export default defineBackground(() => {
         })
     });
     (globalThis as any).BongExtendHandleOtpMails = otpHandler;
+
+    // 알리익스프레스 메일: Checker Plus가 알림을 띄운 뒤에만 읽음 처리해요. 끄려면 core.mailAutoReadAli를 false로 해요.
+    const mailAutoRead = createMailAutoRead({
+        isEnabled: async () => {
+            const stored = await chrome.storage.local.get(["core.mailAutoReadAli", MODULES_KEY]);
+            return stored["core.mailAutoReadAli"] !== false && (stored[MODULES_KEY] as Record<string, unknown> | undefined)?.gmail !== false;
+        }
+    });
+    (globalThis as any).BongExtendNoteNotified = (mails: unknown[]) => mailAutoRead.noteShown(mails);
+    (globalThis as any).BongExtendAutoReadMails = (mails: unknown[], options: unknown) =>
+        mailAutoRead.process(mails, options).catch(() => []);
 
     // CheckPlus 이전 버전이 저장한 도구막대 덮어쓰기를 복구한다.
     const rootManifest = chrome.runtime.getManifest() as {
