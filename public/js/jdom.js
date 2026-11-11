@@ -409,7 +409,7 @@ function openDialog(message, params = {}) {
             closeBtn.setAttribute('icon', 'close');
             closeBtn.className = 'dialog-close-button';
             closeBtn.type = 'button';
-            closeBtn.setAttribute('aria-label', 'Close dialog');
+            closeBtn.setAttribute('aria-label', '대화상자 닫기');
             closeBtn.addEventListener('click', () => {
                 resolve("close");
                 dialog.close();

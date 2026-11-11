@@ -4156,73 +4156,35 @@ async function refresh(hardRefresh) {
     return globalThis.refreshPromise;
 }
 
+// BongExtend: '모두 읽음'은 확인창 없이 바로 처리해요. 보관·스팸 신고는 되돌리기 어려워서 한글 확인창을 한 번만 보여줘요.
 async function prepareMarkAllAsX($account, account, action) {
-	var content;
-	var tooManyAlternativeButton;
-	var tooManyMarkAsX;
+	const run = () => {
+		showSpinner();
+		sendMessageToBG("markAllAsX", {
+			account: account,
+			action: action,
+			closeWindow: true
+		}, true).then(() => {
+			refresh();
+		}).catch(error => {
+			showError(error);
+		});
+	};
 	if (action == "markAsRead") {
-		content = getMessage("markAllAsReadWarning");
-		tooManyAlternativeButton = getMessage("markAllAsReadTitle");
-		tooManyMarkAsX = getMessage("readLinkTitle");
-	} else if (action == "archive") {
-		content = getMessage("archiveAllWarning");
-		tooManyAlternativeButton = getMessage("archive");
-		tooManyMarkAsX = getMessage("archive");
-	} else if (action == "markAsSpam") {
-		content = getMessage("markAllAsSpamWarning");
-		tooManyAlternativeButton = getMessage("reportSpam");
-		tooManyMarkAsX = getMessage("reportSpam");
-    }
-
-    function markAllAsX() {
-        showSpinner();
-        sendMessageToBG("markAllAsX", {
-            account: account,
-            action: action,
-            closeWindow: true
-        }, true).then(() => {
-            refresh();
-        }).catch(error => {
-            showError(error);
-        });
-    }
-	
-	if (await storage.get("usedMarkAllAsReadButton")) {
-		if (account.unreadCount > MAX_EMAILS_TO_ACTION) {
-            await openDialog(getMessage("tooManyUnread", MAX_EMAILS_TO_ACTION), {
-                cancel: true,
-                ok: false,
-                buttons: [{
-                    label: `Other solutions`,
-                    //classList: ["filled"],
-                    onClick: function() {
-                        openUrl("https://jasonsavard.com/wiki/Too_many_unread_emails?ref=markAllAsReadDialog");
-                    }
-                }, {
-                    label: `${tooManyMarkAsX} (< ${MAX_EMAILS_TO_ACTION})`,
-                    classList: ["filled"],
-                    onClick: function(dialog) {
-                        dialog.close();
-                        markAllAsX();
-                    }
-                }]
-            })
-		} else {
-            markAllAsX();
-        }
-	} else {
-		openDialog(content, {
-            cancel: true,
-            buttons: [{
-                label: getMessage("continue"),
-                primary: true,
-                onClick: async function() {
-                    await storage.setDate("usedMarkAllAsReadButton");
-                    prepareMarkAllAsX($account, account, action);
-                }
-            }]
-        });
+		run();
+		return;
 	}
+	const content = action == "archive"
+		? "이 계정의 읽지 않은 메일을 모두 보관할까요?"
+		: "이 계정의 읽지 않은 메일을 모두 스팸으로 신고할까요? 되돌리기 어려울 수 있어요.";
+	openDialog(content, {
+		cancel: true,
+		buttons: [{
+			label: "계속",
+			primary: true,
+			onClick: run
+		}]
+	});
 }
 
 function closeMenu(thisNode) {

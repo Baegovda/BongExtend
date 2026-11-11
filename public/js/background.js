@@ -543,7 +543,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
                     }
                 });
             }).catch(error => {
-                showMessageNotification("Checker Plus Error", "Error sending mail", error);
+                showMessageNotification("BongExtend 오류", "메일을 보내지 못했어요", error);
             });
         }
     } else if (ContextMenu.SEND_PAGE_LINK_TO_CONTACT_WITH_MESSAGE == info.menuItemId) {
@@ -1922,7 +1922,7 @@ function markAllAsRead() {
 				markAllAsX(account, "markAsRead").then(() => {
 					// do nothing
 				}).catch(error => {
-					showMessageNotification("Checker Plus Error", "Can't mark as read", error);
+					showMessageNotification("BongExtend 오류", "모두 읽음으로 바꾸지 못했어요", error);
 				});
 			}
 		}
