@@ -80,3 +80,22 @@ body:has(#dy_tot_wrap) { background: var(--be-canvas-gradient), var(--be-bg) !im
  #dy_lnav ul ul .nav-filter { padding-left: 13px; }
  #dy_status_btn_location_wrap { display: none; }
 }
+
+/* ===== 아크릴 전면 개편: 다운로드 관리자 ===== */
+#header_wrap, #header, header, .mdl-layout__header, #statusbar, .statusbar, #left, #left_panel {
+  background: var(--be-acrylic-noise), var(--be-glass-sheen), var(--be-glass-strong) !important;
+  -webkit-backdrop-filter: var(--be-acrylic-blur); backdrop-filter: var(--be-acrylic-blur);
+  border-color: var(--be-glass-border) !important;
+}
+.mdl-menu, .mdlx-menu, .mdl-menu__container, .mdl-dialog {
+  background: var(--be-acrylic-noise), var(--be-glass-sheen), var(--be-glass-strong) !important;
+  -webkit-backdrop-filter: var(--be-acrylic-blur); backdrop-filter: var(--be-acrylic-blur);
+  border: 1px solid var(--be-glass-border); box-shadow: var(--be-glass-shadow) !important;
+}
+.slick-header-columns, .slick-row, .slick-cell, .content, .content-wrapper { background-color: color-mix(in srgb, var(--be-surface) 34%, transparent) !important; }
+.slick-row:hover, .mdl-menu__item:hover { background-color: color-mix(in srgb, var(--be-accent) 14%, transparent) !important; }
+input:not([type=checkbox]):not([type=radio]), select, textarea { background-color: var(--be-control-bg); border-color: var(--be-control-border); backdrop-filter: blur(12px); }
+@media (prefers-reduced-transparency: reduce) {
+  #header_wrap, #header, header, .mdl-layout__header, #statusbar, .statusbar, #left, #left_panel, .mdl-menu, .mdlx-menu, .mdl-menu__container, .mdl-dialog,
+  .slick-header-columns, .slick-row, .slick-cell, .content, .content-wrapper { background: var(--be-surface) !important; backdrop-filter: none; -webkit-backdrop-filter: none; }
+}

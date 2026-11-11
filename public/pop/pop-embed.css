@@ -83,7 +83,7 @@ html.bongextend-chrono-embedded #dlist_action_container .mdl-button {
 
 html.bongextend-chrono-embedded #header_wrap .mdl-button--icon:hover,
 html.bongextend-chrono-embedded #dlist_action_container .mdl-button:hover {
-  background: var(--be-surface-3) !important;
+  background: color-mix(in srgb, var(--be-surface-3) 58%, transparent) !important;
 }
 
 html.bongextend-chrono-embedded #header_wrap .material-icons,
@@ -137,7 +137,7 @@ html.bongextend-chrono-embedded .ditem_content {
   padding: 10px 10px 10px 68px !important;
   border: 1px solid var(--be-border) !important;
   border-radius: 14px !important;
-  background: var(--be-surface) !important;
+  background: color-mix(in srgb, var(--be-surface) 50%, transparent) !important; -webkit-backdrop-filter: blur(18px) saturate(170%); backdrop-filter: blur(18px) saturate(170%);
   color: var(--be-text) !important;
   line-height: 1.5 !important;
   box-shadow: none !important;
@@ -149,7 +149,7 @@ html.bongextend-chrono-embedded .ditem_content:not(:last-child) {
 
 html.bongextend-chrono-embedded .ditem_content.ditem_hover,
 html.bongextend-chrono-embedded .ditem_content:hover {
-  background: var(--be-surface-2) !important;
+  background: color-mix(in srgb, var(--be-surface-2) 46%, transparent) !important;
   border-color: var(--be-accent) !important;
 }
 
@@ -210,13 +210,13 @@ html.bongextend-chrono-embedded .mdl-menu__panel,
 html.bongextend-chrono-embedded .mdl-menu__line-item,
 html.bongextend-chrono-embedded .mdl-menu__item {
   border-color: var(--be-border) !important;
-  background: var(--be-surface) !important;
+  background: color-mix(in srgb, var(--be-surface) 50%, transparent) !important; -webkit-backdrop-filter: blur(18px) saturate(170%); backdrop-filter: blur(18px) saturate(170%);
   color: var(--be-text) !important;
 }
 
 html.bongextend-chrono-embedded .mdl-menu__item:hover,
 html.bongextend-chrono-embedded .mdl-menu__line-item:hover {
-  background: var(--be-surface-3) !important;
+  background: color-mix(in srgb, var(--be-surface-3) 58%, transparent) !important;
 }
 
 html.bongextend-chrono-embedded .mdl-menu__item a {
@@ -225,7 +225,7 @@ html.bongextend-chrono-embedded .mdl-menu__item a {
 
 html.bongextend-chrono-embedded #_pr_container {
   border-color: var(--be-border) !important;
-  background: var(--be-surface) !important;
+  background: color-mix(in srgb, var(--be-surface) 50%, transparent) !important; -webkit-backdrop-filter: blur(18px) saturate(170%); backdrop-filter: blur(18px) saturate(170%);
   color: var(--be-text) !important;
   box-shadow: var(--be-shadow) !important;
 }
@@ -238,7 +238,7 @@ html.bongextend-chrono-embedded .mdl-toast {
   z-index: 1000 !important;
   border: 1px solid var(--be-border) !important;
   border-radius: 12px !important;
-  background: var(--be-surface-2) !important;
+  background: color-mix(in srgb, var(--be-surface-2) 46%, transparent) !important;
   color: var(--be-text) !important;
   box-shadow: var(--be-shadow) !important;
   font-family: var(--be-font) !important;

@@ -497,3 +497,27 @@ html:not(.embed) .tabs .window-tools button { background: color-mix(in srgb, var
   html:not(.embed) .tabs { background: var(--be-surface); backdrop-filter: none; -webkit-backdrop-filter: none; }
   html:not(.embed) .tabs .window-tools button { backdrop-filter: none; -webkit-backdrop-filter: none; }
 }
+
+/* ===== 아크릴 전면 개편: 팝업 화면의 불투명 면을 유리로 ===== */
+.mail-list, .mail-head, .mail-item, .download-module-toolbar, .video-activity {
+  background: var(--be-acrylic-noise), var(--be-glass-sheen), var(--be-glass) !important;
+  border-color: var(--be-glass-border) !important;
+  -webkit-backdrop-filter: var(--be-acrylic-blur); backdrop-filter: var(--be-acrylic-blur);
+}
+.be-page .mail-icon, .be-page .mail-read, .be-page .mail-header-btn, .be-page .mail-account-all,
+.mail-list-toolbar input, .mail-list-toolbar select, .be-page .mail-list-toolbar button, .checkerplus-mail-home {
+  background: var(--be-control-bg) !important;
+  border-color: var(--be-control-border) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.1);
+  -webkit-backdrop-filter: blur(14px) saturate(160%); backdrop-filter: blur(14px) saturate(160%);
+}
+.mail-item:hover, .mail-head:hover { background: color-mix(in srgb, var(--be-accent) 10%, var(--be-glass-strong)) !important; }
+.panel { background: transparent; }
+@media (prefers-reduced-transparency: reduce) {
+  .mail-list, .mail-head, .mail-item, .download-module-toolbar, .video-activity,
+  .be-page .mail-icon, .be-page .mail-read, .be-page .mail-header-btn, .be-page .mail-account-all, .mail-list-toolbar input, .mail-list-toolbar select, .be-page .mail-list-toolbar button, .checkerplus-mail-home {
+    background: var(--be-surface) !important; backdrop-filter: none; -webkit-backdrop-filter: none;
+  }
+}
+/* 탭 줄의 버튼은 그룹이 이미 유리라서 개별 블러를 빼요(상자처럼 비치는 것 방지). */
+.be-page .tabs .tab-group button:not(.primary):not(.be-primary):not(.danger), .be-page .tabs .window-tools button:not(.primary):not(.be-primary):not(.danger) { -webkit-backdrop-filter: none; backdrop-filter: none; }

@@ -20,16 +20,16 @@
   --be-gradient: linear-gradient(115deg, #badcff 0%, #c9b9f0 48%, #9edbd0 100%);
   --be-accent-gradient: linear-gradient(125deg, #405fc4 0%, #5b53aa 56%, #326b89 100%);
   /* 아크릴: 반투명 색 + 배경 흐림 + 아주 옅은 노이즈 + 안쪽 테두리 빛. */
-  --be-glass: rgba(40, 42, 48, 0.56);
-  --be-glass-strong: rgba(48, 50, 57, 0.74);
-  --be-glass-border: rgba(226, 231, 246, 0.17);
+  --be-glass: rgba(46, 48, 56, 0.44);
+  --be-glass-strong: rgba(54, 56, 65, 0.6);
+  --be-glass-border: rgba(226, 231, 246, 0.2);
   --be-glass-sheen: linear-gradient(140deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.012) 42%, rgba(160, 196, 255, 0.032));
   --be-glass-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.11), inset 0 0 0 1px rgba(255, 255, 255, 0.022), 0 14px 34px rgba(0, 0, 0, 0.3);
-  --be-acrylic-blur: blur(24px) saturate(165%);
+  --be-acrylic-blur: blur(30px) saturate(185%);
   --be-acrylic-noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 .1 0 0 0 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url%28%23n%29'/%3E%3C/svg%3E");
-  --be-control-bg: rgba(210, 215, 230, 0.065);
+  --be-control-bg: rgba(210, 215, 230, 0.085);
   --be-control-border: rgba(214, 219, 234, 0.23);
-  --be-canvas-gradient: radial-gradient(62% 46% at 8% -6%, rgba(128, 158, 232, 0.17), transparent 72%), radial-gradient(48% 40% at 102% 22%, rgba(176, 132, 228, 0.12), transparent 72%), radial-gradient(56% 46% at 78% 112%, rgba(72, 190, 172, 0.12), transparent 72%);
+  --be-canvas-gradient: radial-gradient(62% 46% at 8% -6%, rgba(128, 158, 232, 0.26), transparent 72%), radial-gradient(48% 40% at 102% 22%, rgba(176, 132, 228, 0.2), transparent 72%), radial-gradient(56% 46% at 78% 112%, rgba(72, 190, 172, 0.19), transparent 72%), radial-gradient(40% 34% at 30% 70%, rgba(110, 120, 220, 0.1), transparent 75%);
   --be-focus: 0 0 0 3px rgba(100, 210, 255, 0.45);
   --be-ok: #95d5b2;
   --be-warn: #e8cf92;
@@ -73,16 +73,16 @@
     --be-accent-ink: #ffffff;
     --be-gradient: linear-gradient(115deg, #3b619b 0%, #745c9f 48%, #2c766d 100%);
     --be-accent-gradient: linear-gradient(125deg, #455cc2 0%, #6351a6 56%, #336b85 100%);
-    --be-glass: rgba(255, 255, 255, 0.6);
-    --be-glass-strong: rgba(255, 255, 255, 0.8);
+    --be-glass: rgba(255, 255, 255, 0.48);
+    --be-glass-strong: rgba(255, 255, 255, 0.66);
     --be-glass-border: rgba(120, 128, 152, 0.24);
     --be-glass-sheen: linear-gradient(140deg, rgba(255, 255, 255, 0.75), rgba(255, 255, 255, 0.1) 44%, rgba(214, 226, 250, 0.16));
     --be-glass-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95), inset 0 0 0 1px rgba(255, 255, 255, 0.4), 0 12px 30px rgba(55, 74, 110, 0.11);
-    --be-acrylic-blur: blur(24px) saturate(180%);
+    --be-acrylic-blur: blur(30px) saturate(190%);
     --be-acrylic-noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .2 0 0 0 0 .22 0 0 0 0 .3 .12 0 0 0 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url%28%23n%29'/%3E%3C/svg%3E");
     --be-control-bg: rgba(244, 245, 247, 0.86);
     --be-control-border: rgba(125, 131, 150, 0.32);
-    --be-canvas-gradient: radial-gradient(62% 46% at 6% -6%, rgba(150, 178, 240, 0.34), transparent 72%), radial-gradient(48% 40% at 102% 20%, rgba(204, 170, 240, 0.26), transparent 72%), radial-gradient(56% 46% at 78% 112%, rgba(120, 214, 196, 0.26), transparent 72%);
+    --be-canvas-gradient: radial-gradient(62% 46% at 6% -6%, rgba(150, 178, 240, 0.44), transparent 72%), radial-gradient(48% 40% at 102% 20%, rgba(204, 170, 240, 0.36), transparent 72%), radial-gradient(56% 46% at 78% 112%, rgba(120, 214, 196, 0.36), transparent 72%), radial-gradient(40% 34% at 28% 70%, rgba(170, 190, 250, 0.2), transparent 75%);
     --be-focus: 0 0 0 3px rgba(0, 87, 194, 0.28);
     --be-ok: #28674a;
     --be-warn: #7c5b16;
@@ -288,3 +288,31 @@
 @keyframes be-prism-glass {0%,20%{background-position:100% 0,0 0}75%,100%{background-position:-100% 0,0 0}}
 @media(prefers-reduced-motion:reduce){.be-page .be-prism-current{animation:none;background-position:0 0;}}
 @media(forced-colors:active){.be-page .be-prism-current{background:none;-webkit-text-fill-color:CanvasText;filter:none;}}
+
+/* ===== 아크릴 전면 개편: 모든 화면 공통 ===== */
+/* 화면 전체에 아주 옅은 질감을 깔아 유리가 평평해 보이지 않게 해요. */
+.be-page::before { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none; background-image: var(--be-acrylic-noise); opacity: .5; }
+/* 버튼·입력칸도 반투명 유리 + 위쪽 빛 */
+.be-page button:not(.primary):not(.be-primary):not(.danger),
+.be-page input[type=text], .be-page input[type=password], .be-page input[type=number], .be-page input[type=url], .be-page input[type=search], .be-page input[type=email],
+.be-page input:not([type]), .be-page select, .be-page textarea {
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+  backdrop-filter: blur(14px) saturate(160%);
+}
+.be-page button:hover:not(:disabled):not(.primary) { background-color: color-mix(in srgb, var(--be-text) 11%, transparent); border-color: var(--be-border-strong); }
+.be-page input:focus, .be-page select:focus, .be-page textarea:focus { background-color: color-mix(in srgb, var(--be-text) 8%, transparent); }
+/* 목록 줄: 마우스를 올리면 유리가 살짝 밝아져요. */
+.be-row { border-radius: 10px; transition: background-color var(--be-duration) var(--be-ease); }
+.be-row:hover { background-color: color-mix(in srgb, var(--be-text) 5%, transparent); }
+/* 카드: 안쪽 하이라이트와 부드러운 그림자 */
+.be-card, .be-group { box-shadow: var(--be-glass-shadow), inset 0 0 0 1px rgba(255,255,255,.025); }
+/* 스크롤바도 유리 느낌 */
+.be-page ::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--be-text) 22%, transparent); border: 2px solid transparent; background-clip: padding-box; }
+.be-page ::-webkit-scrollbar-thumb:hover { background: color-mix(in srgb, var(--be-text) 38%, transparent); background-clip: padding-box; }
+/* 안내·빈 상태·보조 면 */
+.be-empty { background: var(--be-acrylic-noise), var(--be-glass-sheen), var(--be-glass); border: 1px solid var(--be-glass-border); -webkit-backdrop-filter: var(--be-acrylic-blur); backdrop-filter: var(--be-acrylic-blur); }
+.be-page code { background: color-mix(in srgb, var(--be-text) 10%, transparent); }
+@media (prefers-reduced-transparency: reduce) {
+  .be-page::before { display: none; }
+  .be-page button, .be-page input, .be-page select, .be-page textarea { backdrop-filter: none; -webkit-backdrop-filter: none; }
+}

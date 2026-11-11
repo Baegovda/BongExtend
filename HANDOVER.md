@@ -2,7 +2,12 @@
 
 기준일: 2026-11-10. 이 문서는 기존 v1.2.10 인수인계를 대체해요. 이후 변경은 package.json, CHANGELOG.md, GitHub Releases를 우선 확인하세요.
 
-## 최신 인계 — v1.2.75 모두 읽음 즉시 처리·한글화
+## 최신 인계 — v1.2.76 아크릴 전면 개편
+
+- theme.css 토큰을 더 투명하게(glass .44/.6, blur 30px, 배경 빛 강화)·공통 규칙(질감 ::before, 버튼/입력 블러, 행 hover, 스크롤바) 추가. popup/style.css 맨 끝에 메일 목록·다운로드 도구·video-activity·컨트롤을 유리로, 탭 줄 개별 블러는 끔(특이도 주의). pop-embed.css의 불투명 면은 color-mix 투명으로, download-module.css 끝에 관리자 유리 블록 추가.
+- 검증: 합성 Chrome 밝음/어두움 캡처(환율, 설정, 번역, 다운로더, 메일 줄), 테마 대비 시험·전체 시험·탭 기하 검사. **다운로드 관리자 본체(public/ui)와 실제 로그인 화면의 가독성은 캡처로 확인하지 못했어요.**
+
+## 이전 인계 — v1.2.75 모두 읽음 즉시 처리·한글화
 
 - public/js/popup.js prepareMarkAllAsX: markAsRead는 확인·경고·영어 'Other solutions'/jasonsavard 링크 없이 바로 실행해요(usedMarkAllAsReadButton 흐름 제거). 보관/스팸은 한글 확인창 1회. 많은 메일(MAX_EMAILS_TO_ACTION 초과)은 BG가 처리하는 만큼만 되고 다시 누르면 이어서 처리돼요. background.js 오류 알림 2곳과 jdom.js 닫기 aria-label을 한글화했어요. 메일 엔진 전체의 영어 잔재를 모두 찾은 것은 아니에요(이번 흐름만).
 - **구글 검색창 네모 테두리 보고(스크린샷)**: 다크 리더+대비 보정 단독 및 패키지 확장으로는 재현하지 못했어요(패키지 시험은 다크 등록이 안 돼 결론 없음). 원인 미확정, 사용자에게 확인을 요청했어요.
