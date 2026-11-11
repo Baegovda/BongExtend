@@ -56,6 +56,10 @@ BongExtend는 치지직, Gemini 번역, 디시인사이드(green1052/DCRefresher
 - 저장소 구역: 디시 `refresher:*`(옛 키 그대로, local), 치지직 `chzzk.*`(sync/local, `src/modules/chzzk/lib/ns.js`가 접두사를 붙임), 번역 `trans.*`(local. 예: `trans.settings`, `trans.cacheStats`, `trans.alwaysOrigins`), 공통 `core.*`(local. 예: `core.modules`, `core.popupTab`, `core.popupTabOrder`, `core.update:*`). 디시 안쪽 탭 위치는 `refresher:popup:lastTab`이에요. 디시 데이터 작업(가져오기/초기화/백업)은 `src/storage/namespace.ts`로 다른 구역을 건드리지 않아요. `chrome.storage.*.clear()` 쓰지 말 것. 번역 캐시 IndexedDB 이름은 `page-translator`, 업데이트 폴더 핸들 IndexedDB 이름은 `bongextend-install`이에요.
 - 치지직 콘텐츠 스크립트는 배경에서 `chrome.scripting.registerContentScripts`로 등록 (`src/modules/chzzk-register.ts`). 파일 순서 바꾸지 말 것.
 
+## 사용량·이미지 모듈 (2026-11-11 추가)
+- 사용량(`usage`): src/modules/usage/{usage.js,background.js}, 팝업은 src/entrypoints/popup/usage.ts. claude.ai(`/api/organizations`→`/usage`)와 chatgpt.com(`/api/auth/session`→`/backend-api/wham/usage`)의 **비공식 내부 주소**를 로그인 쿠키로 읽어요(사이트가 바꾸면 깨질 수 있어요). 두 사이트 권한은 기존 optional `https://*/*` 중 팝업의 '연결 허용' 클릭으로만 요청해요. 토큰은 저장·전달하지 않고 `usage.snapshot`에는 퍼센트·시각만 저장해요. PC 기록은 native/video/host.py의 `codex-usage`(~/.codex/sessions의 rate_limits)로 읽어요.
+- 이미지(`image`): src/modules/image/paste.js, 콘텐츠 스크립트 src/entrypoints/image-paste.content.ts(matches: talk.naver.com, partner.talk.naver.com, lens.google.com, www.google.com, images.google.com — 새 권한 없음). 설정은 `image.settings`{talk,lens}. 구글 렌즈는 페이지가 직접 붙여넣기를 처리하므로 2.2초 안에 업로드가 시작되지 않을 때만 이어받아요(이중 업로드 방지). 새 이미지 기능은 이 모듈에 추가해요.
+
 ## 구조
 - `src/entrypoints/` WXT 진입점: `background.ts`(서비스 워커 하나), `popup/`(탭 셸. 치지직·번역·디시는 iframe, 업데이트·설정은 이 페이지 안), `dc/`(디시 Vue 팝업 → `dc.html`), `options/`(디시 전체 설정 → `options.html`), `update/`(원클릭 업데이트 → `update.html`), `content/` + `grecaptcha.content.ts`(디시).
 - 팝업 iframe 주소: `/chzzk/popup.html`, `/trans/popup/popup.html`, `/dc.html`.

@@ -72,6 +72,32 @@ def download(message):
     except Exception as exc: emit({'type':'error','message':str(exc)[:500]})
     finally: process = None
 
+def codex_usage(root=None):
+    """Codex가 PC에 남긴 기록에서 마지막 사용 한도(퍼센트·초기화 시각)만 돌려줘요. 대화 내용은 읽어 보내지 않아요."""
+    base = pathlib.Path(root) if root else pathlib.Path.home() / '.codex' / 'sessions'
+    if not base.is_dir(): return {'type': 'codex-usage', 'empty': True}
+    files = sorted((f for f in base.rglob('rollout-*.jsonl') if f.is_file()), key=lambda f: f.stat().st_mtime, reverse=True)[:12]
+    for path in files:
+        try:
+            with open(path, 'rb') as handle:
+                handle.seek(0, 2)
+                handle.seek(max(0, handle.tell() - 2_000_000))
+                lines = handle.read().decode('utf-8', 'replace').splitlines()
+        except OSError:
+            continue
+        for line in reversed(lines):
+            if '"rate_limits"' not in line: continue
+            try: record = json.loads(line)
+            except ValueError: continue
+            payload = record.get('payload') if isinstance(record, dict) else None
+            limits = (payload or {}).get('rate_limits') if isinstance(payload, dict) else None
+            if not isinstance(limits, dict): continue
+            primary, secondary = limits.get('primary'), limits.get('secondary')
+            if not isinstance(primary, dict) and not isinstance(secondary, dict): continue
+            keep = lambda row: {k: row.get(k) for k in ('used_percent', 'window_minutes', 'resets_at')} if isinstance(row, dict) else None
+            return {'type': 'codex-usage', 'primary': keep(primary), 'secondary': keep(secondary), 'recordedAt': record.get('timestamp')}
+    return {'type': 'codex-usage', 'empty': True}
+
 def main():
     global process
     worker = None
@@ -85,6 +111,7 @@ def main():
         try:
             message = json.loads(raw)
             if message.get('type') == 'ping': emit({'type':'ready','version':2,'folder':str(OUT)})
+            elif message.get('type') == 'codex-usage': emit(codex_usage())
             elif message.get('type') == 'cancel':
                 stop_process()
             elif message.get('type') == 'download':

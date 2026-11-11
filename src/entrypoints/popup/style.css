@@ -418,3 +418,23 @@ html.embed .tabs #settingsGear { display:none!important; }
 html:not(.embed) .be-page .gear-fab{width:30px;height:30px;right:40px;bottom:8px;border-radius:10px}html:not(.embed) .gear-fab svg{width:17px;height:17px}
 @media(max-width:560px){.fx-converter .fx-row{grid-template-columns:minmax(0,1fr) 30px minmax(0,1fr);gap:10px}.fx-field:first-child{grid-column:1/-1}.fx-converter .fx-row #fxSwap{width:30px}.fx-converter .fx-row select{width:100%}}
 #autoReadLog { margin: 6px 0 0; padding: 8px; max-height: 150px; overflow: auto; white-space: pre-wrap; word-break: break-word; font: 11px/1.5 ui-monospace, Consolas, monospace; color: var(--be-text-2); border: 1px solid var(--be-glass-border); border-radius: 8px; background: var(--be-glass); }
+
+/* 사용량 탭 */
+.usage-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; align-items: start; }
+.usage-card { display: flex; flex-direction: column; gap: 12px; }
+.usage-card-head { display: flex; align-items: center; gap: 8px; }
+.usage-card-head h4 { margin: 0; padding: 0; font-size: 15px; font-weight: 700; color: var(--be-text); letter-spacing: -0.01em; }
+.usage-badge { margin-left: auto; padding: 2px 9px; border-radius: 99px; font-size: 11px; font-weight: 600; color: var(--be-muted); background: var(--be-control-bg); border: 1px solid var(--be-glass-border); }
+.usage-row { display: grid; gap: 6px; }
+.usage-row-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.usage-label { font-size: 13px; color: var(--be-text-2); }
+.usage-percent { font-size: 18px; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.usage-reset { font-size: 12px; color: var(--be-muted); }
+.usage-bar { width: 100%; height: 8px; border: 0; border-radius: 99px; overflow: hidden; appearance: none; background: var(--be-surface-3); box-shadow: inset 0 0 0 1px var(--be-glass-border); }
+.usage-bar::-webkit-progress-bar { background: transparent; }
+.usage-bar::-webkit-progress-value { border-radius: 99px; background: var(--usage-fill, var(--be-ok)); transition: width var(--be-duration) var(--be-ease); }
+.usage-row.level-mid { --usage-fill: var(--be-warn); }
+.usage-row.level-low { --usage-fill: var(--be-error); }
+.usage-row.level-low .usage-percent { color: var(--be-error); }
+.usage-note { margin: 0; }
+.image-panel .be-card { margin-bottom: 12px; }

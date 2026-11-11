@@ -2,7 +2,13 @@
 
 기준일: 2026-11-10. 이 문서는 기존 v1.2.10 인수인계를 대체해요. 이후 변경은 package.json, CHANGELOG.md, GitHub Releases를 우선 확인하세요.
 
-## 최신 인계 — v1.2.70 아크릴 테마·메일 흰 번쩍임·치지직 F11 보강
+## 최신 인계 — v1.2.71 사용량·이미지 모듈
+
+- 사용량: AGENTS.md '사용량·이미지 모듈' 참고. **claude.ai/chatgpt.com 사용량 주소는 비공식이고 실제 로그인 계정으로는 시험하지 못했어요**(응답 형식은 알려진 형태를 느슨하게 해석해요). 파서·권한·토큰 처리는 합성 응답 시험 10개로 확인했어요. 이 PC에는 영상 보조 프로그램이 설치돼 있지 않아 PC 기록 경로는 '연결 필요'로 표시돼요(host.py codex-usage는 Python 시험 통과, 실제 연결은 미검증).
+- 이미지: 합성 Chrome에서 실제 확장 설치 후 시험했어요. 구글 렌즈 실제 페이지에서 붙여넣기→업로드 1회(페이지 기본 처리와 겹치지 않음), 톡톡 도메인에 합성한 채팅 화면의 업로드 입력칸/끌어놓기 두 방식 모두 통과, 글자 동반 붙여넣기는 건드리지 않아요. **실제 로그인한 네이버 톡톡은 미검증**이에요(구조를 못 봤어요). 렌즈는 이 환경에서는 기본 붙여넣기가 이미 동작해서, 사용자가 겪은 실패 화면은 재현하지 못했어요.
+- 팝업 탭이 9개가 됐고 780/600/520px 헤더 안정성 검사(verify-ui-workflows --tabs-only)가 통과했어요. test:js에 usage/image 시험 폴더를 추가했어요.
+
+## 이전 인계 — v1.2.70 아크릴 테마·메일 흰 번쩍임·치지직 F11 보강
 
 - 아크릴: theme.css 토큰(--be-glass, --be-glass-strong, --be-glass-border/sheen/shadow, --be-acrylic-blur/noise, --be-canvas-gradient)만 바꿔 모든 화면에 적용했어요. .be-card/.be-group/.be-bar는 noise+sheen+glass 배경과 backdrop-filter, 미지원/투명 줄이기는 불투명 fallback이에요. 확인 캡처는 합성 Chrome 밝음/어두움 팝업이에요.
 - 메일 흰 번쩍임: public/checkerplus-popup.html head 맨 앞에 앱 바탕색 inline style을 추가했어요(Checker Plus 기본값이 흰색이고 어두운 스타일이 나중에 붙었어요). 실계정 첫 순간 캡처는 못 했어요.

@@ -59,5 +59,28 @@ class VideoHostTests(unittest.TestCase):
             host.cancelled.clear()
 
 
+class CodexUsageTests(unittest.TestCase):
+    def test_reads_latest_limits_only(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as folder:
+            day = pathlib.Path(folder) / '2026' / '11' / '11'
+            day.mkdir(parents=True)
+            old = {'timestamp': '2026-11-11T01:00:00Z', 'payload': {'rate_limits': {'primary': {'used_percent': 10.0, 'window_minutes': 300, 'resets_at': 1}, 'secondary': None}}}
+            new = {'timestamp': '2026-11-11T02:00:00Z', 'payload': {'rate_limits': {'primary': {'used_percent': 42.5, 'window_minutes': 300, 'resets_at': 1794000000, 'extra': 'x'}, 'secondary': {'used_percent': 7, 'window_minutes': 10080, 'resets_at': 1794600000}}}, 'text': 'private'}
+            empty = {'payload': {'rate_limits': {'primary': None, 'secondary': None}}}
+            (day / 'rollout-a.jsonl').write_text(json.dumps(old) + chr(10) + json.dumps(new) + chr(10) + json.dumps(empty) + chr(10), encoding='utf-8')
+            result = host.codex_usage(folder)
+            self.assertEqual(result['primary'], {'used_percent': 42.5, 'window_minutes': 300, 'resets_at': 1794000000})
+            self.assertEqual(result['secondary']['window_minutes'], 10080)
+            self.assertNotIn('private', json.dumps(result))
+            self.assertEqual(result['recordedAt'], '2026-11-11T02:00:00Z')
+
+    def test_missing_or_empty_history(self):
+        import tempfile
+        self.assertTrue(host.codex_usage('/definitely/not/here')['empty'])
+        with tempfile.TemporaryDirectory() as folder:
+            self.assertTrue(host.codex_usage(folder)['empty'])
+
+
 if __name__ == '__main__':
     unittest.main()
