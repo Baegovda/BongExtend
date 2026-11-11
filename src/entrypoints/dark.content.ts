@@ -9,6 +9,8 @@ import {createContrastController} from "@/modules/dark/contrast.js";
 import {createPseudoContrastController} from "@/modules/dark/pseudo-contrast.js";
 import {createIconContrastController} from "@/modules/dark/icon-contrast.js";
 import {createPaintGuard, createImageBlendGuard} from "@/modules/dark/paint-guard.js";
+// @ts-ignore plain JS: instant dark backdrop before the settings are read
+import {createEarlyDarkGuard} from "@/modules/dark/early-guard.js";
 
 const MODULES_KEY = "core.modules";
 
@@ -60,6 +62,9 @@ export default defineContentScript({
             return;
         }
         let generation = 0;
+        // 설정을 읽는 동안 흰 화면이 번쩍이지 않게 어두운 바탕을 먼저 칠해요. 결과가 정해지면 걷어내요.
+        const early = createEarlyDarkGuard(document);
+        early.start();
         const icons = createIconContrastController(document, () => contrast.update(), {fetchImage: fetchDarkImage});
         const pseudo = createPseudoContrastController(document);
         const photos = createImageBlendGuard(document);
@@ -144,6 +149,7 @@ export default defineContentScript({
                 if (modules.dark === false || !darkSiteEnabled(settings, hostname)) {
                     auto(false);
                     disable();
+                    early.release(true);
                     return;
                 }
 
@@ -173,7 +179,9 @@ export default defineContentScript({
                     enable(theme, siteFixes);
                 }
                 syncContrast();
+                early.release();
             } catch (error) {
+                early.release(true);
                 contrastEnabled = false;
                 paint.stop();
                 photos.stop();
