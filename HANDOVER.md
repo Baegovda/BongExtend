@@ -2,7 +2,13 @@
 
 기준일: 2026-11-10. 이 문서는 기존 v1.2.10 인수인계를 대체해요. 이후 변경은 package.json, CHANGELOG.md, GitHub Releases를 우선 확인하세요.
 
-## 최신 인계 — v1.2.69 알리 메일 Relay 인식
+## 최신 인계 — v1.2.70 아크릴 테마·메일 흰 번쩍임·치지직 F11 보강
+
+- 아크릴: theme.css 토큰(--be-glass, --be-glass-strong, --be-glass-border/sheen/shadow, --be-acrylic-blur/noise, --be-canvas-gradient)만 바꿔 모든 화면에 적용했어요. .be-card/.be-group/.be-bar는 noise+sheen+glass 배경과 backdrop-filter, 미지원/투명 줄이기는 불투명 fallback이에요. 확인 캡처는 합성 Chrome 밝음/어두움 팝업이에요.
+- 메일 흰 번쩍임: public/checkerplus-popup.html head 맨 앞에 앱 바탕색 inline style을 추가했어요(Checker Plus 기본값이 흰색이고 어두운 스타일이 나중에 붙었어요). 실계정 첫 순간 캡처는 못 했어요.
+- 치지직 F11: wide-fullscreen.js가 전체화면을 실제 확인하며 최대 3회 재시도(enterFullscreen), 같은 경로의 주소 변화/새로고침은 전체화면을 풀지 않고(entry.path, 문서 소유권 이어받기), 우리가 바꾸는 동안의 bounds 이벤트는 수동 해제로 보지 않아요(transitioning). content-wide.js는 보고 시도를 12회로 늘리고 'inactive'(창 포커스 없음)는 횟수를 쓰지 않고 3초마다 확인해요. 실제 방송에서는 미검증이에요.
+
+## 이전 인계 — v1.2.69 알리 메일 Relay 인식
 
 - 1.2.68은 실제 사용자 메일에서 동작하지 않았어요. 원인: 사용자의 알리 메일은 Firefox Relay를 거쳐 와서 authorMail이 xxx@mozmail.com이고 authorName이 'transaction@notice.aliexpress.com [via Relay]'예요(사용자 스크린샷). auto-read.js의 isAliExpressMail이 authorMail이 mozmail.com/relay.firefox.com일 때만 authorName의 aliexpress.com 주소를 인정해요.
 - 진단: 설정(톱니) 화면의 '알리 메일 자동 읽음 최근 기록'은 core.mailAutoReadLog(최근 30개, 도메인·결과만)를 보여줘요. 이유 값: read/no-notification/not-ali/otp/failed/checked.

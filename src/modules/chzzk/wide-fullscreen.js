@@ -3,8 +3,30 @@ export const WIDE_FULLSCREEN_KEY = 'core.chzzkWideFullscreen';
 const MESSAGE = 'BONG_CHZZK_WIDE_FULLSCREEN';
 const watchPage = value => /^https:\/\/chzzk\.naver\.com\/(live|video)\/[^/?#]+/.test(value || '');
 
-export function startWideFullscreenBridge(chrome = globalThis.chrome) {
+export function startWideFullscreenBridge(chrome = globalThis.chrome, {sleep = ms => new Promise(resolve => setTimeout(resolve, ms))} = {}) {
   let pending = Promise.resolve();
+  // 우리가 창 상태를 바꾸는 동안 생기는 크기 변경 이벤트는 사용자가 F11을 직접 끈 것으로 오해하지 않는다.
+  let transitioning = 0;
+  const pageDir = value => { try { return new URL(value).pathname; } catch { return ''; } };
+  // Chrome이 직전 창 상태 전환 중이면 요청이 조용히 무시될 수 있어서, 실제로 전체화면이 됐는지 확인하며 최대 3번 시도한다.
+  async function enterFullscreen(windowId) {
+    transitioning++;
+    try {
+      let lastError;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try { await chrome.windows.update(windowId, {state:'fullscreen'}); lastError = undefined; }
+        catch (error) { lastError = error; await sleep(150); continue; }
+        for (let wait = 0; wait < 8; wait++) {
+          let state;
+          try { state = (await chrome.windows.get(windowId)).state; } catch { return false; }
+          if (state === 'fullscreen') return true;
+          await sleep(100);
+        }
+      }
+      if (lastError) throw lastError;
+      return false;
+    } finally { transitioning--; }
+  }
   const enqueue = task => {
     const result = pending.then(task);
     pending = result.catch(() => {});
@@ -24,13 +46,16 @@ export function startWideFullscreenBridge(chrome = globalThis.chrome) {
     if (window?.state === 'fullscreen' && !entry.manualExit) {
       const update = {state: entry.previousState};
       if (entry.previousState === 'normal') Object.assign(update, entry.bounds);
-      try { await chrome.windows.update(Number(windowId), update); }
-      catch (error) {
-        if (entry.previousState !== 'normal' || !Object.keys(entry.bounds).length) throw error;
-        // A disconnected monitor or changed screen layout can invalidate saved bounds.
-        // Still leave fullscreen, letting Chrome choose a visible restored position.
-        await chrome.windows.update(Number(windowId), {state:'normal'});
-      }
+      transitioning++;
+      try {
+        try { await chrome.windows.update(Number(windowId), update); }
+        catch (error) {
+          if (entry.previousState !== 'normal' || !Object.keys(entry.bounds).length) throw error;
+          // A disconnected monitor or changed screen layout can invalidate saved bounds.
+          // Still leave fullscreen, letting Chrome choose a visible restored position.
+          await chrome.windows.update(Number(windowId), {state:'normal'});
+        }
+      } finally { transitioning--; }
     }
     delete entries[windowId];
     await save(entries);
@@ -51,6 +76,13 @@ export function startWideFullscreenBridge(chrome = globalThis.chrome) {
     if (!tab.active || tab.windowId !== windowId || !window.focused || !watchPage(tab.url) ||
         new URL(tab.url).pathname !== new URL(sender.url).pathname) return {ok:false, status:'inactive'};
     if (sameOwner(entry, sender)) return {ok:true, status:entry.manualExit ? 'manual-exit' : 'fullscreen'};
+    // 같은 탭이 새로고침되어 문서만 바뀐 경우에는 전체화면을 풀지 않고 소유권만 이어받는다.
+    if (entry && entry.tabId === sender.tab.id && window.state === 'fullscreen' && !entry.manualExit) {
+      entry.documentId = sender.documentId;
+      entry.path = pageDir(sender.url);
+      await save(entries);
+      return {ok:true, status:'fullscreen'};
+    }
     if (entry) {
       await restore(entries, windowId);
       // Another Chzzk tab may have owned fullscreen; recapture its restored state.
@@ -62,11 +94,13 @@ export function startWideFullscreenBridge(chrome = globalThis.chrome) {
     if (window.state === 'normal') for (const key of ['left', 'top', 'width', 'height']) {
       if (Number.isInteger(window[key])) bounds[key] = window[key];
     }
-    entries[windowId] = {tabId:tab.id, documentId:sender.documentId, previousState:window.state, bounds};
+    entries[windowId] = {tabId:tab.id, documentId:sender.documentId, previousState:window.state, bounds, path:pageDir(sender.url)};
     // Session storage survives service-worker suspension but never a browser restart.
     await save(entries);
-    try { await chrome.windows.update(windowId, {state:'fullscreen'}); }
+    let entered = false;
+    try { entered = await enterFullscreen(windowId); }
     catch (error) {delete entries[windowId]; await save(entries); throw error;}
+    if (!entered) {delete entries[windowId]; await save(entries); return {ok:false, status:'unavailable'};}
     return {ok:true, status:'fullscreen'};
   }
 
@@ -94,10 +128,14 @@ export function startWideFullscreenBridge(chrome = globalThis.chrome) {
     else await restore(entries, info.windowId);
   }));
   chrome.tabs.onUpdated.addListener((tabId, change, tab) => {
-    if (change.status !== 'loading' && !change.url) return;
+    // 주소의 쿼리·해시만 바뀌거나 같은 페이지를 새로고침하는 경우에는 전체화면을 유지한다. 다른 페이지로 가면 푼다.
+    if (!change.url) return;
     handle(async () => {
-      const entries = await load();
-      if (entries[tab.windowId]?.tabId === tabId) await restore(entries, tab.windowId);
+      const entries = await load(), entry = entries[tab.windowId];
+      if (entry?.tabId !== tabId) return;
+      const path = watchPage(change.url) ? pageDir(change.url) : '';
+      if (entry.path && entry.path === path) return;
+      await restore(entries, tab.windowId);
     });
   });
   chrome.tabs.onDetached.addListener((tabId, info) => handle(async () => {
@@ -105,8 +143,9 @@ export function startWideFullscreenBridge(chrome = globalThis.chrome) {
     if (entries[info.oldWindowId]?.tabId === tabId) await restore(entries, info.oldWindowId);
   }));
   chrome.windows.onBoundsChanged.addListener(window => handle(async () => {
+    if (transitioning) return;
     const entries = await load(), entry = entries[window.id];
-    if (!entry || (await chrome.windows.get(window.id)).state === 'fullscreen') return;
+    if (!entry || transitioning || (await chrome.windows.get(window.id)).state === 'fullscreen') return;
     entry.manualExit = true;
     await save(entries);
   }));

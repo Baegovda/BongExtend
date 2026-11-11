@@ -31,8 +31,15 @@ test('wide fullscreen retries a transient rejected request without another layou
 test('permanent API failures stop after a bounded number of attempts', async t => {
   const f = fixture(t, () => {throw Error('Window API rejected');});
   await new Promise(resolve => setImmediate(resolve));
-  for (let i=0; i<12; i++) await f.tick();
-  assert.equal(f.requests.length, 4);
+  for (let i=0; i<30; i++) await f.tick();
+  assert.equal(f.requests.length, 12);
+});
+
+test('an unfocused window keeps being retried without using up the attempt budget', async t => {
+  const f = fixture(t, n => n < 20 ? {ok:false,status:'inactive'} : {ok:true,status:'fullscreen'});
+  await new Promise(resolve => setImmediate(resolve));
+  for (let i=0; i<25; i++) await f.tick();
+  assert.equal(f.requests.length, 20, 'stops once the window finally accepted fullscreen');
 });
 
 test('manual fullscreen exit and disabled settings are not repeatedly overridden', async t => {

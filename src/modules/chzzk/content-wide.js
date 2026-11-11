@@ -91,6 +91,7 @@
 
   // Only an actual wide-layout transition controls browser fullscreen, never a predicted button click.
   let lastWide = null, observedLayout = null, observedButton = null, frame = 0;
+  const MAX_REPORTS = 12;
   let reportGeneration = 0, reportAttempts = 0, reportPending = false, reportSettled = false, retryAt = 0;
   const wideObserver = new MutationObserver(() => {
     if (!frame) frame = requestAnimationFrame(() => {frame = 0; checkWide();});
@@ -108,7 +109,7 @@
       reportGeneration++;
       reportAttempts = 0; reportPending = false; reportSettled = false; retryAt = 0;
     }
-    if (reportSettled || reportPending || reportAttempts >= 4 || Date.now() < retryAt) return;
+    if (reportSettled || reportPending || reportAttempts >= MAX_REPORTS || Date.now() < retryAt) return;
     const generation = reportGeneration;
     reportPending = true;
     reportAttempts++;
@@ -118,7 +119,9 @@
       if (generation !== reportGeneration) return;
       reportPending = false;
       reportSettled = response?.ok === true || response?.status === 'disabled';
-      retryAt = Date.now() + RETRY_MS * reportAttempts;
+      // 창이 포커스를 잃은 상태('inactive')는 시도 횟수를 쓰지 않고 천천히 계속 확인해요. 포커스가 돌아오면 바로 다시 보내요.
+      if (response?.status === 'inactive') { reportAttempts = Math.max(0, reportAttempts - 1); retryAt = Date.now() + 3000; }
+      else retryAt = Date.now() + Math.min(RETRY_MS * reportAttempts, 5000);
     };
     void chrome.runtime.sendMessage({type:'BONG_CHZZK_WIDE_FULLSCREEN', wide}).then(complete, () => complete(null));
   }

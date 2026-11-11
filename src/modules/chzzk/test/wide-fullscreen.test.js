@@ -21,7 +21,7 @@ function fixture(previousState = 'normal', existing = {}) {
     storage: {session:{get:async () => structuredClone(session), set:async value => Object.assign(session, structuredClone(value))},
       local:{get:async () => local}, sync:{get:async () => sync}, onChanged:event()}
   };
-  startWideFullscreenBridge(api);
+  startWideFullscreenBridge(api, {sleep: async () => {}});
   const sender = {id:'self', frameId:0, documentId:'document-one', url, tab:{...tabs.get(3)}};
   const send = (wide, from = sender, type = 'BONG_CHZZK_WIDE_FULLSCREEN') => new Promise(resolve => {
     // Only one message listener exists in this isolated fixture.
@@ -124,4 +124,63 @@ test('invalid saved monitor bounds still exit fullscreen through Chrome restorat
   assert.equal((await f.send(false)).ok, true);
   assert.equal(f.windows.get(9).state, 'normal');
   assert.deepEqual(f.session[WIDE_FULLSCREEN_KEY], {});
+});
+
+test('a query or hash change on the same watch page keeps the owned fullscreen', async () => {
+  const f = fixture(); await f.send(true);
+  f.api.tabs.onUpdated.fire(3, {url: url + '?t=1'}, f.tabs.get(3)); await flush();
+  assert.equal(f.windows.get(9).state, 'fullscreen');
+  f.api.tabs.onUpdated.fire(3, {status:'loading'}, f.tabs.get(3)); await flush();
+  assert.equal(f.windows.get(9).state, 'fullscreen', 'a reload without a new address does not flicker out of fullscreen');
+  f.api.tabs.onUpdated.fire(3, {url:'https://chzzk.naver.com/live/' + 'b'.repeat(32)}, f.tabs.get(3)); await flush();
+  assert.equal(f.windows.get(9).state, 'normal', 'a different live page releases it');
+});
+
+test('a reloaded document adopts the existing fullscreen instead of toggling it', async () => {
+  const f = fixture(); await f.send(true);
+  const reloaded = await f.send(true, {...f.sender, documentId:'document-two'});
+  assert.equal(reloaded.status, 'fullscreen');
+  assert.equal(f.updates.length, 1);
+  await f.send(false, {...f.sender, documentId:'document-one'});
+  assert.equal(f.windows.get(9).state, 'fullscreen', 'the old document can no longer exit it');
+  await f.send(false, {...f.sender, documentId:'document-two'});
+  assert.equal(f.windows.get(9).state, 'normal');
+});
+
+test('a fullscreen request Chrome silently ignores is retried and verified', async () => {
+  const f = fixture();
+  const update = f.api.windows.update; let calls = 0;
+  f.api.windows.update = async (id, value) => { calls++; return calls === 1 ? {...f.windows.get(id)} : update(id, value); };
+  assert.equal((await f.send(true)).status, 'fullscreen');
+  assert.equal(calls, 2);
+  assert.equal(f.windows.get(9).state, 'fullscreen');
+});
+
+test('a request that never reaches fullscreen reports failure and leaves no ownership', async () => {
+  const f = fixture();
+  f.api.windows.update = async id => ({...f.windows.get(id)});
+  const reply = await f.send(true);
+  assert.equal(reply.ok, false);
+  assert.deepEqual(f.session[WIDE_FULLSCREEN_KEY], {});
+});
+
+test('a transient window API error is retried', async () => {
+  const f = fixture();
+  const update = f.api.windows.update; let calls = 0;
+  f.api.windows.update = async (id, value) => { calls++; if (calls === 1) throw Error('busy'); return update(id, value); };
+  assert.equal((await f.send(true)).ok, true);
+  assert.equal(f.windows.get(9).state, 'fullscreen');
+});
+
+test('size events while we are entering fullscreen are not mistaken for a manual F11 exit', async () => {
+  const f = fixture();
+  const update = f.api.windows.update;
+  f.api.windows.update = async (id, value) => {
+    const old = {...f.windows.get(id)};
+    f.api.windows.onBoundsChanged.fire(old);
+    return update(id, value);
+  };
+  await f.send(true); await flush();
+  assert.equal((await f.send(true)).status, 'fullscreen', 'not manual-exit');
+  assert.equal(f.session[WIDE_FULLSCREEN_KEY][9].manualExit, undefined);
 });

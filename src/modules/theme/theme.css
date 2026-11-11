@@ -19,14 +19,17 @@
   --be-accent-ink: #ffffff;
   --be-gradient: linear-gradient(115deg, #badcff 0%, #c9b9f0 48%, #9edbd0 100%);
   --be-accent-gradient: linear-gradient(125deg, #405fc4 0%, #5b53aa 56%, #326b89 100%);
-  --be-glass: rgba(34, 35, 39, 0.91);
-  --be-glass-strong: rgba(40, 41, 46, 0.96);
-  --be-glass-border: rgba(214, 219, 234, 0.19);
-  --be-glass-sheen: linear-gradient(135deg, rgba(182, 210, 255, 0.065), rgba(205, 177, 238, 0.025) 48%, rgba(134, 217, 202, 0.035));
-  --be-glass-shadow: inset 0 1px 0 rgba(231, 240, 255, 0.065), 0 12px 28px rgba(0, 5, 17, 0.2);
+  /* 아크릴: 반투명 색 + 배경 흐림 + 아주 옅은 노이즈 + 안쪽 테두리 빛. */
+  --be-glass: rgba(40, 42, 48, 0.56);
+  --be-glass-strong: rgba(48, 50, 57, 0.74);
+  --be-glass-border: rgba(226, 231, 246, 0.17);
+  --be-glass-sheen: linear-gradient(140deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.012) 42%, rgba(160, 196, 255, 0.032));
+  --be-glass-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.11), inset 0 0 0 1px rgba(255, 255, 255, 0.022), 0 14px 34px rgba(0, 0, 0, 0.3);
+  --be-acrylic-blur: blur(24px) saturate(165%);
+  --be-acrylic-noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 .1 0 0 0 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url%28%23n%29'/%3E%3C/svg%3E");
   --be-control-bg: rgba(210, 215, 230, 0.065);
   --be-control-border: rgba(214, 219, 234, 0.23);
-  --be-canvas-gradient: radial-gradient(ellipse at 8% 0%, rgba(205, 213, 238, 0.035), transparent 55%), radial-gradient(ellipse at 100% 85%, rgba(215, 187, 218, 0.025), transparent 54%), radial-gradient(ellipse at 85% 0%, rgba(178, 215, 201, 0.025), transparent 55%);
+  --be-canvas-gradient: radial-gradient(62% 46% at 8% -6%, rgba(128, 158, 232, 0.17), transparent 72%), radial-gradient(48% 40% at 102% 22%, rgba(176, 132, 228, 0.12), transparent 72%), radial-gradient(56% 46% at 78% 112%, rgba(72, 190, 172, 0.12), transparent 72%);
   --be-focus: 0 0 0 3px rgba(100, 210, 255, 0.45);
   --be-ok: #95d5b2;
   --be-warn: #e8cf92;
@@ -70,14 +73,16 @@
     --be-accent-ink: #ffffff;
     --be-gradient: linear-gradient(115deg, #3b619b 0%, #745c9f 48%, #2c766d 100%);
     --be-accent-gradient: linear-gradient(125deg, #455cc2 0%, #6351a6 56%, #336b85 100%);
-    --be-glass: rgba(252, 252, 253, 0.91);
-    --be-glass-strong: rgba(252, 252, 253, 0.97);
-    --be-glass-border: rgba(125, 131, 150, 0.25);
-    --be-glass-sheen: linear-gradient(135deg, rgba(255, 255, 255, 0.7), rgba(222, 223, 248, 0.12) 48%, rgba(214, 239, 234, 0.14));
-    --be-glass-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95), 0 10px 28px rgba(55, 74, 110, 0.075);
+    --be-glass: rgba(255, 255, 255, 0.6);
+    --be-glass-strong: rgba(255, 255, 255, 0.8);
+    --be-glass-border: rgba(120, 128, 152, 0.24);
+    --be-glass-sheen: linear-gradient(140deg, rgba(255, 255, 255, 0.75), rgba(255, 255, 255, 0.1) 44%, rgba(214, 226, 250, 0.16));
+    --be-glass-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95), inset 0 0 0 1px rgba(255, 255, 255, 0.4), 0 12px 30px rgba(55, 74, 110, 0.11);
+    --be-acrylic-blur: blur(24px) saturate(180%);
+    --be-acrylic-noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .2 0 0 0 0 .22 0 0 0 0 .3 .12 0 0 0 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url%28%23n%29'/%3E%3C/svg%3E");
     --be-control-bg: rgba(244, 245, 247, 0.86);
     --be-control-border: rgba(125, 131, 150, 0.32);
-    --be-canvas-gradient: radial-gradient(ellipse at 5% 0%, rgba(199, 211, 236, 0.13), transparent 58%), radial-gradient(ellipse at 100% 85%, rgba(225, 209, 228, 0.12), transparent 55%), radial-gradient(ellipse at 90% 0%, rgba(202, 226, 216, 0.1), transparent 55%);
+    --be-canvas-gradient: radial-gradient(62% 46% at 6% -6%, rgba(150, 178, 240, 0.34), transparent 72%), radial-gradient(48% 40% at 102% 20%, rgba(204, 170, 240, 0.26), transparent 72%), radial-gradient(56% 46% at 78% 112%, rgba(120, 214, 196, 0.26), transparent 72%);
     --be-focus: 0 0 0 3px rgba(0, 87, 194, 0.28);
     --be-ok: #28674a;
     --be-warn: #7c5b16;
@@ -120,7 +125,7 @@
   padding: 8px 14px;
   cursor: pointer;
   white-space: nowrap;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 2px 4px rgba(0,0,0,.035);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.09), 0 2px 6px rgba(0,0,0,.05);
   transition: background-color var(--be-duration) var(--be-ease), border-color var(--be-duration) var(--be-ease), box-shadow var(--be-duration) var(--be-ease);
 }
 .be-page .be-row > button,
@@ -177,7 +182,9 @@
 .be-page input[type=checkbox]:disabled { opacity: 0.45; cursor: default; }
 
 .be-card, .be-group {
-  background: var(--be-glass-sheen), var(--be-glass);
+  background: var(--be-acrylic-noise), var(--be-glass-sheen), var(--be-glass);
+  -webkit-backdrop-filter: var(--be-acrylic-blur);
+  backdrop-filter: var(--be-acrylic-blur);
   border: 1px solid var(--be-glass-border);
   box-shadow: var(--be-glass-shadow);
   border-radius: var(--be-radius-lg);
@@ -218,7 +225,7 @@
   border: 0; border-radius: 10px; padding: 8px 12px; cursor: pointer; margin: 0;
   transition: transform var(--be-duration) var(--be-ease), opacity var(--be-duration) var(--be-ease);
 }
-.be-subnav > .active, .be-segment > button.active { background: var(--be-glass-sheen),var(--be-glass-strong); box-shadow: inset 0 0 0 1px var(--be-glass-border), 0 2px 5px rgba(0, 0, 0, 0.09); }
+.be-subnav > .active, .be-segment > button.active { background: var(--be-acrylic-noise), var(--be-glass-sheen),var(--be-glass-strong); box-shadow: inset 0 0 0 1px var(--be-glass-border), 0 2px 5px rgba(0, 0, 0, 0.09); }
 
 .be-nav { display: flex; flex-direction: column; gap: 4px; }
 .be-nav button {
@@ -227,16 +234,17 @@
 .be-nav button.active { background: var(--be-accent-soft); color: var(--be-text); box-shadow: inset 0 0 0 1px var(--be-glass-border); }
 
 .be-bar {
-  background: var(--be-glass-sheen), var(--be-glass-strong);
-  -webkit-backdrop-filter: saturate(135%) blur(18px);
-  backdrop-filter: saturate(135%) blur(18px);
+  background: var(--be-acrylic-noise), var(--be-glass-sheen), var(--be-glass-strong);
+  -webkit-backdrop-filter: var(--be-acrylic-blur);
+  backdrop-filter: var(--be-acrylic-blur);
+  box-shadow: inset 0 -1px 0 var(--be-glass-border), inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 @supports not (backdrop-filter: blur(1px)) {
-  .be-bar { background-color: var(--be-surface); }
+  .be-bar, .be-card, .be-group { background: var(--be-glass-sheen), var(--be-surface); }
 }
 
 @media (prefers-reduced-transparency: reduce) {
-  :root { --be-glass: var(--be-surface); --be-glass-strong: var(--be-surface); --be-glass-sheen: linear-gradient(transparent,transparent); --be-canvas-gradient: none; }
+  :root { --be-glass: var(--be-surface); --be-glass-strong: var(--be-surface); --be-glass-sheen: linear-gradient(transparent,transparent); --be-canvas-gradient: none; --be-acrylic-noise: linear-gradient(transparent,transparent); }
   .be-card, .be-group, .be-bar { background: var(--be-surface); backdrop-filter: none; -webkit-backdrop-filter: none; }
 }
 @media (forced-colors: active) {
