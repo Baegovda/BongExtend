@@ -69,8 +69,70 @@
   let drag;
   const dragStatus=document.createElement('span');dragStatus.className='be-drag-status';dragStatus.setAttribute('role','status');inbox.before(dragStatus);
   function clearTarget(){for(const row of inbox.querySelectorAll('.be-drop-before,.be-drop-after'))row.classList.remove('be-drop-before','be-drop-after');}
+  const reduceMotion=()=>Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
+  const SLIDE='transform 200ms cubic-bezier(.2,.8,.2,1)';
+  // 잡은 줄은 마우스에 실시간으로 딸려오고, 다른 줄은 비켜나요. 실제 순서는 놓을 때 한 번만 바꿔요.
+  function beginDrag(){
+    if(!drag)return;
+    const base=inbox.getBoundingClientRect(),rows=accountRows();
+    const items=rows.map(row=>{const rect=row.getBoundingClientRect(),head=row.querySelector('.accountHeader,.be-naver-header')?.getBoundingClientRect()||rect;return {row,top:rect.top-base.top+inbox.scrollTop,height:rect.height,headCenter:head.top-base.top+inbox.scrollTop+head.height/2};});
+    const own=items.findIndex(item=>item.row===drag.row);if(own<0)return;
+    const gap=items[own+1]?items[own+1].top-(items[own].top+items[own].height):items[own-1]?items[own].top-(items[own-1].top+items[own-1].height):0;
+    drag.layout={items,own,slot:items[own].height+Math.max(gap,0),scroll:inbox.scrollTop};
+    if(!reduceMotion())for(const item of items)if(item.row!==drag.row){item.row.style.transition=SLIDE;item.row.style.willChange='transform';}
+  }
+  function updateDrag(){
+    if(!drag?.active)return;
+    if(!drag.row.isConnected||!drag.grip.isConnected){finishDrag();return;}
+    clearTarget();drag.target=undefined;
+    const layout=drag.layout,bounds=inbox.getBoundingClientRect();
+    if(layout){
+      const {items,own,slot}=layout;
+      const inside=drag.x>=bounds.left&&drag.x<=bounds.right&&drag.y>=bounds.top&&drag.y<=bounds.bottom;
+      const dy=drag.y-drag.startY+(inbox.scrollTop-layout.scroll);
+      drag.row.style.transform=`translateY(${dy}px) scale(1.012)`;
+      let to=own;
+      if(inside){
+        // 손잡이(마우스)가 놓인 자리를 기준으로 해요: 다른 줄의 머리 중심보다 아래에 있으면 그 줄 뒤에 들어가요.
+        const pointer=drag.y-bounds.top+inbox.scrollTop;
+        to=0;for(let i=0;i<items.length;i++)if(i!==own&&items[i].headCenter<pointer)to++;
+        to=Math.max(0,Math.min(items.length-1,to));
+      }
+      items.forEach((item,i)=>{
+        if(i===own)return;
+        const shift=to>own&&i>own&&i<=to?-slot:to<own&&i>=to&&i<own?slot:0;
+        item.row.style.transform=shift?`translateY(${shift}px)`:'';
+      });
+      if(to!==own){drag.target=items[to].row;drag.placement=to>own?'after':'before';drag.target.classList.add('be-drop-'+drag.placement);}
+      const edge=32,speed=!inside?0:drag.y<bounds.top+edge?-10:drag.y>bounds.bottom-edge?10:0;
+      if(speed)inbox.scrollTop+=speed;
+    }
+    drag.frame=requestAnimationFrame(updateDrag);
+  }
+  // 놓은 뒤 줄들이 제자리로 부드럽게 미끄러져 들어가요(FLIP).
+  function settleRows(firsts){
+    if(reduceMotion())return;
+    const moved=[];
+    for(const [row,top] of firsts){
+      if(!row.isConnected)continue;
+      const delta=top-row.getBoundingClientRect().top;
+      if(Math.abs(delta)<1)continue;
+      row.style.transition='none';row.style.transform=`translateY(${delta}px)`;row.classList.add('be-account-settling');moved.push(row);
+    }
+    if(!moved.length)return;
+    void inbox.offsetHeight;
+    requestAnimationFrame(()=>{
+      for(const row of moved){row.style.transition='transform 240ms cubic-bezier(.2,.8,.2,1)';row.style.transform='';}
+      setTimeout(()=>{for(const row of moved){row.style.transition='';row.classList.remove('be-account-settling');}},280);
+    });
+  }
+  function resetRowStyles(){
+    for(const row of accountRows()){row.style.transform='';row.style.transition='';row.style.willChange='';}
+  }
   function finishDrag(commit=false){
     if(!drag)return;const state=drag;drag=undefined;cancelAnimationFrame(state.frame);clearTarget();
+    const firsts=state.active?accountRows().map(row=>[row,row.getBoundingClientRect().top]):[];
+    resetRowStyles();
     state.row.classList.remove('be-account-dragging');document.documentElement.classList.remove('be-account-drag-active');
     if(state.grip.hasPointerCapture?.(state.id))state.grip.releasePointerCapture(state.id);
     if(commit&&state.active&&state.target?.isConnected&&state.row.isConnected){
@@ -80,23 +142,8 @@
         document.dispatchEvent(event);dragStatus.textContent=event.defaultPrevented?'계정 순서를 변경했어요.':'계정 순서를 변경하지 못했어요. 위아래 버튼을 사용해 주세요.';
       }
     }else if(state.active)dragStatus.textContent='계정 이동을 취소했어요.';
+    settleRows(firsts);
     if(state.grip.isConnected)state.grip.focus({preventScroll:true});
-  }
-  function updateDrag(){
-    if(!drag?.active)return;
-    if(!drag.row.isConnected||!drag.grip.isConnected){finishDrag();return;}
-    clearTarget();drag.target=undefined;
-    const bounds=inbox.getBoundingClientRect();
-    if(drag.x>=bounds.left&&drag.x<=bounds.right&&drag.y>=bounds.top&&drag.y<=bounds.bottom){
-      const headers=accountRows().filter(row=>row!==drag.row).map(row=>({row,rect:row.querySelector('.accountHeader,.be-naver-header')?.getBoundingClientRect()})).filter(item=>item.rect?.height);
-      let closest,dist=Infinity;
-      for(const item of headers){const next=Math.abs(drag.y-(item.rect.top+item.rect.height/2));if(next<dist){closest=item;dist=next;}}
-      const own=drag.row.querySelector('.accountHeader,.be-naver-header')?.getBoundingClientRect();
-      if(closest&&!(own&&drag.y>=own.top&&drag.y<=own.bottom)){drag.target=closest.row;drag.placement=drag.y<closest.rect.top+closest.rect.height/2?'before':'after';drag.target.classList.add('be-drop-'+drag.placement);}
-      const edge=32,speed=drag.y<bounds.top+edge?-10:drag.y>bounds.bottom-edge?10:0;
-      if(speed)inbox.scrollTop+=speed;
-    }
-    drag.frame=requestAnimationFrame(updateDrag);
   }
   function installGrip(row,header,email){
     if(header.querySelector('.be-account-grip'))return;
@@ -109,7 +156,7 @@
       drag={row,grip,id:event.pointerId,startX:event.clientX,startY:event.clientY,x:event.clientX,y:event.clientY,active:false};grip.setPointerCapture(event.pointerId);
     });
     grip.addEventListener('pointermove',event=>{if(!drag||drag.id!==event.pointerId)return;event.preventDefault();event.stopPropagation();drag.x=event.clientX;drag.y=event.clientY;
-      if(!drag.active&&Math.hypot(drag.x-drag.startX,drag.y-drag.startY)>=5){drag.active=true;row.classList.add('be-account-dragging');document.documentElement.classList.add('be-account-drag-active');dragStatus.textContent='계정을 놓을 위치로 이동해 주세요. Esc로 취소해요.';updateDrag();}
+      if(!drag.active&&Math.hypot(drag.x-drag.startX,drag.y-drag.startY)>=5){drag.active=true;row.classList.add('be-account-dragging');document.documentElement.classList.add('be-account-drag-active');dragStatus.textContent='계정을 놓을 위치로 이동해 주세요. Esc로 취소해요.';beginDrag();updateDrag();}
     });
     grip.addEventListener('pointerup',event=>{if(drag?.id===event.pointerId){event.preventDefault();event.stopPropagation();drag.x=event.clientX;drag.y=event.clientY;if(drag.active){cancelAnimationFrame(drag.frame);updateDrag();}finishDrag(true);}});
     for(const type of ['pointercancel','lostpointercapture'])grip.addEventListener(type,event=>{if(drag?.id===event.pointerId)finishDrag();});

@@ -474,3 +474,26 @@ html:not(.embed) .tabs .window-tools button:hover:not(:disabled) { background: c
 @media (prefers-reduced-transparency: reduce) {
   html:not(.embed) .tab-group { background: var(--be-surface); backdrop-filter: none; -webkit-backdrop-filter: none; }
 }
+
+/* 탭 막대 더 투명하게: 위쪽 색 빛이 비치는 아크릴 */
+html:not(.embed) .be-page { background-image: radial-gradient(46% 120px at 50% -10px, color-mix(in srgb, var(--be-accent-2) 34%, transparent), transparent 75%), radial-gradient(34% 110px at 12% -10px, color-mix(in srgb, var(--be-link) 26%, transparent), transparent 75%), var(--be-canvas-gradient); background-attachment: fixed; }
+html:not(.embed) .tabs {
+  background: var(--be-acrylic-noise), linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,0) 70%), color-mix(in srgb, var(--be-glass) 48%, transparent);
+  -webkit-backdrop-filter: blur(28px) saturate(185%);
+  backdrop-filter: blur(28px) saturate(185%);
+  border-bottom-color: color-mix(in srgb, var(--be-glass-border) 80%, transparent);
+}
+html:not(.embed) .tab-group {
+  background: var(--be-acrylic-noise), linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.02)), color-mix(in srgb, var(--be-glass) 34%, transparent);
+  -webkit-backdrop-filter: blur(34px) saturate(200%);
+  backdrop-filter: blur(34px) saturate(200%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.2), inset 0 0 0 1px rgba(255,255,255,.04), 0 8px 22px rgba(0,0,0,.12);
+}
+html:not(.embed) .tabs .tab-group button.active {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--be-accent-2) 30%, transparent), color-mix(in srgb, var(--be-accent) 14%, transparent)), color-mix(in srgb, var(--be-glass-strong) 62%, transparent);
+}
+html:not(.embed) .tabs .window-tools button { background: color-mix(in srgb, var(--be-control-bg) 70%, transparent); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
+@media (prefers-reduced-transparency: reduce) {
+  html:not(.embed) .tabs { background: var(--be-surface); backdrop-filter: none; -webkit-backdrop-filter: none; }
+  html:not(.embed) .tabs .window-tools button { backdrop-filter: none; -webkit-backdrop-filter: none; }
+}

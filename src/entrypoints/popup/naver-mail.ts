@@ -57,7 +57,13 @@ export function setupNaverMail(){
   const doc=frame.contentDocument,inbox=doc?.getElementById('inbox');
   if(!doc||!inbox)return;
   hint(doc);
-  if(section?.ownerDocument!==doc){section=doc.createElement('section');section.id='bongextendNaverAccount';section.className='be-naver-account';section.dataset.provider='naver';signature='';}
+  // 메일 화면이 다시 로드돼도 네이버 줄이 두 개가 되지 않게, 이미 있는 줄은 이어받고 남는 줄은 지워요.
+  const existing=Array.from(inbox.querySelectorAll<HTMLElement>(':scope > #bongextendNaverAccount,:scope > .be-naver-account'));
+  if(section?.ownerDocument!==doc){
+   section=existing[0];if(section)signature='';
+   if(!section){section=doc.createElement('section');section.id='bongextendNaverAccount';section.className='be-naver-account';section.dataset.provider='naver';signature='';}
+  }
+  for(const extra of existing)if(extra!==section)extra.remove();
   if(section!.parentElement!==inbox)inbox.append(section!);
   orderAccounts(doc);
  };

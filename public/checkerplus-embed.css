@@ -360,7 +360,7 @@ html.bongextend-checkerplus-embedded #accounts-and-inbox {height:100% !important
 .be-naver-actions {display:flex;align-items:center;gap:2px;flex-shrink:0;}
 .be-naver-actions j-button {--button-padding:5px;--icon-only-padding:6px;--icon-size:18px;}
 .be-naver-title strong {font:600 13px/1.35 var(--be-font);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.be-naver-logo {width:28px;height:28px;flex:0 0 28px;border-radius:7px;object-fit:contain;}
+.be-naver-logo {width:28px;height:28px;flex:0 0 28px;margin-inline:6px 8px;border-radius:7px;object-fit:contain;}
 .be-naver-unread {font:600 12px/1.35 var(--be-font);color:var(--be-accent);}
 .be-mail-empty button {font:600 12px/1.4 var(--be-font);padding:7px 9px;border:1px solid var(--be-border);border-radius:9px;background:var(--be-surface-2);color:var(--be-text);cursor:pointer;}
 .be-naver-account button:hover,.be-mail-empty button:hover {background:var(--be-surface-3);}
@@ -435,7 +435,7 @@ html.bongextend-checkerplus-embedded #openEmail .messageHeader {
   border-color: var(--be-glass-border, var(--be-border));
   border-radius: 12px;
 }
-html.bongextend-checkerplus-embedded :is(.be-body-zoom,.be-account-order button,.be-naver-header button,.be-mail-empty button),
+html.bongextend-checkerplus-embedded :is(.be-body-zoom,.be-account-order button,.be-naver-header button:not(.be-account-grip),.be-mail-empty button),
 html.bongextend-checkerplus-embedded #replyButtons j-button {
   background: var(--be-control-bg, var(--be-surface-2)) !important;
   border-color: var(--be-control-border, var(--be-border)) !important;
@@ -466,3 +466,17 @@ html.bongextend-checkerplus-embedded :is(.account,.be-naver-account) { margin: 0
 html.bongextend-checkerplus-embedded :is(.be-naver-note,.be-mail-empty) { margin: 7px 0 0 !important; }
 html.bongextend-checkerplus-embedded .be-naver-list { margin: 7px 0 0 !important; }
 html.bongextend-checkerplus-embedded .be-naver-header .be-account-grip { align-self: center; }
+/* 손잡이는 Gmail 줄처럼 상자 없이 점만 보이게 해요. */
+html.bongextend-checkerplus-embedded .be-naver-header .be-account-grip { background: transparent !important; border: 0 !important; box-shadow: none !important; border-radius: 6px !important; }
+html.bongextend-checkerplus-embedded .be-naver-header .be-account-grip:hover { background: var(--be-control-bg, var(--be-surface-2)) !important; }
+
+/* 계정 줄 드래그: 줄이 마우스에 딸려오고 다른 줄은 미끄러져 비켜나요. */
+html.bongextend-checkerplus-embedded :is(.account,.be-naver-account) { position: relative; }
+html.bongextend-checkerplus-embedded .be-account-dragging { z-index: 30; cursor: grabbing; }
+html.bongextend-checkerplus-embedded .be-account-settling { z-index: 20; }
+html.bongextend-checkerplus-embedded .be-account-dragging > :is(.accountHeader,.be-naver-header) {
+  box-shadow: 0 18px 34px rgba(0,0,0,.38), inset 0 1px 0 rgba(255,255,255,.12) !important;
+  border-color: color-mix(in srgb, var(--be-accent) 55%, var(--be-glass-border, var(--be-border))) !important;
+}
+html.bongextend-checkerplus-embedded.be-account-drag-active :is(.account,.be-naver-account):not(.be-account-dragging) { pointer-events: none; }
+html.bongextend-checkerplus-embedded :is(.be-drop-before,.be-drop-after)::after { display: none; }

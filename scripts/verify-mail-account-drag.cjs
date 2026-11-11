@@ -20,7 +20,7 @@ const {chromium}=require('playwright'),fs=require('node:fs'),os=require('node:os
    document.addEventListener('bongextend-mail-account-move',event=>{window.requests.push(event.detail);if(window.rejectMove)return;const rows=[...inbox.children],source=rows.find(row=>key(row)===event.detail.sourceKey),target=rows.find(row=>key(row)===event.detail.targetKey);if(!source||!target)return;inbox.insertBefore(source,event.detail.placement==='before'?target:target.nextSibling);window.saved=[...inbox.children].map(key);event.preventDefault();});
   });
   await page.addScriptTag({path:'public/js/bongextend-mail-ui.js'});await page.locator('.be-account-grip').nth(6).waitFor();
-  const drag=async(source,target,cancel)=>{const a=await page.locator(`#${source} .be-account-grip`).boundingBox(),b=await page.locator(`#${target} header`).boundingBox();await page.mouse.move(a.x+a.width/2,a.y+a.height/2);await page.mouse.down();await page.mouse.move(b.x+20,b.y+4,{steps:5});await page.waitForFunction(()=>document.querySelector('.be-drop-before,.be-drop-after'));if(cancel)await page.keyboard.press('Escape');await page.mouse.up();};
+  const drag=async(source,target,cancel)=>{const a=await page.locator(`#${source} .be-account-grip`).boundingBox(),b=await page.locator(`#${target} header`).boundingBox();await page.mouse.move(a.x+a.width/2,a.y+a.height/2);await page.mouse.down();await page.mouse.move(b.x+20,b.y+4,{steps:5});await page.waitForFunction(()=>document.querySelector('.be-drop-before,.be-drop-after'));if(cancel)await page.keyboard.press('Escape');await page.mouse.up();await page.waitForTimeout(380);};
   await drag('account-2','account-0');
   assert.deepEqual(await page.evaluate(()=>requests[0]),{sourceKey:'naver:fixture@naver.com',targetKey:'gmail:fixture0@gmail.test',placement:'before'});
   assert.equal(await page.locator('#inbox > section').first().getAttribute('id'),'account-2');
@@ -38,6 +38,27 @@ const {chromium}=require('playwright'),fs=require('node:fs'),os=require('node:os
   await page.mouse.move(auto.x+8,auto.y+8);await page.mouse.down();await page.mouse.move(bounds.x+30,bounds.y+bounds.height-6,{steps:5});
   await page.waitForFunction(()=>document.getElementById('inbox').scrollTop>0);await page.screenshot({path:path.join(folder,'drag-scroll.png')});await page.keyboard.press('Escape');await page.mouse.up();
   await page.evaluate(()=>document.getElementById('inbox').scrollTop=0);
+  // Live follow + slide, and downward drag of the Naver row (the protocol must say placement 'after').
+  await page.evaluate(()=>{document.getElementById('inbox').scrollTop=0;});await page.waitForTimeout(300);
+  const order=await page.evaluate(()=>[...document.querySelectorAll('#inbox > section')].map(row=>row.id));
+  const naverAt=order.indexOf('account-2'),targetId=order[naverAt+2];
+  const grabbed=await page.locator('#account-2 .be-account-grip').boundingBox(),targetHeader=await page.locator(`#${targetId} header`).boundingBox();
+  const beforeTop=(await page.locator('#account-2').boundingBox()).y;
+  await page.mouse.move(grabbed.x+grabbed.width/2,grabbed.y+grabbed.height/2);await page.mouse.down();
+  await page.mouse.move(grabbed.x+grabbed.width/2,grabbed.y+grabbed.height/2+60,{steps:6});
+  const midway=await page.evaluate(()=>({moving:getComputedStyle(document.getElementById('account-2')).transform,others:[...document.querySelectorAll('#inbox > section')].filter(row=>row.id!=='account-2'&&row.style.transform).length}));
+  const midTop=(await page.locator('#account-2').boundingBox()).y;
+  assert.ok(midTop-beforeTop>=50,`the grabbed row follows the pointer live (${beforeTop} -> ${midTop})`);
+  assert.notEqual(midway.moving,'none');
+  await page.mouse.move(grabbed.x+20,targetHeader.y+targetHeader.height-2,{steps:8});
+  await page.waitForFunction(()=>document.querySelector('.be-drop-after'));
+  const shifted=await page.evaluate(()=>[...document.querySelectorAll('#inbox > section')].filter(row=>row.id!=='account-2'&&row.style.transform&&row.style.transition).length);
+  assert.ok(shifted>=2,'rows between slide out of the way with a transition');
+  await page.screenshot({path:path.join(folder,'drag-midway.png')});
+  await page.mouse.up();await page.waitForTimeout(400);
+  const moved=await page.evaluate(()=>requests.at(-1));
+  assert.equal(moved.sourceKey,'naver:fixture@naver.com');assert.equal(moved.targetKey,'gmail:'+(await page.evaluate(id=>document.getElementById(id).getAttribute('email'),targetId)));assert.equal(moved.placement,'after');
+  assert.equal(await page.evaluate(()=>[...document.querySelectorAll('#inbox > section')].some(row=>row.style.transform||row.style.transition)),false,'no inline motion styles left behind');
   for(const scheme of ['light','dark']){await page.emulateMedia({colorScheme:scheme});await page.screenshot({path:path.join(folder,scheme+'.png')});}
   assert.deepEqual(errors,[]);console.log('PASS pointer reorder/protocol, native ID, Escape, rejected/outside drop, keyboard, cancel, no mail actions;',folder);
  }finally{await browser.close();}

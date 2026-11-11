@@ -56,7 +56,7 @@ const {chromium}=require('playwright');const fs=require('node:fs'),os=require('n
   await page.waitForFunction(async()=>JSON.stringify((await chrome.storage.local.get('core.mailAccountOrder'))['core.mailAccountOrder'])===JSON.stringify(['naver:fixture-user@naver.com','gmail:fixture@gmail.com']));
   await inbox.waitForFunction(()=>document.getElementById('inbox').querySelector('.be-naver-account,.account').id==='bongextendNaverAccount');
   // Actual pointer gestures reach the real parent storage adapter, not the fixture protocol.
-  const dragAccount=async(source,target)=>{const from=await frame.locator(source+' .be-account-grip').boundingBox(),to=await frame.locator(target+' .accountHeader,'+target+' .be-naver-header').boundingBox();assert.ok(from&&to);await page.mouse.move(from.x+from.width/2,from.y+from.height/2);await page.mouse.down();await page.mouse.move(to.x+40,to.y+2,{steps:8});await page.mouse.up();};
+  const dragAccount=async(source,target)=>{const from=await frame.locator(source+' .be-account-grip').boundingBox(),to=await frame.locator(target+' .accountHeader,'+target+' .be-naver-header').boundingBox();assert.ok(from&&to);await page.mouse.move(from.x+from.width/2,from.y+from.height/2);await page.mouse.down();await page.mouse.move(to.x+40,to.y+2,{steps:8});await page.mouse.up();await page.waitForTimeout(400);};
   await frame.locator('#fixtureGmail .be-account-grip').waitFor();await dragAccount('#fixtureGmail','#bongextendNaverAccount');
   await page.waitForFunction(async()=>(await chrome.storage.local.get('core.mailAccountOrder'))['core.mailAccountOrder']?.[0]==='gmail:fixture@gmail.com');
   await dragAccount('#bongextendNaverAccount','#fixtureGmail');
