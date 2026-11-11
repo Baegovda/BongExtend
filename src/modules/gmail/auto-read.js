@@ -3,6 +3,8 @@
 // 메일 내용은 읽지 않고 보낸 사람 주소와 메일 번호만 메모리에서 써요. 저장하거나 밖으로 보내지 않아요.
 
 const ALI_DOMAINS = ["aliexpress.com"];
+// Firefox Relay가 전달한 메일은 실제 보낸 주소가 이 도메인이고, 원래 보낸 사람이 표시 이름에 'transaction@notice.aliexpress.com [via Relay]'처럼 들어와요.
+const RELAY_DOMAINS = ["mozmail.com", "relay.firefox.com"];
 const KEEP = 400;
 
 const addressOf = (value) => {
@@ -11,13 +13,26 @@ const addressOf = (value) => {
     return match ? match[1] : "";
 };
 
-// 표시 이름은 누구나 바꿀 수 있어서 보내는 주소의 도메인만 봐요. 'evilaliexpress.com' 같은 비슷한 도메인은 제외해요.
-export function isAliExpressSender(address) {
+export const senderDomain = (address) => {
     const email = addressOf(address);
     const at = email.lastIndexOf("@");
-    if (at < 1) return false;
-    const domain = email.slice(at + 1).replace(/\.+$/, "");
-    return ALI_DOMAINS.some((root) => domain === root || domain.endsWith(`.${root}`));
+    return at < 1 ? "" : email.slice(at + 1).replace(/\.+$/, "");
+};
+
+const inDomains = (domain, roots) => roots.some((root) => domain === root || domain.endsWith(`.${root}`));
+
+// 표시 이름은 누구나 바꿀 수 있어서 보내는 주소의 도메인만 봐요. 'evilaliexpress.com' 같은 비슷한 도메인은 제외해요.
+export function isAliExpressSender(address) {
+    const domain = senderDomain(address);
+    return Boolean(domain) && inDomains(domain, ALI_DOMAINS);
+}
+
+// 실제 보낸 주소가 알리익스프레스이거나, Firefox Relay가 전달한 메일이고 원래 보낸 사람이 알리익스프레스일 때만 알리 메일로 봐요.
+export function isAliExpressMail(mail) {
+    if (isAliExpressSender(mail?.authorMail)) return true;
+    const domain = senderDomain(mail?.authorMail);
+    if (!domain || !inDomains(domain, RELAY_DOMAINS)) return false;
+    return isAliExpressSender(mail?.authorName);
 }
 
 export const mailKey = (mail) => (mail && mail.id ? `${mail.account?.id}:${mail.id}` : "");
@@ -27,7 +42,7 @@ const remember = (set, key) => {
     while (set.size > KEEP) set.delete(set.values().next().value);
 };
 
-export function createMailAutoRead({isEnabled = async () => true, retryDelayMs = 4000, sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))} = {}) {
+export function createMailAutoRead({log = () => {}, isEnabled = async () => true, retryDelayMs = 4000, sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))} = {}) {
     const shown = new Set();
     const done = new Set();
     let queue = Promise.resolve();
@@ -56,17 +71,25 @@ export function createMailAutoRead({isEnabled = async () => true, retryDelayMs =
     const process = (mails, {settled = Promise.resolve(), skip = []} = {}) => {
         const run = async () => {
             try { await settled; } catch { /* 알림이 실패하면 shown에 없어서 읽음 처리하지 않아요. */ }
-            if (!(await isEnabled())) return [];
+            const note = (mail, reason) => { try { log({domain: senderDomain(mail?.authorMail), reason}); } catch { /* 기록 실패는 무시해요. */ } };
+            if (!(await isEnabled())) { log({domain: "", reason: "disabled"}); return []; }
             const skipped = new Set(skip);
             const marked = [];
             for (const mail of mails || []) {
                 const key = mailKey(mail);
-                if (!key || skipped.has(key) || done.has(key) || !shown.has(key)) continue;
-                if (typeof mail.markAsRead !== "function" || !isAliExpressSender(mail.authorMail)) continue;
+                if (!key) continue;
+                if (done.has(key)) continue;
+                if (!isAliExpressMail(mail)) { note(mail, "not-ali"); continue; }
+                if (skipped.has(key)) { note(mail, "otp"); continue; }
+                if (!shown.has(key)) { note(mail, "no-notification"); continue; }
+                if (typeof mail.markAsRead !== "function") { note(mail, "no-method"); continue; }
                 if (await markOne(mail)) {
                     remember(done, key);
                     shown.delete(key);
                     marked.push(key);
+                    note(mail, "read");
+                } else {
+                    note(mail, "failed");
                 }
             }
             return marked;

@@ -417,3 +417,4 @@ html.embed .tabs #settingsGear { display:none!important; }
 .be-page .fx-converter #fxSwap{height:38px;font-size:22px;padding:0}
 html:not(.embed) .be-page .gear-fab{width:30px;height:30px;right:40px;bottom:8px;border-radius:10px}html:not(.embed) .gear-fab svg{width:17px;height:17px}
 @media(max-width:560px){.fx-converter .fx-row{grid-template-columns:minmax(0,1fr) 30px minmax(0,1fr);gap:10px}.fx-field:first-child{grid-column:1/-1}.fx-converter .fx-row #fxSwap{width:30px}.fx-converter .fx-row select{width:100%}}
+#autoReadLog { margin: 6px 0 0; padding: 8px; max-height: 150px; overflow: auto; white-space: pre-wrap; word-break: break-word; font: 11px/1.5 ui-monospace, Consolas, monospace; color: var(--be-text-2); border: 1px solid var(--be-glass-border); border-radius: 8px; background: var(--be-glass); }

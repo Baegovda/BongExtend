@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import {createMailAutoRead, isAliExpressSender, mailKey} from "../auto-read.js";
+import {createMailAutoRead, isAliExpressMail, isAliExpressSender, mailKey} from "../auto-read.js";
 
 const mail = (id, authorMail, extra = {}) => {
     const item = {id, account: {id: 7}, authorMail, reads: 0, ...extra};
@@ -100,4 +100,39 @@ test("ignores mails without an id or markAsRead and never stores mail content", 
     auto.noteShown([noId, noMethod]);
     assert.deepEqual(await auto.process([noId, noMethod]), []);
     assert.equal(mailKey(noId), "");
+});
+
+test("records a reason per mail with the sender domain only", async () => {
+    const entries = [];
+    const auto = quick({log: (entry) => entries.push(entry)});
+    const ali = mail("l1", "AliExpress <n@notice.aliexpress.com>");
+    const unshown = mail("l2", "n@mail.aliexpress.com");
+    const other = mail("l3", "friend@example.com");
+    auto.noteShown([ali]);
+    await auto.process([ali, unshown, other]);
+    assert.deepEqual(entries, [
+        {domain: "notice.aliexpress.com", reason: "read"},
+        {domain: "mail.aliexpress.com", reason: "no-notification"},
+        {domain: "example.com", reason: "not-ali"}
+    ]);
+    assert.equal(JSON.stringify(entries).includes("friend@"), false);
+});
+
+test("recognizes AliExpress mail forwarded through Firefox Relay, and nothing else", () => {
+    const relay = (name, address = "bfqbknest@mozmail.com") => ({authorName: name, authorMail: address});
+    assert.equal(isAliExpressMail(relay("transaction@notice.aliexpress.com [via Relay]")), true);
+    assert.equal(isAliExpressMail(relay("promotion@aliexpress.com [via Relay]", "lj1avauew@mozmail.com")), true);
+    assert.equal(isAliExpressMail(relay("promotion@aliexpress.com [via Relay]", "x@relay.firefox.com")), true);
+    assert.equal(isAliExpressMail(relay("shop@example.com [via Relay]")), false);
+    assert.equal(isAliExpressMail(relay("promotion@aliexpress.com [via Relay]", "attacker@example.com")), false, "name alone is not trusted outside Relay");
+    assert.equal(isAliExpressMail(relay("AliExpress", "x@mozmail.com")), false, "relay mail needs the original ali address");
+    assert.equal(isAliExpressMail({authorName: "x", authorMail: "n@notice.aliexpress.com"}), true);
+});
+
+test("relay-forwarded AliExpress mail is auto-read after its notification", async () => {
+    const auto = quick();
+    const forwarded = mail("r1", "bfqbknest@mozmail.com", {authorName: "transaction@notice.aliexpress.com [via Relay]"});
+    auto.noteShown([forwarded]);
+    assert.deepEqual(await auto.process([forwarded]), ["7:r1"]);
+    assert.equal(forwarded.reads, 1);
 });

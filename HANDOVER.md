@@ -2,7 +2,13 @@
 
 기준일: 2026-11-10. 이 문서는 기존 v1.2.10 인수인계를 대체해요. 이후 변경은 package.json, CHANGELOG.md, GitHub Releases를 우선 확인하세요.
 
-## 최신 인계 — v1.2.68 알리익스프레스 메일 자동 읽음
+## 최신 인계 — v1.2.69 알리 메일 Relay 인식
+
+- 1.2.68은 실제 사용자 메일에서 동작하지 않았어요. 원인: 사용자의 알리 메일은 Firefox Relay를 거쳐 와서 authorMail이 xxx@mozmail.com이고 authorName이 'transaction@notice.aliexpress.com [via Relay]'예요(사용자 스크린샷). auto-read.js의 isAliExpressMail이 authorMail이 mozmail.com/relay.firefox.com일 때만 authorName의 aliexpress.com 주소를 인정해요.
+- 진단: 설정(톱니) 화면의 '알리 메일 자동 읽음 최근 기록'은 core.mailAutoReadLog(최근 30개, 도메인·결과만)를 보여줘요. 이유 값: read/no-notification/not-ali/otp/failed/checked.
+- 검증: 전체 JS 시험·타입·빌드. 실제 Gmail에서의 동작은 사용자 확인 전까지 미검증이에요.
+
+## 이전 인계 — v1.2.68 알리익스프레스 메일 자동 읽음
 
 - 사용자 요청: 알리익스프레스 메일은 Windows 알림으로 띄우고 자동 읽음 처리해요. Checker Plus mailUpdate에 훅을 달았어요(public/js/background.js의 BongExtendNoteNotified/BongExtendAutoReadMails). 알림 생성이 성공한 메일만 알림 뒤에 mail.markAsRead()를 호출하고, 실패하면 1회 재시도해요. 알림이 안 뜬 경우(방해 금지·꺼짐·시작 확인)와 OTP 메일은 읽음 처리하지 않아요.
 - 알리 판별은 보낸 주소 도메인이 aliexpress.com 또는 하위 도메인일 때만이에요(표시 이름 무시). 끄는 키는 core.mailAutoReadAli=false. 구현은 src/modules/gmail/auto-read.js, 시험은 test/auto-read.test.js예요. src/modules/gmail/background.js의 자체 Gmail 감시는 어디서도 시작되지 않는 코드예요.

@@ -83,15 +83,27 @@ export default defineBackground(() => {
     (globalThis as any).BongExtendHandleOtpMails = otpHandler;
 
     // 알리익스프레스 메일: Checker Plus가 알림을 띄운 뒤에만 읽음 처리해요. 끄려면 core.mailAutoReadAli를 false로 해요.
+    // 진단 기록: 보낸 주소의 도메인과 처리 결과만 최근 30개 남겨요. 메일 제목·내용·전체 주소는 저장하지 않아요.
+    let autoReadLogQueue: Promise<unknown> = Promise.resolve();
+    const logAutoRead = (entry: {domain: string; reason: string; count?: number}) => {
+        autoReadLogQueue = autoReadLogQueue.then(async () => {
+            const stored = await chrome.storage.local.get("core.mailAutoReadLog");
+            const list = Array.isArray(stored["core.mailAutoReadLog"]) ? stored["core.mailAutoReadLog"] as unknown[] : [];
+            await chrome.storage.local.set({"core.mailAutoReadLog": [...list, {at: Date.now(), ...entry}].slice(-30)});
+        }).catch(() => {});
+    };
     const mailAutoRead = createMailAutoRead({
+        log: logAutoRead,
         isEnabled: async () => {
             const stored = await chrome.storage.local.get(["core.mailAutoReadAli", MODULES_KEY]);
             return stored["core.mailAutoReadAli"] !== false && (stored[MODULES_KEY] as Record<string, unknown> | undefined)?.gmail !== false;
         }
     });
     (globalThis as any).BongExtendNoteNotified = (mails: unknown[]) => mailAutoRead.noteShown(mails);
-    (globalThis as any).BongExtendAutoReadMails = (mails: unknown[], options: unknown) =>
-        mailAutoRead.process(mails, options).catch(() => []);
+    (globalThis as any).BongExtendAutoReadMails = (mails: unknown[], options: unknown) => {
+        if (Array.isArray(mails) && mails.length) logAutoRead({domain: "", reason: "checked", count: mails.length});
+        return mailAutoRead.process(mails, options).catch(() => []);
+    };
 
     // CheckPlus 이전 버전이 저장한 도구막대 덮어쓰기를 복구한다.
     const rootManifest = chrome.runtime.getManifest() as {

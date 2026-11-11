@@ -159,6 +159,18 @@ for (const input of moduleOptions) {
 const embed = new URLSearchParams(location.search).get("embed");
 const embedded = embed === "gmail" || embed === "fx" || embed === "dark" || embed === "download" || embed === "update";
 
+const AUTO_READ_REASONS: Record<string, string> = {
+    checked: "새 메일 확인", read: "읽음 처리함", failed: "읽음 처리 실패", "no-notification": "알림이 안 떠서 그대로 둠",
+    "not-ali": "알리 메일 아님", otp: "인증번호 메일이라 제외", "no-method": "읽음 처리 불가", disabled: "꺼져 있음"
+};
+const paintAutoReadLog = async () => {
+    const stored = await chrome.storage.local.get("core.mailAutoReadLog");
+    const list = Array.isArray(stored["core.mailAutoReadLog"]) ? stored["core.mailAutoReadLog"] as Array<{at: number; domain: string; reason: string; count?: number}> : [];
+    $("autoReadLog").textContent = list.length
+        ? list.slice(-12).reverse().map((row) => `${new Date(row.at).toLocaleTimeString("ko-KR")}  ${AUTO_READ_REASONS[row.reason] || row.reason}${row.domain ? ` · ${row.domain}` : ""}${row.count ? ` · ${row.count}통` : ""}`).join("\n")
+        : "기록이 아직 없어요.";
+};
+
 const showTab = async (tab: TabId, persist = true) => {
     if (tab === "update" && current !== "update") pageBeforeSettings = current;
     current = tab;
@@ -189,7 +201,7 @@ const showTab = async (tab: TabId, persist = true) => {
     }
     if (tab === "download") void acknowledgeDownloads();
     if (tab === "fx") void refreshFx();
-    if (tab === "update") void paintModuleOptions();
+    if (tab === "update") { void paintModuleOptions(); void paintAutoReadLog(); }
     if (persist) void effects.storageSet({[TAB_KEY]: tab});
 };
 
