@@ -139,3 +139,26 @@ test("native upload detection reads resource timing entries after the paste", ()
     assert.equal(nativeUploadStarted(2, perf), false);
     assert.equal(nativeUploadStarted(0, {getEntriesByType: () => { throw Error("x"); }}), false);
 });
+
+test("pasting an image into the Google search box opens Lens and uploads it", async () => {
+    const win = page(`<textarea name="q" id="q"></textarea><div role="button" aria-label="이미지로 검색" id="cam"></div>`);
+    const doc = win.document;
+    const tasks = [];
+    const attached = [];
+    let opened = 0;
+    const event = pasteEvent({target: doc.getElementById("q")});
+    const handled = handlePaste(event, {settings: {lens: true}, feature: "lens", doc, last: {at: 0, name: ""}, now: () => 1000, schedule: (task, ms) => tasks.push({task, ms}),
+        openLens: async () => { opened++; return true; }, attach: (file) => { attached.push(file.name); return "input"; }, onAttached: () => {}});
+    assert.equal(handled, false);
+    assert.equal(tasks.length, 1);
+    assert.equal(tasks[0].ms, 0, "no waiting: Google has no native image paste here");
+    await tasks[0].task();
+    assert.equal(opened, 1);
+    assert.deepEqual(attached, ["shot.png"]);
+
+    const plain = pasteEvent({target: doc.getElementById("cam")});
+    assert.equal(handlePaste(plain, {settings: {lens: true}, feature: "lens", doc, schedule: () => assert.fail("not a search box")}), false);
+    const noButton = page(`<textarea name="q" id="q2"></textarea>`);
+    assert.equal(handlePaste(pasteEvent({target: noButton.document.getElementById("q2")}), {settings: {lens: true}, feature: "lens", doc: noButton.document, schedule: () => assert.fail("no lens button")}), false);
+    win.happyDOM.close(); noButton.happyDOM.close();
+});

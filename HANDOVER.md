@@ -2,7 +2,12 @@
 
 기준일: 2026-11-10. 이 문서는 기존 v1.2.10 인수인계를 대체해요. 이후 변경은 package.json, CHANGELOG.md, GitHub Releases를 우선 확인하세요.
 
-## 최신 인계 — v1.2.72 다크 첫 순간·네이버 줄·탭
+## 최신 인계 — v1.2.74 구글 검색창 붙여넣기·사용량 로컬 우선
+
+- 구글 검색창: paste.js lens 분기가 검색창(textarea[name=q])에서 이미지만 붙여넣으면 렌즈 버튼을 눌러 업로드 창을 열고 업로드해요. 실제 구글 첫 화면에서 렌즈 업로드 POST 1회 확인(구글이 자동화 브라우저에 확인 화면을 띄워 결과 화면은 못 봤어요).
+- 사용량 로컬 우선: host.py usage_local(Python 시험 12개), background.js fetchLocalUsage/loadUsage(시험 12개). 이 PC에서 Codex 로컬 로그인 읽기는 성공했고, **Claude는 ~/.claude/.credentials.json이 없어 'none'**이라 웹 계정 대안이 필요해요. **보조 프로그램은 이 PC에 설치돼 있지 않아 확장↔host 연결은 미검증**이에요. 옛 보조 프로그램은 usage-local에 error로 답해 'helper'로 표시돼요(재설치 필요).
+
+## 이전 인계 — v1.2.72 다크 첫 순간·네이버 줄·탭
 
 - 다크 첫 순간 흰 번쩍임: src/modules/dark/early-guard.js. dark.content.ts가 시작 즉시(설정 읽기 전) 임시 style[data-bong-dark-early]로 어두운 바탕을 칠하고, apply 결과가 정해지면(끔=즉시, 켬=다크 리더 스타일 뒤 2프레임) 걷어내요. 4초 안전장치가 있어요. 배경색·글자색·color-scheme만 바꾸고 사진·영상·canvas·svg·iframe은 제외예요. **실제 사이트의 첫 프레임 캡처로는 확인하지 못했어요**(패키지 안정성 검사와 OFF 복원 검사는 통과).
 - 네이버 계정 줄: 스크린샷 대조 결과 폭은 같았고 높이(46 vs 52px)와 아래 여백(약 22 vs 11px)이 달랐어요. checkerplus-embed.css에서 .accountHeader/.be-naver-header min-height 54px, .be-naver-note/.be-mail-empty margin 7px 0 0으로 맞췄고 실제 Checker Plus 마크업 복제본에서 두 줄의 높이·간격이 같음을 재었어요(Gmail 54px, 줄 간격 116px).

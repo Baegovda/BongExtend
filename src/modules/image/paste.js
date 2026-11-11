@@ -25,6 +25,35 @@ export function lensSurfaceOpen(doc) {
     return Boolean(findImageInput(doc, null));
 }
 
+// 구글 첫 화면·검색 결과의 이미지 검색(렌즈) 버튼. 언어별 이름과 렌즈 전용 속성을 함께 봐요.
+const LENS_BUTTONS = [
+    '[role="button"][aria-label*="이미지로 검색"]', '[role="button"][aria-label*="Search by image"]',
+    '[role="button"][aria-label*="렌즈"]', '[role="button"][aria-label*="Lens"]', '[data-base-lens-url]'
+];
+
+export function findLensButton(doc) {
+    for (const selector of LENS_BUTTONS) {
+        const found = Array.from(doc?.querySelectorAll?.(selector) || []).find((el) => !el.closest?.('[hidden], [aria-hidden="true"]'));
+        if (found) return found;
+    }
+    return null;
+}
+
+export const isSearchBox = (target) => Boolean(target?.matches?.('textarea[name="q"], input[name="q"]'));
+
+// 렌즈 업로드 창이 닫혀 있으면 버튼을 눌러 열고, 업로드 입력칸이 나타날 때까지 잠깐 기다려요.
+export async function openLensSurface(doc, {wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms)), tries = 14} = {}) {
+    if (lensSurfaceOpen(doc)) return true;
+    const button = findLensButton(doc);
+    if (!button) return false;
+    button.click();
+    for (let i = 0; i < tries; i++) {
+        await wait(150);
+        if (lensSurfaceOpen(doc)) return true;
+    }
+    return false;
+}
+
 export function imageFilesOf(clipboard) {
     const files = Array.from(clipboard?.files || []).filter((file) => /^image\//i.test(file?.type || ""));
     if (files.length) return files;
@@ -110,7 +139,7 @@ export const LENS_WAIT_MS = 2200;
 export function handlePaste(event, {
     settings, feature, doc, view = doc?.defaultView, now = Date.now, last = {at: 0, name: ""}, attach = attachImage,
     schedule = (task, ms) => setTimeout(task, ms), clock = () => globalThis.performance?.now?.() ?? 0,
-    nativeUploaded = nativeUploadStarted, onAttached = () => {}
+    nativeUploaded = nativeUploadStarted, onAttached = () => {}, openLens = openLensSurface
 }) {
     if (!feature || !settings?.[feature]) return false;
     if (event.defaultPrevented) return false;
@@ -122,17 +151,21 @@ export function handlePaste(event, {
     const stamp = `${file.name}:${file.size}`;
     if (last.name === stamp && now() - last.at < 600) return feature !== "lens";
     if (feature === "lens") {
-        if (!lensSurfaceOpen(doc)) return false;
+        const surface = lensSurfaceOpen(doc);
+        // 렌즈 창이 없어도 구글 검색창에 붙여넣으면 렌즈 창을 열어서 바로 이미지 검색해요.
+        if (!surface && !(isSearchBox(event.target) && findLensButton(doc))) return false;
         const startedAt = clock();
         const target = event.target;
-        schedule(() => {
-            if (nativeUploaded(startedAt)) return;
+        if (!surface) event.preventDefault();
+        schedule(async () => {
+            if (surface && nativeUploaded(startedAt)) return;
             if (last.name === stamp && now() - last.at < 600) return;
-            if (!attach(file, {doc, view, target})) return;
+            if (!surface && !(await openLens(doc))) return;
+            if (!attach(file, {doc, view, target: null})) return;
             last.at = now();
             last.name = stamp;
             onAttached();
-        }, LENS_WAIT_MS);
+        }, surface ? LENS_WAIT_MS : 0);
         return false;
     }
     const method = attach(file, {doc, view, target: event.target});

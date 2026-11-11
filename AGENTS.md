@@ -57,7 +57,7 @@ BongExtend는 치지직, Gemini 번역, 디시인사이드(green1052/DCRefresher
 - 치지직 콘텐츠 스크립트는 배경에서 `chrome.scripting.registerContentScripts`로 등록 (`src/modules/chzzk-register.ts`). 파일 순서 바꾸지 말 것.
 
 ## 사용량·이미지 모듈 (2026-11-11 추가)
-- 사용량(`usage`): src/modules/usage/{usage.js,background.js}, 팝업은 src/entrypoints/popup/usage.ts. claude.ai(`/api/organizations`→`/usage`)와 chatgpt.com(`/api/auth/session`→`/backend-api/wham/usage`)의 **비공식 내부 주소**를 로그인 쿠키로 읽어요(사이트가 바꾸면 깨질 수 있어요). 두 사이트 권한은 기존 optional `https://*/*` 중 팝업의 '연결 허용' 클릭으로만 요청해요. 토큰은 저장·전달하지 않고 `usage.snapshot`에는 퍼센트·시각만 저장해요. PC 기록은 native/video/host.py의 `codex-usage`(~/.codex/sessions의 rate_limits)로 읽어요.
+- 사용량(`usage`): src/modules/usage/{usage.js,background.js}, 팝업은 src/entrypoints/popup/usage.ts. claude.ai(`/api/organizations`→`/usage`)와 chatgpt.com(`/api/auth/session`→`/backend-api/wham/usage`)의 **비공식 내부 주소**를 로그인 쿠키로 읽어요(사이트가 바꾸면 깨질 수 있어요). 두 사이트 권한은 기존 optional `https://*/*` 중 팝업의 '연결 허용' 클릭으로만 요청해요. 토큰은 저장·전달하지 않고 `usage.snapshot`에는 퍼센트·시각만 저장해요. **우선순위: 이 PC의 로컬 로그인 > Codex 로그 > 웹 계정.** native/video/host.py의 `usage-local`이 ~/.claude/.credentials.json(Claude Code)과 ~/.codex/auth.json(Codex)의 토큰으로 공식 주소(api.anthropic.com /api/oauth/usage, chatgpt.com /backend-api/wham/usage, 이 두 호스트 외에는 막고 리디렉션도 따라가지 않아요)에서 한도만 받아 퍼센트·시각만 돌려주고 토큰은 돌려주지 않아요. 로그 읽기 `codex-usage`(~/.codex/sessions의 rate_limits)는 그 다음 대안이에요. Claude 데스크톱 앱 로그인은 읽을 수 없어요(Claude Code 로그인 파일만 지원).
 - 이미지(`image`): src/modules/image/paste.js, 콘텐츠 스크립트 src/entrypoints/image-paste.content.ts(matches: talk.naver.com, partner.talk.naver.com, lens.google.com, www.google.com, images.google.com — 새 권한 없음). 설정은 `image.settings`{talk,lens}. 구글 렌즈는 페이지가 직접 붙여넣기를 처리하므로 2.2초 안에 업로드가 시작되지 않을 때만 이어받아요(이중 업로드 방지). 새 이미지 기능은 이 모듈에 추가해요.
 
 ## 구조

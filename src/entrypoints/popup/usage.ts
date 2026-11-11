@@ -7,7 +7,7 @@ import {CHATGPT_ORIGIN, CLAUDE_ORIGIN} from "@/modules/usage/background.js";
 type Row = {id: string; label: string; remainingPercent: number; usedPercent: number; resetsAt: number | null};
 type Snapshot = {
     checkedAt: number;
-    claude: {status: string; windows: Row[]; message?: string};
+    claude: {status: string; windows: Row[]; message?: string; source?: string; local?: {status: string}; web?: {status: string}};
     codex: {source: string; windows: Row[]; plan: string; recordedAt: number | null; web: {status: string; message?: string}; local: {status: string}};
 };
 
@@ -18,7 +18,9 @@ const NOTES: Record<string, string> = {
     login: "웹에서 로그인한 뒤 새로고침해 주세요.",
     empty: "표시할 한도 정보가 아직 없어요.",
     error: "불러오지 못했어요. 잠시 뒤 다시 시도해 주세요.",
-    helper: "PC 기록을 읽으려면 영상 보조 프로그램(다운로더 탭)을 설치해야 해요.",
+    helper: "내 PC에 로그인된 앱의 한도를 보려면 PC 보조 프로그램(다운로더 탭)을 설치하거나 새로 받아 설치해 주세요.",
+    none: "이 PC에서 로그인된 앱을 찾지 못했어요. 앱에 로그인해 주세요.",
+    expired: "앱 로그인이 만료됐어요. 앱을 한 번 열면 갱신돼요.",
     stale: "PC 기록의 한도가 이미 초기화돼서 지금 값은 알 수 없어요."
 };
 
@@ -83,20 +85,26 @@ export function setupUsage(onError: (error: unknown) => void) {
         cards.replaceChildren();
 
         const claude = snapshot.claude;
-        const claudeNotes = claude.windows.length ? [] : [NOTES[claude.status] || NOTES.error];
-        cards.append(card("Claude", "웹 계정", claude.windows, claudeNotes, claude.status === "permission" ? [allow([CLAUDE_ORIGIN])] : [], now));
+        const claudeNotes: string[] = [];
+        const claudeActions: HTMLElement[] = [];
+        if (!claude.windows.length) {
+            if (claude.local && claude.local.status !== "ok") claudeNotes.push(NOTES[claude.local.status] || NOTES.error);
+            if (claude.web?.status === "permission") { claudeNotes.push("대신 웹 계정으로 연결할 수도 있어요."); claudeActions.push(allow([CLAUDE_ORIGIN])); }
+            else if (claude.web?.status && claude.web.status !== "permission" && !claudeNotes.length) claudeNotes.push(NOTES[claude.web.status] || NOTES.error);
+        }
+        const claudeBadge = claude.windows.length ? (claude.source === "local" ? "내 PC 로그인" : "웹 계정") : "";
+        cards.append(card("Claude", claudeBadge, claude.windows, claudeNotes, claudeActions, now));
 
         const codex = snapshot.codex;
         const notes: string[] = [];
         const actions: HTMLElement[] = [];
         let badge = "";
         if (codex.windows.length) {
-            badge = codex.source === "web" ? `웹 계정${codex.plan ? ` · ${codex.plan}` : ""}` : "PC 기록";
-            if (codex.source === "local" && codex.recordedAt) notes.push(`마지막 기록 ${new Date(codex.recordedAt).toLocaleString("ko-KR", {month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit"})}. Codex를 쓸 때 갱신돼요.`);
+            badge = codex.source === "local" ? "내 PC 로그인" : codex.source === "local-log" ? "PC 기록" : `웹 계정${codex.plan ? ` · ${codex.plan}` : ""}`;
+            if (codex.source === "local-log" && codex.recordedAt) notes.push(`마지막 기록 ${new Date(codex.recordedAt).toLocaleString("ko-KR", {month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit"})}. Codex를 쓸 때 갱신돼요.`);
         } else {
-            if (codex.web.status === "permission") actions.push(allow([CHATGPT_ORIGIN]));
-            notes.push(NOTES[codex.web.status] || NOTES.error);
-            if (codex.local.status === "helper" || codex.local.status === "stale") notes.push(NOTES[codex.local.status]);
+            if (codex.local.status !== "ok") notes.push(NOTES[codex.local.status] || NOTES.error);
+            if (codex.web.status === "permission") { notes.push("대신 웹 계정으로 연결할 수도 있어요."); actions.push(allow([CHATGPT_ORIGIN])); }
         }
         cards.append(card("Codex", badge, codex.windows, notes, actions, now));
         stamp.textContent = `${new Date(snapshot.checkedAt).toLocaleTimeString("ko-KR", {hour: "2-digit", minute: "2-digit", second: "2-digit"})} 확인`;

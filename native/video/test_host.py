@@ -4,6 +4,7 @@ import struct
 import subprocess
 import sys
 import unittest
+import urllib.error
 from unittest.mock import patch
 import host
 
@@ -80,6 +81,65 @@ class CodexUsageTests(unittest.TestCase):
         self.assertTrue(host.codex_usage('/definitely/not/here')['empty'])
         with tempfile.TemporaryDirectory() as folder:
             self.assertTrue(host.codex_usage(folder)['empty'])
+
+
+class UsageLocalTests(unittest.TestCase):
+    def setUp(self):
+        import tempfile
+        self.dir = tempfile.TemporaryDirectory()
+        self.home = pathlib.Path(self.dir.name)
+    def tearDown(self): self.dir.cleanup()
+
+    def opener(self, responses, calls):
+        class Response:
+            def __init__(self, body): self.body = body
+            def __enter__(self): return self
+            def __exit__(self, *args): return False
+            def read(self, n=-1): return json.dumps(self.body).encode()
+        class Opener:
+            def open(self, request, timeout=None):
+                calls.append((request.full_url, dict(request.header_items())))
+                value = responses[request.full_url]
+                if isinstance(value, Exception): raise value
+                return Response(value)
+        return Opener()
+
+    def test_claude_reads_percent_only(self):
+        (self.home / '.claude').mkdir()
+        (self.home / '.claude' / '.credentials.json').write_text(json.dumps({'claudeAiOauth': {'accessToken': 'secret-token', 'expiresAt': 4102444800000}}), encoding='utf-8')
+        calls = []
+        result = host.claude_usage_local(self.home, self.opener({'https://api.anthropic.com/api/oauth/usage': {'five_hour': {'utilization': 12.5, 'resets_at': '2026-11-12T10:00:00Z', 'x': 1}, 'name': 'q', 'extra': {'is_enabled': False}}}, calls))
+        self.assertEqual(result, {'status': 'ok', 'usage': {'five_hour': {'utilization': 12.5, 'resets_at': '2026-11-12T10:00:00Z'}}})
+        self.assertNotIn('secret-token', json.dumps(result))
+        self.assertEqual(calls[0][1]['Authorization'], 'Bearer secret-token')
+
+    def test_claude_statuses(self):
+        self.assertEqual(host.claude_usage_local(self.home)['status'], 'none')
+        (self.home / '.claude').mkdir()
+        path = self.home / '.claude' / '.credentials.json'
+        path.write_text(json.dumps({'claudeAiOauth': {'accessToken': 't', 'expiresAt': 1000}}), encoding='utf-8')
+        self.assertEqual(host.claude_usage_local(self.home)['status'], 'expired')
+        path.write_text(json.dumps({'claudeAiOauth': {'accessToken': 't'}}), encoding='utf-8')
+        err = urllib.error.HTTPError('u', 401, 'no', {}, None)
+        self.assertEqual(host.claude_usage_local(self.home, self.opener({'https://api.anthropic.com/api/oauth/usage': err}, []))['status'], 'expired')
+        self.assertEqual(host.claude_usage_local(self.home, self.opener({'https://api.anthropic.com/api/oauth/usage': OSError('down')}, []))['status'], 'error')
+
+    def test_codex_api_filters_and_never_returns_the_token(self):
+        (self.home / '.codex').mkdir()
+        (self.home / '.codex' / 'auth.json').write_text(json.dumps({'tokens': {'access_token': 'codex-secret', 'account_id': 'acct'}}), encoding='utf-8')
+        calls = []
+        body = {'plan_type': 'pro', 'email': 'private@example.com', 'rate_limit': {'primary_window': {'used_percent': 40, 'limit_window_seconds': 18000, 'reset_after_seconds': 60, 'reset_at': 5, 'junk': 1}, 'secondary_window': None}}
+        result = host.codex_usage_api(self.home, self.opener({'https://chatgpt.com/backend-api/wham/usage': body}, calls))
+        self.assertEqual(result['status'], 'ok')
+        self.assertEqual(result['data']['rate_limit']['primary_window']['used_percent'], 40)
+        self.assertNotIn('codex-secret', json.dumps(result))
+        self.assertNotIn('private@example.com', json.dumps(result))
+        self.assertEqual(calls[0][1]['Chatgpt-account-id'], 'acct')
+        self.assertEqual(host.codex_usage_api(self.home / 'missing')['status'], 'none')
+
+    def test_other_hosts_are_blocked(self):
+        with self.assertRaises(ValueError): host._get_json('https://example.com/x', {})
+        with self.assertRaises(ValueError): host._get_json('http://api.anthropic.com/x', {})
 
 
 if __name__ == '__main__':

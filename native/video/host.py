@@ -1,5 +1,6 @@
 """BongExtend local video host. JSON framing only on stdout; no shell execution."""
-import json, struct, sys, subprocess, threading, pathlib, re, os, socket, ipaddress
+import json, struct, sys, subprocess, threading, pathlib, re, os, socket, ipaddress, time
+import urllib.request, urllib.error
 from urllib.parse import urlparse, parse_qs
 
 BASE = pathlib.Path(__file__).resolve().parent
@@ -98,6 +99,65 @@ def codex_usage(root=None):
             return {'type': 'codex-usage', 'primary': keep(primary), 'secondary': keep(secondary), 'recordedAt': record.get('timestamp')}
     return {'type': 'codex-usage', 'empty': True}
 
+USAGE_HOSTS = ('api.anthropic.com', 'chatgpt.com')
+
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, *args, **kwargs): return None
+
+def _read_json(path):
+    try: return json.loads(pathlib.Path(path).read_text(encoding='utf-8-sig'))
+    except (OSError, ValueError): return None
+
+def _get_json(url, headers, opener=None):
+    """로그인 정보는 이 함수 안에서만 쓰고, 공식 두 주소 밖으로는 나가지 않아요. 리디렉션도 따라가지 않아요."""
+    parsed = urlparse(url)
+    if parsed.scheme != 'https' or parsed.hostname not in USAGE_HOSTS: raise ValueError('blocked host')
+    request = urllib.request.Request(url, headers=headers)
+    with (opener or urllib.request.build_opener(_NoRedirect)).open(request, timeout=10) as response:
+        return json.loads(response.read(300000))
+
+def _status_of_error(error):
+    return 'expired' if isinstance(error, urllib.error.HTTPError) and error.code in (401, 403) else 'error'
+
+def claude_usage_local(home=None, opener=None, now=time.time):
+    """이 PC의 Claude Code 로그인으로 한도(퍼센트·초기화 시각)만 읽어요. 토큰은 돌려주지 않아요."""
+    base = pathlib.Path(home) if home else pathlib.Path.home()
+    cred = _read_json(base / '.claude' / '.credentials.json')
+    oauth = cred.get('claudeAiOauth') if isinstance(cred, dict) else None
+    token = oauth.get('accessToken') if isinstance(oauth, dict) else None
+    if not isinstance(token, str) or not token: return {'status': 'none'}
+    expires = oauth.get('expiresAt')
+    if isinstance(expires, (int, float)) and expires / 1000 < now(): return {'status': 'expired'}
+    try:
+        data = _get_json('https://api.anthropic.com/api/oauth/usage', {'Authorization': 'Bearer ' + token, 'anthropic-beta': 'oauth-2025-04-20', 'Accept': 'application/json', 'User-Agent': 'BongExtend-usage'}, opener)
+    except Exception as error:
+        return {'status': _status_of_error(error)}
+    if not isinstance(data, dict): return {'status': 'error'}
+    usage = {key: {'utilization': value.get('utilization'), 'resets_at': value.get('resets_at')} for key, value in data.items() if isinstance(value, dict) and 'utilization' in value}
+    return {'status': 'ok', 'usage': usage}
+
+def codex_usage_api(home=None, opener=None):
+    """이 PC의 Codex(ChatGPT) 로그인으로 지금 한도를 읽어요. 토큰은 돌려주지 않아요."""
+    base = pathlib.Path(home) if home else pathlib.Path.home()
+    auth = _read_json(base / '.codex' / 'auth.json')
+    tokens = auth.get('tokens') if isinstance(auth, dict) else None
+    token = tokens.get('access_token') if isinstance(tokens, dict) else None
+    if not isinstance(token, str) or not token: return {'status': 'none'}
+    headers = {'Authorization': 'Bearer ' + token, 'Accept': 'application/json', 'User-Agent': 'BongExtend-usage'}
+    account = tokens.get('account_id')
+    if isinstance(account, str) and account: headers['ChatGPT-Account-Id'] = account
+    try: data = _get_json('https://chatgpt.com/backend-api/wham/usage', headers, opener)
+    except Exception as error: return {'status': _status_of_error(error)}
+    limit = data.get('rate_limit') if isinstance(data, dict) else None
+    if not isinstance(limit, dict): return {'status': 'error'}
+    keys = ('used_percent', 'limit_window_seconds', 'reset_after_seconds', 'reset_at')
+    keep = lambda row: {k: row.get(k) for k in keys} if isinstance(row, dict) else None
+    return {'status': 'ok', 'data': {'plan_type': data.get('plan_type'), 'rate_limit': {'primary_window': keep(limit.get('primary_window')), 'secondary_window': keep(limit.get('secondary_window'))}}}
+
+def usage_local(home=None, opener=None, now=time.time):
+    base = pathlib.Path(home) if home else pathlib.Path.home()
+    return {'type': 'usage-local', 'claude': claude_usage_local(home, opener, now), 'codex': {'api': codex_usage_api(home, opener), 'log': codex_usage(base / '.codex' / 'sessions')}}
+
 def main():
     global process
     worker = None
@@ -112,6 +172,7 @@ def main():
             message = json.loads(raw)
             if message.get('type') == 'ping': emit({'type':'ready','version':2,'folder':str(OUT)})
             elif message.get('type') == 'codex-usage': emit(codex_usage())
+            elif message.get('type') == 'usage-local': emit(usage_local())
             elif message.get('type') == 'cancel':
                 stop_process()
             elif message.get('type') == 'download':

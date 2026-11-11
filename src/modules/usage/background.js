@@ -72,27 +72,46 @@ const sendNative = (runtime, message) => new Promise((resolve, reject) => {
     } catch (error) { reject(error); }
 });
 
-// PC의 Codex 기록. 보조 프로그램이 없으면 'helper'로 알려줘요.
-export async function fetchCodexLocal({runtime = chrome.runtime, now = Date.now} = {}) {
-    let reply;
-    try { reply = await sendNative(runtime, {type: "codex-usage"}); }
-    catch { return {status: "helper", windows: [], stale: false, recordedAt: null}; }
-    if (!reply || reply.type === "error") return {status: "helper", windows: [], stale: false, recordedAt: null, message: String(reply?.message || "")};
-    const parsed = parseCodexLocal(reply, now());
-    if (parsed.windows.length) return {status: "ok", ...parsed};
-    return {status: parsed.stale ? "stale" : "empty", ...parsed};
+// 이 PC에 로그인된 Claude Code·Codex에서 한도를 읽어요(보조 프로그램이 로그인 정보로 한도만 가져와요). 보조 프로그램이 없거나 옛 버전이면 'helper'예요.
+export async function fetchLocalUsage({runtime = chrome.runtime, now = Date.now} = {}) {
+    let reply = null;
+    try { reply = await sendNative(runtime, {type: "usage-local"}); } catch { reply = null; }
+    if (!reply || reply.type !== "usage-local") {
+        return {claude: {status: "helper", windows: []}, codex: {status: "helper", windows: [], api: {windows: [], plan: ""}, log: {windows: [], stale: false, recordedAt: null}}};
+    }
+    const c = reply.claude || {};
+    const claudeWindows = c.status === "ok" ? parseClaudeUsage(c.usage) : [];
+    const claude = {status: claudeWindows.length ? "ok" : c.status === "ok" ? "empty" : (c.status || "error"), windows: claudeWindows};
+    const api = reply.codex?.api || {};
+    const apiParsed = api.status === "ok" ? parseChatgptUsage(api.data, now()) : {windows: [], plan: ""};
+    const logParsed = parseCodexLocal(reply.codex?.log, now());
+    let status = "empty";
+    if (apiParsed.windows.length || logParsed.windows.length) status = "ok";
+    else if (api.status === "expired" || api.status === "error") status = api.status;
+    else if (logParsed.stale) status = "stale";
+    else if (api.status === "none") status = "none";
+    return {claude, codex: {status, windows: [], api: apiParsed, log: logParsed}};
 }
 
+const firstWithWindows = (sources) => sources.find((item) => item.windows?.length) || {source: "", windows: [], plan: "", recordedAt: null};
+
+// 이 PC의 로그인(로컬)을 먼저 쓰고, 없을 때만 웹 계정 값을 써요.
 export async function loadUsage(deps = {}) {
-    const [claude, codexWeb, codexLocal] = await Promise.all([fetchClaude(deps), fetchCodexWeb(deps), fetchCodexLocal(deps)]);
-    const chosen = chooseCodex(codexWeb, codexLocal);
+    const [local, claudeWeb, codexWeb] = await Promise.all([fetchLocalUsage(deps), fetchClaude(deps), fetchCodexWeb(deps)]);
+    const claudeFrom = firstWithWindows([{source: "local", windows: local.claude.windows}, {source: "web", windows: claudeWeb.windows}]);
+    const claudeStatus = claudeFrom.windows.length ? "ok" : (local.claude.status !== "helper" && local.claude.status !== "none" ? local.claude.status : claudeWeb.status);
+    const codexFrom = firstWithWindows([
+        {source: "local", windows: local.codex.api.windows, plan: local.codex.api.plan, recordedAt: null},
+        {source: "local-log", windows: local.codex.log.windows, plan: "", recordedAt: local.codex.log.recordedAt || null},
+        {source: "web", windows: codexWeb.windows, plan: codexWeb.plan || "", recordedAt: null}
+    ]);
     return {
         checkedAt: (deps.now || Date.now)(),
-        claude: {status: claude.status, windows: claude.windows, message: claude.message || ""},
+        claude: {status: claudeStatus, windows: claudeFrom.windows, source: claudeFrom.source || "", message: claudeWeb.message || "", local: {status: local.claude.status}, web: {status: claudeWeb.status}},
         codex: {
-            source: chosen.source, windows: chosen.windows, plan: chosen.plan, recordedAt: chosen.recordedAt,
+            source: codexFrom.source || "", windows: codexFrom.windows, plan: codexFrom.plan || "", recordedAt: codexFrom.recordedAt || null,
             web: {status: codexWeb.status, message: codexWeb.message || ""},
-            local: {status: codexLocal.status}
+            local: {status: local.codex.status}
         }
     };
 }

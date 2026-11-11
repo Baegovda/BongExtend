@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {chooseCodex, formatReset, makeWindow, parseChatgptUsage, parseClaudeUsage, parseCodexLocal, remainingLevel, windowLabel} from "../usage.js";
-import {fetchClaude, fetchCodexLocal, fetchCodexWeb, loadUsage} from "../background.js";
+import {fetchClaude, fetchCodexWeb, fetchLocalUsage, loadUsage} from "../background.js";
 
 const NOW = Date.parse("2026-11-11T12:00:00Z");
 const granted = {contains: async () => true};
@@ -106,28 +106,67 @@ test("chatgpt fetch uses the session token only for the usage request", async ()
     assert.equal((await fetchCodexWeb({permissions: denied})).status, "permission");
 });
 
-test("local codex fetch reports a missing helper", async () => {
+const future = () => Math.floor(NOW / 1000) + 600;
+const nativeReply = (reply) => ({lastError: undefined, sendNativeMessage: (_h, message, cb) => { assert.equal(message.type, "usage-local"); cb(reply); }});
+
+test("local usage reports a missing or outdated helper", async () => {
     const missing = {lastError: {message: "Specified native messaging host not found."}, sendNativeMessage: (_h, _m, cb) => cb(undefined)};
-    assert.equal((await fetchCodexLocal({runtime: missing, now: () => NOW})).status, "helper");
-    const ok = {lastError: undefined, sendNativeMessage: (_h, message, cb) => { assert.equal(message.type, "codex-usage"); cb({type: "codex-usage", primary: {used_percent: 40, window_minutes: 300, resets_at: Math.floor(NOW / 1000) + 600}}); }};
-    const result = await fetchCodexLocal({runtime: ok, now: () => NOW});
-    assert.equal(result.status, "ok");
-    assert.equal(result.windows[0].remainingPercent, 60);
-    const empty = {lastError: undefined, sendNativeMessage: (_h, _m, cb) => cb({type: "codex-usage", empty: true})};
-    assert.equal((await fetchCodexLocal({runtime: empty, now: () => NOW})).status, "empty");
+    const local = await fetchLocalUsage({runtime: missing, now: () => NOW});
+    assert.equal(local.claude.status, "helper");
+    assert.equal(local.codex.status, "helper");
+    const outdated = await fetchLocalUsage({runtime: nativeReply({type: "error", message: "지원하지 않는 요청이에요."}), now: () => NOW});
+    assert.equal(outdated.claude.status, "helper");
 });
 
-test("loadUsage combines sources and prefers the web value for codex", async () => {
+test("local usage parses the logged-in Claude and Codex apps", async () => {
+    const local = await fetchLocalUsage({now: () => NOW, runtime: nativeReply({
+        type: "usage-local",
+        claude: {status: "ok", usage: {five_hour: {utilization: 30, resets_at: "2026-11-11T15:00:00Z"}}},
+        codex: {api: {status: "ok", data: {plan_type: "pro", rate_limit: {primary_window: {used_percent: 20, limit_window_seconds: 18000, reset_after_seconds: 60}}}}, log: {type: "codex-usage", empty: true}}
+    })});
+    assert.equal(local.claude.status, "ok");
+    assert.equal(local.claude.windows[0].remainingPercent, 70);
+    assert.equal(local.codex.status, "ok");
+    assert.equal(local.codex.api.windows[0].remainingPercent, 80);
+    const states = await fetchLocalUsage({now: () => NOW, runtime: nativeReply({type: "usage-local", claude: {status: "expired"}, codex: {api: {status: "none"}, log: {type: "codex-usage", empty: true}}})});
+    assert.equal(states.claude.status, "expired");
+    assert.equal(states.codex.status, "none");
+});
+
+test("loadUsage prefers the PC login over the web account", async () => {
     const fetchImpl = async (url) => {
         if (url.endsWith("/api/organizations")) return json([{uuid: "11111111-2222-3333-4444-555555555555"}]);
-        if (url.includes("claude.ai") && url.endsWith("/usage")) return json({five_hour: {utilization: 10, resets_at: "2026-11-11T15:00:00Z"}});
+        if (url.includes("claude.ai") && url.endsWith("/usage")) return json({five_hour: {utilization: 90, resets_at: "2026-11-11T15:00:00Z"}});
         if (url.endsWith("/api/auth/session")) return json({accessToken: "t"});
-        return json({rate_limit: {primary_window: {used_percent: 25, limit_window_seconds: 18000, reset_after_seconds: 60}}});
+        return json({rate_limit: {primary_window: {used_percent: 90, limit_window_seconds: 18000, reset_after_seconds: 60}}});
     };
-    const runtime = {lastError: undefined, sendNativeMessage: (_h, _m, cb) => cb({type: "codex-usage", primary: {used_percent: 90, window_minutes: 300, resets_at: Math.floor(NOW / 1000) + 600}})};
+    const runtime = nativeReply({type: "usage-local",
+        claude: {status: "ok", usage: {five_hour: {utilization: 10, resets_at: "2026-11-11T15:00:00Z"}}},
+        codex: {api: {status: "ok", data: {rate_limit: {primary_window: {used_percent: 25, limit_window_seconds: 18000, reset_after_seconds: 60}}}}, log: {type: "codex-usage", primary: {used_percent: 99, window_minutes: 300, resets_at: future()}}}});
     const snapshot = await loadUsage({fetchImpl, permissions: granted, runtime, now: () => NOW});
-    assert.equal(snapshot.claude.status, "ok");
-    assert.equal(snapshot.codex.source, "web");
+    assert.equal(snapshot.claude.source, "local");
+    assert.equal(snapshot.claude.windows[0].remainingPercent, 90, "web value 10% remaining is ignored");
+    assert.equal(snapshot.codex.source, "local");
     assert.equal(snapshot.codex.windows[0].remainingPercent, 75);
-    assert.equal(snapshot.codex.local.status, "ok");
+});
+
+test("loadUsage falls back to the Codex log, then to the web account", async () => {
+    const webOnly = async (url) => {
+        if (url.endsWith("/api/organizations")) return json([{uuid: "11111111-2222-3333-4444-555555555555"}]);
+        if (url.includes("claude.ai") && url.endsWith("/usage")) return json({five_hour: {utilization: 40, resets_at: "2026-11-11T15:00:00Z"}});
+        if (url.endsWith("/api/auth/session")) return json({accessToken: "t"});
+        return json({rate_limit: {primary_window: {used_percent: 50, limit_window_seconds: 18000, reset_after_seconds: 60}}});
+    };
+    const log = nativeReply({type: "usage-local", claude: {status: "none"}, codex: {api: {status: "expired"}, log: {type: "codex-usage", primary: {used_percent: 60, window_minutes: 300, resets_at: future()}, recordedAt: "2026-11-11T11:00:00Z"}}});
+    const fromLog = await loadUsage({fetchImpl: webOnly, permissions: granted, runtime: log, now: () => NOW});
+    assert.equal(fromLog.codex.source, "local-log");
+    assert.equal(fromLog.claude.source, "web", "Claude has no local login, so the web account is used");
+    const noHelper = {lastError: {message: "missing"}, sendNativeMessage: (_h, _m, cb) => cb(undefined)};
+    const web = await loadUsage({fetchImpl: webOnly, permissions: granted, runtime: noHelper, now: () => NOW});
+    assert.equal(web.codex.source, "web");
+    assert.equal(web.claude.source, "web");
+    const nothing = await loadUsage({fetchImpl: async () => json({}, 403), permissions: denied, runtime: noHelper, now: () => NOW});
+    assert.equal(nothing.claude.windows.length, 0);
+    assert.equal(nothing.claude.local.status, "helper");
+    assert.equal(nothing.codex.local.status, "helper");
 });
