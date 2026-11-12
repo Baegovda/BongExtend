@@ -70,7 +70,7 @@ export async function withReferer(chromeApi, imageUrl, pageUrl, task, keepMs = 0
     await dnr.updateSessionRules({
         removeRuleIds: [id],
         addRules: [{id, priority: 1, action: {type: "modifyHeaders", requestHeaders: [{header: "referer", operation: "set", value: referer}]},
-            condition: {requestDomains: [host], resourceTypes: ["xmlhttprequest", "other", "image", "media"]}}]
+            condition: {requestDomains: [host], resourceTypes: ["main_frame", "xmlhttprequest", "other", "image", "media"]}}]
     });
     const remove = () => dnr.updateSessionRules({removeRuleIds: [id]}).catch(() => {});
     try { return await task(); }
@@ -187,7 +187,8 @@ export function startImageToolbarBackground(chromeApi = chrome) {
                 reply(result?.result || {ok: false, error: "검색을 시작하지 못했어요."});
             } else if (type === "bongextend-image-open") {
                 if (!isHttp(message.url)) { reply({ok: false}); return; }
-                await chromeApi.tabs.create({url: message.url, windowId: sender.tab.windowId, index: sender.tab.index + 1, openerTabId: sender.tab.id});
+                // 디시인사이드 같은 곳은 게시글 주소(Referer) 없이 이미지 주소를 바로 열면 막아요. 새 탭을 열 때만 잠깐 붙여줘요.
+                await withReferer(chromeApi, message.url, message.withReferer ? (message.pageUrl || sender.tab?.url) : "", () => chromeApi.tabs.create({url: message.url, windowId: sender.tab.windowId, index: sender.tab.index + 1, openerTabId: sender.tab.id}), 10000);
                 reply({ok: true});
             } else if (type === "bongextend-image-settings") {
                 await chromeApi.storage.local.set({"core.popupTab": "image"});

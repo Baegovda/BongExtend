@@ -198,7 +198,7 @@ export default defineContentScript({
                 }),
                 makeItem(ICONS.open, "원본 이미지 보기", () => {
                     const src = sourceOfCurrent();
-                    if (src) void send({type: "bongextend-image-open", url: originalImageUrl(src)});
+                    if (src) void send({type: "bongextend-image-open", url: originalImageUrl(src), withReferer: true, pageUrl: location.href});
                 })
             );
 
