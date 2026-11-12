@@ -25,7 +25,7 @@ export default defineContentScript({
                 const stored = await chrome.storage.local.get([IMAGE_SETTINGS_KEY, "core.modules"]);
                 settings = normalizeToolbarSettings(stored[IMAGE_SETTINGS_KEY]);
                 const moduleOn = (stored["core.modules"] as Record<string, unknown> | undefined)?.image !== false;
-                enabled = moduleOn && settings.toolbar && !settings.hiddenHosts.includes(location.hostname);
+                enabled = moduleOn && settings.toolbar;
             } catch { enabled = false; }
             host.dataset.enabled = String(enabled);
             if (!enabled) hide();
@@ -203,13 +203,6 @@ export default defineContentScript({
             );
 
             moreMenu.replaceChildren(
-                makeItem(ICONS.hide, "이 사이트에서 숨기기", async () => {
-                    const stored = await chrome.storage.local.get(IMAGE_SETTINGS_KEY);
-                    const raw = (stored[IMAGE_SETTINGS_KEY] as Record<string, unknown>) || {};
-                    const hidden = new Set<string>(Array.isArray(raw.hiddenHosts) ? (raw.hiddenHosts as string[]) : []);
-                    hidden.add(location.hostname);
-                    await chrome.storage.local.set({[IMAGE_SETTINGS_KEY]: {...raw, hiddenHosts: [...hidden]}});
-                }),
                 makeItem(ICONS.gear, "이미지 도구 설정", () => void send({type: "bongextend-image-settings"}))
             );
         };

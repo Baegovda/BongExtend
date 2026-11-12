@@ -24,8 +24,8 @@ export const normalizeToolbarSettings = (value) => {
         .filter((row) => row && typeof row.name === "string" && typeof row.url === "string" && row.name.trim() && HTTPS_TEMPLATE.test(row.url.trim()))
         .slice(0, 10)
         .map((row) => ({name: row.name.trim().slice(0, 24), url: row.url.trim().slice(0, 600)}));
-    const hiddenHosts = (Array.isArray(value?.hiddenHosts) ? value.hiddenHosts : []).filter((host) => typeof host === "string" && /^[a-z0-9.-]{1,253}$/.test(host)).slice(0, 200);
-    return {toolbar: value?.toolbar !== false, disabledEngines, custom, hiddenHosts};
+    // 예전에 '이 사이트에서 숨기기'로 저장된 hiddenHosts는 이제 쓰지 않아요(기능을 없앴어요).
+    return {toolbar: value?.toolbar !== false, disabledEngines, custom};
 };
 
 // 사용 중인 검색 엔진 목록(기본 + 사용자 추가).

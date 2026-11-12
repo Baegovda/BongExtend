@@ -8,11 +8,12 @@ test("settings default to the toolbar on with every built-in engine, and unknown
     assert.equal(defaults.toolbar, true);
     assert.deepEqual(defaults.disabledEngines, []);
     assert.deepEqual(DEFAULT_ENGINES.map((e) => e.id), ["lens", "aliexpress", "taobao"]);
-    const custom = normalizeToolbarSettings({toolbar: false, disabledEngines: ["taobao", "evil"], custom: [{name: " 내 검색 ", url: "https://x.example/s?u={url}"}, {name: "나쁨", url: "http://x.example/{url}"}, {name: "", url: "https://x/{url}"}, {name: "no placeholder", url: "https://x.example/"}], hiddenHosts: ["shop.example", "BAD HOST", 5]});
+    const custom = normalizeToolbarSettings({toolbar: false, disabledEngines: ["taobao", "evil"], custom: [{name: " 내 검색 ", url: "https://x.example/s?u={url}"}, {name: "나쁨", url: "http://x.example/{url}"}, {name: "", url: "https://x/{url}"}, {name: "no placeholder", url: "https://x.example/"}], hiddenHosts: ["shop.example"]});
     assert.equal(custom.toolbar, false);
     assert.deepEqual(custom.disabledEngines, ["taobao"]);
     assert.deepEqual(custom.custom, [{name: "내 검색", url: "https://x.example/s?u={url}"}]);
-    assert.deepEqual(custom.hiddenHosts, ["shop.example"]);
+    assert.equal("hiddenHosts" in custom, false, "the old per-site hide list is ignored");
+    assert.equal(normalizeToolbarSettings({hiddenHosts: ["shop.example"]}).toolbar, true);
 });
 
 test("engine urls only come from https templates and http(s) images", () => {

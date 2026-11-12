@@ -2,7 +2,12 @@
 
 기준일: 2026-11-10. 이 문서는 기존 v1.2.10 인수인계를 대체해요. 이후 변경은 package.json, CHANGELOG.md, GitHub Releases를 우선 확인하세요.
 
-## 최신 인계 — v1.2.85 모든 프레임·끊긴 페이지 안내
+## 최신 인계 — v1.2.86 탭 드래그 위치·숨기기 제거
+
+- 탭 드래그: 끌고 있는 탭이 position:fixed + 뷰포트 좌표인데, 1.2.70~의 `.tabs`/`.tab-group` backdrop-filter가 containing block을 만들어 좌표가 어긋났어요. style.css 끝에 `.tabs.reordering`·`.tab-group`의 backdrop-filter를 드래그 중에만 끄는 규칙을 넣었고, 합성 Chrome에서 끌고 있는 탭 중심이 포인터와 7px 이내임을 쟀어요. **앞으로 탭 줄이나 그 조상에 filter/backdrop-filter/transform을 걸면 같은 문제가 생기니 주의해요.**
+- 도구 막대 '이 사이트에서 숨기기'와 hiddenHosts를 없앴어요(저장된 값은 무시하고 설정 저장 때 지워요).
+
+## 이전 인계 — v1.2.85 모든 프레임·끊긴 페이지 안내
 
 - 사용자 스크린샷 두 장: (1) 디시에서 복사 실패 문구 `Cannot read properties of undefined (rea…)` — 자동 업데이트로 확장이 새로 로드된 뒤 열려 있던 페이지의 옛 콘텐츠 스크립트는 chrome.runtime이 사라져(orphaned) sendMessage에서 이 오류가 나요(원인은 코드로 추정, 사용자 PC에서 직접 재현하지는 못했어요). 새 버전은 !chrome.runtime?.id를 감지해 새로고침 안내를 띄워요. (2) 네이버 블로그는 본문이 blog.naver.com/PostView.naver iframe 안이라 맨 위 프레임에만 붙은 도구 막대가 안 떴어요 → allFrames 등록으로 고쳤고 이전 등록은 allFrames가 아니면 다시 등록해요. 실제 네이버 블로그에서 표시·복사(image/png)·저장(complete) 확인.
 - 한계: 이미 열려 있는 페이지는 새로고침해야 새 스크립트가 적용돼요(자동 업데이트마다).

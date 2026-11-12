@@ -523,3 +523,7 @@ html:not(.embed) .tabs .window-tools button { background: color-mix(in srgb, var
 .be-page .tabs .tab-group button:not(.primary):not(.be-primary):not(.danger), .be-page .tabs .window-tools button:not(.primary):not(.be-primary):not(.danger) { -webkit-backdrop-filter: none; backdrop-filter: none; }
 #imageCustomEngines { width: 100%; margin-top: 6px; resize: vertical; font: 12px/1.5 var(--be-mono); }
 .image-panel .be-actions { padding-top: 4px; }
+
+/* 탭을 끌 때: 블러가 걸린 요소는 안쪽 position:fixed의 기준이 돼서 끌고 있는 탭이 포인터에서 벗어나요. 끄는 동안만 블러를 꺼요. */
+html:not(.embed) .tabs.reordering,
+html:not(.embed) .tabs.reordering .tab-group { -webkit-backdrop-filter: none; backdrop-filter: none; }

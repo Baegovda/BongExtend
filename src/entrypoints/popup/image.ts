@@ -21,7 +21,11 @@ export function setupImage() {
 
     // 다른 설정(숨긴 사이트 등)을 잃지 않게 저장된 값을 그대로 두고 필요한 칸만 바꿔요.
     const rawSettings = async () => ((await chrome.storage.local.get(IMAGE_SETTINGS_KEY))[IMAGE_SETTINGS_KEY] || {}) as Record<string, unknown>;
-    const patchSettings = async (patch: Record<string, unknown>) => chrome.storage.local.set({[IMAGE_SETTINGS_KEY]: {...(await rawSettings()), ...patch}});
+    // 예전의 '이 사이트에서 숨기기' 목록(hiddenHosts)은 저장할 때 같이 지워요.
+    const patchSettings = async (patch: Record<string, unknown>) => {
+        const {hiddenHosts: _old, ...rest} = await rawSettings();
+        return chrome.storage.local.set({[IMAGE_SETTINGS_KEY]: {...rest, ...patch}});
+    };
 
     const paintToolbarState = async () => {
         let granted = false;
