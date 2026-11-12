@@ -1,6 +1,7 @@
 import { paintToolbarBadge } from '../toolbar-badge.js';
 import { createIdbCache } from './lib/cache.js';
 import { checkApiKey, translateWithGemini } from './lib/gemini.js';
+import { checkDeeplKey, translateWithDeepl } from './lib/deepl.js';
 import { MESSAGES } from './lib/messages.js';
 import { canTranslateUrl, contentPrefs, normalizeSettings, resolveModel } from './lib/settings.js';
 import { originPermissionPattern } from './lib/origin-permission.js';
@@ -73,7 +74,7 @@ async function setSiteAlways(tabId, enabled) {
 
 const translator = createTranslator({
   persistentCache,
-  translateFn: translateWithGemini,
+  translateFn: (texts, settings) => (settings.provider === 'deepl' ? translateWithDeepl(texts, settings) : translateWithGemini(texts, settings)),
   loadSettings,
 });
 
@@ -330,6 +331,7 @@ function fromExtensionPage(sender) {
 
 async function checkKeyMessage(message) {
   const draft = normalizeSettings(message.settings || await loadSettings());
+  if (draft.provider === 'deepl') return { ok: true, ...(await checkDeeplKey(draft.deeplKey)) };
   let model = '';
   try {
     model = resolveModel(draft);

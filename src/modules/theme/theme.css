@@ -3,15 +3,15 @@
    원격 폰트는 없다. 값은 src/modules/theme/tokens.js 와 같다. */
 :root {
   color-scheme: dark;
-  --be-bg: #17181b;
-  --be-surface: #222327;
-  --be-surface-2: #292b30;
-  --be-surface-3: #36383e;
-  --be-border: #45484f;
-  --be-border-strong: #686c76;
-  --be-text: #f3f3f6;
-  --be-text-2: #dedee4;
-  --be-muted: #afb1ba;
+  --be-bg: #0b0d12;
+  --be-surface: #151821;
+  --be-surface-2: #1b1f2a;
+  --be-surface-3: #3a3f4d;
+  --be-border: #2a2e3a;
+  --be-border-strong: #4a5062;
+  --be-text: #f5f7fa;
+  --be-text-2: #dce0e8;
+  --be-muted: #a3abbc;
   --be-accent: #3d63bd;
   --be-accent-2: #5e5ce6;
   --be-accent-hover: #3557a6;
@@ -20,33 +20,34 @@
   --be-gradient: linear-gradient(115deg, #badcff 0%, #c9b9f0 48%, #9edbd0 100%);
   --be-accent-gradient: linear-gradient(125deg, #405fc4 0%, #5b53aa 56%, #326b89 100%);
   /* 아크릴: 반투명 색 + 배경 흐림 + 아주 옅은 노이즈 + 안쪽 테두리 빛. */
-  --be-glass: rgba(46, 48, 56, 0.44);
-  --be-glass-strong: rgba(54, 56, 65, 0.6);
-  --be-glass-border: rgba(226, 231, 246, 0.2);
-  --be-glass-sheen: linear-gradient(140deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.012) 42%, rgba(160, 196, 255, 0.032));
+  --be-glass: rgba(255, 255, 255, 0.115);
+  --be-glass-strong: rgba(255, 255, 255, 0.16);
+  --be-glass-border: rgba(255, 255, 255, 0.2);
+  --be-glass-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0) 70%);
   --be-glass-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.11), inset 0 0 0 1px rgba(255, 255, 255, 0.022), 0 14px 34px rgba(0, 0, 0, 0.3);
   --be-acrylic-blur: blur(30px) saturate(185%);
   --be-acrylic-noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 .1 0 0 0 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url%28%23n%29'/%3E%3C/svg%3E");
-  --be-control-bg: rgba(210, 215, 230, 0.085);
-  --be-control-border: rgba(214, 219, 234, 0.23);
-  --be-canvas-gradient: radial-gradient(62% 46% at 8% -6%, rgba(128, 158, 232, 0.26), transparent 72%), radial-gradient(48% 40% at 102% 22%, rgba(176, 132, 228, 0.2), transparent 72%), radial-gradient(56% 46% at 78% 112%, rgba(72, 190, 172, 0.19), transparent 72%), radial-gradient(40% 34% at 30% 70%, rgba(110, 120, 220, 0.1), transparent 75%);
+  --be-control-bg: rgba(255, 255, 255, 0.15);
+  --be-control-border: rgba(255, 255, 255, 0.16);
+  --be-canvas-gradient: radial-gradient(60% 50% at 100% -8%, rgba(76, 138, 254, 0.22), transparent 70%), radial-gradient(52% 44% at 16% 112%, rgba(228, 126, 244, 0.14), transparent 70%);
   --be-focus: 0 0 0 3px rgba(100, 210, 255, 0.45);
+  --be-switch-gradient: linear-gradient(135deg, #4c8afe, #e47ef4);
   --be-ok: #95d5b2;
   --be-warn: #e8cf92;
   --be-error: #f3aaa7;
   --be-link: #adc7fa;
-  --be-separator: #3b3e45;
+  --be-separator: #2a2e3a;
   --be-knob: #ffffff;
-  --be-radius-sm: 10px;
-  --be-radius: 14px;
-  --be-radius-lg: 20px;
+  --be-radius-sm: 11px;
+  --be-radius: 12px;
+  --be-radius-lg: 16px;
   --be-space-1: 4px;
   --be-space-2: 8px;
   --be-space-3: 12px;
   --be-space-4: 16px;
   --be-space-5: 24px;
   --be-space-6: 32px;
-  --be-font: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
+  --be-font: "Segoe UI Variable Text", "Segoe UI", -apple-system, BlinkMacSystemFont, system-ui, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
   --be-mono: ui-monospace, "SF Mono", "Cascadia Code", Consolas, monospace;
   --be-font-size: 14px;
   --be-ease: cubic-bezier(0.25, 0.1, 0.25, 1);
@@ -162,7 +163,7 @@
 .be-page input[type=checkbox] {
   -webkit-appearance: none; appearance: none;
   flex: 0 0 auto;
-  width: 40px; height: 24px; margin: 0;
+  width: 46px; height: 28px; margin: 0;
   border-radius: 999px;
   background: var(--be-surface-3);
   border: 0;
@@ -172,13 +173,13 @@
 }
 .be-page input[type=checkbox]::after {
   content: ""; position: absolute; top: 2px; left: 2px;
-  width: 20px; height: 20px; border-radius: 50%;
+  width: 24px; height: 24px; border-radius: 50%;
   background: var(--be-knob);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
-  transition: transform var(--be-duration) var(--be-ease);
+  transition: transform 320ms cubic-bezier(0.34, 1.32, 0.64, 1);
 }
-.be-page input[type=checkbox]:checked { background: var(--be-accent-gradient); }
-.be-page input[type=checkbox]:checked::after { transform: translateX(16px); }
+.be-page input[type=checkbox]:checked { background: var(--be-switch-gradient); }
+.be-page input[type=checkbox]:checked::after { transform: translateX(18px); }
 .be-page input[type=checkbox]:disabled { opacity: 0.45; cursor: default; }
 
 .be-card, .be-group {

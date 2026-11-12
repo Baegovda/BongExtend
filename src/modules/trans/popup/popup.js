@@ -108,7 +108,7 @@ async function init() {
     model = '모델 이름을 확인해 주세요';
   }
   metaEl.textContent = `${(LANGUAGES.find((l) => l.code === settings.targetLanguage) || { native: settings.targetLanguage }).native} · ${model}`;
-  hasKey = Boolean(settings.apiKey);
+  hasKey = Boolean(settings.provider === 'deepl' ? settings.deeplKey : settings.apiKey);
   document.querySelector('#connectionHint').textContent = hasKey
     ? 'API 키가 저장돼 있어요. 언어나 모델은 설정에서 바꿀 수 있어요.'
     : '처음 사용하시나요? 설정을 열어 API 키를 저장한 뒤 페이지 번역을 켜 주세요.';

@@ -40,6 +40,8 @@ export const LANGUAGES = [
 ];
 
 export const DEFAULT_SETTINGS = {
+  provider: 'gemini',
+  deeplKey: '',
   apiKey: '',
   modelChoice: DEFAULT_MODEL,
   customModel: '',
@@ -111,6 +113,8 @@ export function parseSettingsImport(text) {
 export function normalizeSettings(input) {
   const source = input && typeof input === 'object' ? input : {};
   return {
+    provider: source.provider === 'deepl' ? 'deepl' : 'gemini',
+    deeplKey: typeof source.deeplKey === 'string' ? source.deeplKey.trim() : '',
     apiKey: typeof source.apiKey === 'string' ? source.apiKey.trim() : '',
     modelChoice: choiceOrDefault(source.modelChoice, DEFAULT_SETTINGS.modelChoice),
     customModel: typeof source.customModel === 'string' ? source.customModel.trim() : '',
@@ -159,6 +163,7 @@ function resolveChoice(choice, customValue) {
 
 export function resolveModel(settings) {
   const normalized = normalizeSettings(settings);
+  if (normalized.provider === 'deepl') return 'deepl';
   return resolveChoice(normalized.modelChoice, normalized.customModel);
 }
 

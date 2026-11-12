@@ -8,15 +8,15 @@ export const BAR_ALPHA = 0.94;
 
 export const themes = {
     dark: {
-        bg: "#17181b",
-        surface: "#222327",
-        surface2: "#292b30",
-        surface3: "#36383e",
-        border: "#45484f",
-        borderStrong: "#686c76",
-        text: "#f3f3f6",
-        text2: "#dedee4",
-        muted: "#afb1ba",
+        bg: "#0b0d12",
+        surface: "#151821",
+        surface2: "#1b1f2a",
+        surface3: "#3a3f4d",
+        border: "#2a2e3a",
+        borderStrong: "#4a5062",
+        text: "#f5f7fa",
+        text2: "#dce0e8",
+        muted: "#a3abbc",
         accent: "#3d63bd",
         accentHover: "#3557a6",
         accentInk: "#ffffff",
@@ -24,7 +24,7 @@ export const themes = {
         ok: "#95d5b2",
         warn: "#e8cf92",
         error: "#f3aaa7",
-        separator: "#3b3e45"
+        separator: "#2a2e3a"
     },
     light: {
         bg: "#f3f4f6",

@@ -15,6 +15,10 @@ import { saveSettings } from '../lib/settings-store.js';
 const form = document.querySelector('#settings');
 const apiKey = document.querySelector('#apiKey');
 const showKey = document.querySelector('#showKey');
+const deeplKey = document.querySelector('#deeplKey');
+const deeplBox = document.querySelector('#deeplBox');
+const geminiBox = document.querySelector('#geminiBox');
+const modelDetails = document.querySelector('#modelDetails');
 const customModel = document.querySelector('#customModel');
 const customFallback = document.querySelector('#customFallback');
 const language = document.querySelector('#targetLanguage');
@@ -69,6 +73,28 @@ function selectedFallback() {
   return selectedValue('fallbackChoice', DEFAULT_MODEL);
 }
 
+function selectedProvider() {
+  return selectedValue('provider', 'gemini');
+}
+
+function syncProvider() {
+  const deepl = selectedProvider() === 'deepl';
+  deeplBox.hidden = !deepl;
+  geminiBox.hidden = deepl;
+  modelDetails.hidden = deepl;
+}
+
+// DeepL 서버에 접근하는 권한은 저장할 때(사용자가 누른 순간) 한 번만 물어봐요.
+async function ensureDeeplAccess(key) {
+  const origin = /:fx$/i.test(key) ? 'https://api-free.deepl.com/*' : 'https://api.deepl.com/*';
+  try {
+    if (await chrome.permissions.contains({ origins: [origin] })) return true;
+    return await chrome.permissions.request({ origins: [origin] });
+  } catch {
+    return false;
+  }
+}
+
 function syncCustomFields() {
   const custom = selectedModel() === 'custom';
   customModel.disabled = !custom;
@@ -80,6 +106,8 @@ function syncCustomFields() {
 
 function draftSettings() {
   return normalizeSettings({
+    provider: selectedProvider(),
+    deeplKey: deeplKey.value,
     apiKey: apiKey.value,
     modelChoice: selectedModel(),
     customModel: customModel.value,
@@ -115,6 +143,9 @@ async function refreshCacheStats() {
 
 function fill(settings) {
   apiKey.value = settings.apiKey;
+  deeplKey.value = settings.deeplKey;
+  const providerRadio = form.querySelector(`input[name="provider"][value="${settings.provider}"]`);
+  if (providerRadio) providerRadio.checked = true;
   customModel.value = settings.customModel;
   customFallback.value = settings.customFallback;
   language.value = settings.targetLanguage;
@@ -127,11 +158,13 @@ function fill(settings) {
   const fallback = form.querySelector(`input[name="fallbackChoice"][value="${settings.fallbackChoice}"]`);
   if (fallback) fallback.checked = true;
   syncCustomFields();
+  syncProvider();
 }
 
 function formatKeyCheck(result) {
   const lines = [result.message || '키를 확인하지 못했어요.'];
   const availability = result.presetAvailability || {};
+  if (selectedProvider() === 'deepl') return lines[0];
   const showList = result.code === 'VALID' || result.code === 'OVERLOADED' || result.code === 'MODEL_NOT_FOUND';
   if (showList) {
     lines.push('이 키의 모델 목록:');
@@ -150,6 +183,7 @@ function keyCheckKind(code) {
 
 form.addEventListener('change', (event) => {
   if (event.target?.name === 'modelChoice' || event.target?.name === 'fallbackChoice') syncCustomFields();
+  if (event.target?.name === 'provider') syncProvider();
 });
 
 showKey.addEventListener('change', () => {
@@ -159,6 +193,17 @@ showKey.addEventListener('change', () => {
 form.addEventListener('submit', async (event) => {
   event.preventDefault();
   const next = draftSettings();
+  if (next.provider === 'deepl') {
+    if (next.deeplKey && !(await ensureDeeplAccess(next.deeplKey))) {
+      setStatus('DeepL 서버 접근을 허용하지 않으면 DeepL 번역을 쓸 수 없어요. 저장은 했어요.', 'error');
+    }
+    await saveSettings(next);
+    fill(next);
+    await refreshCacheStats();
+    if (next.deeplKey) setStatus('저장했어요. 이제 DeepL로 번역해요.', 'ok');
+    else setStatus(`저장했어요. ${'DeepL API 키가 없어요. 키를 넣어 주세요.'}`, 'error');
+    return;
+  }
   if (next.modelChoice === 'custom' && !isValidModelId(next.customModel.replace(/^models\//, ''))) {
     setStatus(MESSAGES.NO_MODEL, 'error');
     customModel.focus();
@@ -177,7 +222,10 @@ form.addEventListener('submit', async (event) => {
 
 checkKeyButton.addEventListener('click', async () => {
   const next = draftSettings();
-  if (!next.apiKey) {
+  if (next.provider === 'deepl') {
+    if (!next.deeplKey) { setStatus('DeepL API 키가 없어요. 키를 넣어 주세요.', 'error'); return; }
+    if (!(await ensureDeeplAccess(next.deeplKey))) { setStatus('DeepL 서버 접근을 허용해 주세요.', 'error'); return; }
+  } else if (!next.apiKey) {
     setStatus(MESSAGES.NO_API_KEY, 'error');
     return;
   }
