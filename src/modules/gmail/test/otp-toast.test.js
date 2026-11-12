@@ -14,7 +14,7 @@ test('frameless OTP is isolated in closed shadow DOM, fades out and replaces pri
   const attach=window.Element.prototype.attachShadow;window.Element.prototype.attachShadow=function(options){root=attach.call(this,options);return root;};
   window.setTimeout=(fn,delay)=>{timers.push({fn,delay});return timers.length;};
   window.eval('('+renderCopiedOtpToast.toString()+')('+JSON.stringify('001234')+')');
-  const host=window.document.getElementById('bongextend-otp-toast');assert.equal(host.shadowRoot,null);assert.equal(root.querySelector('.code').textContent,'001234');assert.equal(root.querySelector('.message').textContent,'클립보드에 복사되었습니다');assert.match(root.querySelector('style').textContent,/bottom:clamp/);assert.ok(!window.document.documentElement.textContent.includes('001234'));
+  const host=window.document.getElementById('bongextend-otp-toast');assert.equal(host.shadowRoot,null);assert.equal(root.querySelector('.code').textContent,'001234');assert.equal(root.querySelector('.message').textContent,'클립보드에 복사되었습니다');assert.match(root.querySelector('style').textContent,/top:50%/);assert.ok(!window.document.documentElement.textContent.includes('001234'));
   assert.equal(timers[0].delay,6500);timers[0].fn();assert.ok(root.querySelector('.toast').classList.contains('leaving'));timers[1].fn();assert.equal(host.isConnected,false);
  }finally{await window.happyDOM.close();}
 });

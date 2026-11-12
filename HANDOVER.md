@@ -2,7 +2,12 @@
 
 기준일: 2026-11-10. 이 문서는 기존 v1.2.10 인수인계를 대체해요. 이후 변경은 package.json, CHANGELOG.md, GitHub Releases를 우선 확인하세요.
 
-## 최신 인계 — v1.2.76 아크릴 전면 개편
+## 최신 인계 — v1.2.77 인증번호 오버레이 가운데·허용 상태
+
+- otp-toast.js 카드를 화면 정중앙(top/left 50%)·유리 배경·코드 46px로 바꿨고 otp-toast.test.js 기대값을 맞췄어요. 오버레이는 보고 있는 탭에 chrome.scripting.executeScript로 그리므로 그 사이트 권한(optional https/http 전체)이 필요하고, 새 탭·chrome://·PDF에서는 불가해요. mail-settings.ts의 paintOtpState가 permissions.contains와 core.mailOtpOverlayStatus('page-unavailable')로 상태·이유를 보여줘요.
+- 검증: 합성 페이지 캡처로 가운데 표시 확인, 토스트 시험·타입 통과. **실제 Gmail 인증번호 메일에서의 표시는 미검증**이에요.
+
+## 이전 인계 — v1.2.76 아크릴 전면 개편
 
 - theme.css 토큰을 더 투명하게(glass .44/.6, blur 30px, 배경 빛 강화)·공통 규칙(질감 ::before, 버튼/입력 블러, 행 hover, 스크롤바) 추가. popup/style.css 맨 끝에 메일 목록·다운로드 도구·video-activity·컨트롤을 유리로, 탭 줄 개별 블러는 끔(특이도 주의). pop-embed.css의 불투명 면은 color-mix 투명으로, download-module.css 끝에 관리자 유리 블록 추가.
 - 검증: 합성 Chrome 밝음/어두움 캡처(환율, 설정, 번역, 다운로더, 메일 줄), 테마 대비 시험·전체 시험·탭 기하 검사. **다운로드 관리자 본체(public/ui)와 실제 로그인 화면의 가독성은 캡처로 확인하지 못했어요.**

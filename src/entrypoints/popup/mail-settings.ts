@@ -25,11 +25,28 @@ export function setupMailSettings() {
     });
     dialog.addEventListener('close',()=>preview?.pause());
     soundSelect.addEventListener('change',()=>preview?.pause());
-    document.getElementById('otpOverlayPermission')!.addEventListener('click',async()=>{
-        const granted=await chrome.permissions.request({origins:['https://*/*','http://*/*']});status.textContent=granted?'웹페이지 안에 인증번호 알림을 표시할 수 있어요.':'기존 데스크톱 알림은 계속 사용할 수 있어요.';
+    const otpState=document.getElementById('otpOverlayState')!;
+    const otpButton=document.getElementById('otpOverlayPermission') as HTMLButtonElement;
+    // 인증번호가 화면 가운데에 뜨려면 보고 있는 웹페이지에 표시할 권한이 필요해요. 지금 상태와 마지막 결과를 알려줘요.
+    const paintOtpState=async()=>{
+        let granted=false;
+        try{granted=await chrome.permissions.contains({origins:['https://*/*','http://*/*']});}catch{/* 확인하지 못하면 필요한 것으로 봐요. */}
+        const stored=await chrome.storage.local.get('core.mailOtpOverlayStatus').catch(()=>({} as Record<string,unknown>));
+        const last=stored['core.mailOtpOverlayStatus'];
+        otpButton.hidden=granted;
+        const lines=[granted?'허용됐어요. 인증번호가 복사되면 지금 보고 있는 웹페이지 가운데에 크게 떠요.':'허용하면 인증번호가 복사될 때 웹페이지 가운데에 크게 떠요. 지금은 Windows 알림만 떠요.'];
+        if(last==='page-unavailable')lines.push('마지막 인증번호는 화면에 표시하지 못했어요. 새 탭, 크롬 설정 화면, PDF 같은 페이지에서는 표시할 수 없어요.');
+        otpState.textContent=lines.join(' ');
+    };
+    otpButton.addEventListener('click',async()=>{
+        const granted=await chrome.permissions.request({origins:['https://*/*','http://*/*']});
+        status.textContent=granted?'이제 인증번호가 웹페이지 가운데에 표시돼요.':'허용하지 않았어요. Windows 알림은 계속 사용할 수 있어요.';
+        await paintOtpState();
     });
+    chrome.storage.onChanged.addListener((changes,area)=>{if(area==='local'&&changes['core.mailOtpOverlayStatus'])void paintOtpState();});
     const open = async () => {
         if (!dialog.open) dialog.showModal();
+        void paintOtpState();
         status.textContent = "설정을 불러오고 있어요…";
         button.disabled = true;
         try {
