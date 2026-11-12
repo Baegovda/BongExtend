@@ -30,7 +30,7 @@ import {createTransMenus, startTransBackground} from "@/modules/trans/background
 // @ts-ignore 공통 모듈 스위치(순수 JS)
 import {MODULES_KEY, getModules} from "@/modules/core-modules.js";
 import {syncChzzkScripts} from "@/modules/chzzk-register";
-import {CHRONO_SITE_ACCESS_KEY, syncChronoContentScripts} from "@/modules/chrono-register";
+import {CHRONO_SITE_ACCESS_KEY, removeLegacyChronoScripts} from "@/modules/chrono-register";
 // @ts-ignore 페이지에 복사되는 순수 JS라 export 를 쓰지 않는다.
 import "@/modules/chzzk/lib/ads.js";
 // @ts-ignore 순수 JS
@@ -152,15 +152,11 @@ export default defineBackground(() => {
         };
     } catch { /* 메뉴 API가 없으면 넘어가요 */ }
 
-    // Checker Plus와 Chrono가 확장 툴바 API를 직접 바꾸지 못하게 한다.
+    // 메일 엔진(Checker Plus) 시작.
     const importChrono = (globalThis as typeof globalThis & {importScripts?: (...urls: string[]) => void}).importScripts;
     if (typeof importChrono === "function") {
-        try { importChrono.call(globalThis, "/js/chrono-action-bridge.js"); }
-        catch (error) { console.error("다운로드 툴바 어댑터를 시작하지 못했어요.", error); }
         try { importChrono.call(globalThis, "/js/bongextend-profile.js", "/js/background.js"); }
         catch (error) { console.error("Checker Plus 메일 엔진을 시작하지 못했어요.", error); }
-        try { importChrono.call(globalThis, "/chrono-worker.js"); }
-        catch (error) { console.error("Chrono 다운로드 엔진을 시작하지 못했어요.", error); }
     }
     void paintToolbarBadge();
 
@@ -169,25 +165,9 @@ export default defineBackground(() => {
     startFxBackground();
     startRightClickBackground();
 
-    const syncChronoSites = async () => {
-        const stored = await browser.storage.local.get(CHRONO_SITE_ACCESS_KEY);
-        await syncChronoContentScripts(stored[CHRONO_SITE_ACCESS_KEY] === true);
-        await (globalThis as any).BongExtendSyncDownloadAccess?.();
-    };
-    void syncChronoSites();
-    browser.storage.onChanged.addListener((changes, area) => {
-        if (area === "local" && changes[CHRONO_SITE_ACCESS_KEY]) void syncChronoSites();
-    });
-    browser.permissions.onAdded.addListener(() => void syncChronoSites());
-    browser.permissions.onRemoved.addListener(() => void syncChronoSites());
-    browser.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-        if (!message || message.type !== "chrono-sync-sites") return;
-        syncChronoSites().then(
-            () => sendResponse({ok: true}),
-            error => sendResponse({ok: false, error: error?.message || "사이트 연결을 등록하지 못했어요."})
-        );
-        return true;
-    });
+    // 예전 다운로드 엔진(Chrono)이 남긴 페이지 연결을 한 번 정리해요.
+    void removeLegacyChronoScripts();
+    void browser.storage.local.remove([CHRONO_SITE_ACCESS_KEY, "core.chronoPopup", "chrono.downloadingCount"]);
 
     // 다크 모드: 사용자가 권한을 허용한 사이트에만 런타임 콘텐츠 스크립트를 등록한다.
     let activeDarkStylesheets = 0, queuedDarkStylesheets = 0;
@@ -362,9 +342,7 @@ export default defineBackground(() => {
                 const modules = (stored[MODULES_KEY] && typeof stored[MODULES_KEY] === "object" ? stored[MODULES_KEY] : {}) as Record<string, unknown>;
                 if (modules.download === false || (!settings.filenameMask && !settings.folder && !settings.routeByType && !settings.rules.length)) {
                     if (nameHint) suggest({filename: nameHint, conflictAction: "uniquify"});
-                    else if (modules.download !== false && (globalThis as any).BongExtendChronoAction?.suggestFilename) {
-                        (globalThis as any).BongExtendChronoAction.suggestFilename(item, suggest);
-                    } else suggest();
+                    else suggest();
                     return;
                 }
                 suggest({filename: makeDownloadFilename(item, settings, new Date(), nameHint), conflictAction: "uniquify"});

@@ -18,10 +18,6 @@ const sniffList = $("sniffList");
 const params = new URLSearchParams(location.search);
 const sourceTabText = params.get("sourceTabId");
 const sourceTabId = sourceTabText ? Number(sourceTabText) : Number.NaN;
-const CHRONO_ACCESS_KEY = "chrono.siteAccess";
-const CHRONO_ORIGINS = ["http://*/*", "https://*/*"];
-const CHRONO_PERMISSIONS: chrome.runtime.ManifestPermission[] = ["webRequest", "clipboardRead", "downloads.open", "downloads.ui"];
-const CHRONO_SITE_PERMISSION: chrome.runtime.ManifestPermission[] = ["webRequest"];
 let items: DownloadItem[] = [];
 let sniffed: Sniffed[] = [];
 let settings: Settings = normalizeDownloadSettings(null) as Settings;
@@ -83,6 +79,15 @@ const addButton = (parent: HTMLElement, label: string, action: () => void | Prom
     parent.appendChild(button);
 };
 
+// 파일 열기 권한은 누른 순간에만 한 번 물어봐요. 허용하지 않으면 폴더에서 보여줘요.
+const openFile = async (id: number) => {
+    try {
+        const ok = await chrome.permissions.contains({permissions: ["downloads.open"]}) || await chrome.permissions.request({permissions: ["downloads.open"]});
+        if (ok) await chrome.downloads.open(id);
+        else { chrome.downloads.show(id); setStatus("파일 열기를 허용하지 않아 폴더에서 보여 줬어요."); }
+    } catch { try { chrome.downloads.show(id); } catch { setStatus("파일을 찾지 못했어요. 지워졌을 수 있어요.", true); } }
+};
+
 const render = () => {
     const visible = visibleItems();
     downloadList.replaceChildren();
@@ -129,7 +134,7 @@ const render = () => {
             else addButton(actions, "잠시 멈춤", () => chrome.downloads.pause(item.id));
             addButton(actions, "취소", () => chrome.downloads.cancel(item.id));
         } else if (item.state === "complete") {
-            addButton(actions, "열기", () => chrome.downloads.open(item.id));
+            addButton(actions, "열기", () => openFile(item.id));
             addButton(actions, "폴더 보기", () => chrome.downloads.show(item.id));
         } else {
             addButton(actions, "다시 받기", async () => { await startDownload(item.finalUrl || item.url, item.filename?.replace(/\\/g, "/").split("/").pop()); });
@@ -305,46 +310,6 @@ $<HTMLButtonElement>("downloadSelected").addEventListener("click", async () => {
 });
 $<HTMLButtonElement>("refresh").addEventListener("click", () => void refresh());
 $<HTMLButtonElement>("openChromeDownloads").addEventListener("click", () => void chrome.tabs.create({url: "chrome://downloads/"}));
-$<HTMLButtonElement>("openChronoManager").addEventListener("click", async () => {
-    await chrome.runtime.sendMessage({cmd: "open_ui"});
-});
-$<HTMLButtonElement>("openChronoSettings").addEventListener("click", async () => {
-    await chrome.tabs.create({url: chrome.runtime.getURL("/ui/options.html")});
-});
-const chronoAccessButton = $<HTMLButtonElement>("chronoSiteAccess");
-const syncChronoAccessButton = async () => {
-    const stored = await chrome.storage.local.get(CHRONO_ACCESS_KEY);
-    const enabled = stored[CHRONO_ACCESS_KEY] === true && await chrome.permissions.contains({permissions: CHRONO_SITE_PERMISSION, origins: CHRONO_ORIGINS});
-    chronoAccessButton.setAttribute("aria-pressed", enabled ? "true" : "false");
-    chronoAccessButton.textContent = enabled ? "사이트 감지 끄기" : "모든 사이트에서 감지 켜기";
-};
-chronoAccessButton.addEventListener("click", async () => {
-    const enabled = chronoAccessButton.getAttribute("aria-pressed") === "true";
-    if (enabled) {
-        await chrome.storage.local.set({[CHRONO_ACCESS_KEY]: false});
-        const result = await chrome.runtime.sendMessage({type: "chrono-sync-sites"});
-        await chrome.permissions.remove({permissions: CHRONO_SITE_PERMISSION});
-        if (!result?.ok) { setStatus(result?.error || "다운로드 사이트 연결을 끄지 못했어요.", true); return; }
-        setStatus("다운로드 사이트 연결을 껐어요. 확장 프로그램을 새로 시작하고 있어요.");
-        window.setTimeout(() => chrome.runtime.reload(), 400);
-        return;
-    }
-    try {
-        const granted = await chrome.permissions.request({permissions: CHRONO_PERMISSIONS, origins: CHRONO_ORIGINS});
-        if (!granted) { setStatus("권한을 허용하지 않아 페이지 감지를 켜지 않았어요.", true); return; }
-        await chrome.storage.local.set({[CHRONO_ACCESS_KEY]: true});
-        const result = await chrome.runtime.sendMessage({type: "chrono-sync-sites"});
-        if (!result?.ok) throw new Error(result?.error || "다운로드 페이지 연결을 등록하지 못했어요.");
-        await syncChronoAccessButton();
-        setStatus("페이지 자동 감지를 켰어요. 확장 프로그램을 새로 시작할게요.");
-        window.setTimeout(() => chrome.runtime.reload(), 500);
-    } catch (error) {
-        setStatus(`다운로드 사이트 권한을 바꾸지 못했어요: ${(error as Error)?.message || "권한을 확인해 주세요."}`, true);
-    }
-});
-void syncChronoAccessButton();
-chrome.permissions.onAdded.addListener(() => void syncChronoAccessButton());
-chrome.permissions.onRemoved.addListener(() => void syncChronoAccessButton());
 stateFilter.addEventListener("change", render);
 typeFilter.addEventListener("change", render);
 ageFilter.addEventListener("change", render);
@@ -378,3 +343,4 @@ chrome.storage.onChanged.addListener((changes, area) => {
     if (area === "local" && changes[DOWNLOAD_SETTINGS_KEY]) void loadSettings();
 });
 void loadSettings().then(refresh);
+if (location.hash === "#settings") { const card = document.getElementById("settingsCard") as HTMLDetailsElement | null; if (card) { card.open = true; card.scrollIntoView(); } }

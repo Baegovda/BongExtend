@@ -102,17 +102,6 @@ checkerPlusMailFrame.addEventListener("load", () => {
 checkerPlusMailHome.addEventListener("click", () => {
     checkerPlusMailFrame.src = checkerPlusMailFrame.dataset.src || "/checkerplus-popup.html?source=bongextend";
 });
-chronoPopupFrame.addEventListener("load", () => {
-    try {
-        const doc = chronoPopupFrame.contentDocument;
-        if (!doc) return;
-        // The native recent list already loads the shared theme before its own compact styles.
-        if (doc.location.pathname === "/recent-downloads.html") return;
-        applyEmbeddedTheme(doc, "bongextend-chrono-embedded", "pop/pop-embed.css");
-    } catch (error) {
-        console.warn("다운로더 화면을 BongExtend 탭에 맞추지 못했어요.", error);
-    }
-});
 let current: TabId = "chzzk";
 let pageBeforeSettings: TabId = "chzzk";
 
@@ -198,9 +187,7 @@ const showTab = async (tab: TabId, persist = true) => {
         if (!checkerPlusMailFrame.src) checkerPlusMailFrame.src = checkerPlusMailFrame.dataset.src || "/checkerplus-popup.html?source=bongextend";
     }
     if (tab === "download") {
-        const stored = await chrome.storage.local.get("core.chronoPopup");
-        const popup = typeof stored["core.chronoPopup"] === "string" && (stored["core.chronoPopup"] === "/recent-downloads.html" || /^\/(?:(?:pop\/(?:pop|sniffer))|(?:ui\/(?:index|options)))\.html(?:\?(?:mnu|recent)=1)?$/.test(stored["core.chronoPopup"]))
-            ? (stored["core.chronoPopup"] === "/pop/pop.html" ? "/recent-downloads.html" : stored["core.chronoPopup"]) : "/recent-downloads.html";
+        const popup = "/recent-downloads.html";
         chronoPopupFrame.closest(".panel")?.classList.toggle("is-recent", popup === "/recent-downloads.html");
         if (chronoPopupFrame.src !== chrome.runtime.getURL(popup)) chronoPopupFrame.src = popup;
     }
@@ -1715,20 +1702,11 @@ setupCurrencyPicker(()=>availableCurrencyCodes(fxTable?.rates),()=>selectedCurre
 });
 setupMailSettings();
 
-for (const button of document.querySelectorAll<HTMLButtonElement>("[data-download-view]")) {
-    button.addEventListener("click", async () => {
-        if (button.dataset.downloadView === "/pop/sniffer.html") {
-            const granted = await chrome.permissions.request({permissions: ["webRequest"], origins: ["http://*/*", "https://*/*"]}).catch(() => false);
-            if (!granted) return;
-            await chrome.storage.local.set({"chrono.siteAccess": true});
-        }
-        await chrome.storage.local.set({"core.chronoPopup": button.dataset.downloadView});
-        await showTab("download", false);
-    });
-}
+document.getElementById("openDownloadManager")?.addEventListener("click", () => {
+    void chrome.tabs.create({url: chrome.runtime.getURL("downloads.html")});
+});
 chrome.storage.onChanged.addListener((changes, area) => {
     if (area !== "local") return;
-    if (changes["core.chronoPopup"] && current === "download") void showTab("download", false);
     const next = changes["core.popupTab"]?.newValue;
     if (typeof next === "string" && next !== current && TAB_IDS.includes(next as TabId)) void showTab(next as TabId, false);
 });

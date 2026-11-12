@@ -16,15 +16,12 @@
     </div>
     <div class="header-actions">
         <button id="scanPage" type="button">이 페이지에서 찾기</button>
-        <button id="openChronoManager" type="button">다운로드 관리자</button>
-        <button id="openChronoSettings" type="button">다운로드 설정</button>
-        <button id="chronoSiteAccess" type="button" aria-pressed="false">모든 사이트에서 감지 켜기</button>
         <button id="openChromeDownloads" type="button">Chrome 다운로드</button>
     </div>
 </header>
 <main>
     <p id="status" class="status" role="status"></p>
-    <p class="muted chrono-note">다운로드 목록과 저장 규칙을 관리해요. 페이지 링크 자동 감지는 사이트 권한을 허용한 뒤 켜져요.</p>
+    <p class="muted chrono-note">받은 파일을 보고, 열고, 다시 받을 수 있어요. 저장 규칙은 아래 다운로드 설정에서 바꿔요.</p>
     <section class="batch-card be-card">
         <div class="section-head"><div><h2>주소 여러 개 받기</h2><p class="muted">한 줄에 주소 하나씩 넣어요. 숫자 범위는 <code>{1..12}</code>처럼 쓸 수 있어요.</p></div></div>
         <textarea id="batchInput" rows="3" placeholder="https://example.com/file-{01..12}.jpg&#10;https://example.com/manual.pdf" spellcheck="false"></textarea>
@@ -51,7 +48,7 @@
         <div id="downloadList" class="download-list" aria-live="polite"></div>
         <p id="empty" class="empty" hidden>조건에 맞는 다운로드가 없어요.</p>
     </section>
-    <details class="settings-card be-card">
+    <details id="settingsCard" class="settings-card be-card">
         <summary>다운로드 설정</summary>
         <label class="setting-row"><span><b>Chrome 다운로드 알림 숨기기</b><small>켜면 완료 알림은 BongExtend가 보여 줘요.</small></span><input id="replaceChromeUi" type="checkbox" role="switch"></label>
         <label class="setting-row"><span><b>완료 알림</b><small>새 파일을 다 받으면 알림을 보내요.</small></span><input id="notifications" type="checkbox" role="switch" checked></label>
