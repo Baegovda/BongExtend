@@ -14,7 +14,7 @@ type Snapshot = {
 const REFRESH_MS = 30000;
 
 const NOTES: Record<string, string> = {
-    permission: "연결을 허용하면 로그인된 계정의 남은 한도를 볼 수 있어요.",
+    permission: "연결을 허용하면 로그인된 계정의 사용한 한도를 볼 수 있어요.",
     login: "웹에서 로그인한 뒤 새로고침해 주세요.",
     empty: "표시할 한도 정보가 아직 없어요.",
     error: "불러오지 못했어요. 잠시 뒤 다시 시도해 주세요.",
@@ -34,7 +34,7 @@ const el = <T extends HTMLElement = HTMLElement>(tag: string, className = "", te
 function windowRow(row: Row, now: number): HTMLElement {
     const wrap = el("div", `usage-row level-${remainingLevel(row.remainingPercent)}`);
     const head = el("div", "usage-row-head");
-    head.append(el("span", "usage-label", row.label), el("strong", "usage-percent", `${Math.round(row.remainingPercent)}% 남음`));
+    head.append(el("span", "usage-label", row.label), el("strong", "usage-percent", `${Math.round(row.usedPercent)}% 사용`));
     const bar = el<HTMLProgressElement>("progress", "usage-bar");
     bar.max = 100;
     bar.value = Math.round(row.usedPercent);

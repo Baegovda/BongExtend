@@ -5,6 +5,9 @@ BongExtend 변경 이력. GitHub **[Releases](https://github.com/Baegovda/BongEx
 
 ---
 
+## [1.2.88]
+- 사용량 탭이 '남음' 대신 **사용한 한도(%)** 를 보여줘요. 막대도 사용량만큼 차요.
+
 ## [1.2.87]
 - 알리익스프레스 자동 읽음을 **알리가 자동으로 보내는 알림(주문·배송·프로모션)만**으로 좁혔어요. 알리 고객센터와 주고받는 문의·대화 메일(`AEbuyerservice@…`, "Following Up On Your AliExpress Inquiry", "Reply: …" 등)은 이제 자동 읽음에서 제외되고 읽지 않음으로 남아요. 설정 화면의 자동 읽음 기록에는 "알리 문의·대화 메일이라 그대로 둠"으로 표시돼요.
 
