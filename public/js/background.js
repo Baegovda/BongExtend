@@ -3262,7 +3262,7 @@ async function mailUpdate(params = {}) {
     await serializeAccounts(accounts, {source: params.pollingAccountsSource ? "polling-accounts" : "mailUpdate"});
 
     // BongExtend: 알림이 실제로 뜬 알리익스프레스 메일은 알림 뒤에 읽음 처리해요. 기다리지 않고 따로 진행해요.
-    try { void globalThis.BongExtendAutoReadMails?.(newEmails, {settled: notificationSettled, skip: params.bongOtpMailIds || []}); }
+    try { void globalThis.BongExtendAutoReadMails?.(newEmails, {settled: notificationSettled, skip: params.bongOtpMailIds || [], backlog: getAllUnreadMail(accounts)}); }
     catch (error) { console.warn("자동 읽음 처리를 시작하지 못했어요.", error); }
 
     /*

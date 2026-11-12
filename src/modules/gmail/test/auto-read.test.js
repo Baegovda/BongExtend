@@ -136,3 +136,42 @@ test("relay-forwarded AliExpress mail is auto-read after its notification", asyn
     assert.deepEqual(await auto.process([forwarded]), ["7:r1"]);
     assert.equal(forwarded.reads, 1);
 });
+
+test("when Checker Plus showed no notification, BongExtend notifies itself and then marks the mail read", async () => {
+    const notified = [];
+    const auto = quick({notify: async (m) => { notified.push(m.id); return true; }});
+    const ali = mail("n1", "x@mozmail.com", {authorName: "transaction@notice.aliexpress.com [via Relay]"});
+    const other = mail("n2", "friend@example.com");
+    assert.deepEqual(await auto.process([ali, other]), ["7:n1"]);
+    assert.deepEqual(notified, ["n1"], "only the AliExpress mail gets a notification");
+    assert.equal(ali.reads, 1);
+    assert.equal(other.reads, 0);
+});
+
+test("a failed own notification leaves the mail unread", async () => {
+    const auto = quick({notify: async () => { throw new Error("blocked"); }});
+    const ali = mail("n3", "x@notice.aliexpress.com");
+    assert.deepEqual(await auto.process([ali]), []);
+    assert.equal(ali.reads, 0);
+    const none = quick({notify: async () => false});
+    const ali2 = mail("n4", "x@notice.aliexpress.com");
+    assert.deepEqual(await none.process([ali2]), []);
+    assert.equal(ali2.reads, 0);
+});
+
+test("old unread AliExpress mail is cleaned up silently, capped per run, and OTP mail is skipped", async () => {
+    const notified = [];
+    const log = [];
+    const auto = quick({notify: async (m) => { notified.push(m.id); return true; }, log: (e) => log.push(e.reason)});
+    const old = Array.from({length: 25}, (_, i) => mail("o" + i, "x@notice.aliexpress.com"));
+    const otp = mail("otp1", "x@notice.aliexpress.com");
+    const stranger = mail("s1", "friend@example.com");
+    const marked = await auto.process([], {backlog: [...old, otp, stranger], skip: [mailKey(otp)]});
+    assert.equal(marked.length, 20, "capped at 20 per run");
+    assert.deepEqual(notified, [], "no notification for the backlog");
+    assert.equal(otp.reads, 0);
+    assert.equal(stranger.reads, 0);
+    assert.ok(log.includes("backlog-read"));
+    const again = await auto.process([], {backlog: old});
+    assert.equal(again.length, 5, "the rest follow in the next run, none twice");
+});

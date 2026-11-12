@@ -97,6 +97,13 @@ export default defineBackground(() => {
     };
     const mailAutoRead = createMailAutoRead({
         log: logAutoRead,
+        // Checker Plus 알림이 안 떴을 때 알리 메일에 대해 우리가 직접 띄우는 Windows 알림(제목만 보여줘요).
+        notify: async (mail: {id?: string; title?: string; account?: {id?: unknown}}) => {
+            await chrome.notifications.create(`bongextend-ali-${String(mail.account?.id)}-${String(mail.id)}`, {
+                type: "basic", iconUrl: chrome.runtime.getURL("icons/128.png"), title: "알리익스프레스", message: String(mail.title || "새 메일이 왔어요"), priority: 1
+            });
+            return true;
+        },
         isEnabled: async () => {
             const stored = await chrome.storage.local.get(["core.mailAutoReadAli", MODULES_KEY]);
             return stored["core.mailAutoReadAli"] !== false && (stored[MODULES_KEY] as Record<string, unknown> | undefined)?.gmail !== false;

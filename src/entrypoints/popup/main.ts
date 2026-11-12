@@ -162,7 +162,7 @@ const embed = new URLSearchParams(location.search).get("embed");
 const embedded = embed === "gmail" || embed === "fx" || embed === "dark" || embed === "download" || embed === "update";
 
 const AUTO_READ_REASONS: Record<string, string> = {
-    checked: "새 메일 확인", read: "읽음 처리함", failed: "읽음 처리 실패", "no-notification": "알림이 안 떠서 그대로 둠",
+    checked: "새 메일 확인", read: "읽음 처리함", notified: "알림을 띄우고 처리", "backlog-read": "쌓인 메일 정리", failed: "읽음 처리 실패", "no-notification": "알림이 안 떠서 그대로 둠",
     "not-ali": "알리 메일 아님", otp: "인증번호 메일이라 제외", "no-method": "읽음 처리 불가", disabled: "꺼져 있음"
 };
 const paintAutoReadLog = async () => {

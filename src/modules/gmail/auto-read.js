@@ -42,7 +42,7 @@ const remember = (set, key) => {
     while (set.size > KEEP) set.delete(set.values().next().value);
 };
 
-export function createMailAutoRead({log = () => {}, isEnabled = async () => true, retryDelayMs = 4000, sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))} = {}) {
+export function createMailAutoRead({log = () => {}, notify = null, isEnabled = async () => true, retryDelayMs = 4000, sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))} = {}) {
     const shown = new Set();
     const done = new Set();
     let queue = Promise.resolve();
@@ -68,7 +68,7 @@ export function createMailAutoRead({log = () => {}, isEnabled = async () => true
     };
 
     // settled: 알림 표시가 끝나길 기다리는 Promise. 알림이 먼저 떠야 하므로 그 뒤에 읽음 처리해요.
-    const process = (mails, {settled = Promise.resolve(), skip = []} = {}) => {
+    const process = (mails, {settled = Promise.resolve(), skip = [], backlog = []} = {}) => {
         const run = async () => {
             try { await settled; } catch { /* 알림이 실패하면 shown에 없어서 읽음 처리하지 않아요. */ }
             const note = (mail, reason) => { try { log({domain: senderDomain(mail?.authorMail), reason}); } catch { /* 기록 실패는 무시해요. */ } };
@@ -81,8 +81,14 @@ export function createMailAutoRead({log = () => {}, isEnabled = async () => true
                 if (done.has(key)) continue;
                 if (!isAliExpressMail(mail)) { note(mail, "not-ali"); continue; }
                 if (skipped.has(key)) { note(mail, "otp"); continue; }
-                if (!shown.has(key)) { note(mail, "no-notification"); continue; }
                 if (typeof mail.markAsRead !== "function") { note(mail, "no-method"); continue; }
+                // Checker Plus가 알림을 안 띄웠어도(알림 설정·상태 때문에) 알리 메일은 우리가 직접 Windows 알림을 띄워요.
+                let announced = shown.has(key);
+                if (!announced && notify) {
+                    try { announced = Boolean(await notify(mail)); } catch { announced = false; }
+                    if (announced) note(mail, "notified");
+                }
+                if (!announced) { note(mail, "no-notification"); continue; }
                 if (await markOne(mail)) {
                     remember(done, key);
                     shown.delete(key);
@@ -91,6 +97,16 @@ export function createMailAutoRead({log = () => {}, isEnabled = async () => true
                 } else {
                     note(mail, "failed");
                 }
+            }
+            // 이미 쌓여 있던 읽지 않은 알리 메일은 알림 없이 조용히 읽음으로 정리해요(한 번에 최대 20통).
+            let swept = 0;
+            for (const mail of backlog || []) {
+                if (swept >= 20) break;
+                const key = mailKey(mail);
+                if (!key || done.has(key) || skipped.has(key) || typeof mail.markAsRead !== "function" || !isAliExpressMail(mail)) continue;
+                swept++;
+                if (await markOne(mail)) { remember(done, key); marked.push(key); note(mail, "backlog-read"); }
+                else note(mail, "failed");
             }
             return marked;
         };

@@ -2,7 +2,12 @@
 
 기준일: 2026-11-10. 이 문서는 기존 v1.2.10 인수인계를 대체해요. 이후 변경은 package.json, CHANGELOG.md, GitHub Releases를 우선 확인하세요.
 
-## 최신 인계 — v1.2.77 인증번호 오버레이 가운데·허용 상태
+## 최신 인계 — v1.2.78 알리 메일 항상 알림+읽음
+
+- 사용자 스크린샷: 알리(Relay) 메일 13통이 읽지 않음으로 쌓여 있었어요. 1.2.68~77은 Checker Plus 알림이 실제로 뜬 메일만 읽음 처리해서, 알림이 뜨지 않으면(설정·방해 금지·Gmail 탭 열림 등) 영영 처리되지 않았어요. auto-read.js는 알림이 안 떴으면 background.ts의 notify(chrome.notifications 기본 알림, 제목만)를 직접 띄운 뒤 읽음 처리하고, 알림 실패 시 읽지 않음으로 둬요. 훅에 backlog(getAllUnreadMail)를 넘겨 쌓인 알리 메일을 알림 없이 최대 20통씩 정리해요. 설정 화면 '알리 메일 자동 읽음 최근 기록'에 '알림을 띄우고 처리'·'쌓인 메일 정리'가 보여요.
+- 검증: auto-read 시험 14개. **실제 Gmail 계정에서의 동작은 미검증**이에요.
+
+## 이전 인계 — v1.2.77 인증번호 오버레이 가운데·허용 상태
 
 - otp-toast.js 카드를 화면 정중앙(top/left 50%)·유리 배경·코드 46px로 바꿨고 otp-toast.test.js 기대값을 맞췄어요. 오버레이는 보고 있는 탭에 chrome.scripting.executeScript로 그리므로 그 사이트 권한(optional https/http 전체)이 필요하고, 새 탭·chrome://·PDF에서는 불가해요. mail-settings.ts의 paintOtpState가 permissions.contains와 core.mailOtpOverlayStatus('page-unavailable')로 상태·이유를 보여줘요.
 - 검증: 합성 페이지 캡처로 가운데 표시 확인, 토스트 시험·타입 통과. **실제 Gmail 인증번호 메일에서의 표시는 미검증**이에요.
