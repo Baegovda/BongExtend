@@ -36,6 +36,10 @@ import {createChromeEffects} from "@/platform/effects.js";
 import {gmailReadAccount, loadJson, openGmailPlace, openUrl, sendExtension} from "@/platform/popup-actions.js";
 // @ts-ignore 순수 JS
 import {gmailComposeUrl, gmailInboxUrl, gmailMessageUrl} from "@/modules/gmail/open.js";
+// @ts-ignore plain JS helper
+import {extractPrintBody, readerSrcdoc} from "@/modules/gmail/reader.js";
+// @ts-ignore plain JS helper
+import {CONFIG_KEY as NAVER_CONFIG_KEY, STATE_KEY as NAVER_STATE_KEY, mailUrl as naverMailUrl} from "@/modules/naver-mail/client.js";
 // @ts-ignore settings helpers are plain JS
 import {DARK_SETTINGS_KEY, darkSiteEnabled, darkSitePattern, normalizeDarkHost, normalizeDarkSettings} from "@/modules/dark/settings.js";
 // @ts-ignore download settings helpers are plain JS
@@ -71,6 +75,74 @@ setupWindowControls(() => {
     return child?.BongExtendMailView?.selection() || '';
 });
 const checkerPlusMailHome = $("checkerPlusMailHome") as HTMLButtonElement;
+const MAIL_ENGINE_KEY = "core.mailEngine";
+let mailEngine: "own" | "checker" | "" = "";
+const applyMailEngine = () => {
+    const own = mailEngine !== "checker";
+    checkerPlusMailFrame.hidden = own;
+    $("legacyGmailPanel").hidden = !own;
+    $("mailEngineOwn").hidden = own;
+    if (own) checkerPlusMailHome.hidden = true;
+    else if (!checkerPlusMailFrame.src) checkerPlusMailFrame.src = checkerPlusMailFrame.dataset.src || "/checkerplus-popup.html?source=bongextend";
+};
+const setMailEngine = (next: "own" | "checker") => {
+    mailEngine = next;
+    applyMailEngine();
+    void chrome.storage.local.set({[MAIL_ENGINE_KEY]: next});
+};
+void chrome.storage.local.get(MAIL_ENGINE_KEY).then((stored) => {
+    mailEngine = stored[MAIL_ENGINE_KEY] === "checker" ? "checker" : "own";
+    applyMailEngine();
+    void renderOwnNaver();
+});
+// 네이버 메일: 자체 화면에서는 받은 목록을 보여주고, 누르면 네이버 메일 창으로 가요.
+const ownNaver = $("ownNaver");
+const renderOwnNaver = async () => {
+    try {
+        const stored = await chrome.storage.local.get([NAVER_CONFIG_KEY, NAVER_STATE_KEY]);
+        const config = stored[NAVER_CONFIG_KEY] as {enabled?: boolean; id?: string} | undefined;
+        const state = stored[NAVER_STATE_KEY] as {id?: string; unread?: number; messages?: {id: string; subject: string; sender: string; snippet: string}[]} | undefined;
+        ownNaver.replaceChildren();
+        if (!config?.enabled || !config.id) { ownNaver.hidden = true; return; }
+        ownNaver.hidden = false;
+        const head = document.createElement("div");
+        head.className = "own-naver-head";
+        const logo = document.createElement("img");
+        logo.src = "icons/naver.ico"; logo.alt = "";
+        const title = document.createElement("span");
+        title.textContent = `네이버 메일 · ${config.id}`;
+        const count = document.createElement("span");
+        count.className = "own-naver-count";
+        count.textContent = String(Number(state?.unread) || 0);
+        head.append(logo, title, count);
+        head.addEventListener("click", () => void chrome.tabs.create({url: naverMailUrl("")}));
+        head.style.cursor = "pointer";
+        ownNaver.append(head);
+        const messages = state?.messages || [];
+        if (messages.length) {
+            const list = document.createElement("ul");
+            for (const message of messages.slice(0, 20)) {
+                const item = document.createElement("li");
+                const open = document.createElement("button");
+                open.type = "button";
+                const subject = document.createElement("strong");
+                subject.textContent = message.subject || "(제목 없음)";
+                const meta = document.createElement("span");
+                meta.textContent = `${message.sender || "보낸 사람"} · ${message.snippet || ""}`;
+                open.append(subject, meta);
+                open.addEventListener("click", () => void chrome.tabs.create({url: naverMailUrl(message.id)}));
+                item.append(open);
+                list.append(item);
+            }
+            ownNaver.append(list);
+        }
+    } catch { ownNaver.hidden = true; }
+};
+chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === "local" && (changes[NAVER_CONFIG_KEY] || changes[NAVER_STATE_KEY])) void renderOwnNaver();
+});
+$("mailEngineOwn").addEventListener("click", () => setMailEngine("own"));
+$("mailEngineChecker").addEventListener("click", () => setMailEngine("checker"));
 const chronoPopupFrame = $("chronoPopupFrame") as HTMLIFrameElement;
 const applyEmbeddedTheme = (doc: Document, className: string, stylePath: string) => {
     const root = doc.documentElement;
@@ -184,7 +256,7 @@ const showTab = async (tab: TabId, persist = true) => {
         }
     });
     if (tab === "gmail") {
-        if (!checkerPlusMailFrame.src) checkerPlusMailFrame.src = checkerPlusMailFrame.dataset.src || "/checkerplus-popup.html?source=bongextend";
+        applyMailEngine();
     }
     if (tab === "download") {
         const popup = "/recent-downloads.html";
@@ -1082,7 +1154,7 @@ const renderGmail = (snapshot: GmailSnapshot | null | undefined, error = "") => 
             url.searchParams.set("su", message.subject.startsWith("Re:") ? message.subject : `Re: ${message.subject}`);
             openMailPlace(account, `https://mail.google.com/mail/u/${account.index}/${url.search}${account.email ? `${url.search ? "&" : "?"}authuser=${encodeURIComponent(account.email)}` : ""}`);
         });
-        const openMessage = () => openMailPlace(account, gmailMessageUrl(account.index, account.email, message.link, message.thread));
+        const openMessage = () => void openReader(account, message);
         row.addEventListener("click", (event) => { if (!(event.target as Element).closest("button")) openMessage(); });
         row.addEventListener("keydown", (event) => {
             if ((event.key === "Enter" || event.key === " ") && !(event.target as Element).closest("button")) {
@@ -1128,6 +1200,58 @@ const renderGmail = (snapshot: GmailSnapshot | null | undefined, error = "") => 
     paintMailBadge(accounts, accounts.filter((item) => item.enabled === false).map((item) => item.index));
     paintSoundAccounts(accounts);
 };
+
+// ===== 팝업 안에서 메일 읽기 =====
+let readerAccount: GmailAccount | null = null;
+let readerMessage: GmailMessage | null = null;
+let readerBody = "";
+let readerImages = false;
+const mailReader = $("mailReader");
+const readerFrame = $<HTMLIFrameElement>("readerFrame");
+const readerStatus = $("readerStatus");
+const paintReader = () => {
+    const dark = getComputedStyle(document.documentElement).colorScheme.includes("dark") || document.documentElement.dataset.theme === "dark";
+    readerFrame.srcdoc = readerSrcdoc(readerBody, {images: readerImages, dark});
+    $("readerImages").textContent = readerImages ? "이미지 숨기기" : "이미지 보기";
+};
+const closeReader = () => { mailReader.hidden = true; readerFrame.srcdoc = ""; readerBody = ""; readerAccount = null; readerMessage = null; };
+const openReader = async (account: GmailAccount, message: GmailMessage) => {
+    readerAccount = account; readerMessage = message; readerImages = false; readerBody = "";
+    mailReader.hidden = false;
+    $("readerSubject").textContent = message.subject || "(제목 없음)";
+    readerFrame.srcdoc = "";
+    readerStatus.hidden = false;
+    readerStatus.textContent = "메일을 불러오는 중…";
+    try {
+        const result = await gmailSend({type: "gmail-read-thread", account: account.index, thread: message.thread}) as {ok?: boolean; html?: string; error?: string};
+        if (!result?.ok || !result.html) throw new Error(result?.error || "메일 내용을 불러오지 못했어요.");
+        const parsed = extractPrintBody(new DOMParser().parseFromString(result.html, "text/html")) as {subject: string; html: string};
+        if (readerMessage !== message) return;
+        readerBody = parsed.html || `<p>${message.snippet || "내용이 비어 있어요."}</p>`;
+        if (parsed.subject) $("readerSubject").textContent = parsed.subject;
+        readerStatus.hidden = true;
+        paintReader();
+    } catch (error) {
+        closeReader();
+        openMailPlace(account, gmailMessageUrl(account.index, account.email, message.link, message.thread));
+    }
+};
+$("readerBack").addEventListener("click", closeReader);
+$("readerImages").addEventListener("click", () => { readerImages = !readerImages; paintReader(); });
+$("readerRead").addEventListener("click", () => { if (readerAccount && readerMessage) void runGmailAct(readerAccount.index, readerMessage, "read"); });
+$("readerArchive").addEventListener("click", () => { if (readerAccount && readerMessage) { void runGmailAct(readerAccount.index, readerMessage, "archive"); closeReader(); } });
+$("readerTrash").addEventListener("click", () => { if (readerAccount && readerMessage) { void runGmailAct(readerAccount.index, readerMessage, "trash"); closeReader(); } });
+$("readerGmail").addEventListener("click", () => { if (readerAccount && readerMessage) openMailPlace(readerAccount, gmailMessageUrl(readerAccount.index, readerAccount.email, readerMessage.link, readerMessage.thread)); });
+$("readerReply").addEventListener("click", () => {
+    if (!readerAccount || !readerMessage) return;
+    const url = new URL("https://mail.google.com/mail/");
+    url.searchParams.set("view", "cm"); url.searchParams.set("fs", "1"); url.searchParams.set("tf", "1");
+    if (readerMessage.fromEmail) url.searchParams.set("to", readerMessage.fromEmail);
+    const subject = readerMessage.subject || "";
+    url.searchParams.set("su", subject.startsWith("Re:") ? subject : `Re: ${subject}`);
+    openMailPlace(readerAccount, `https://mail.google.com/mail/u/${readerAccount.index}/${url.search}${readerAccount.email ? `&authuser=${encodeURIComponent(readerAccount.email)}` : ""}`);
+});
+document.addEventListener("keydown", (event) => { if (event.key === "Escape" && !mailReader.hidden) { event.preventDefault(); closeReader(); } });
 
 const refreshGmail = async (force: boolean) => {
     if (!gmailAccounts.childElementCount) {

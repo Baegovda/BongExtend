@@ -527,3 +527,25 @@ html:not(.embed) .tabs .window-tools button { background: color-mix(in srgb, var
 /* 탭을 끌 때: 블러가 걸린 요소는 안쪽 position:fixed의 기준이 돼서 끌고 있는 탭이 포인터에서 벗어나요. 끄는 동안만 블러를 꺼요. */
 html:not(.embed) .tabs.reordering,
 html:not(.embed) .tabs.reordering .tab-group { -webkit-backdrop-filter: none; backdrop-filter: none; }
+
+/* 새 메일 화면(자체 엔진) */
+.own-mail { display: flex; flex-direction: column; flex: 1 1 0; min-height: 0; overflow: auto; padding: 12px; }
+.own-mail[hidden] { display: none; }
+.mail-engine-switch { position: absolute; bottom: 12px; left: 12px; z-index: 5; padding: 6px 10px; border: 1px solid var(--be-border); border-radius: 9px; background: var(--be-surface); color: var(--be-text); }
+.mail-engine-switch[hidden] { display: none; }
+.mail-reader { position: absolute; inset: 0; z-index: 6; display: flex; flex-direction: column; background: var(--be-bg); }
+.mail-reader[hidden] { display: none; }
+.mail-reader-bar { display: flex; align-items: center; gap: 6px; padding: 8px 10px; border-bottom: 1px solid var(--be-border); flex-wrap: wrap; }
+.mail-reader-bar button { padding: 5px 10px; border: 1px solid var(--be-border); border-radius: 9px; background: var(--be-surface); color: var(--be-text); }
+.mail-reader-subject { min-width: 0; max-width: 38%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mail-reader-frame { display: block; flex: 1 1 0; min-height: 0; width: 100%; border: 0; background: var(--be-bg); }
+.own-naver { flex: 0 0 auto; margin: 0 0 10px; border: 1px solid var(--be-border); border-radius: 14px; background: var(--be-surface); overflow: hidden; }
+.own-naver[hidden] { display: none; }
+.own-naver-head { display: flex; align-items: center; gap: 10px; padding: 10px 12px; font-weight: 600; }
+.own-naver-head img { width: 22px; height: 22px; border-radius: 6px; }
+.own-naver-count { margin-left: auto; min-width: 22px; padding: 1px 7px; border-radius: 999px; background: #03c75a; color: #fff; text-align: center; font-size: 12px; }
+.own-naver ul { margin: 0; padding: 0; list-style: none; border-top: 1px solid var(--be-border); }
+.own-naver li button { all: unset; box-sizing: border-box; display: grid; gap: 2px; width: 100%; padding: 8px 12px; cursor: pointer; }
+.own-naver li button:hover, .own-naver li button:focus-visible { background: var(--be-hover, rgba(127,127,127,.12)); }
+.own-naver li strong, .own-naver li span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.own-naver li span { color: var(--be-muted, #6b7280); font-size: 12px; }
