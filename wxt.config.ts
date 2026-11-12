@@ -141,10 +141,6 @@ export default defineConfig({
                 matches: ["https://chzzk.naver.com/*"]
             },
             {
-                resources: ["icons/newd.png", "icons/newd_pause.png", "com/taskdlg.html"],
-                matches: ["http://*/*", "https://*/*"]
-            },
-            {
                 resources: ["checkerplus-options.html", "contribute.html"],
                 matches: ["https://jasonsavard.com/*", "https://checkout.stripe.com/*", "https://www.paypal.com/*", "https://nowpayments.io/*"]
             },
