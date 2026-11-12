@@ -5,6 +5,10 @@ BongExtend 변경 이력. GitHub **[Releases](https://github.com/Baegovda/BongEx
 
 ---
 
+## [1.2.90]
+- 확장 오류 목록에 쌓이던 'Cannot create item with duplicate id d_link' 같은 오류를 없앴어요. 다운로드 엔진이 우클릭 메뉴를 다시 만들 때 나던 무해한 중복 오류였어요.
+- 설정에서 Claude 사용량을 이 PC의 Claude Code 로그인으로 읽을 수 있어요(터미널에서 `claude auth login` 후).
+
 ## [1.2.89]
 - 번역에서 **DeepL API**를 쓸 수 있어요. 번역 설정에서 엔진을 고르고 DeepL 키를 넣으면 돼요(무료 키 `:fx`도 자동 인식). 저장할 때 DeepL 서버 접근을 한 번 허용하고, '키 확인'에서 이번 달 사용량도 볼 수 있어요.
 - 화면 테마를 BongHub와 같은 계열로 맞췄어요(색, 유리 카드, 둥근 모서리, 글꼴, 파랑→분홍 스위치).

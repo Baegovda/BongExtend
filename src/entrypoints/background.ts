@@ -141,6 +141,17 @@ export default defineBackground(() => {
         void paintToolbarBadge(count).catch((error: unknown) => console.warn("메일 뱃지를 갱신하지 못했어요.", error));
     };
 
+    // Chrono 엔진은 시작할 때마다 우클릭 메뉴(d_link 등)를 다시 만들어서, 이미 있으면 "duplicate id" 오류가 확장 오류 목록에 쌓여요.
+    // 콜백 없이 부른 create 에서만 이 중복 오류를 조용히 확인하고 넘어가요(메뉴 자체는 이미 있어서 그대로 동작해요).
+    try {
+        const menus = chrome.contextMenus;
+        const rawCreate = menus.create.bind(menus);
+        (menus as unknown as {create: unknown}).create = (props: chrome.contextMenus.CreateProperties, callback?: () => void) => {
+            if (typeof callback === "function") return rawCreate(props, callback);
+            return rawCreate(props, () => { void chrome.runtime.lastError; });
+        };
+    } catch { /* 메뉴 API가 없으면 넘어가요 */ }
+
     // Checker Plus와 Chrono가 확장 툴바 API를 직접 바꾸지 못하게 한다.
     const importChrono = (globalThis as typeof globalThis & {importScripts?: (...urls: string[]) => void}).importScripts;
     if (typeof importChrono === "function") {
