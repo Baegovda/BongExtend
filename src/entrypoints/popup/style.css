@@ -521,3 +521,5 @@ html:not(.embed) .tabs .window-tools button { background: color-mix(in srgb, var
 }
 /* 탭 줄의 버튼은 그룹이 이미 유리라서 개별 블러를 빼요(상자처럼 비치는 것 방지). */
 .be-page .tabs .tab-group button:not(.primary):not(.be-primary):not(.danger), .be-page .tabs .window-tools button:not(.primary):not(.be-primary):not(.danger) { -webkit-backdrop-filter: none; backdrop-filter: none; }
+#imageCustomEngines { width: 100%; margin-top: 6px; resize: vertical; font: 12px/1.5 var(--be-mono); }
+.image-panel .be-actions { padding-top: 4px; }

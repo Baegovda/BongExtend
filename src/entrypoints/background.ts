@@ -38,6 +38,8 @@ import "@/modules/chzzk/lib/ads.js";
 import {startFxBackground} from "@/modules/fx/background.js";
 // @ts-ignore plain JS usage collector
 import {startUsageBackground} from "@/modules/usage/background.js";
+// @ts-ignore plain JS image toolbar worker
+import {startImageToolbarBackground} from "@/modules/image/toolbar-background.js";
 // @ts-ignore 순수 JS
 import {startRightClickBackground} from "@/modules/rightclick/background.js";
 // @ts-ignore settings are plain JS shared with the dark-mode popup and content script
@@ -59,6 +61,7 @@ import {createMailAutoRead} from "@/modules/gmail/auto-read.js";
 export default defineBackground(() => {
     startNaverMail();
     startUsageBackground();
+    startImageToolbarBackground();
     startVideoHost();
     startWideFullscreenBridge();
     const showOtpToast=createOtpToast();

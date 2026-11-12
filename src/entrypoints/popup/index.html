@@ -135,6 +135,17 @@
             <label class="be-row"><span class="be-row-text"><span>네이버 톡톡</span><small>복사한 이미지를 Ctrl+V로 채팅에 올려요</small></span><input type="checkbox" role="switch" id="image-talk" aria-label="네이버 톡톡 이미지 붙여넣기"></label>
             <label class="be-row"><span class="be-row-text"><span>구글 렌즈</span><small>복사한 이미지를 Ctrl+V로 바로 검색해요</small></span><input type="checkbox" role="switch" id="image-lens" aria-label="구글 렌즈 이미지 붙여넣기"></label>
         </div>
+        <div class="be-card be-sec">
+            <h4>사진 위 도구 막대</h4>
+            <label class="be-row"><span class="be-row-text"><span>이미지 도구 막대</span><small>사진에 마우스를 올리면 이미지 검색 · 다운로드 · 링크 복사 · 이미지 복사 · 원본 보기가 나와요</small></span><input type="checkbox" role="switch" id="image-toolbar" aria-label="이미지 도구 막대"></label>
+            <p id="imageToolbarState" class="be-hint" role="status"></p>
+            <div class="be-actions"><button id="imageToolbarPermission" type="button" class="primary">모든 웹사이트에서 사용 허용</button></div>
+            <h4>이미지 검색 엔진</h4>
+            <div id="imageEngines"></div>
+            <textarea id="imageCustomEngines" rows="3" placeholder="이름|https://검색주소?url={url}" aria-label="직접 추가한 이미지 검색 엔진"></textarea>
+            <div class="be-actions"><button id="imageEnginesSave" type="button">직접 추가한 엔진 저장</button></div>
+            <p class="be-hint">한 줄에 하나씩 "이름|주소" 모양으로 적어요. 주소에 {url}을 넣으면 그 자리에 사진 주소가 들어가요. https 주소만 쓸 수 있어요.</p>
+        </div>
         <p class="be-hint">글자가 함께 복사된 경우나 사이트가 직접 처리하는 경우에는 건드리지 않아요. 이미지는 이 탭 안에서 업로드 칸으로만 옮겨요.</p>
         <p id="imageStatus" class="be-hint" role="status"></p>
     </section>

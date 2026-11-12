@@ -60,6 +60,7 @@ BongExtend는 치지직, Gemini 번역, 디시인사이드(green1052/DCRefresher
 
 ## 사용량·이미지 모듈 (2026-11-11 추가)
 - 사용량(`usage`): src/modules/usage/{usage.js,background.js}, 팝업은 src/entrypoints/popup/usage.ts. claude.ai(`/api/organizations`→`/usage`)와 chatgpt.com(`/api/auth/session`→`/backend-api/wham/usage`)의 **비공식 내부 주소**를 로그인 쿠키로 읽어요(사이트가 바꾸면 깨질 수 있어요). 두 사이트 권한은 기존 optional `https://*/*` 중 팝업의 '연결 허용' 클릭으로만 요청해요. 토큰은 저장·전달하지 않고 `usage.snapshot`에는 퍼센트·시각만 저장해요. **우선순위: 이 PC의 로컬 로그인 > Codex 로그 > 웹 계정.** native/video/host.py의 `usage-local`이 ~/.claude/.credentials.json(Claude Code)과 ~/.codex/auth.json(Codex)의 토큰으로 공식 주소(api.anthropic.com /api/oauth/usage, chatgpt.com /backend-api/wham/usage, 이 두 호스트 외에는 막고 리디렉션도 따라가지 않아요)에서 한도만 받아 퍼센트·시각만 돌려주고 토큰은 돌려주지 않아요. 로그 읽기 `codex-usage`(~/.codex/sessions의 rate_limits)는 그 다음 대안이에요. Claude 데스크톱 앱 로그인은 읽을 수 없어요(Claude Code 로그인 파일만 지원).
+- 이미지 도구 막대: src/modules/image/toolbar.js(순수 로직)·toolbar-background.js(런타임 등록·다운로드·이미지 가져오기·탭 열기)·src/entrypoints/image-toolbar.content.ts(runtime 등록, 빌드용 matches는 mail.google.com으로 두어 필수 권한에 전체 사이트가 들어가지 않게 해요). 백그라운드가 전체 https 권한을 사용자가 허용했고 설정이 켜졌을 때만 https://*/*에 등록해요. 이미지는 저장·전송하지 않고 '이미지 복사' 때만 백그라운드가 가져와요. 검색 엔진 주소는 https와 {url}이 있는 템플릿만 받아요.
 - 이미지(`image`): src/modules/image/paste.js, 콘텐츠 스크립트 src/entrypoints/image-paste.content.ts(matches: talk.naver.com, partner.talk.naver.com, lens.google.com, www.google.com, images.google.com — 새 권한 없음). 설정은 `image.settings`{talk,lens}. 구글 렌즈는 페이지가 직접 붙여넣기를 처리하므로 2.2초 안에 업로드가 시작되지 않을 때만 이어받아요(이중 업로드 방지). 새 이미지 기능은 이 모듈에 추가해요.
 
 ## 구조
