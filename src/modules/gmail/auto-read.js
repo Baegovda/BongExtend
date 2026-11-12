@@ -32,7 +32,9 @@ export function isAliExpressMail(mail) {
     if (isAliExpressSender(mail?.authorMail)) return true;
     const domain = senderDomain(mail?.authorMail);
     if (!domain || !inDomains(domain, RELAY_DOMAINS)) return false;
-    return isAliExpressSender(mail?.authorName);
+    // Relay는 표시 이름을 원래 보낸 사람으로 바꿔 와요. 주소 모양이 아니어도 'aliexpress'가 들어 있으면 알리로 봐요.
+    const name = String(mail?.authorName || "");
+    return isAliExpressSender(name) || /ali\s*express/i.test(name);
 }
 
 export const mailKey = (mail) => (mail && mail.id ? `${mail.account?.id}:${mail.id}` : "");
@@ -71,7 +73,15 @@ export function createMailAutoRead({log = () => {}, notify = null, isEnabled = a
     const process = (mails, {settled = Promise.resolve(), skip = [], backlog = []} = {}) => {
         const run = async () => {
             try { await settled; } catch { /* 알림이 실패하면 shown에 없어서 읽음 처리하지 않아요. */ }
-            const note = (mail, reason) => { try { log({domain: senderDomain(mail?.authorMail), reason}); } catch { /* 기록 실패는 무시해요. */ } };
+            const note = (mail, reason) => {
+                try {
+                    const domain = senderDomain(mail?.authorMail);
+                    const entry = {domain, reason};
+                    // Relay로 온 메일이 알리로 인식되지 않으면 이유를 찾을 수 있게 표시 이름 앞부분을 기록해요(이 PC 안에만 저장돼요).
+                    if (reason === "not-ali" && inDomains(domain, RELAY_DOMAINS)) entry.name = String(mail?.authorName || "").slice(0, 48);
+                    log(entry);
+                } catch { /* 기록 실패는 무시해요. */ }
+            };
             if (!(await isEnabled())) { log({domain: "", reason: "disabled"}); return []; }
             const skipped = new Set(skip);
             const marked = [];

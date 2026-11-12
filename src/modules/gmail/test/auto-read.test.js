@@ -125,7 +125,10 @@ test("recognizes AliExpress mail forwarded through Firefox Relay, and nothing el
     assert.equal(isAliExpressMail(relay("promotion@aliexpress.com [via Relay]", "x@relay.firefox.com")), true);
     assert.equal(isAliExpressMail(relay("shop@example.com [via Relay]")), false);
     assert.equal(isAliExpressMail(relay("promotion@aliexpress.com [via Relay]", "attacker@example.com")), false, "name alone is not trusted outside Relay");
-    assert.equal(isAliExpressMail(relay("AliExpress", "x@mozmail.com")), false, "relay mail needs the original ali address");
+    assert.equal(isAliExpressMail(relay("AliExpress", "x@mozmail.com")), true, "a Relay display name that says AliExpress counts");
+    assert.equal(isAliExpressMail(relay("Ali Express Korea [via Relay]", "x@mozmail.com")), true);
+    assert.equal(isAliExpressMail(relay("Some Shop [via Relay]", "x@mozmail.com")), false);
+    assert.equal(isAliExpressMail(relay("AliExpress", "x@example.com")), false, "outside Relay the name alone is never trusted");
     assert.equal(isAliExpressMail({authorName: "x", authorMail: "n@notice.aliexpress.com"}), true);
 });
 

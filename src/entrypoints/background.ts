@@ -88,7 +88,7 @@ export default defineBackground(() => {
     // 알리익스프레스 메일: Checker Plus가 알림을 띄운 뒤에만 읽음 처리해요. 끄려면 core.mailAutoReadAli를 false로 해요.
     // 진단 기록: 보낸 주소의 도메인과 처리 결과만 최근 30개 남겨요. 메일 제목·내용·전체 주소는 저장하지 않아요.
     let autoReadLogQueue: Promise<unknown> = Promise.resolve();
-    const logAutoRead = (entry: {domain: string; reason: string; count?: number}) => {
+    const logAutoRead = (entry: {domain: string; reason: string; count?: number; name?: string}) => {
         autoReadLogQueue = autoReadLogQueue.then(async () => {
             const stored = await chrome.storage.local.get("core.mailAutoReadLog");
             const list = Array.isArray(stored["core.mailAutoReadLog"]) ? stored["core.mailAutoReadLog"] as unknown[] : [];

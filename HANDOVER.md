@@ -2,7 +2,11 @@
 
 기준일: 2026-11-10. 이 문서는 기존 v1.2.10 인수인계를 대체해요. 이후 변경은 package.json, CHANGELOG.md, GitHub Releases를 우선 확인하세요.
 
-## 최신 인계 — v1.2.78 알리 메일 항상 알림+읽음
+## 최신 인계 — v1.2.79 알리 Relay 이름 판별 보강
+
+- 사용자의 설정 화면 기록에 모든 알리 Relay 메일이 '알리 메일 아님 · mozmail.com'으로 나왔어요(1.2.78). authorMail은 mozmail.com이 맞는데 authorName이 'transaction@notice.aliexpress.com [via Relay]' 형태가 아니었거나 다른 필드일 수 있어요. 1.2.79는 Relay 도메인일 때 이름에 /ali\s*express/i가 있으면 알리로 보고, 그래도 not-ali이면 기록에 `이름 "..."`(48자)을 남겨요. **실제 이름 형태는 아직 확인하지 못했어요**: 다음 사용자 스크린샷의 `이름 "…"`을 보고 판별을 조정해요.
+
+## 이전 인계 — v1.2.78 알리 메일 항상 알림+읽음
 
 - 사용자 스크린샷: 알리(Relay) 메일 13통이 읽지 않음으로 쌓여 있었어요. 1.2.68~77은 Checker Plus 알림이 실제로 뜬 메일만 읽음 처리해서, 알림이 뜨지 않으면(설정·방해 금지·Gmail 탭 열림 등) 영영 처리되지 않았어요. auto-read.js는 알림이 안 떴으면 background.ts의 notify(chrome.notifications 기본 알림, 제목만)를 직접 띄운 뒤 읽음 처리하고, 알림 실패 시 읽지 않음으로 둬요. 훅에 backlog(getAllUnreadMail)를 넘겨 쌓인 알리 메일을 알림 없이 최대 20통씩 정리해요. 설정 화면 '알리 메일 자동 읽음 최근 기록'에 '알림을 띄우고 처리'·'쌓인 메일 정리'가 보여요.
 - 검증: auto-read 시험 14개. **실제 Gmail 계정에서의 동작은 미검증**이에요.

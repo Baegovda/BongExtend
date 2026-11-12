@@ -167,9 +167,9 @@ const AUTO_READ_REASONS: Record<string, string> = {
 };
 const paintAutoReadLog = async () => {
     const stored = await chrome.storage.local.get("core.mailAutoReadLog");
-    const list = Array.isArray(stored["core.mailAutoReadLog"]) ? stored["core.mailAutoReadLog"] as Array<{at: number; domain: string; reason: string; count?: number}> : [];
+    const list = Array.isArray(stored["core.mailAutoReadLog"]) ? stored["core.mailAutoReadLog"] as Array<{at: number; domain: string; reason: string; count?: number; name?: string}> : [];
     $("autoReadLog").textContent = list.length
-        ? list.slice(-12).reverse().map((row) => `${new Date(row.at).toLocaleTimeString("ko-KR")}  ${AUTO_READ_REASONS[row.reason] || row.reason}${row.domain ? ` · ${row.domain}` : ""}${row.count ? ` · ${row.count}통` : ""}`).join("\n")
+        ? list.slice(-12).reverse().map((row) => `${new Date(row.at).toLocaleTimeString("ko-KR")}  ${AUTO_READ_REASONS[row.reason] || row.reason}${row.domain ? ` · ${row.domain}` : ""}${row.name !== undefined ? ` · 이름 \"${row.name}\"` : ""}${row.count ? ` · ${row.count}통` : ""}`).join("\n")
         : "기록이 아직 없어요.";
 };
 
