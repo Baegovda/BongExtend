@@ -39,21 +39,26 @@ export default defineContentScript({
             .bar{position:fixed;display:none;gap:2px;padding:4px;border-radius:11px;background:rgba(36,38,46,.7);border:1px solid rgba(255,255,255,.2);box-shadow:0 8px 24px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.14);backdrop-filter:blur(18px) saturate(180%);-webkit-backdrop-filter:blur(18px) saturate(180%);font:13px/1.3 system-ui,'Malgun Gothic',sans-serif;color:#f2f3f7}
             .bar.on{display:flex}
             button{all:unset;box-sizing:border-box;display:grid;place-items:center;width:30px;height:28px;border-radius:8px;cursor:pointer;color:#f2f3f7}
-            button:hover,button.open{background:rgba(255,255,255,.16);color:#ffb27a}
-            svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+            button:hover,button.open{background:linear-gradient(135deg,rgba(150,170,255,.3),rgba(120,200,190,.2))}
+            svg{width:18px;height:18px;fill:none;stroke:url(#bgrad);stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
             .menu{position:absolute;top:36px;left:0;min-width:184px;padding:5px;border-radius:11px;background:rgba(32,34,42,.78);border:1px solid rgba(255,255,255,.2);box-shadow:0 12px 30px rgba(0,0,0,.4);backdrop-filter:blur(22px) saturate(180%);-webkit-backdrop-filter:blur(22px) saturate(180%);display:none}
             .menu.on{display:block}
             .item{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:9px;width:100%;padding:8px 10px;border-radius:8px;cursor:pointer;white-space:nowrap;color:#f2f3f7;font:13px/1.3 system-ui,'Malgun Gothic',sans-serif}
-            .item:hover{background:rgba(255,255,255,.14);color:#ffb27a}
+            .item:hover{background:linear-gradient(135deg,rgba(150,170,255,.28),rgba(120,200,190,.18))}
             .sep{height:1px;margin:4px 6px;background:rgba(255,255,255,.14)}
             .toast{position:fixed;display:none;padding:8px 14px;border-radius:10px;background:rgba(28,30,38,.85);color:#fff;font:600 12px/1.3 system-ui,'Malgun Gothic',sans-serif;box-shadow:0 6px 18px rgba(0,0,0,.35);pointer-events:none}
             .toast.on{display:block}
             @media (prefers-reduced-transparency:reduce){.bar,.menu{background:#22242b;backdrop-filter:none;-webkit-backdrop-filter:none}}`;
+        // 아이콘 색: 앱 테마와 같은 진주빛 파랑 → 보라 → 청록 그라데이션
+        const defs = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        defs.setAttribute("width", "0"); defs.setAttribute("height", "0"); defs.setAttribute("aria-hidden", "true");
+        defs.setAttribute("style", "position:absolute");
+        defs.innerHTML = '<defs><linearGradient id="bgrad" gradientUnits="userSpaceOnUse" x1="3" y1="3" x2="21" y2="21"><stop offset="0" stop-color="#b9dcff"/><stop offset=".5" stop-color="#cdb6f5"/><stop offset="1" stop-color="#8fe3cf"/></linearGradient></defs>';
         const bar = document.createElement("div");
         bar.className = "bar";
         const toast = document.createElement("div");
         toast.className = "toast";
-        shadow.append(style, bar, toast);
+        shadow.append(style, defs, bar, toast);
 
         const icon = (paths: string[]) => {
             const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
@@ -81,7 +86,7 @@ export default defineContentScript({
             const item = document.createElement("button");
             item.type = "button"; item.className = "item";
             item.append(icon(paths).cloneNode(true), document.createTextNode(label));
-            item.firstElementChild!.setAttribute("style", "width:17px;height:17px;flex:0 0 17px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round");
+            item.firstElementChild!.setAttribute("style", "width:17px;height:17px;flex:0 0 17px");
             item.addEventListener("click", (event) => { event.stopPropagation(); closeMenus(); action(); });
             return item;
         };
@@ -118,7 +123,7 @@ export default defineContentScript({
         const sourceOfCurrent = () => (current ? imageSource(current) : "");
 
         const copyImage = async (src: string) => {
-            const reply = await send({type: "bongextend-image-fetch", url: src});
+            const reply = await send({type: "bongextend-image-fetch", url: src, pageUrl: location.href});
             if (!reply?.ok) throw new Error(reply?.error || "fetch");
             const bytes = Uint8Array.from(atob(reply.data), (c) => c.charCodeAt(0));
             const bitmap = await createImageBitmap(new Blob([bytes], {type: reply.mime}));
@@ -131,10 +136,17 @@ export default defineContentScript({
 
         const fillMenus = () => {
             searchMenu.replaceChildren();
-            for (const engine of activeEngines(settings) as Array<{name: string; url: string}>) {
+            for (const engine of activeEngines(settings) as Array<{name: string; url?: string; site?: string}>) {
                 searchMenu.append(makeItem(ICONS.search, engine.name, () => {
-                    const url = buildEngineUrl(engine.url, sourceOfCurrent());
-                    if (url) void send({type: "bongextend-image-open", url}); else say("이 사진은 검색할 수 없어요");
+                    const src = sourceOfCurrent();
+                    if (!src) { say("이 사진은 검색할 수 없어요"); return; }
+                    if (engine.site) {
+                        say(`${engine.name}에서 검색하고 있어요…`);
+                        void send({type: "bongextend-image-site-search", site: engine.site, url: src, pageUrl: location.href}).then((reply) => { if (reply && reply.ok === false) say(reply.error || "검색을 시작하지 못했어요"); });
+                    } else {
+                        const url = buildEngineUrl(engine.url, src);
+                        if (url) void send({type: "bongextend-image-open", url}); else say("이 사진은 검색할 수 없어요");
+                    }
                 }));
             }
             const sep = document.createElement("div"); sep.className = "sep"; searchMenu.append(sep);
@@ -143,7 +155,20 @@ export default defineContentScript({
             downloadMenu.replaceChildren(
                 makeItem(ICONS.download, "이미지 다운로드", () => {
                     const src = sourceOfCurrent();
-                    if (src) { void send({type: "bongextend-image-download", url: src}); say("다운로드를 시작했어요"); }
+                    if (!src) return;
+                    say("이미지를 가져오고 있어요…");
+                    void send({type: "bongextend-image-download", url: src, pageUrl: location.href}).then((reply) => {
+                        if (!reply?.ok) { say("저장하지 못했어요"); return; }
+                        const bytes = Uint8Array.from(atob(reply.data), (c) => c.charCodeAt(0));
+                        const link = document.createElement("a");
+                        link.href = URL.createObjectURL(new Blob([bytes], {type: reply.mime}));
+                        link.download = String(reply.filename || "image.jpg");
+                        document.body.appendChild(link);
+                        link.click();
+                        link.remove();
+                        setTimeout(() => URL.revokeObjectURL(link.href), 30000);
+                        say("저장했어요");
+                    });
                 }),
                 makeItem(ICONS.link, "이미지 링크 복사", () => {
                     const src = sourceOfCurrent();

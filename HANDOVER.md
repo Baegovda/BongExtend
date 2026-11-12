@@ -2,7 +2,13 @@
 
 기준일: 2026-11-10. 이 문서는 기존 v1.2.10 인수인계를 대체해요. 이후 변경은 package.json, CHANGELOG.md, GitHub Releases를 우선 확인하세요.
 
-## 최신 인계 — v1.2.82 이미지 도구 막대
+## 최신 인계 — v1.2.83 이미지 도구 막대 보강
+
+- 엔진: lens(주소 방식), aliexpress·taobao(site 방식: 백그라운드가 이미지를 가져와 사이트를 새 탭으로 열고 siteUploadSteps를 executeScript). 알리: ko.aliexpress.com의 `[class*="picture-search-btn"]` 클릭 → input[type=file] 채움 → wholesale-.html?isNewImageSearch=y 로 이동(실제 확인). 타오바오: www.taobao.com의 input[type=file] 채움 → '按图片搜索' 창의 '搜索' 클릭 → s.taobao.com/search?…localImgKey=… (실제 확인, 로그인 상태에 따라 결과 표시는 달라요). 두 사이트의 화면 구조(클래스 이름)가 바뀌면 siteUploadSteps를 고쳐야 해요. 설정은 끈 엔진만 disabledEngines에 저장해요(이전 engines 값은 무시).
+- 디시 저장·복사 실패 원인: 이미지 서버가 Referer를 확인(없으면 403 HTML 170바이트)하고 정상일 때도 application/octet-stream으로 줘요. withReferer가 declarativeNetRequest 세션 규칙으로 이미지 호스트에 게시글 주소를 Referer로 붙이고(fetch에는 적용, **downloads API에는 적용되지 않고 headers 옵션도 Referer 금지**), 다운로드는 백그라운드가 가져온 바이트를 페이지가 blob 링크로 저장해요. sniffImageMime으로 내용 확인. 실제 디시 게시글에서 복사(image/png)·저장(68KB 정상) 확인.
+- 아이콘: Shadow DOM 안 linearGradient #bgrad(userSpaceOnUse).
+
+## 이전 인계 — v1.2.82 이미지 도구 막대
 
 - 사용자가 설치한 '알리플러스' 확장의 사진 위 도구 막대(이미지 검색 엔진 메뉴·다운로드/복사 메뉴·마법봉·더보기)를 참고해 이미지 탭에 만들었어요. **다른 확장의 코드는 보지 않았고 기능만 비슷하게 구현했어요.** 마법봉(알리플러스에서 무엇인지 몰라요)은 넣지 않았어요.
 - 1688·Amazon·AliExpress 이미지 검색은 업로드 방식 API라 주소 템플릿만으로는 검증할 수 없어서 기본 엔진에서 뺐어요. 사용자가 설정에서 "이름|https://…{url}"로 직접 추가할 수 있어요. 기본은 Google 렌즈(uploadbyurl), Yandex, Bing, TinEye예요.

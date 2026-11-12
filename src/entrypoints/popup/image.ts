@@ -45,12 +45,12 @@ export function setupImage() {
             text.textContent = engine.name;
             const input = document.createElement("input");
             input.type = "checkbox"; input.setAttribute("role", "switch"); input.dataset.engine = engine.id;
-            input.checked = settings.engines.includes(engine.id);
+            input.checked = !settings.disabledEngines.includes(engine.id);
             input.addEventListener("change", async () => {
                 const current = normalizeToolbarSettings(await rawSettings());
-                const next = new Set<string>(current.engines);
-                if (input.checked) next.add(engine.id); else next.delete(engine.id);
-                await patchSettings({engines: [...next]});
+                const off = new Set<string>(current.disabledEngines);
+                if (input.checked) off.delete(engine.id); else off.add(engine.id);
+                await patchSettings({disabledEngines: [...off]});
                 status.textContent = `${engine.name}을(를) ${input.checked ? "메뉴에 넣었어요" : "메뉴에서 뺐어요"}.`;
             });
             row.append(text, input);

@@ -1,15 +1,16 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import {fetchImageAsBase64} from "../toolbar-background.js";
+import {fetchImageAsBase64, sniffImageMime} from "../toolbar-background.js";
 import {DEFAULT_ENGINES, activeEngines, buildEngineUrl, filenameFromUrl, formatCustomEngines, imageSource, isEligibleImage, normalizeToolbarSettings, originalImageUrl, parseCustomEngines} from "../toolbar.js";
 
 test("settings default to the toolbar on with every built-in engine, and unknown values are dropped", () => {
     const defaults = normalizeToolbarSettings(undefined);
     assert.equal(defaults.toolbar, true);
-    assert.deepEqual(defaults.engines, DEFAULT_ENGINES.map((e) => e.id));
-    const custom = normalizeToolbarSettings({toolbar: false, engines: ["lens", "evil"], custom: [{name: " 내 검색 ", url: "https://x.example/s?u={url}"}, {name: "나쁨", url: "http://x.example/{url}"}, {name: "", url: "https://x/{url}"}, {name: "no placeholder", url: "https://x.example/"}], hiddenHosts: ["shop.example", "BAD HOST", 5]});
+    assert.deepEqual(defaults.disabledEngines, []);
+    assert.deepEqual(DEFAULT_ENGINES.map((e) => e.id), ["lens", "aliexpress", "taobao"]);
+    const custom = normalizeToolbarSettings({toolbar: false, disabledEngines: ["taobao", "evil"], custom: [{name: " 내 검색 ", url: "https://x.example/s?u={url}"}, {name: "나쁨", url: "http://x.example/{url}"}, {name: "", url: "https://x/{url}"}, {name: "no placeholder", url: "https://x.example/"}], hiddenHosts: ["shop.example", "BAD HOST", 5]});
     assert.equal(custom.toolbar, false);
-    assert.deepEqual(custom.engines, ["lens"]);
+    assert.deepEqual(custom.disabledEngines, ["taobao"]);
     assert.deepEqual(custom.custom, [{name: "내 검색", url: "https://x.example/s?u={url}"}]);
     assert.deepEqual(custom.hiddenHosts, ["shop.example"]);
 });
@@ -21,7 +22,9 @@ test("engine urls only come from https templates and http(s) images", () => {
     assert.equal(buildEngineUrl("javascript:alert({url})", "https://a/b.jpg"), "");
     assert.equal(buildEngineUrl(lens.url, "data:image/png;base64,AAAA"), "");
     assert.equal(buildEngineUrl(lens.url, "file:///C:/x.jpg"), "");
-    assert.deepEqual(activeEngines({engines: ["tineye"], custom: [{name: "A", url: "https://a.example/{url}"}]}).map((e) => e.name), ["TinEye", "A"]);
+    assert.deepEqual(activeEngines({disabledEngines: ["aliexpress"], custom: [{name: "A", url: "https://a.example/{url}"}]}).map((e) => e.name), ["Google 렌즈", "타오바오", "A"]);
+    assert.equal(activeEngines({}).find((e) => e.id === "aliexpress").site, "aliexpress");
+    assert.equal(buildEngineUrl(DEFAULT_ENGINES.find((e) => e.id === "aliexpress").url, "https://a/b.jpg"), "", "site engines have no url template");
 });
 
 test("custom engine lines round-trip and bad lines are skipped", () => {
@@ -73,4 +76,19 @@ test("image fetch returns base64 only for small http(s) images", async () => {
     assert.equal((await fetchImageAsBase64("https://img.example/a", async () => fakeResponse(200, {"content-type": "image/jpeg", "content-length": String(50 * 1024 * 1024)}, []))).ok, false, "too big by header");
     const big = new Uint8Array(21 * 1024 * 1024);
     assert.equal((await fetchImageAsBase64("https://img.example/a", async () => fakeResponse(200, {"content-type": "image/jpeg"}, [big]))).ok, false, "too big while streaming");
+});
+
+test("octet-stream images are accepted by their content, other types still are not", async () => {
+    const jpeg = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 1, 2, 3]);
+    const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0]);
+    assert.equal(sniffImageMime(jpeg), "image/jpeg");
+    assert.equal(sniffImageMime(png), "image/png");
+    assert.equal(sniffImageMime(new Uint8Array([0x47, 0x49, 0x46, 0x38, 0x39, 0x61])), "image/gif");
+    assert.equal(sniffImageMime(new TextEncoder().encode("<html>nope</html>")), "");
+    const dc = await fetchImageAsBase64("https://dcimg.example/viewimage.php?id=1", async () => fakeResponse(200, {"content-type": "application/octet-stream"}, [jpeg]));
+    assert.deepEqual(dc, {ok: true, mime: "image/jpeg", data: Buffer.from(jpeg).toString("base64")});
+    const none = await fetchImageAsBase64("https://img.example/a", async () => fakeResponse(200, {}, [png]));
+    assert.equal(none.mime, "image/png");
+    assert.equal((await fetchImageAsBase64("https://img.example/a", async () => fakeResponse(200, {"content-type": "application/octet-stream"}, [new TextEncoder().encode("<html>403</html>")]))).ok, false, "an HTML error page labelled octet-stream is rejected");
+    assert.equal((await fetchImageAsBase64("https://img.example/a", async () => fakeResponse(200, {"content-type": "text/html"}, [jpeg]))).ok, false);
 });

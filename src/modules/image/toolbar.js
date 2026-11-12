@@ -7,31 +7,32 @@ export const TOOLBAR_SCRIPT_FILE = "content-scripts/image-toolbar.js";
 export const MIN_IMAGE_SIZE = 140;
 export const MAX_FETCH_BYTES = 20 * 1024 * 1024;
 
-// {url}은 이미지 주소로 바뀌어요. 이름·주소는 설정에서 바꾸거나 추가할 수 있어요.
+// url 방식: {url}이 이미지 주소로 바뀌어요. site 방식: 사이트를 열고 그 사이트의 '이미지로 검색'에 사진을 넣어요(백그라운드가 처리).
 export const DEFAULT_ENGINES = [
     {id: "lens", name: "Google 렌즈", url: "https://lens.google.com/uploadbyurl?url={url}"},
-    {id: "yandex", name: "Yandex", url: "https://yandex.com/images/search?rpt=imageview&url={url}"},
-    {id: "bing", name: "Bing", url: "https://www.bing.com/images/search?view=detailv2&iss=sbi&q=imgurl:{url}"},
-    {id: "tineye", name: "TinEye", url: "https://tineye.com/search?url={url}"}
+    {id: "aliexpress", name: "알리익스프레스", site: "aliexpress"},
+    {id: "taobao", name: "타오바오", site: "taobao"}
 ];
+export const SITE_SEARCH_ENGINES = DEFAULT_ENGINES.filter((engine) => engine.site).map((engine) => engine.site);
 
 const HTTPS_TEMPLATE = /^https:\/\/[^\s]+\{url\}[^\s]*$/;
 
 export const normalizeToolbarSettings = (value) => {
-    const engines = Array.isArray(value?.engines) ? value.engines.filter((id) => DEFAULT_ENGINES.some((engine) => engine.id === id)) : DEFAULT_ENGINES.map((engine) => engine.id);
+    // 끈 엔진만 기억해요. 새 엔진이 생겨도 기본으로 켜져 있어요.
+    const disabledEngines = Array.isArray(value?.disabledEngines) ? value.disabledEngines.filter((id) => DEFAULT_ENGINES.some((engine) => engine.id === id)) : [];
     const custom = (Array.isArray(value?.custom) ? value.custom : [])
         .filter((row) => row && typeof row.name === "string" && typeof row.url === "string" && row.name.trim() && HTTPS_TEMPLATE.test(row.url.trim()))
         .slice(0, 10)
         .map((row) => ({name: row.name.trim().slice(0, 24), url: row.url.trim().slice(0, 600)}));
     const hiddenHosts = (Array.isArray(value?.hiddenHosts) ? value.hiddenHosts : []).filter((host) => typeof host === "string" && /^[a-z0-9.-]{1,253}$/.test(host)).slice(0, 200);
-    return {toolbar: value?.toolbar !== false, engines, custom, hiddenHosts};
+    return {toolbar: value?.toolbar !== false, disabledEngines, custom, hiddenHosts};
 };
 
 // 사용 중인 검색 엔진 목록(기본 + 사용자 추가).
 export const activeEngines = (settings) => {
     const normalized = normalizeToolbarSettings(settings);
     return [
-        ...DEFAULT_ENGINES.filter((engine) => normalized.engines.includes(engine.id)),
+        ...DEFAULT_ENGINES.filter((engine) => !normalized.disabledEngines.includes(engine.id)),
         ...normalized.custom.map((row, index) => ({id: `custom-${index}`, name: row.name, url: row.url}))
     ];
 };
