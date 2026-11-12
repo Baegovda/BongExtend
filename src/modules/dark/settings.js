@@ -86,10 +86,11 @@ export const normalizeDarkSettings = (value) => {
 export const darkSiteEnabled = (settings, hostname) => {
   const host = normalizeHost(hostname);
   if (!host) return false;
-  const disabled = normalizeHosts(settings?.disabledSites);
-  if (disabled.some((site) => host === site || host.endsWith(`.${site}`))) return false;
-  const enabled = normalizeHosts(settings?.enabledSites);
-  if (enabled.some((site) => host === site || host.endsWith(`.${site}`))) return true;
+  // 켬/끔 목록에서 이 주소에 해당하는 규칙 중 가장 구체적인(긴) 것이 이겨요. 예: google.com을 꺼도 mail.google.com을 따로 켜면 켜져요.
+  const mostSpecific = (sites) => sites.filter((site) => host === site || host.endsWith(`.${site}`)).reduce((best, site) => (site.length > best.length ? site : best), "");
+  const disabledRule = mostSpecific(normalizeHosts(settings?.disabledSites));
+  const enabledRule = mostSpecific(normalizeHosts(settings?.enabledSites));
+  if (disabledRule || enabledRule) return enabledRule.length > disabledRule.length;
   const listed = normalizeHosts(settings?.siteList);
   const onList = listed.some((site) => host === site || host.endsWith(`.${site}`));
   if (settings?.siteListMode === "only" && !onList) return false;

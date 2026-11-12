@@ -2,7 +2,11 @@
 
 기준일: 2026-11-10. 이 문서는 기존 v1.2.10 인수인계를 대체해요. 이후 변경은 package.json, CHANGELOG.md, GitHub Releases를 우선 확인하세요.
 
-## 최신 인계 — v1.2.80 잘린 이름 인식
+## 최신 인계 — v1.2.81 다크 사이트 규칙 우선순위
+
+- settings.js darkSiteEnabled: 켬/끔 목록에서 가장 구체적인(긴) 규칙이 이겨요(전에는 끔 목록의 상위 도메인이 항상 이겼어요). 같은 규칙이 양쪽이면 끔이에요. 사용자가 google.com을 끈 뒤 mail.google.com 토글이 안 켜지던 증상의 원인으로 판단했고(스크린샷으로 추정, 저장값은 직접 확인하지 못했어요) test/settings.test.js로 규칙을 고정했어요.
+
+## 이전 인계 — v1.2.80 잘린 이름 인식
 
 - 사용자 기록 화면(1.2.79): Relay 알리 메일의 authorName이 `transaction@notice..`(지메일이 20자쯤에서 자름)이라 aliexpress 글자가 없어 not-ali였어요. auto-read.js에 ALI_TRUNCATED_NAMES(transaction@notice…, promotion/marketing/…@notice|aliexpr…)를 추가했고 Relay 도메인(mozmail.com, relay.firefox.com)일 때만 써요. 같은 형태의 다른 업체(`transaction@notice.*`)도 알리로 오인할 수 있는 한계가 있어요. **실제 읽음 처리·알림은 사용자 확인 전까지 미검증**이에요.
 

@@ -5,6 +5,9 @@ BongExtend 변경 이력. GitHub **[Releases](https://github.com/Baegovda/BongEx
 
 ---
 
+## [1.2.81]
+- 다크 모드에서 상위 주소를 꺼 두면(예: google.com 끔) 하위 주소(mail.google.com)를 켜도 계속 꺼져서 토글이 움직이지 않던 문제를 고쳤어요. 이제 더 구체적인 주소의 켬/끔 설정이 이겨요.
+
 ## [1.2.80]
 - 지메일이 긴 보낸 사람 이름을 `transaction@notice..`처럼 잘라서 보내 Firefox Relay 알리 메일을 알아보지 못하던 문제를 고쳤어요. 잘린 알리 발신 이름(`transaction@notice`, `promotion@aliexpr…` 등)도 알리 메일로 인식해서 알림을 띄우고 읽음 처리해요(Relay로 온 메일에서만).
 
