@@ -122,16 +122,26 @@ export default defineContentScript({
         };
         const sourceOfCurrent = () => (current ? imageSource(current) : "");
 
-        const copyImage = async (src: string) => {
-            const reply = await send({type: "bongextend-image-fetch", url: src, pageUrl: location.href});
-            if (!reply?.ok) throw new Error(reply?.error || "fetch");
-            const bytes = Uint8Array.from(atob(reply.data), (c) => c.charCodeAt(0));
-            const bitmap = await createImageBitmap(new Blob([bytes], {type: reply.mime}));
-            const canvas = document.createElement("canvas");
-            canvas.width = bitmap.width; canvas.height = bitmap.height;
-            canvas.getContext("2d")!.drawImage(bitmap, 0, 0);
-            const png = await new Promise<Blob>((resolve, reject) => canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error("png"))), "image/png"));
-            await navigator.clipboard.write([new ClipboardItem({"image/png": png})]);
+        // 클립보드 쓰기는 클릭 직후에만 허용돼요. 이미지를 가져오는 동안 그 시간이 지나지 않게, 클릭 즉시 복사를 시작하고 이미지(PNG)는 나중에 채워요.
+        const copyImage = (src: string) => {
+            const pngBlob = (async () => {
+                const reply = await send({type: "bongextend-image-fetch", url: src, pageUrl: location.href});
+                if (!reply?.ok) throw new Error(`가져오기: ${reply?.error || "실패"}`);
+                const bytes = Uint8Array.from(atob(reply.data), (c) => c.charCodeAt(0));
+                let bitmap: ImageBitmap;
+                try { bitmap = await createImageBitmap(new Blob([bytes], {type: reply.mime})); } catch { throw new Error("그림을 열지 못했어요"); }
+                const canvas = document.createElement("canvas");
+                canvas.width = bitmap.width; canvas.height = bitmap.height;
+                canvas.getContext("2d")!.drawImage(bitmap, 0, 0);
+                return new Promise<Blob>((resolve, reject) => canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error("PNG 변환 실패"))), "image/png"));
+            })();
+            return navigator.clipboard.write([new ClipboardItem({"image/png": pngBlob})]);
+        };
+        const reasonOf = (error: unknown) => {
+            const name = (error as {name?: string})?.name;
+            const message = String((error as {message?: string})?.message || "");
+            if (name === "NotAllowedError") return "클립보드 권한이 필요해요";
+            return (message || name || "알 수 없는 오류").slice(0, 40);
         };
 
         const fillMenus = () => {
@@ -179,7 +189,7 @@ export default defineContentScript({
                     const src = sourceOfCurrent();
                     if (!src) return;
                     say("이미지를 가져오고 있어요…");
-                    copyImage(src).then(() => say("이미지를 복사했어요"), () => say("이미지를 복사하지 못했어요"));
+                    copyImage(src).then(() => say("이미지를 복사했어요"), (error) => say(`이미지를 복사하지 못했어요 · ${reasonOf(error)}`));
                 }),
                 makeItem(ICONS.open, "원본 이미지 보기", () => {
                     const src = sourceOfCurrent();

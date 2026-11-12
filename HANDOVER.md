@@ -2,7 +2,11 @@
 
 기준일: 2026-11-10. 이 문서는 기존 v1.2.10 인수인계를 대체해요. 이후 변경은 package.json, CHANGELOG.md, GitHub Releases를 우선 확인하세요.
 
-## 최신 인계 — v1.2.83 이미지 도구 막대 보강
+## 최신 인계 — v1.2.84 이미지 복사 이유 표시
+
+- 사용자 실제 크롬(디시)에서 '이미지를 복사하지 못했어요'가 떴어요(1.2.83). 합성 Chrome(전체 https 권한을 매니페스트에 넣은 복사본)에서는 같은 디시 게시글에서 복사·저장이 성공했어요. 원인 미확정 후보: 사용자 PC의 설치 버전이 낡음, 클립보드 쓰기의 사용자 동작 시간 초과(1.2.84에서 ClipboardItem에 Promise를 넘겨 수정), 사용자 환경의 다른 확장·헤더 규칙. 1.2.84는 실패 이유를 토스트에 보여줘요. **사용자 환경에서의 결과는 미확인**이에요.
+
+## 이전 인계 — v1.2.83 이미지 도구 막대 보강
 
 - 엔진: lens(주소 방식), aliexpress·taobao(site 방식: 백그라운드가 이미지를 가져와 사이트를 새 탭으로 열고 siteUploadSteps를 executeScript). 알리: ko.aliexpress.com의 `[class*="picture-search-btn"]` 클릭 → input[type=file] 채움 → wholesale-.html?isNewImageSearch=y 로 이동(실제 확인). 타오바오: www.taobao.com의 input[type=file] 채움 → '按图片搜索' 창의 '搜索' 클릭 → s.taobao.com/search?…localImgKey=… (실제 확인, 로그인 상태에 따라 결과 표시는 달라요). 두 사이트의 화면 구조(클래스 이름)가 바뀌면 siteUploadSteps를 고쳐야 해요. 설정은 끈 엔진만 disabledEngines에 저장해요(이전 engines 값은 무시).
 - 디시 저장·복사 실패 원인: 이미지 서버가 Referer를 확인(없으면 403 HTML 170바이트)하고 정상일 때도 application/octet-stream으로 줘요. withReferer가 declarativeNetRequest 세션 규칙으로 이미지 호스트에 게시글 주소를 Referer로 붙이고(fetch에는 적용, **downloads API에는 적용되지 않고 headers 옵션도 Referer 금지**), 다운로드는 백그라운드가 가져온 바이트를 페이지가 blob 링크로 저장해요. sniffImageMime으로 내용 확인. 실제 디시 게시글에서 복사(image/png)·저장(68KB 정상) 확인.
