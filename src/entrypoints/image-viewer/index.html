@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>이미지 보기</title>
+    <style>
+        html, body { height: 100%; margin: 0; overflow: hidden; background: #0b0d12; color: #f5f7fa; }
+        body { font: 13px/1.4 "Segoe UI Variable Text", "Segoe UI", "Malgun Gothic", system-ui, sans-serif; user-select: none; }
+        #stage { position: fixed; inset: 0; overflow: hidden; cursor: grab; background:
+            radial-gradient(60% 50% at 100% -8%, rgba(76,138,254,.20), transparent 70%),
+            radial-gradient(52% 44% at 16% 112%, rgba(228,126,244,.13), transparent 70%), #0b0d12; }
+        #stage.dragging { cursor: grabbing; }
+        #img { position: absolute; left: 0; top: 0; transform-origin: 0 0; will-change: transform; max-width: none; image-rendering: auto; box-shadow: 0 18px 60px rgba(0,0,0,.55); -webkit-user-drag: none; opacity: 0; }
+        #img.ready { opacity: 1; transition: opacity .2s ease; }
+        #img.smooth { transition: transform .16s cubic-bezier(.25,.1,.25,1), opacity .2s ease; }
+        .glass { background: linear-gradient(180deg, rgba(255,255,255,.15), rgba(255,255,255,.06)), rgba(16,18,26,.5); border: 1px solid rgba(255,255,255,.2); box-shadow: 0 10px 34px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.14); backdrop-filter: blur(22px) saturate(170%); -webkit-backdrop-filter: blur(22px) saturate(170%); }
+        #bar { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); display: flex; align-items: center; gap: 2px; padding: 5px; border-radius: 14px; z-index: 5; transition: opacity .25s ease, transform .25s ease; }
+        #bar.idle { opacity: 0; transform: translateX(-50%) translateY(8px); pointer-events: none; }
+        #bar button { all: unset; box-sizing: border-box; min-width: 32px; height: 30px; padding: 0 8px; border-radius: 9px; display: grid; place-items: center; cursor: pointer; font-weight: 600; color: #f5f7fa; }
+        #bar button:hover { background: rgba(255,255,255,.16); }
+        #bar button:active { transform: scale(.94); }
+        #bar button.on { background: linear-gradient(135deg, rgba(76,138,254,.55), rgba(228,126,244,.4)); }
+        #bar .sep { width: 1px; height: 18px; margin: 0 4px; background: rgba(255,255,255,.2); }
+        #zoomLabel { min-width: 58px !important; font-variant-numeric: tabular-nums; }
+        #info { position: fixed; left: 14px; top: 14px; width: 270px; max-width: calc(100% - 28px); padding: 14px 16px; border-radius: 16px; z-index: 6; transition: opacity .2s ease, transform .25s cubic-bezier(.34,1.32,.64,1); }
+        #info.hidden { opacity: 0; transform: translateY(-8px) scale(.97); pointer-events: none; }
+        #info h1 { margin: 0 0 8px; font-size: 13px; font-weight: 700; word-break: break-all; user-select: text; }
+        #info dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; }
+        #info dt { color: #a3abbc; }
+        #info dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; word-break: break-all; user-select: text; }
+        #toast { position: fixed; left: 50%; top: 18px; transform: translateX(-50%) translateY(-10px); padding: 8px 16px; border-radius: 12px; z-index: 9; opacity: 0; transition: opacity .2s ease, transform .25s ease; pointer-events: none; font-weight: 600; }
+        #toast.on { opacity: 1; transform: translateX(-50%); }
+        #msg { position: fixed; inset: 0; display: grid; place-items: center; text-align: center; color: #a3abbc; padding: 24px; pointer-events: none; z-index: 4; }
+        #msg.error { color: #f3aaa7; }
+        #msg[hidden] { display: none; }
+        .spin { width: 28px; height: 28px; margin: 0 auto 10px; border-radius: 50%; border: 3px solid rgba(255,255,255,.18); border-top-color: #8fb4ff; animation: spin .8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @media (prefers-reduced-motion: reduce) { #img.smooth, #info, #toast, #bar { transition: none; } .spin { animation: none; } }
+    </style>
+</head>
+<body>
+<div id="stage"><img id="img" alt="" draggable="false"></div>
+<div id="msg"><div><div class="spin" id="spin"></div><div id="msgText">이미지를 불러오고 있어요…</div></div></div>
+<aside id="info" class="glass hidden" aria-label="이미지 정보">
+    <h1 id="infoName">이미지</h1>
+    <dl>
+        <dt>크기</dt><dd id="infoSize">–</dd>
+        <dt>용량</dt><dd id="infoBytes">–</dd>
+        <dt>형식</dt><dd id="infoType">–</dd>
+        <dt>출처</dt><dd id="infoHost">–</dd>
+        <dt>배율</dt><dd id="infoZoom">–</dd>
+    </dl>
+</aside>
+<div id="bar" class="glass" role="toolbar" aria-label="이미지 도구">
+    <button id="zoomOut" title="축소 ( - )">−</button>
+    <button id="zoomLabel" title="100%로 보기 ( 1 )">100%</button>
+    <button id="zoomIn" title="확대 ( + )">+</button>
+    <span class="sep"></span>
+    <button id="fit" title="창에 맞추기 ( 0 )">맞춤</button>
+    <button id="rotate" title="회전 ( R )">회전</button>
+    <span class="sep"></span>
+    <button id="copy" title="이미지 복사 ( Ctrl+C )">복사</button>
+    <button id="save" title="이미지 저장 ( Ctrl+S )">저장</button>
+    <span class="sep"></span>
+    <button id="toggleInfo" title="정보 보기 ( I )">정보</button>
+</div>
+<div id="toast" class="glass" role="status"></div>
+<script type="module" src="./main.ts"></script>
+</body>
+</html>

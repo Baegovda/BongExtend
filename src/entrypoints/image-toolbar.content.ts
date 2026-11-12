@@ -120,7 +120,15 @@ export default defineContentScript({
 
         const send = async (message: Record<string, unknown>) => {
             if (stale()) { say(STALE); return {ok: false, error: STALE}; }
-            const reply = await chrome.runtime.sendMessage(message).catch((error: unknown) => ({ok: false, error: String(error)}));
+            let reply: any;
+            try {
+                const pending = chrome.runtime.sendMessage(message) as Promise<unknown> | undefined;
+                reply = pending && typeof pending.then === "function"
+                    ? await pending.catch((error: unknown) => ({ok: false, error: String(error)}))
+                    : await new Promise((resolve) => chrome.runtime.sendMessage(message, (response: unknown) => resolve(chrome.runtime.lastError ? {ok: false, error: chrome.runtime.lastError.message} : response)));
+            } catch (error) {
+                reply = {ok: false, error: String((error as Error)?.message || error)};
+            }
             host.dataset.reply = `${String(message.type)}:${JSON.stringify(reply ?? null).slice(0, 80)}`;
             return reply;
         };
@@ -131,14 +139,19 @@ export default defineContentScript({
             const pngBlob = (async () => {
                 const reply = await send({type: "bongextend-image-fetch", url: src, pageUrl: location.href});
                 if (!reply?.ok) throw new Error(`가져오기: ${reply?.error || "실패"}`);
-                const bytes = Uint8Array.from(atob(reply.data), (c) => c.charCodeAt(0));
                 let bitmap: ImageBitmap;
-                try { bitmap = await createImageBitmap(new Blob([bytes], {type: reply.mime})); } catch { throw new Error("그림을 열지 못했어요"); }
+                try {
+                    const bytes = Uint8Array.from(atob(reply.data), (c) => c.charCodeAt(0));
+                    bitmap = await createImageBitmap(new Blob([bytes], {type: reply.mime}));
+                } catch (error) { throw new Error(`그림 열기: ${String((error as Error)?.message || error)}`); }
                 const canvas = document.createElement("canvas");
                 canvas.width = bitmap.width; canvas.height = bitmap.height;
-                canvas.getContext("2d")!.drawImage(bitmap, 0, 0);
+                const context = canvas.getContext("2d");
+                if (!context) throw new Error("그림 그리기: 실패");
+                context.drawImage(bitmap, 0, 0);
                 return new Promise<Blob>((resolve, reject) => canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error("PNG 변환 실패"))), "image/png"));
             })();
+            if (!navigator.clipboard?.write || typeof ClipboardItem === "undefined") { void pngBlob.catch(() => {}); return Promise.reject(new Error("이 페이지에서는 클립보드를 쓸 수 없어요")); }
             return navigator.clipboard.write([new ClipboardItem({"image/png": pngBlob})]);
         };
         const reasonOf = (error: unknown) => {
@@ -194,11 +207,11 @@ export default defineContentScript({
                     const src = sourceOfCurrent();
                     if (!src) return;
                     say("이미지를 가져오고 있어요…");
-                    copyImage(src).then(() => say("이미지를 복사했어요"), (error) => say(`이미지를 복사하지 못했어요 · ${reasonOf(error)}`));
+                    copyImage(src).then(() => say("이미지를 복사했어요"), (error) => say(`이미지를 복사하지 못했어요 · ${reasonOf(error)} · 원본 이미지 보기 창에서 복사해 보세요`));
                 }),
                 makeItem(ICONS.open, "원본 이미지 보기", () => {
                     const src = sourceOfCurrent();
-                    if (src) void send({type: "bongextend-image-open", url: originalImageUrl(src), withReferer: true, pageUrl: location.href});
+                    if (src) void send({type: "bongextend-image-viewer", url: originalImageUrl(src), pageUrl: location.href});
                 })
             );
 

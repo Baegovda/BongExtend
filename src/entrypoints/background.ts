@@ -391,6 +391,17 @@ export default defineBackground(() => {
             });
         })().catch((error) => console.warn("다운로드 알림을 표시하지 못했어요.", error));
     });
+    // 다운로드 완료 알림을 누르면 받은 파일을 열고, 열 수 없으면 폴더에서 보여줘요.
+    chrome.notifications.onClicked.addListener((notificationId) => {
+        const match = /^bongextend-download-(\d+)$/.exec(notificationId);
+        if (!match) return;
+        const id = Number(match[1]);
+        chrome.notifications.clear(notificationId);
+        void (async () => {
+            try { await chrome.downloads.open(id); }
+            catch { try { chrome.downloads.show(id); } catch { /* 파일이 이미 지워졌어요 */ } }
+        })();
+    });
     const downloadNameHints = new Map<string, {name: string; createdAt: number}[]>();
     const takeDownloadNameHint = (url: string) => {
         const queue = downloadNameHints.get(url);

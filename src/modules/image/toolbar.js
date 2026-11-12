@@ -79,6 +79,12 @@ export function filenameFromUrl(src, fallback = "image") {
     let name = "";
     try { name = decodeURIComponent(new URL(src).pathname.split("/").filter(Boolean).pop() || ""); } catch { name = ""; }
     name = name.replace(/[\\/:*?"<>|\u0000-\u001f]/g, "_").replace(/\s+/g, " ").trim().slice(0, 100);
+    // viewimage.php 같은 서버 스크립트 이름은 그림 파일 이름으로 쓰기 어색해서, 주소의 id 앞부분을 붙여 구분해요.
+    if (/\.(php|asp|aspx|jsp|cgi)$/i.test(name)) {
+        let tag = "";
+        try { const u = new URL(src); tag = String(u.searchParams.get("id") || u.searchParams.get("no") || "").replace(/[^a-z0-9]/gi, "").slice(0, 8); } catch { tag = ""; }
+        name = name.replace(/\.[a-z]+$/i, "") + (tag ? `-${tag}` : "");
+    }
     if (!name) name = fallback;
     if (!/\.(jpe?g|png|webp|gif|avif|bmp|svg)$/i.test(name)) name += ".jpg";
     return name;

@@ -162,6 +162,15 @@ export function startImageToolbarBackground(chromeApi = chrome) {
 
     chromeApi.runtime.onMessage.addListener((message, sender, reply) => {
         const type = message?.type;
+        // 이미지 보기 창(확장 프로그램 자기 페이지)이 이미지를 가져올 때: Referer를 붙여 받아 전달해요.
+        if (type === "bongextend-viewer-fetch") {
+            if (sender.id !== chromeApi.runtime.id || !String(sender.url || "").startsWith(chromeApi.runtime.getURL(""))) return undefined;
+            (async () => {
+                if (!isHttp(message.url)) { reply({ok: false, error: "주소가 올바르지 않아요."}); return; }
+                reply(await withReferer(chromeApi, message.url, message.pageUrl, () => fetchImageAsBase64(message.url)));
+            })().catch((error) => reply({ok: false, error: String(error?.message || error)}));
+            return true;
+        }
         if (typeof type !== "string" || !type.startsWith("bongextend-image-")) return undefined;
         // 이 확장 프로그램이 넣은 페이지(https)에서 온 요청만 받아요.
         if (sender.id !== chromeApi.runtime.id || !Number.isInteger(sender.tab?.id) || !/^https:\/\//.test(sender.url || "")) return undefined;
@@ -189,6 +198,11 @@ export function startImageToolbarBackground(chromeApi = chrome) {
                 if (!isHttp(message.url)) { reply({ok: false}); return; }
                 // 디시인사이드 같은 곳은 게시글 주소(Referer) 없이 이미지 주소를 바로 열면 막아요. 새 탭을 열 때만 잠깐 붙여줘요.
                 await withReferer(chromeApi, message.url, message.withReferer ? (message.pageUrl || sender.tab?.url) : "", () => chromeApi.tabs.create({url: message.url, windowId: sender.tab.windowId, index: sender.tab.index + 1, openerTabId: sender.tab.id}), 10000);
+                reply({ok: true});
+            } else if (type === "bongextend-image-viewer") {
+                if (!isHttp(message.url)) { reply({ok: false}); return; }
+                const page = encodeURIComponent(message.pageUrl || sender.tab?.url || "");
+                await chromeApi.windows.create({url: chromeApi.runtime.getURL(`image-viewer.html?u=${encodeURIComponent(message.url)}&p=${page}`), type: "popup", width: 960, height: 720, focused: true});
                 reply({ok: true});
             } else if (type === "bongextend-image-settings") {
                 await chromeApi.storage.local.set({"core.popupTab": "image"});

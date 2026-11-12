@@ -590,6 +590,8 @@ async function setUninstallUrl(email) {
 
 async function onButtonClicked(notificationId, buttonIndex) {
     if (notificationId.startsWith("bongextend-otp-")) return;
+    // 다운로드·네이버 메일·업데이트 같은 다른 기능의 알림은 그쪽이 처리해요(여기서 지메일을 열지 않아요).
+    if (/^(bongextend-download-|bongextend-video-|naver-mail-|refresher-update-|tfi|task_|terr_|tmsg_|int_)/.test(notificationId)) return;
 	console.log("onbuttonclicked", notificationId, buttonIndex);
     // only load initMisc if needed because it might throw corrupt errors
 	if (notificationId == "extensionUpdate") {
