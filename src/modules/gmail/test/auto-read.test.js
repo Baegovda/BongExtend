@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import {createMailAutoRead, isAliExpressMail, isAliExpressSender, mailKey} from "../auto-read.js";
+import {createMailAutoRead, isAliExpressMail, isAliExpressSender, isAutomatedAliMail, mailKey} from "../auto-read.js";
 
 const mail = (id, authorMail, extra = {}) => {
     const item = {id, account: {id: 7}, authorMail, reads: 0, ...extra};
@@ -37,7 +37,7 @@ test("marks AliExpress mail read only after its notification was really shown", 
 
 test("waits for the notification to finish before marking read", async () => {
     const auto = quick();
-    const ali = mail("a2", "n@mail.aliexpress.com");
+    const ali = mail("a2", "transaction@mail.aliexpress.com");
     const order = [];
     ali.markAsRead = async () => { order.push("read"); };
     let finish;
@@ -54,7 +54,7 @@ test("waits for the notification to finish before marking read", async () => {
 
 test("a failed notification promise does not break processing and unshown mail stays unread", async () => {
     const auto = quick();
-    const ali = mail("a3", "n@mail.aliexpress.com");
+    const ali = mail("a3", "transaction@mail.aliexpress.com");
     const result = await auto.process([ali], {settled: Promise.reject(new Error("no toast"))});
     assert.deepEqual(result, []);
     assert.equal(ali.reads, 0);
@@ -62,8 +62,8 @@ test("a failed notification promise does not break processing and unshown mail s
 
 test("skips verification-code mail and handles each mail only once", async () => {
     const auto = quick();
-    const code = mail("c1", "n@notice.aliexpress.com");
-    const normal = mail("n1", "n@notice.aliexpress.com");
+    const code = mail("c1", "transaction@notice.aliexpress.com");
+    const normal = mail("n1", "transaction@notice.aliexpress.com");
     auto.noteShown([code, normal]);
     assert.deepEqual(await auto.process([code, normal], {skip: [mailKey(code)]}), ["7:n1"]);
     assert.equal(code.reads, 0);
@@ -74,12 +74,12 @@ test("skips verification-code mail and handles each mail only once", async () =>
 test("retries one failure, then gives up without throwing", async () => {
     const auto = quick();
     let calls = 0;
-    const flaky = mail("f1", "n@notice.aliexpress.com", {markAsRead: async () => { calls += 1; if (calls === 1) throw new Error("token"); }});
+    const flaky = mail("f1", "transaction@notice.aliexpress.com", {markAsRead: async () => { calls += 1; if (calls === 1) throw new Error("token"); }});
     auto.noteShown([flaky]);
     assert.deepEqual(await auto.process([flaky]), ["7:f1"]);
     assert.equal(calls, 2);
 
-    const broken = mail("b1", "n@notice.aliexpress.com", {markAsRead: async () => { calls += 1; throw new Error("down"); }});
+    const broken = mail("b1", "transaction@notice.aliexpress.com", {markAsRead: async () => { calls += 1; throw new Error("down"); }});
     auto.noteShown([broken]);
     assert.deepEqual(await auto.process([broken]), []);
     assert.equal(calls, 4);
@@ -87,7 +87,7 @@ test("retries one failure, then gives up without throwing", async () => {
 
 test("does nothing when disabled", async () => {
     const auto = quick({isEnabled: async () => false});
-    const ali = mail("d1", "n@notice.aliexpress.com");
+    const ali = mail("d1", "transaction@notice.aliexpress.com");
     auto.noteShown([ali]);
     assert.deepEqual(await auto.process([ali]), []);
     assert.equal(ali.reads, 0);
@@ -95,8 +95,8 @@ test("does nothing when disabled", async () => {
 
 test("ignores mails without an id or markAsRead and never stores mail content", async () => {
     const auto = quick();
-    const noId = {account: {id: 1}, authorMail: "n@notice.aliexpress.com", markAsRead: async () => { throw new Error("must not run"); }};
-    const noMethod = {id: "m", account: {id: 1}, authorMail: "n@notice.aliexpress.com"};
+    const noId = {account: {id: 1}, authorMail: "transaction@notice.aliexpress.com", markAsRead: async () => { throw new Error("must not run"); }};
+    const noMethod = {id: "m", account: {id: 1}, authorMail: "transaction@notice.aliexpress.com"};
     auto.noteShown([noId, noMethod]);
     assert.deepEqual(await auto.process([noId, noMethod]), []);
     assert.equal(mailKey(noId), "");
@@ -105,8 +105,8 @@ test("ignores mails without an id or markAsRead and never stores mail content", 
 test("records a reason per mail with the sender domain only", async () => {
     const entries = [];
     const auto = quick({log: (entry) => entries.push(entry)});
-    const ali = mail("l1", "AliExpress <n@notice.aliexpress.com>");
-    const unshown = mail("l2", "n@mail.aliexpress.com");
+    const ali = mail("l1", "AliExpress <transaction@notice.aliexpress.com>");
+    const unshown = mail("l2", "transaction@mail.aliexpress.com");
     const other = mail("l3", "friend@example.com");
     auto.noteShown([ali]);
     await auto.process([ali, unshown, other]);
@@ -132,7 +132,7 @@ test("recognizes AliExpress mail forwarded through Firefox Relay, and nothing el
     assert.equal(isAliExpressMail(relay("transaction@notice..", "x@example.com")), false, "never outside Relay");
     assert.equal(isAliExpressMail(relay("transaction@bank.com [via Relay]", "x@mozmail.com")), false);
     assert.equal(isAliExpressMail(relay("AliExpress", "x@example.com")), false, "outside Relay the name alone is never trusted");
-    assert.equal(isAliExpressMail({authorName: "x", authorMail: "n@notice.aliexpress.com"}), true);
+    assert.equal(isAliExpressMail({authorName: "x", authorMail: "transaction@notice.aliexpress.com"}), true);
 });
 
 test("relay-forwarded AliExpress mail is auto-read after its notification", async () => {
@@ -156,11 +156,11 @@ test("when Checker Plus showed no notification, BongExtend notifies itself and t
 
 test("a failed own notification leaves the mail unread", async () => {
     const auto = quick({notify: async () => { throw new Error("blocked"); }});
-    const ali = mail("n3", "x@notice.aliexpress.com");
+    const ali = mail("n3", "transaction@notice.aliexpress.com");
     assert.deepEqual(await auto.process([ali]), []);
     assert.equal(ali.reads, 0);
     const none = quick({notify: async () => false});
-    const ali2 = mail("n4", "x@notice.aliexpress.com");
+    const ali2 = mail("n4", "transaction@notice.aliexpress.com");
     assert.deepEqual(await none.process([ali2]), []);
     assert.equal(ali2.reads, 0);
 });
@@ -169,8 +169,8 @@ test("old unread AliExpress mail is cleaned up silently, capped per run, and OTP
     const notified = [];
     const log = [];
     const auto = quick({notify: async (m) => { notified.push(m.id); return true; }, log: (e) => log.push(e.reason)});
-    const old = Array.from({length: 25}, (_, i) => mail("o" + i, "x@notice.aliexpress.com"));
-    const otp = mail("otp1", "x@notice.aliexpress.com");
+    const old = Array.from({length: 25}, (_, i) => mail("o" + i, "transaction@notice.aliexpress.com"));
+    const otp = mail("otp1", "transaction@notice.aliexpress.com");
     const stranger = mail("s1", "friend@example.com");
     const marked = await auto.process([], {backlog: [...old, otp, stranger], skip: [mailKey(otp)]});
     assert.equal(marked.length, 20, "capped at 20 per run");
@@ -180,4 +180,31 @@ test("old unread AliExpress mail is cleaned up silently, capped per run, and OTP
     assert.ok(log.includes("backlog-read"));
     const again = await auto.process([], {backlog: old});
     assert.equal(again.length, 5, "the rest follow in the next run, none twice");
+});
+
+test("only AliExpress automated notifications are auto-read; customer-service conversations stay unread", async () => {
+    const m = (authorMail, authorName, title = "배송 중") => ({authorMail, authorName, title});
+    assert.equal(isAutomatedAliMail(m("x@mozmail.com", "transaction@notice..")), true, "truncated relay name");
+    assert.equal(isAutomatedAliMail(m("x@mozmail.com", "transaction@notice.aliexpress.com [via Relay]")), true);
+    assert.equal(isAutomatedAliMail(m("x@mozmail.com", "promotion@aliexpress.com [via Relay]")), true);
+    assert.equal(isAutomatedAliMail(m("transaction@notice.aliexpress.com", "AliExpress")), true, "direct mail");
+    assert.equal(isAutomatedAliMail(m("x@mozmail.com", "AEbuyerservice@aliexpress.com [via Relay]", "Following Up On Your AliExpress Inquiry")), false);
+    assert.equal(isAutomatedAliMail(m("x@mozmail.com", "AEbuyerservice@alie..", "Reply: Following Up On Your AliExpress Inquiry")), false);
+    assert.equal(isAutomatedAliMail(m("x@mozmail.com", "AEbuyerservice@alie..", "아무 제목")), false, "buyer service sender is never auto-read");
+    assert.equal(isAutomatedAliMail(m("transaction@notice.aliexpress.com", "AliExpress", "Re: Your dispute")), false, "a conversation subject wins");
+    assert.equal(isAutomatedAliMail(m("transaction@notice.aliexpress.com", "AliExpress", "Order 123: your dispute has been opened")), false);
+    assert.equal(isAutomatedAliMail(m("friend@example.com", "Friend")), false);
+});
+
+test("conversation mails and backlog conversation mails are never marked read", async () => {
+    const log = [];
+    const auto = quick({log: (e) => log.push(e.reason), notify: async () => true});
+    const chat = mail("c1", "x@mozmail.com", {authorName: "AEbuyerservice@aliexpress.com [via Relay]", title: "Following Up On Your AliExpress Inquiry"});
+    const note = mail("c2", "x@mozmail.com", {authorName: "transaction@notice..", title: "523500599086: 배송 중"});
+    const oldChat = mail("c3", "x@mozmail.com", {authorName: "AEbuyerservice@alie..", title: "Reply: Following Up On Your AliExpress Inquiry"});
+    const marked = await auto.process([chat, note], {backlog: [oldChat]});
+    assert.deepEqual(marked, ["7:c2"]);
+    assert.equal(chat.reads, 0);
+    assert.equal(oldChat.reads, 0);
+    assert.ok(log.includes("conversation"));
 });

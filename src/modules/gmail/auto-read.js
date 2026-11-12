@@ -40,6 +40,26 @@ export function isAliExpressMail(mail) {
     return isAliExpressSender(name) || /ali\s*express/i.test(name) || ALI_TRUNCATED_NAMES.some((pattern) => pattern.test(name));
 }
 
+// 알리가 자동으로 보내는 알림(주문·배송·프로모션)의 보낸 사람 앞부분만 자동 읽음 대상이에요.
+// 고객센터와 주고받는 문의 메일(AEbuyerservice@…, "Following Up On Your AliExpress Inquiry", "Reply: …")은 사람이 읽어야 해서 대상이 아니에요.
+const AUTOMATED_SENDERS = /^(transaction|promotion|promotions|marketing|newsletter|notice|noreply|no-reply|order|orders|shipping|logistics|aliexpress)$/;
+const CONVERSATION_SUBJECT = /^\s*(re|fw|fwd|reply)\s*:|inquiry|dispute|ticket|case\s*#|customer\s*(care|service)|문의|분쟁/i;
+
+// 보낸 사람 앞부분: 직접 보낸 메일은 주소에서, Relay로 온 메일은 표시 이름(원래 보낸 사람 주소 또는 잘린 앞부분)에서 읽어요.
+const senderLocalPart = (mail) => {
+    const fromAddress = addressOf(mail?.authorMail);
+    const relay = inDomains(senderDomain(mail?.authorMail), RELAY_DOMAINS);
+    const source = relay ? String(mail?.authorName || "").trim().toLowerCase() : fromAddress;
+    const match = source.match(/^([a-z0-9._-]+)@/);
+    return match ? match[1] : "";
+};
+
+export function isAutomatedAliMail(mail) {
+    if (!isAliExpressMail(mail)) return false;
+    if (CONVERSATION_SUBJECT.test(String(mail?.title || ""))) return false;
+    return AUTOMATED_SENDERS.test(senderLocalPart(mail));
+}
+
 export const mailKey = (mail) => (mail && mail.id ? `${mail.account?.id}:${mail.id}` : "");
 
 const remember = (set, key) => {
@@ -93,6 +113,7 @@ export function createMailAutoRead({log = () => {}, notify = null, isEnabled = a
                 if (!key) continue;
                 if (done.has(key)) continue;
                 if (!isAliExpressMail(mail)) { note(mail, "not-ali"); continue; }
+                if (!isAutomatedAliMail(mail)) { note(mail, "conversation"); continue; }
                 if (skipped.has(key)) { note(mail, "otp"); continue; }
                 if (typeof mail.markAsRead !== "function") { note(mail, "no-method"); continue; }
                 // Checker Plus가 알림을 안 띄웠어도(알림 설정·상태 때문에) 알리 메일은 우리가 직접 Windows 알림을 띄워요.
@@ -116,7 +137,7 @@ export function createMailAutoRead({log = () => {}, notify = null, isEnabled = a
             for (const mail of backlog || []) {
                 if (swept >= 20) break;
                 const key = mailKey(mail);
-                if (!key || done.has(key) || skipped.has(key) || typeof mail.markAsRead !== "function" || !isAliExpressMail(mail)) continue;
+                if (!key || done.has(key) || skipped.has(key) || typeof mail.markAsRead !== "function" || !isAutomatedAliMail(mail)) continue;
                 swept++;
                 if (await markOne(mail)) { remember(done, key); marked.push(key); note(mail, "backlog-read"); }
                 else note(mail, "failed");

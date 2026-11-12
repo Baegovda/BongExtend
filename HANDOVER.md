@@ -2,7 +2,12 @@
 
 기준일: 2026-11-10. 이 문서는 기존 v1.2.10 인수인계를 대체해요. 이후 변경은 package.json, CHANGELOG.md, GitHub Releases를 우선 확인하세요.
 
-## 최신 인계 — v1.2.86 탭 드래그 위치·숨기기 제거
+## 최신 인계 — v1.2.87 알리 대화 메일 제외
+
+- 사용자 지적: `AEbuyerservice@aliexpress.com [via Relay]`의 "Following Up On Your AliExpress Inquiry"·"Reply: …"(고객센터 문의 대화)는 자동 읽음하면 안 돼요. auto-read.js isAutomatedAliMail: 알리 메일 중 보낸 사람 앞부분이 허용 목록(transaction, promotion(s), marketing, newsletter, notice, noreply/no-reply, order(s), shipping, logistics, aliexpress)이고 제목이 대화 형태(Re:/Reply:/Fwd:, inquiry, dispute, ticket, case #, customer care/service, 문의, 분쟁)가 아닐 때만 대상이에요. Relay 메일은 표시 이름(전체 또는 잘린 앞부분)에서 앞부분을 읽어요. 대화 메일은 기록에 `conversation`으로 남고 쌓인 메일 정리(backlog)에서도 제외돼요.
+- **1.2.68~1.2.86에서 이미 읽음 처리된 대화 메일은 되돌리지 못해요**(읽음으로 바뀐 사실만 알 수 있어요). 한계: 허용 목록 밖의 새 알리 자동 알림 형태는 읽음 처리되지 않으니 기록의 `conversation`·`알리 메일 아님` 줄로 확인해 목록에 추가해요.
+
+## 이전 인계 — v1.2.86 탭 드래그 위치·숨기기 제거
 
 - 탭 드래그: 끌고 있는 탭이 position:fixed + 뷰포트 좌표인데, 1.2.70~의 `.tabs`/`.tab-group` backdrop-filter가 containing block을 만들어 좌표가 어긋났어요. style.css 끝에 `.tabs.reordering`·`.tab-group`의 backdrop-filter를 드래그 중에만 끄는 규칙을 넣었고, 합성 Chrome에서 끌고 있는 탭 중심이 포인터와 7px 이내임을 쟀어요. **앞으로 탭 줄이나 그 조상에 filter/backdrop-filter/transform을 걸면 같은 문제가 생기니 주의해요.**
 - 도구 막대 '이 사이트에서 숨기기'와 hiddenHosts를 없앴어요(저장된 값은 무시하고 설정 저장 때 지워요).
