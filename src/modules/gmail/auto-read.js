@@ -5,6 +5,8 @@
 const ALI_DOMAINS = ["aliexpress.com"];
 // Firefox Relay가 전달한 메일은 실제 보낸 주소가 이 도메인이고, 원래 보낸 사람이 표시 이름에 'transaction@notice.aliexpress.com [via Relay]'처럼 들어와요.
 const RELAY_DOMAINS = ["mozmail.com", "relay.firefox.com"];
+// 알리익스프레스의 알림 발신 이름이 잘린 앞부분. Relay로 온 메일에서만 써요.
+const ALI_TRUNCATED_NAMES = [/^transaction@notice(\.|$)/i, /^(promotion|marketing|newsletter|service|order|aliexpress)@(notice|mail|mkt|promotion|service|aliexpr)/i];
 const KEEP = 400;
 
 const addressOf = (value) => {
@@ -33,8 +35,9 @@ export function isAliExpressMail(mail) {
     const domain = senderDomain(mail?.authorMail);
     if (!domain || !inDomains(domain, RELAY_DOMAINS)) return false;
     // Relay는 표시 이름을 원래 보낸 사람으로 바꿔 와요. 주소 모양이 아니어도 'aliexpress'가 들어 있으면 알리로 봐요.
-    const name = String(mail?.authorName || "");
-    return isAliExpressSender(name) || /ali\s*express/i.test(name);
+    const name = String(mail?.authorName || "").trim();
+    // 지메일은 긴 이름을 20자쯤에서 잘라 보내요('transaction@notice..'). 잘려서 'aliexpress'가 없어도 알리의 발신 형태로 알아봐요.
+    return isAliExpressSender(name) || /ali\s*express/i.test(name) || ALI_TRUNCATED_NAMES.some((pattern) => pattern.test(name));
 }
 
 export const mailKey = (mail) => (mail && mail.id ? `${mail.account?.id}:${mail.id}` : "");

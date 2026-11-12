@@ -2,7 +2,11 @@
 
 기준일: 2026-11-10. 이 문서는 기존 v1.2.10 인수인계를 대체해요. 이후 변경은 package.json, CHANGELOG.md, GitHub Releases를 우선 확인하세요.
 
-## 최신 인계 — v1.2.79 알리 Relay 이름 판별 보강
+## 최신 인계 — v1.2.80 잘린 이름 인식
+
+- 사용자 기록 화면(1.2.79): Relay 알리 메일의 authorName이 `transaction@notice..`(지메일이 20자쯤에서 자름)이라 aliexpress 글자가 없어 not-ali였어요. auto-read.js에 ALI_TRUNCATED_NAMES(transaction@notice…, promotion/marketing/…@notice|aliexpr…)를 추가했고 Relay 도메인(mozmail.com, relay.firefox.com)일 때만 써요. 같은 형태의 다른 업체(`transaction@notice.*`)도 알리로 오인할 수 있는 한계가 있어요. **실제 읽음 처리·알림은 사용자 확인 전까지 미검증**이에요.
+
+## 이전 인계 — v1.2.79 알리 Relay 이름 판별 보강
 
 - 사용자의 설정 화면 기록에 모든 알리 Relay 메일이 '알리 메일 아님 · mozmail.com'으로 나왔어요(1.2.78). authorMail은 mozmail.com이 맞는데 authorName이 'transaction@notice.aliexpress.com [via Relay]' 형태가 아니었거나 다른 필드일 수 있어요. 1.2.79는 Relay 도메인일 때 이름에 /ali\s*express/i가 있으면 알리로 보고, 그래도 not-ali이면 기록에 `이름 "..."`(48자)을 남겨요. **실제 이름 형태는 아직 확인하지 못했어요**: 다음 사용자 스크린샷의 `이름 "…"`을 보고 판별을 조정해요.
 

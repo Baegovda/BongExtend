@@ -5,6 +5,9 @@ BongExtend 변경 이력. GitHub **[Releases](https://github.com/Baegovda/BongEx
 
 ---
 
+## [1.2.80]
+- 지메일이 긴 보낸 사람 이름을 `transaction@notice..`처럼 잘라서 보내 Firefox Relay 알리 메일을 알아보지 못하던 문제를 고쳤어요. 잘린 알리 발신 이름(`transaction@notice`, `promotion@aliexpr…` 등)도 알리 메일로 인식해서 알림을 띄우고 읽음 처리해요(Relay로 온 메일에서만).
+
 ## [1.2.79]
 - Firefox Relay로 온 알리익스프레스 메일을 더 넓게 알아봐요. 보낸 사람 이름에 'AliExpress'(띄어쓴 'Ali Express' 포함)가 들어 있으면 알리 메일로 봐요. 그래도 알리로 인식하지 못한 Relay 메일은 '알리 메일 자동 읽음 최근 기록'에 보낸 사람 이름 앞부분이 함께 나와서 원인을 찾을 수 있어요.
 
