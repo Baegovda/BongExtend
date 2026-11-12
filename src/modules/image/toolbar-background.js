@@ -141,8 +141,13 @@ export function startImageToolbarBackground(chromeApi = chrome) {
                 if (registered.length) await chromeApi.scripting.unregisterContentScripts({ids: [TOOLBAR_SCRIPT_ID]});
                 return;
             }
+            // 이전 버전은 맨 위 프레임에만 등록했어요. 모든 프레임(네이버 블로그 본문 iframe 등)으로 다시 등록해요.
+            if (registered.length && registered[0].allFrames !== true) {
+                await chromeApi.scripting.unregisterContentScripts({ids: [TOOLBAR_SCRIPT_ID]});
+                registered.length = 0;
+            }
             if (!registered.length) {
-                await chromeApi.scripting.registerContentScripts([{id: TOOLBAR_SCRIPT_ID, matches: ALL_HTTPS, js: [TOOLBAR_SCRIPT_FILE], runAt: "document_idle", persistAcrossSessions: true}]);
+                await chromeApi.scripting.registerContentScripts([{id: TOOLBAR_SCRIPT_ID, matches: ALL_HTTPS, js: [TOOLBAR_SCRIPT_FILE], allFrames: true, runAt: "document_idle", persistAcrossSessions: true}]);
             }
         } catch (error) {
             console.warn("이미지 도구 막대 등록을 갱신하지 못했어요.", error);

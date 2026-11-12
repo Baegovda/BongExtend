@@ -9,8 +9,11 @@ export default defineContentScript({
     registration: "runtime",
     runAt: "document_idle",
     main() {
-        if (window.top !== window) return;
+        // 네이버 블로그처럼 본문이 iframe 안에 있는 사이트도 있어서 모든 프레임에서 동작해요(작은 프레임은 사진 크기 조건으로 걸러져요).
         const flag = "__bongextendImageToolbar";
+        // 확장이 업데이트되면 이미 열려 있던 페이지의 옛 스크립트는 연결이 끊겨요. 그때는 새로고침을 안내해요.
+        const STALE = "확장 프로그램이 업데이트됐어요. 이 페이지를 새로고침해 주세요";
+        const stale = () => !chrome.runtime?.id;
         const scope = globalThis as unknown as Record<string, boolean | undefined>;
         if (scope[flag]) return;
         scope[flag] = true;
@@ -87,7 +90,7 @@ export default defineContentScript({
             item.type = "button"; item.className = "item";
             item.append(icon(paths).cloneNode(true), document.createTextNode(label));
             item.firstElementChild!.setAttribute("style", "width:17px;height:17px;flex:0 0 17px");
-            item.addEventListener("click", (event) => { event.stopPropagation(); closeMenus(); action(); });
+            item.addEventListener("click", (event) => { event.stopPropagation(); closeMenus(); if (stale()) { say(STALE); return; } action(); });
             return item;
         };
 
@@ -116,6 +119,7 @@ export default defineContentScript({
         };
 
         const send = async (message: Record<string, unknown>) => {
+            if (stale()) { say(STALE); return {ok: false, error: STALE}; }
             const reply = await chrome.runtime.sendMessage(message).catch((error: unknown) => ({ok: false, error: String(error)}));
             host.dataset.reply = `${String(message.type)}:${JSON.stringify(reply ?? null).slice(0, 80)}`;
             return reply;
@@ -138,6 +142,7 @@ export default defineContentScript({
             return navigator.clipboard.write([new ClipboardItem({"image/png": pngBlob})]);
         };
         const reasonOf = (error: unknown) => {
+            if (stale()) return STALE;
             const name = (error as {name?: string})?.name;
             const message = String((error as {message?: string})?.message || "");
             if (name === "NotAllowedError") return "클립보드 권한이 필요해요";
@@ -264,6 +269,7 @@ export default defineContentScript({
 
         void load();
         chrome.storage.onChanged.addListener((changes, area) => {
+            if (stale()) return;
             if (area === "local" && (changes[IMAGE_SETTINGS_KEY] || changes["core.modules"])) void load();
         });
     }
