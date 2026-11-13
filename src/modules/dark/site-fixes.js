@@ -60,6 +60,10 @@ html[data-darkreader-scheme="dark"] :is(.gnb_icon, .ico_arrow):empty,
 html[data-darkreader-scheme="dark"] :is(a, button, label, [role="button"])[aria-label]:empty {
   filter: invert(0.88) hue-rotate(180deg) !important;
 }
+/* 도구 줄 단추 글자(삭제·스팸신고 등)가 어둡게 남는 것을 밝은 중립색으로 */
+html[data-darkreader-scheme="dark"] :is(button, a, [role="button"], [class*="button"], [class*="btn"]) .text {
+  color: #d5d9df !important;
+}
 `,
   ignoreInlineStyle: [],
   ignoreImageAnalysis: [],
