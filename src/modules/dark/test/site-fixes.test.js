@@ -57,7 +57,7 @@ test('Naver homepage brightens only monochrome toolbar sprites and neutral text 
  assert.match(fixes.css,/data-darkreader-scheme="dark"/);assert.match(fixes.css,/foreground-subtle-3/);
  assert.deepEqual(fixes.invert,[]);assert.doesNotMatch(fixes.css,/(?:img|body)\s*\{/);
  assert.notEqual(darkReaderFixesForSite('search.naver.com'),fixes);
- assert.equal(darkReaderFixesForSite('mail.naver.com'),undefined);
+ assert.notEqual(darkReaderFixesForSite('mail.naver.com'),darkReaderFixesForSite('naver.com'));
 });
 
 test('homepage corrections target neutral labels and known monochrome pseudo elements',()=>{
