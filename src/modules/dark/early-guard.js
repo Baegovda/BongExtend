@@ -4,7 +4,10 @@
 // 이 임시 스타일은 배경색·글자색·color-scheme만 바꾸고 사진, 영상, 배경 이미지는 건드리지 않아요.
 
 export const EARLY_STYLE_ATTR = "data-bong-dark-early";
-const FAILSAFE_MS = 4000;
+const FAILSAFE_MS = 9000;
+// 다크 리더가 사이트의 바깥 스타일시트(네이버 등)를 읽어 어둡게 바꾸는 데 시간이 걸려요.
+// 그동안 원래의 흰 배경이 잠깐 드러나지 않도록, 페이지 로딩이 끝난 뒤에도 이 시간만큼 더 어두운 바탕을 유지해요.
+const SETTLE_MS = 700;
 
 export const earlyDarkCss = (background = "#181a1b", text = "#e8e6e3") =>
     `html{color-scheme:dark !important;}` +
@@ -12,7 +15,7 @@ export const earlyDarkCss = (background = "#181a1b", text = "#e8e6e3") =>
 
 const safeColor = (value, fallback) => (/^#[0-9a-f]{6}$/i.test(String(value || "")) ? value : fallback);
 
-export function createEarlyDarkGuard(doc, {background, text, schedule = (fn) => (doc.defaultView?.requestAnimationFrame ? doc.defaultView.requestAnimationFrame(fn) : setTimeout(fn, 16)), setTimer = setTimeout, clearTimer = clearTimeout} = {}) {
+export function createEarlyDarkGuard(doc, {background, text, schedule = (fn) => (doc.defaultView?.requestAnimationFrame ? doc.defaultView.requestAnimationFrame(fn) : setTimeout(fn, 16)), setTimer = setTimeout, clearTimer = clearTimeout, settleMs = SETTLE_MS} = {}) {
     let style = null;
     let timer = 0;
     let waiting = false;
@@ -47,8 +50,14 @@ export function createEarlyDarkGuard(doc, {background, text, schedule = (fn) => 
             clearTimer(timer);
             const remove = () => { style?.remove(); style = null; };
             if (!style) return;
-            if (immediate) remove();
-            else schedule(() => schedule(remove));
+            if (immediate) { remove(); return; }
+            // 두 프레임 뒤, 페이지 로딩이 끝나고 settleMs 가 더 지난 뒤에 걷어내요(실패해도 FAILSAFE_MS 에 걷어내요).
+            const afterSettle = () => { if (settleMs > 0) setTimer(remove, settleMs); else remove(); };
+            const whenLoaded = () => {
+                if (doc.readyState === "complete" || settleMs <= 0) afterSettle();
+                else doc.defaultView?.addEventListener("load", afterSettle, {once: true});
+            };
+            schedule(() => schedule(whenLoaded));
         },
         active: () => Boolean(style)
     };

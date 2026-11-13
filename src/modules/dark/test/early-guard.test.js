@@ -8,7 +8,7 @@ const frames = () => { const queue = []; return {schedule: (fn) => queue.push(fn
 test("paints the dark background immediately and removes it two frames after release", () => {
     const window = new Window({url: "https://example.com/"});
     const f = frames();
-    const guard = createEarlyDarkGuard(window.document, {schedule: f.schedule});
+    const guard = createEarlyDarkGuard(window.document, {schedule: f.schedule, settleMs: 0});
     guard.start();
     const style = window.document.querySelector(`style[${EARLY_STYLE_ATTR}]`);
     assert.ok(style, "style exists synchronously");
@@ -64,5 +64,22 @@ test("waits for the document root when the script runs before it exists", async 
     await new Promise((resolve) => setTimeout(resolve, 20));
     assert.equal(guard.active(), true);
     guard.release(true);
+    window.happyDOM.close();
+});
+
+test("keeps the dark backdrop for a settle period after load so the white page never shows through", () => {
+    const window = new Window({url: "https://example.com/"});
+    const f = frames();
+    const timers = [];
+    const guard = createEarlyDarkGuard(window.document, {schedule: f.schedule, setTimer: (fn, ms) => { timers.push({fn, ms}); return timers.length; }, clearTimer() {}, settleMs: 700});
+    guard.start();
+    guard.release();
+    f.flush();
+    assert.ok(window.document.querySelector(`style[${EARLY_STYLE_ATTR}]`), "still there right after the two frames");
+    if (window.document.readyState !== "complete") window.dispatchEvent(new window.Event("load"));
+    const settle = timers.find((timer) => timer.ms === 700);
+    assert.ok(settle, "a settle timer is waiting");
+    settle.fn();
+    assert.equal(window.document.querySelector(`style[${EARLY_STYLE_ATTR}]`), null);
     window.happyDOM.close();
 });
