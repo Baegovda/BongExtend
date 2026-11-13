@@ -43,6 +43,23 @@ html[data-darkreader-scheme="dark"] [class*="SettingView-module__btn_setting___"
   ignoreCSSUrl: []
 });
 
+// 네이버 메일: 왼쪽 메뉴·위쪽 아이콘은 어두운 회색 svg_* 아이콘이라 어두운 배경에서 안 보여요.
+// 글자는 건드리지 않고(가상 요소, 글자 없는 아이콘 칸만), 색 있는 아이콘은 색조를 유지해요.
+const NAVER_MAIL_FIXES = Object.freeze({
+  invert: [],
+  css: `
+html[data-darkreader-scheme="dark"] [class*="svg_"]::before,
+html[data-darkreader-scheme="dark"] [class*="svg_"]::after,
+html[data-darkreader-scheme="dark"] [class*="svg_"]:empty {
+  filter: invert(0.88) hue-rotate(180deg) !important;
+}
+`,
+  ignoreInlineStyle: [],
+  ignoreImageAnalysis: [],
+  disableStyleSheetsProxy: false,
+  ignoreCSSUrl: []
+});
+
 // Naver Search fix copied from Dark Reader's MIT-licensed dynamic-theme-fixes.config.
 // https://github.com/darkreader/darkreader/blob/main/src/config/dynamic-theme-fixes.config
 const NAVER_SEARCH_FIXES = Object.freeze({
@@ -96,6 +113,7 @@ const COUPANG_FIXES = Object.freeze({
 export const darkReaderFixesForSite = (hostname) => {
   const host = String(hostname || "").toLowerCase().replace(/^www\./, "");
   if (host === "naver.com") return NAVER_HOME_FIXES;
+  if (host === "mail.naver.com") return NAVER_MAIL_FIXES;
   if (host === "search.naver.com" || host === "m.search.naver.com") return NAVER_SEARCH_FIXES;
   if (host === "coupang.com" || host.endsWith(".coupang.com")) return COUPANG_FIXES;
   if (host === "fab.com" || host.endsWith(".fab.com")) return FAB_CSP_FIXES;

@@ -19,6 +19,13 @@ test("Naver Search keeps its upstream Dark Reader text fix", () => {
     assert.match(darkReaderFixesForSite("search.naver.com").css, /i\.spnew2/);
 });
 
+test("Naver Mail brightens its dark svg_* icons without touching text",()=>{
+    const css=darkReaderFixesForSite("mail.naver.com").css;
+    assert.match(css,/\[class\*="svg_"\]::before/);
+    assert.match(css,/\[class\*="svg_"\]:empty/);
+    assert.doesNotMatch(css,/\[class\*="svg_"\]\s*\{/);
+});
+
 test("unrelated sites keep Dark Reader's default stylesheet tracking", () => {
     assert.equal(darkReaderFixesForSite("example.com"), undefined);
     const fixes = withTranslationColors(darkReaderFixesForSite("gall.dcinside.com"));
