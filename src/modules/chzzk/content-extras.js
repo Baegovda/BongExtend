@@ -271,10 +271,8 @@
   // 재생 중 사이트가 자동으로 건 음소거를 되돌리고, 사용자가 직접 정한 음량은 저장한다.
   const DEFAULT_AUDIO = { muted: false, volume: 1 };
   let audioHold = { ...DEFAULT_AUDIO }, audioReady = false, audioPointerActive = false, audioUserChangePendingUntil = 0, restoreToken = 0, audioSaveTimer = 0;
-  BCStore.local.get({ audioPreference: DEFAULT_AUDIO }, value => {
-    audioHold = P.captureAudioState(value.audioPreference) || { ...DEFAULT_AUDIO };
-    audioReady = true;
-  });
+  // 방송을 켤 때마다 음량은 100%로 시작해요. 이전에 저장된 음량은 불러오지 않고, 시청 중에 직접 바꾼 값만 그 방송 동안 지켜요.
+  audioReady = true;
   // 저장소 응답이 늦어져도 첫 재생을 음소거로 방치하지 않는다.
   setTimeout(() => { audioReady = true; }, 1200);
   function contentVideo() {
