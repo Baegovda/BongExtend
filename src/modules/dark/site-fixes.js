@@ -50,7 +50,12 @@ const NAVER_MAIL_FIXES = Object.freeze({
   css: `
 html[data-darkreader-scheme="dark"] [class*="svg_"]::before,
 html[data-darkreader-scheme="dark"] [class*="svg_"]::after,
-html[data-darkreader-scheme="dark"] [class*="svg_"]:empty {
+html[data-darkreader-scheme="dark"] [class*="svg_"]:empty,
+/* 위쪽 서비스 아이콘 줄과, 보이는 글자 없이 .blind 글자만 가진 아이콘 단추/링크 */
+html[data-darkreader-scheme="dark"] #gnb_list a,
+html[data-darkreader-scheme="dark"] :is(a, button, label):has(> .blind:only-child),
+/* 별·중요 표시처럼 안이 비어 있고 이름(aria-label)만 있는 아이콘 단추 */
+html[data-darkreader-scheme="dark"] :is(a, button, label, [role="button"])[aria-label]:empty {
   filter: invert(0.88) hue-rotate(180deg) !important;
 }
 `,
