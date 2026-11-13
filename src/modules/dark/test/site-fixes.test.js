@@ -28,6 +28,7 @@ test("Naver Mail brightens its dark svg_* icons without touching text",()=>{
     assert.match(css,/\[aria-label\]:empty/);
     assert.match(css,/\.gnb_icon, \.ico_arrow\):empty/);
     assert.match(css,/\.text \{\s*color: #d5d9df/);
+    assert.match(css,/\.button_sender \{\s*color: #c5cbd4/);
     assert.doesNotMatch(css,/\[class\*="svg_"\]\s*\{/);
 });
 
