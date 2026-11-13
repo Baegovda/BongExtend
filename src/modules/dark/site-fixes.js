@@ -32,6 +32,14 @@ html[data-darkreader-scheme="dark"] #account :is([class*="nickname___"], [class*
 html[data-darkreader-scheme="dark"] [class*="DailyBoardView-module__"]:is([class*="btn_location___"], [class*="header_aside___"], [class*="weather_status___"], [class*="time___"]) {
   color: #d5d9df !important;
 }
+/* 첫 화면 카드는 테두리가 아니라 box-shadow 1px 고리로 그려져요. 어두운 배경에서는 그 고리가 흐려지고
+   안쪽 아래 줄(메일·카페·블로그·페이)이 잘려 보여서, 카드 전체에 같은 밝기의 고리를 명확히 그려요. */
+html[data-darkreader-scheme="dark"] [class*="Layout-module__content_area___"] {
+  box-shadow: 0 0 0 1px #3d434a !important;
+}
+html[data-darkreader-scheme="dark"] [class*="Layout-module__content_area___"] [class*="MyView-module__menu_area___"] {
+  box-shadow: none !important;
+}
 html[data-darkreader-scheme="dark"] #account :is([class*="thumb_setting___"], [class*="btn_next___"], [class*="btn_prev___"])::before,
 html[data-darkreader-scheme="dark"] [class*="SettingView-module__btn_setting___"]::before {
   filter: brightness(0) invert(0.88) !important;

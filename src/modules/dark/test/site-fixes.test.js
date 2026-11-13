@@ -19,6 +19,11 @@ test("Naver Search keeps its upstream Dark Reader text fix", () => {
     assert.match(darkReaderFixesForSite("search.naver.com").css, /i\.spnew2/);
 });
 
+test("Naver homepage draws one continuous ring around its cards",()=>{
+    const css=darkReaderFixesForSite("naver.com").css;
+    assert.match(css,/content_area___"\] \{\s*box-shadow: 0 0 0 1px #3d434a/);
+});
+
 test("Naver Mail brightens its dark svg_* icons without touching text",()=>{
     const css=darkReaderFixesForSite("mail.naver.com").css;
     assert.match(css,/\[class\*="svg_"\]::before/);
