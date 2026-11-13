@@ -76,6 +76,7 @@ test('Naver homepage brightens only monochrome toolbar sprites and neutral text 
 test('homepage corrections target neutral labels and known monochrome pseudo elements',()=>{
  const {css}=darkReaderFixesForSite('naver.com');
  for(const part of ['nickname___','item_link___','btn_location___','weather_status___','time___','thumb_setting___','btn_next___','SettingView-module__btn_setting___'])assert.ok(css.includes(part));
- assert.doesNotMatch(css,/opacity\s*:|visibility\s*:|display\s*:|weather_icon|dust_status/);
+ // 사용자가 직접 요청한 검색 로고 흰 칸 숨김(type_motion_n) 한 곳만 display를 허용해요.
+ assert.doesNotMatch(css.replace(/[^{}]*type_motion_n[^{}]*\{[^}]*\}/g,""),/opacity\s*:|visibility\s*:|display\s*:|weather_icon|dust_status/);
  assert.equal(darkReaderFixesForSite('note.naver.com'),undefined);
 });
