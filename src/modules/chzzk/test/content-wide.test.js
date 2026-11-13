@@ -42,6 +42,13 @@ test('an unfocused window keeps being retried without using up the attempt budge
   assert.equal(f.requests.length, 20, 'stops once the window finally accepted fullscreen');
 });
 
+test('a transiently unavailable window keeps being retried past the normal attempt budget', async t => {
+  const f = fixture(t, n => n < 20 ? {ok:false,status:'unavailable'} : {ok:true,status:'fullscreen'});
+  await new Promise(resolve => setImmediate(resolve));
+  for (let i=0; i<40; i++) await f.tick();
+  assert.equal(f.requests.length, 20, 'stops once the window finally accepted fullscreen');
+});
+
 test('manual fullscreen exit and disabled settings are not repeatedly overridden', async t => {
   for (const reply of [{ok:true,status:'manual-exit'}, {ok:false,status:'disabled'}]) {
     const f = fixture(t, () => reply);

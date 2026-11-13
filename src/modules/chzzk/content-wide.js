@@ -91,8 +91,10 @@
 
   // Only an actual wide-layout transition controls browser fullscreen, never a predicted button click.
   let lastWide = null, observedLayout = null, observedButton = null, frame = 0;
-  // 전체화면 요청이 일시적으로 안 먹히는 경우를 끝까지 포기하지 않고 계속 시도해요(간격은 최대 5초라 약 10분까지).
-  const MAX_REPORTS = 120;
+  const MAX_REPORTS = 12;
+  // 창 상태가 일시적으로 '사용 불가'라고 응답한 경우(Chrome이 직전 전환 중이거나 창 애니메이션 중)는 포기하지 않고 천천히 계속 시도해요(약 10분).
+  const MAX_UNAVAILABLE = 120;
+  let unavailableCount = 0;
   let reportGeneration = 0, reportAttempts = 0, reportPending = false, reportSettled = false, retryAt = 0;
   const wideObserver = new MutationObserver(() => {
     if (!frame) frame = requestAnimationFrame(() => {frame = 0; checkWide();});
@@ -108,7 +110,7 @@
     if (force || wide !== lastWide) {
       lastWide = wide;
       reportGeneration++;
-      reportAttempts = 0; reportPending = false; reportSettled = false; retryAt = 0;
+      reportAttempts = 0; reportPending = false; reportSettled = false; retryAt = 0; unavailableCount = 0;
     }
     if (reportSettled || reportPending || reportAttempts >= MAX_REPORTS || Date.now() < retryAt) return;
     const generation = reportGeneration;
@@ -122,6 +124,7 @@
       reportSettled = response?.ok === true || response?.status === 'disabled';
       // 창이 포커스를 잃은 상태('inactive')는 시도 횟수를 쓰지 않고 천천히 계속 확인해요. 포커스가 돌아오면 바로 다시 보내요.
       if (response?.status === 'inactive') { reportAttempts = Math.max(0, reportAttempts - 1); retryAt = Date.now() + 3000; }
+      else if (response?.status === 'unavailable' && !response.error && unavailableCount++ < MAX_UNAVAILABLE) { reportAttempts = Math.max(0, reportAttempts - 1); retryAt = Date.now() + 5000; }
       else retryAt = Date.now() + Math.min(RETRY_MS * reportAttempts, 5000);
     };
     void chrome.runtime.sendMessage({type:'BONG_CHZZK_WIDE_FULLSCREEN', wide}).then(complete, () => complete(null));
