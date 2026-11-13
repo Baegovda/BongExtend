@@ -78,7 +78,7 @@ const checkerPlusMailHome = $("checkerPlusMailHome") as HTMLButtonElement;
 const MAIL_ENGINE_KEY = "core.mailEngine";
 let mailEngine: "own" | "checker" | "" = "";
 const applyMailEngine = () => {
-    const own = mailEngine !== "checker";
+    const own = mailEngine === "own";
     checkerPlusMailFrame.hidden = own;
     $("legacyGmailPanel").hidden = !own;
     $("mailEngineOwn").hidden = own;
@@ -91,7 +91,7 @@ const setMailEngine = (next: "own" | "checker") => {
     void chrome.storage.local.set({[MAIL_ENGINE_KEY]: next});
 };
 void chrome.storage.local.get(MAIL_ENGINE_KEY).then((stored) => {
-    mailEngine = stored[MAIL_ENGINE_KEY] === "checker" ? "checker" : "own";
+    mailEngine = stored[MAIL_ENGINE_KEY] === "own" ? "own" : "checker";
     applyMailEngine();
     void renderOwnNaver();
 });
