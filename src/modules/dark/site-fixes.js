@@ -46,6 +46,10 @@ html[data-darkreader-scheme="dark"] .search_logo .link_naver.type_motion_n::befo
 html[data-darkreader-scheme="dark"] .search_logo .link_naver.type_motion_n::after {
   display: none !important;
 }
+/* 날씨 카드 제목 아래 구분선(info_group 위쪽 테두리)이 투명도 8%라 어두운 배경에서 흐려요 */
+html[data-darkreader-scheme="dark"] [class*="DailyBoardView-module__info_group___"] {
+  border-top-color: #3d434a !important;
+}
 /* 날씨 시간별 세로 눈금선은 검정 8% 투명이라 어두운 배경에서 안 보여요. 밝은 반투명 선으로 */
 html[data-darkreader-scheme="dark"] [class*="DailyBoardView-module__celsius___"]::before {
   background-color: rgba(255, 255, 255, 0.22) !important;
