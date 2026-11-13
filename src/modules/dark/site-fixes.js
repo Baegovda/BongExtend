@@ -53,19 +53,13 @@ html[data-darkreader-scheme="dark"] [class*="svg_"]::after,
 html[data-darkreader-scheme="dark"] [class*="svg_"]:empty,
 /* 위쪽 서비스 아이콘 줄과, 보이는 글자 없이 .blind 글자만 가진 아이콘 단추/링크 */
 html[data-darkreader-scheme="dark"] #gnb_list a,
-html[data-darkreader-scheme="dark"] :is(a, button, label):has(> .blind:only-child),
+/* 눈에 보이는 글자가 같이 들어 있는 단추(보낸 사람·메일함 이름 등)는 제외해요 */
+html[data-darkreader-scheme="dark"] :is(a, button, label):not(.button_sender, .mailbox_label, .unread_mail, .button_mailbox, .item, [class*="label"], [class*="sender"], [class*="subject"], [class*="text"]):has(> .blind:only-child),
 /* 별·중요 표시처럼 안이 비어 있고 이름(aria-label)만 있는 아이콘 단추 */
 /* 네이버 공통 상단바(GNB) 아이콘: 톡·알림·화살표처럼 비어 있는 아이콘 칸 */
 html[data-darkreader-scheme="dark"] :is(.gnb_icon, .ico_arrow):empty,
 html[data-darkreader-scheme="dark"] :is(a, button, label, [role="button"])[aria-label]:empty {
   filter: invert(0.88) hue-rotate(180deg) !important;
-}
-/* 메일 목록의 보낸 사람 칸: 읽은 메일이 거의 안 보일 만큼 흐려지는 것을 막아요 */
-html[data-darkreader-scheme="dark"] :is(.mail_sender, .mail_sender *) {
-  opacity: 1 !important;
-}
-html[data-darkreader-scheme="dark"] .button_sender {
-  color: #c5cbd4 !important;
 }
 /* 도구 줄 단추 글자(삭제·스팸신고 등)가 어둡게 남는 것을 밝은 중립색으로 */
 html[data-darkreader-scheme="dark"] :is(button, a, [role="button"], [class*="button"], [class*="btn"]) .text {
