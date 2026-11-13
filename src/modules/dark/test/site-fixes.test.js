@@ -24,6 +24,11 @@ test("Naver homepage draws one continuous ring around its cards",()=>{
     assert.match(css,/content_area___"\] \{\s*box-shadow: 0 0 0 1px #3d434a/);
 });
 
+test("Naver Shopping GNB logos and weather ticks are readable in dark mode",()=>{
+    assert.match(darkReaderFixesForSite("shopping.naver.com").css,/_gnbHeader_icon_"\] path \{\s*fill: #d5d9df/);
+    assert.match(darkReaderFixesForSite("naver.com").css,/celsius___"\]::before \{\s*background-color: rgba\(255, 255, 255, 0\.22\)/);
+});
+
 test("Naver Mail brightens its dark svg_* icons without touching text",()=>{
     const css=darkReaderFixesForSite("mail.naver.com").css;
     assert.match(css,/\[class\*="svg_"\]::before/);

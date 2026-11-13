@@ -46,6 +46,10 @@ html[data-darkreader-scheme="dark"] .search_logo .link_naver.type_motion_n::befo
 html[data-darkreader-scheme="dark"] .search_logo .link_naver.type_motion_n::after {
   display: none !important;
 }
+/* 날씨 시간별 세로 눈금선은 검정 8% 투명이라 어두운 배경에서 안 보여요. 밝은 반투명 선으로 */
+html[data-darkreader-scheme="dark"] [class*="DailyBoardView-module__celsius___"]::before {
+  background-color: rgba(255, 255, 255, 0.22) !important;
+}
 html[data-darkreader-scheme="dark"] #account :is([class*="thumb_setting___"], [class*="btn_next___"], [class*="btn_prev___"])::before,
 html[data-darkreader-scheme="dark"] [class*="SettingView-module__btn_setting___"]::before {
   filter: brightness(0) invert(0.88) !important;
@@ -89,6 +93,23 @@ html[data-darkreader-scheme="dark"] #gnb_list li:not(._mail) a::before {
 }
 /* 도구 줄 단추 글자(삭제·스팸신고 등)가 어둡게 남는 것을 밝은 중립색으로 */
 html[data-darkreader-scheme="dark"] :is(button, a, [role="button"], [class*="button"], [class*="btn"]) .text {
+  color: #d5d9df !important;
+}
+`,
+  ignoreInlineStyle: [],
+  ignoreImageAnalysis: [],
+  disableStyleSheetsProxy: false,
+  ignoreCSSUrl: []
+});
+
+// 네이버 쇼핑 상단(GNB)의 NAVER·Npay 로고는 svg 모양 자체가 어두운 회색이라 어두운 배경에서 안 보여요.
+const NAVER_SHOPPING_FIXES = Object.freeze({
+  invert: [],
+  css: `
+html[data-darkreader-scheme="dark"] [class*="_gnbHeader_icon_"] path {
+  fill: #d5d9df !important;
+}
+html[data-darkreader-scheme="dark"] [class*="_gnbHeader_link_"] {
   color: #d5d9df !important;
 }
 `,
@@ -152,6 +173,7 @@ export const darkReaderFixesForSite = (hostname) => {
   const host = String(hostname || "").toLowerCase().replace(/^www\./, "");
   if (host === "naver.com") return NAVER_HOME_FIXES;
   if (host === "mail.naver.com") return NAVER_MAIL_FIXES;
+  if (host === "shopping.naver.com") return NAVER_SHOPPING_FIXES;
   if (host === "search.naver.com" || host === "m.search.naver.com") return NAVER_SEARCH_FIXES;
   if (host === "coupang.com" || host.endsWith(".coupang.com")) return COUPANG_FIXES;
   if (host === "fab.com" || host.endsWith(".fab.com")) return FAB_CSP_FIXES;
