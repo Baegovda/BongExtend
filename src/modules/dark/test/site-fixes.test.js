@@ -24,6 +24,10 @@ test("Naver homepage draws one continuous ring around its cards",()=>{
     assert.match(css,/content_area___"\] \{\s*box-shadow: 0 0 0 1px #3d434a/);
 });
 
+test("Naver homepage hides the white motion overlay on the search logo",()=>{
+    assert.match(darkReaderFixesForSite("naver.com").css,/type_motion_n :is\(img, canvas/);
+});
+
 test("Naver Mail brightens its dark svg_* icons without touching text",()=>{
     const css=darkReaderFixesForSite("mail.naver.com").css;
     assert.match(css,/\[class\*="svg_"\]::before/);

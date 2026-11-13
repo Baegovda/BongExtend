@@ -40,6 +40,12 @@ html[data-darkreader-scheme="dark"] [class*="Layout-module__content_area___"] {
 html[data-darkreader-scheme="dark"] [class*="Layout-module__content_area___"] [class*="MyView-module__menu_area___"] {
   box-shadow: none !important;
 }
+/* 검색창 왼쪽 N 로고 자리에 흰 배경 그림이 겹쳐 흰 칸처럼 보이는 것을 숨겨요(로고 N 모양은 그대로) */
+html[data-darkreader-scheme="dark"] .search_logo .link_naver.type_motion_n :is(img, canvas, video, picture, object),
+html[data-darkreader-scheme="dark"] .search_logo .link_naver.type_motion_n::before,
+html[data-darkreader-scheme="dark"] .search_logo .link_naver.type_motion_n::after {
+  display: none !important;
+}
 html[data-darkreader-scheme="dark"] #account :is([class*="thumb_setting___"], [class*="btn_next___"], [class*="btn_prev___"])::before,
 html[data-darkreader-scheme="dark"] [class*="SettingView-module__btn_setting___"]::before {
   filter: brightness(0) invert(0.88) !important;
