@@ -34,7 +34,22 @@ export function collectDiagnosis(targetElementId) {
     chain.push(row);
   }
   const kids = [...el.children].slice(0, 6).map(read);
-  const text = JSON.stringify({host: location.hostname, scheme: document.documentElement.getAttribute("data-darkreader-scheme") || "", chain, kids});
+  // 눌린 요소 안쪽에서 가는 선(눈금선·구분선)과 svg 선/경로를 찾아 담아요(최대 40개).
+  const thin = [];
+  for (const d of el.querySelectorAll("*")) {
+    if (thin.length >= 40) break;
+    const r = d.getBoundingClientRect(), s = getComputedStyle(d);
+    const isSvgLine = /^(line|path|polyline|rect)$/i.test(d.tagName);
+    const lineLike = (r.width > 0 && r.width <= 3 && r.height >= 8) || (r.height > 0 && r.height <= 3 && r.width >= 8);
+    const ps = pseudo(d);
+    if (!(isSvgLine || lineLike || ps.length)) continue;
+    const row = {tag: d.tagName, cls: name(d), rect: [Math.round(r.x), Math.round(r.y), Math.round(r.width), Math.round(r.height)]};
+    if (isSvgLine) { row.stroke = s.stroke; row.strokeOp = s.strokeOpacity; row.fill = s.fill; row.sw = s.strokeWidth; }
+    if (lineLike) { row.bg = s.backgroundColor; row.border = [s.borderLeftWidth, s.borderLeftColor, s.borderTopWidth, s.borderTopColor].join(" "); }
+    if (ps.length) row.pseudo = ps;
+    thin.push(row);
+  }
+  const text = JSON.stringify({host: location.hostname, scheme: document.documentElement.getAttribute("data-darkreader-scheme") || "", chain, kids, thin});
   let copied = false;
   try {
     const area = document.createElement("textarea");
