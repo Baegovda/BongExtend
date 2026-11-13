@@ -6,10 +6,9 @@ export const YOUTUBE_SCRIPT_FILE = "content-scripts/youtube-hold.js";
 export const YOUTUBE_MATCHES = ["https://www.youtube.com/*"];
 export const HOLD_WINDOW_MS = 20000;
 
-// 탭을 연 방식으로 "자동 재생을 막을 상황"인지 판단해요.
-export function shouldHold({navigationType = "navigate", hidden = false, startupRecent = false, hasUserActivation = false} = {}) {
-    if (hasUserActivation) return false;
-    return navigationType === "reload" || navigationType === "back_forward" || hidden || startupRecent;
+// 페이지가 열릴 때 사용자가 아직 아무것도 누르지 않았으면 어떻게 열렸든(새 탭 직접 열기 포함) 막아요.
+export function shouldHold({hasUserActivation = false} = {}) {
+    return !hasUserActivation;
 }
 
 // 막기 시작한 뒤 사용자가 직접 한 일(클릭·키·터치)이 있으면 막기를 끝내요.

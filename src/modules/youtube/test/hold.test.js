@@ -2,13 +2,10 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {installHold, shouldHold} from "../hold.js";
 
-test("restored, reloaded or background tabs hold; a fresh visible click-through does not", () => {
-    assert.equal(shouldHold({navigationType: "reload"}), true);
-    assert.equal(shouldHold({navigationType: "back_forward"}), true);
-    assert.equal(shouldHold({hidden: true}), true);
-    assert.equal(shouldHold({startupRecent: true}), true);
-    assert.equal(shouldHold({navigationType: "navigate"}), false);
-    assert.equal(shouldHold({navigationType: "reload", hasUserActivation: true}), false);
+test("every page open holds until the user does something, including a directly opened new tab", () => {
+    assert.equal(shouldHold({}), true);
+    assert.equal(shouldHold({hasUserActivation: false}), true);
+    assert.equal(shouldHold({hasUserActivation: true}), false);
 });
 
 const fakeWin = (opts = {}) => {
@@ -54,9 +51,8 @@ test("an already playing video is stopped at install, and normal tabs are untouc
     installHold(fakeWin({type: "back_forward", videos: [v]}).win);
     assert.equal(v.paused, true);
     const w = video();
-    const hold = installHold(fakeWin({type: "navigate", videos: [w]}).win);
-    assert.equal(hold.isHolding(), false);
-    assert.equal(w.paused, false);
+    installHold(fakeWin({type: "navigate", videos: [w]}).win);
+    assert.equal(w.paused, true, "a directly opened new tab is held too");
 });
 
 test("the hold expires after its window", () => {
