@@ -5,6 +5,8 @@ import {darkStylesheetOrigins, fetchDarkStylesheet} from '@/modules/dark/css-res
 import {darkImageOrigins,fetchDarkImage} from '@/modules/dark/image-resource.js';
 // @ts-ignore pure JS
 import {startVideoHost} from "@/modules/downloads/video.js";
+// @ts-ignore plain JS diagnostic helper (serialized into the page)
+import {collectDiagnosis} from "@/modules/diagnose.js";
 // @ts-ignore pure JS
 import {videoSaveTarget} from "@/modules/downloads/video-menu.js";
 // @ts-ignore pure JS
@@ -602,6 +604,11 @@ export default defineBackground(() => {
             id: "bongDownloadAudio",
             title: "BongExtend로 오디오 다운로드",
             contexts: ["audio"]
+        },
+        {
+            id: "bongDiagnose",
+            title: "BongExtend 화면 진단 정보 복사",
+            contexts: ["all"]
         }
     ];
 
@@ -635,6 +642,12 @@ export default defineBackground(() => {
         if (!tab?.id) return;
         // 타입 안전 메시징: 활성 탭에 전달
         switch (info.menuItemId) {
+            case "bongDiagnose": {
+                // 이상해 보이는 요소의 색·필터 정보를 클립보드에 복사해요(글자 내용·입력값은 담지 않아요).
+                void chrome.scripting.executeScript({target: {tabId: tab.id, frameIds: info.frameId != null ? [info.frameId] : undefined}, func: collectDiagnosis, args: [(info as any).targetElementId ?? null]})
+                    .catch(() => chrome.notifications.create("bongextend-diagnose-error", {type: "basic", iconUrl: chrome.runtime.getURL("icons/128.png"), title: "화면 진단", message: "이 페이지에서는 진단 정보를 읽을 수 없어요."}));
+                break;
+            }
             case "blockSelected":
                 sendMessage("blockSelected", undefined, tab.id).catch(() => {});
                 break;
