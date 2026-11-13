@@ -21,7 +21,7 @@ test("Naver Search keeps its upstream Dark Reader text fix", () => {
 
 test("Naver homepage draws one continuous ring around its cards",()=>{
     const css=darkReaderFixesForSite("naver.com").css;
-    assert.match(css,/content_area___"\] \{\s*box-shadow: 0 0 0 1px #3d434a/);
+    assert.match(css,/content_area___"\] \{\s*box-shadow: 0 0 0 1px #4d555e/);
 });
 
 test("Naver Shopping GNB logos and weather ticks are readable in dark mode",()=>{

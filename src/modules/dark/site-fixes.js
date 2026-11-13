@@ -35,10 +35,15 @@ html[data-darkreader-scheme="dark"] [class*="DailyBoardView-module__"]:is([class
 /* 첫 화면 카드는 테두리가 아니라 box-shadow 1px 고리로 그려져요. 어두운 배경에서는 그 고리가 흐려지고
    안쪽 아래 줄(메일·카페·블로그·페이)이 잘려 보여서, 카드 전체에 같은 밝기의 고리를 명확히 그려요. */
 html[data-darkreader-scheme="dark"] [class*="Layout-module__content_area___"] {
-  box-shadow: 0 0 0 1px #3d434a !important;
+  box-shadow: 0 0 0 1px #4d555e !important;
 }
+/* 프로필 카드 아래 줄(메일·카페·블로그·페이)은 배경이 더 밝아 같은 선도 얇아 보여요: 같은 밝기의 테두리를 한 번 더 */
 html[data-darkreader-scheme="dark"] [class*="Layout-module__content_area___"] [class*="MyView-module__menu_area___"] {
-  box-shadow: none !important;
+  box-shadow: 0 0 0 1px #4d555e !important;
+}
+/* 오른쪽 > 동그라미 단추 테두리도 같은 밝기로 */
+html[data-darkreader-scheme="dark"] #account [class*="MyView-module__btn_next___"] {
+  border: 1px solid #4d555e !important;
 }
 /* 사용자 요청으로 예외: 검색창 왼쪽 로고 자리에 겹친 흰 칸(흰 배경 그림)을 숨겨요. N 모양은 그대로예요. */
 html[data-darkreader-scheme="dark"] .search_logo .link_naver.type_motion_n :is(img, canvas, video, picture, object),
