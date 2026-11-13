@@ -12,7 +12,6 @@ import {
     tokenPageUrls
 } from "./actions.js";
 import {GMAIL_SOUND_KEY, normalizeSound} from "./sound.js";
-import {looksLoggedOut, printViewUrl} from "./reader.js";
 import {paintToolbarBadge} from "../toolbar-badge.js";
 import {clampIntervalMs, dedupeAccounts, enabledAccounts, isDuplicateEmail, notificationId, notificationTitle, unreadOf} from "./watch.js";
 
@@ -512,25 +511,6 @@ function onMessage(message, _sender, sendResponse) {
                     error: error instanceof Error ? error.message : "메일을 바꾸지 못했어요.",
                     snapshot: after[SNAP_KEY] || previous
                 });
-            }
-        })();
-        return true;
-    }
-    if (type === "gmail-read-thread") {
-        (async () => {
-            const thread = String(message.thread || "");
-            if (!/^[0-9a-f]{6,32}$/i.test(thread)) { sendResponse({ok: false, error: "메일 번호를 알 수 없어요."}); return; }
-            try {
-                for (const fresh of [false, true]) {
-                    const tokens = await tokensForAccount(message.account, fresh);
-                    if (!tokens?.ik) continue;
-                    const response = await fetch(printViewUrl(message.account, tokens.ik, thread), {credentials: "include", redirect: "follow"});
-                    const html = response.ok ? await response.text() : "";
-                    if (html && !looksLoggedOut(html, response.url)) { sendResponse({ok: true, html}); return; }
-                }
-                sendResponse({ok: false, error: "메일 내용을 불러오지 못했어요. Gmail 로그인 상태를 확인해 주세요."});
-            } catch (error) {
-                sendResponse({ok: false, error: error instanceof Error ? error.message : "메일 내용을 불러오지 못했어요."});
             }
         })();
         return true;
