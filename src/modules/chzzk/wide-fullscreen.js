@@ -75,7 +75,19 @@ export function startWideFullscreenBridge(chrome = globalThis.chrome, {sleep = m
     if (stored['core.modules']?.chzzk === false || prefs['chzzk.wideFullscreen'] === false) return {ok:false, status:'disabled'};
     if (!tab.active || tab.windowId !== windowId || !window.focused || !watchPage(tab.url) ||
         new URL(tab.url).pathname !== new URL(sender.url).pathname) return {ok:false, status:'inactive'};
-    if (sameOwner(entry, sender)) return {ok:true, status:entry.manualExit ? 'manual-exit' : 'fullscreen'};
+    if (sameOwner(entry, sender)) {
+      if (entry.manualExit) return {ok:true, status:'manual-exit'};
+      if (window.state === 'fullscreen') {
+        // 같은 문서에서 다른 방송으로 넘어간 경우: 전체화면은 그대로 두고 현재 주소만 기억해요.
+        const path = pageDir(sender.url);
+        if (entry.path !== path) { entry.path = path; await save(entries); }
+        return {ok:true, status:'fullscreen'};
+      }
+      // 전체화면이 풀렸는데 사용자가 직접 끈 기록은 없으면(상태 기록이 어긋난 경우) 기록을 지우고 다시 들어가요.
+      delete entries[windowId];
+      await save(entries);
+      return apply(wide, sender);
+    }
     // 같은 탭이 새로고침되어 문서만 바뀐 경우에는 전체화면을 풀지 않고 소유권만 이어받는다.
     if (entry && entry.tabId === sender.tab.id && window.state === 'fullscreen' && !entry.manualExit) {
       entry.documentId = sender.documentId;

@@ -184,3 +184,11 @@ test('size events while we are entering fullscreen are not mistaken for a manual
   assert.equal((await f.send(true)).status, 'fullscreen', 'not manual-exit');
   assert.equal(f.session[WIDE_FULLSCREEN_KEY][9].manualExit, undefined);
 });
+
+test('fullscreen lost without a manual-exit record is re-entered on the next wide report', async () => {
+  const f = fixture(); await f.send(true);
+  f.windows.get(9).state = 'normal'; // 이벤트 없이 상태만 어긋남
+  const response = await f.send(true);
+  assert.equal(response.ok, true);
+  assert.equal(f.windows.get(9).state, 'fullscreen');
+});

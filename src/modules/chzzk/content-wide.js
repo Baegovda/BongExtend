@@ -91,7 +91,8 @@
 
   // Only an actual wide-layout transition controls browser fullscreen, never a predicted button click.
   let lastWide = null, observedLayout = null, observedButton = null, frame = 0;
-  const MAX_REPORTS = 12;
+  // 전체화면 요청이 일시적으로 안 먹히는 경우를 끝까지 포기하지 않고 계속 시도해요(간격은 최대 5초라 약 10분까지).
+  const MAX_REPORTS = 120;
   let reportGeneration = 0, reportAttempts = 0, reportPending = false, reportSettled = false, retryAt = 0;
   const wideObserver = new MutationObserver(() => {
     if (!frame) frame = requestAnimationFrame(() => {frame = 0; checkWide();});
