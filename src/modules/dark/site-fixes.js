@@ -41,6 +41,10 @@ html[data-darkreader-scheme="dark"] [class*="Layout-module__content_area___"] {
 html[data-darkreader-scheme="dark"] [class*="Layout-module__content_area___"] [class*="MyView-module__menu_area___"] {
   box-shadow: 0 0 0 1px #4d555e !important;
 }
+/* 로그아웃 단추 테두리가 투명도 8%라 안 보여요 */
+html[data-darkreader-scheme="dark"] #account [class*="MyView-module__btn_logout___"] {
+  border-color: #4d555e !important;
+}
 /* 오른쪽 > 동그라미 단추 테두리도 같은 밝기로 */
 html[data-darkreader-scheme="dark"] #account [class*="MyView-module__btn_next___"] {
   border: 1px solid #4d555e !important;
