@@ -55,6 +55,8 @@ html[data-darkreader-scheme="dark"] [class*="svg_"]:empty,
 html[data-darkreader-scheme="dark"] #gnb_list a,
 html[data-darkreader-scheme="dark"] :is(a, button, label):has(> .blind:only-child),
 /* 별·중요 표시처럼 안이 비어 있고 이름(aria-label)만 있는 아이콘 단추 */
+/* 네이버 공통 상단바(GNB) 아이콘: 톡·알림·화살표처럼 비어 있는 아이콘 칸 */
+html[data-darkreader-scheme="dark"] :is(.gnb_icon, .ico_arrow):empty,
 html[data-darkreader-scheme="dark"] :is(a, button, label, [role="button"])[aria-label]:empty {
   filter: invert(0.88) hue-rotate(180deg) !important;
 }
