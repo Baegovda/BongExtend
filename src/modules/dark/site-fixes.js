@@ -46,6 +46,15 @@ html[data-darkreader-scheme="dark"] .search_logo .link_naver.type_motion_n::befo
 html[data-darkreader-scheme="dark"] .search_logo .link_naver.type_motion_n::after {
   display: none !important;
 }
+/* 탭·뉴스 영역의 세로 구분선과 점 구분 표시도 검정 15% 투명이라 어두운 배경에서 안 보여요 */
+html[data-darkreader-scheme="dark"] [class*="ContentHeaderView-module__tab_item___"]::before,
+html[data-darkreader-scheme="dark"] [class*="ContentHeaderView-module__tab_text___"]::before,
+html[data-darkreader-scheme="dark"] [class*="ContentHeaderSubView-module__sub_news___"]::before,
+html[data-darkreader-scheme="dark"] [class*="ContentHeaderSubView-module__link_home___"]::before,
+html[data-darkreader-scheme="dark"] [class*="ContentHeaderSubView-module__news_media___"]::after,
+html[data-darkreader-scheme="dark"] [class*="MediaNewsView-module__news_text___"]::before {
+  background-color: rgba(255, 255, 255, 0.22) !important;
+}
 /* 날씨 카드 제목 아래 구분선(info_group 위쪽 테두리)이 투명도 8%라 어두운 배경에서 흐려요 */
 html[data-darkreader-scheme="dark"] [class*="DailyBoardView-module__info_group___"] {
   border-top-color: #3d434a !important;

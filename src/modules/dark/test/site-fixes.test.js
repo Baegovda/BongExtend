@@ -26,6 +26,7 @@ test("Naver homepage draws one continuous ring around its cards",()=>{
 
 test("Naver Shopping GNB logos and weather ticks are readable in dark mode",()=>{
     assert.match(darkReaderFixesForSite("shopping.naver.com").css,/_gnbHeader_icon_"\] path \{\s*fill: #d5d9df/);
+    assert.match(darkReaderFixesForSite("naver.com").css,/tab_item___"\]::before,/);
     assert.match(darkReaderFixesForSite("naver.com").css,/info_group___"\] \{\s*border-top-color: #3d434a/);
     assert.match(darkReaderFixesForSite("naver.com").css,/celsius___"\]::before \{\s*background-color: rgba\(255, 255, 255, 0\.22\)/);
 });
