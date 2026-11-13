@@ -270,6 +270,7 @@
   const boosted = new Set();
   // 재생 중 사이트가 자동으로 건 음소거를 되돌리고, 사용자가 직접 정한 음량은 저장한다.
   const DEFAULT_AUDIO = { muted: false, volume: 1 };
+  let lastPlayerGesture = 0;
   let audioHold = { ...DEFAULT_AUDIO }, audioReady = false, audioPointerActive = false, audioUserChangePendingUntil = 0, restoreToken = 0, audioSaveTimer = 0;
   // 방송을 켤 때마다 음량은 100%로 시작해요. 이전에 저장된 음량은 불러오지 않고, 시청 중에 직접 바꾼 값만 그 방송 동안 지켜요.
   audioReady = true;
@@ -293,7 +294,15 @@
   function watchContentAudio(v) {
     if (!v || v._bongAudioWatch || (v.closest && v.closest(P.AD_CONTAINER_SEL))) return;
     v._bongAudioWatch = 1;
-    v.addEventListener('volumechange', () => scheduleAudioEnforcement(v, [0, 80, 250]));
+    v.addEventListener('volumechange', () => {
+      // 플레이어 안에서 방금 사용자가 만진 뒤의 음량 변화는 사용자의 선택이에요(슬라이더·휠·방향키 등 어떤 방식이든).
+      if (Date.now() - lastPlayerGesture < 2000 && !adWasActive && !globalThis.__bongAdActive) {
+        audioUserChangePendingUntil = Date.now() + 1500;
+        queueUserAudioSave();
+        return;
+      }
+      scheduleAudioEnforcement(v, [0, 80, 250]);
+    });
     v.addEventListener('playing', () => scheduleAudioEnforcement(v, [0, 120, 400, 1000, 2200]));
   }
   function userAudioTarget(e) {
@@ -337,6 +346,11 @@
   }, true);
   document.addEventListener('pointercancel', e => { if (audioPointerActive) noteUserAudio(e); }, true);
   document.addEventListener('keydown', e => { if (userAudioTarget(e)) noteUserAudio(e); }, true);
+  // 어떤 방식으로 음량을 바꿨는지 몰라도, 플레이어 안의 실제 사용자 조작 직후면 그 변화를 사용자 선택으로 봐요.
+  const inPlayer = e => !!(e.target && e.target.closest && e.target.closest('div.pzp, #live_player_layout'));
+  for (const type of ['pointerdown', 'pointerup', 'keydown', 'wheel', 'input', 'change']) {
+    document.addEventListener(type, e => { if (e.isTrusted && inPlayer(e)) lastPlayerGesture = Date.now(); }, true);
+  }
   function scheduleLiveAudioRestore() {
     const token = ++restoreToken;
     const apply = () => {
