@@ -21,6 +21,8 @@ const progressWrap = $("progress");
 const progressBar = $("progressBar");
 const progressText = $("progressText");
 let monotonic = createMonotonic();
+const BASE_TITLE = document.title || "BongExtend 업데이트";
+const megabytes = (bytes: number) => (bytes / 1048576).toFixed(1);
 
 const showProgress = (stage: ProgressStage, done = 0, total: number | null = null) => {
     const view = computeProgress(stage, done, total);
@@ -32,7 +34,15 @@ const showProgress = (stage: ProgressStage, done = 0, total: number | null = nul
         else progressWrap.setAttribute("aria-valuenow", String(Math.round(percent)));
     }
     if (progressBar) progressBar.style.width = percent === null ? "" : `${percent}%`;
-    if (progressText) progressText.textContent = percent === null ? "" : `전체 ${Math.floor(percent)}%`;
+    // 받는 중엔 용량(MB), 설치 중엔 파일 개수(n/n)를 같이 보여줘요.
+    const detail = total && total > 0
+        ? (stage === "write" ? `${done}/${total}` : stage === "download" ? `${megabytes(done)}/${megabytes(total)}MB` : "")
+        : "";
+    const percentText = percent === null ? "" : `${Math.floor(percent)}%`;
+    if (progressText) progressText.textContent = percent === null ? "" : `전체 ${percentText}${detail ? ` · ${detail}` : ""}`;
+    // 탭을 보고 있지 않아도 탭 이름만으로 진행 상황을 알 수 있게 제목에 넣어요.
+    document.title = stage === "done" ? "✓ 업데이트 완료 · BongExtend"
+        : percentText || detail ? `${[percentText, detail].filter(Boolean).join(" ")} · ${BASE_TITLE}` : BASE_TITLE;
     setStatus(view.label);
 };
 
@@ -40,6 +50,7 @@ const resetProgress = () => {
     monotonic = createMonotonic();
     if (progressWrap) progressWrap.hidden = true;
     if (progressBar) progressBar.style.width = "0%";
+    document.title = BASE_TITLE;
 };
 
 const setError = (text: string) => {
