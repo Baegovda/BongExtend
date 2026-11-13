@@ -19,17 +19,8 @@ test("Naver Search keeps its upstream Dark Reader text fix", () => {
     assert.match(darkReaderFixesForSite("search.naver.com").css, /i\.spnew2/);
 });
 
-test("Naver homepage draws one continuous ring around its cards",()=>{
-    const css=darkReaderFixesForSite("naver.com").css;
-    assert.match(css,/content_area___"\] \{\s*box-shadow: 0 0 0 1px #4d555e/);
-});
-
-test("Naver Shopping GNB logos and weather ticks are readable in dark mode",()=>{
+test("Naver Shopping GNB logos are readable in dark mode",()=>{
     assert.match(darkReaderFixesForSite("shopping.naver.com").css,/_gnbHeader_icon_"\] path \{\s*fill: #d5d9df/);
-    assert.match(darkReaderFixesForSite("naver.com").css,/btn_logout___"\] \{\s*border-color: #4d555e/);
-    assert.match(darkReaderFixesForSite("naver.com").css,/tab_item___"\]::before,/);
-    assert.match(darkReaderFixesForSite("naver.com").css,/info_group___"\] \{\s*border-top-color: #3d434a/);
-    assert.match(darkReaderFixesForSite("naver.com").css,/celsius___"\]::before \{\s*background-color: rgba\(255, 255, 255, 0\.22\)/);
 });
 
 test("Naver Mail brightens its dark svg_* icons without touching text",()=>{

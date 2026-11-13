@@ -32,45 +32,11 @@ html[data-darkreader-scheme="dark"] #account :is([class*="nickname___"], [class*
 html[data-darkreader-scheme="dark"] [class*="DailyBoardView-module__"]:is([class*="btn_location___"], [class*="header_aside___"], [class*="weather_status___"], [class*="time___"]) {
   color: #d5d9df !important;
 }
-/* 첫 화면 카드는 테두리가 아니라 box-shadow 1px 고리로 그려져요. 어두운 배경에서는 그 고리가 흐려지고
-   안쪽 아래 줄(메일·카페·블로그·페이)이 잘려 보여서, 카드 전체에 같은 밝기의 고리를 명확히 그려요. */
-html[data-darkreader-scheme="dark"] [class*="Layout-module__content_area___"] {
-  box-shadow: 0 0 0 1px #4d555e !important;
-}
-/* 프로필 카드 아래 줄(메일·카페·블로그·페이)은 배경이 더 밝아 같은 선도 얇아 보여요: 같은 밝기의 테두리를 한 번 더 */
-html[data-darkreader-scheme="dark"] [class*="Layout-module__content_area___"] [class*="MyView-module__menu_area___"] {
-  box-shadow: 0 0 0 1px #4d555e !important;
-}
-/* 로그아웃 단추 테두리가 투명도 8%라 안 보여요 */
-html[data-darkreader-scheme="dark"] #account [class*="MyView-module__btn_logout___"] {
-  border-color: #4d555e !important;
-}
-/* 오른쪽 > 동그라미 단추 테두리도 같은 밝기로 */
-html[data-darkreader-scheme="dark"] #account [class*="MyView-module__btn_next___"] {
-  border: 1px solid #4d555e !important;
-}
 /* 사용자 요청으로 예외: 검색창 왼쪽 로고 자리에 겹친 흰 칸(흰 배경 그림)을 숨겨요. N 모양은 그대로예요. */
 html[data-darkreader-scheme="dark"] .search_logo .link_naver.type_motion_n :is(img, canvas, video, picture, object),
 html[data-darkreader-scheme="dark"] .search_logo .link_naver.type_motion_n::before,
 html[data-darkreader-scheme="dark"] .search_logo .link_naver.type_motion_n::after {
   display: none !important;
-}
-/* 탭·뉴스 영역의 세로 구분선과 점 구분 표시도 검정 15% 투명이라 어두운 배경에서 안 보여요 */
-html[data-darkreader-scheme="dark"] [class*="ContentHeaderView-module__tab_item___"]::before,
-html[data-darkreader-scheme="dark"] [class*="ContentHeaderView-module__tab_text___"]::before,
-html[data-darkreader-scheme="dark"] [class*="ContentHeaderSubView-module__sub_news___"]::before,
-html[data-darkreader-scheme="dark"] [class*="ContentHeaderSubView-module__link_home___"]::before,
-html[data-darkreader-scheme="dark"] [class*="ContentHeaderSubView-module__news_media___"]::after,
-html[data-darkreader-scheme="dark"] [class*="MediaNewsView-module__news_text___"]::before {
-  background-color: rgba(255, 255, 255, 0.22) !important;
-}
-/* 날씨 카드 제목 아래 구분선(info_group 위쪽 테두리)이 투명도 8%라 어두운 배경에서 흐려요 */
-html[data-darkreader-scheme="dark"] [class*="DailyBoardView-module__info_group___"] {
-  border-top-color: #3d434a !important;
-}
-/* 날씨 시간별 세로 눈금선은 검정 8% 투명이라 어두운 배경에서 안 보여요. 밝은 반투명 선으로 */
-html[data-darkreader-scheme="dark"] [class*="DailyBoardView-module__celsius___"]::before {
-  background-color: rgba(255, 255, 255, 0.22) !important;
 }
 html[data-darkreader-scheme="dark"] #account :is([class*="thumb_setting___"], [class*="btn_next___"], [class*="btn_prev___"])::before,
 html[data-darkreader-scheme="dark"] [class*="SettingView-module__btn_setting___"]::before {

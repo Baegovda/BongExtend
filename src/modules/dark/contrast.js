@@ -12,6 +12,39 @@ export const contrastRatio = (a, b) => (Math.max(luminance(a), luminance(b)) + .
 export const readableColor = (foreground, background, target = 4.5) => {
   return repairColor(foreground, color => contrastRatio(composite(color, background), background), target);
 };
+// Faint neutral/brown hairline (low alpha) that vanishes on a dark surface:
+// return a light translucent neutral with a visible edge, else null. Saturated
+// semantic colours, strong lines and opaque fills are never touched.
+export const hairlineColor = (color, back) => {
+  if (!color || !back || !(color[3] > 0) || color[3] > .25) return null;
+  if (Math.max(...color.slice(0, 3)) - Math.min(...color.slice(0, 3)) > 60) return null;
+  if (contrastRatio(composite(color, back), back) >= 1.35) return null;
+  for (const alpha of [.14, .18, .22, .26, .3]) {
+    if (contrastRatio(composite([255, 255, 255, alpha], back), back) >= 1.7) return `rgba(255, 255, 255, ${alpha})`;
+  }
+  return null;
+};
+// Repair 1-3px box-shadow rings ("0 0 0 1px colour"); other shadows are kept.
+export const ringShadow = (shadow, back) => {
+  if (!shadow || shadow === 'none') return null;
+  const parts = []; let depth = 0, start = 0;
+  for (let i = 0; i < shadow.length; i++) {
+    if (shadow[i] === '(') depth++; else if (shadow[i] === ')') depth--;
+    else if (shadow[i] === ',' && !depth) {parts.push(shadow.slice(start, i)); start = i + 1;}
+  }
+  parts.push(shadow.slice(start));
+  let changed = false;
+  const next = parts.map(part => {
+    const color = part.match(/rgba?\([^)]+\)/)?.[0];
+    if (!color || /inset/.test(part)) return part;
+    const nums = part.replace(color, '').trim().split(/\s+/).map(parseFloat);
+    if (nums.length !== 4 || nums[0] !== 0 || nums[1] !== 0 || nums[2] !== 0 || !(nums[3] >= 1 && nums[3] <= 3)) return part;
+    const fixed = hairlineColor(parseColor(color), back);
+    if (!fixed) return part;
+    changed = true; return part.replace(color, fixed);
+  });
+  return changed ? next.join(',') : null;
+};
 const repairColor = (foreground, ratio, target) => {
   if (ratio(foreground) >= target) return null;
   // Preserve hue by moving toward white; never recolor saturated semantic colors.
@@ -23,7 +56,7 @@ const repairColor = (foreground, ratio, target) => {
   return null;
 };
 
-export function createContrastController(doc = document, {inspectImage, inspectPseudo, inspectPhoto} = {}) {
+export function createContrastController(doc = document, {inspectImage, inspectPseudo, inspectPhoto, inspectHairline} = {}) {
   const win = doc.defaultView;
   const excluded = 'img,picture,video,canvas,iframe,script,style,noscript,[hidden],[inert],[aria-hidden="true"],[disabled],[aria-disabled="true"],[contenteditable="true"],[data-bong-contrast-ignore],.pt-page-translator-sweep,[role="img"],.gmail_quote,.a3s,.ii,[data-message-id]';
   const records = new WeakMap(), refs = new Set(), elementRefs = new WeakMap(), ownStyles = new WeakMap(), markers = new WeakMap();
@@ -144,7 +177,7 @@ export function createContrastController(doc = document, {inspectImage, inspectP
     if (Number(s.opacity) < .99) return;
     const bg = background(el);
     if (!bg) return;
-    if (luminance(bg) <= .25) inspectPseudo?.(el, bg);
+    if (luminance(bg) <= .25) {inspectPseudo?.(el, bg); inspectHairline?.(el, bg);}
     // Associate only explicit legend modifiers with matching data category values.
     // No domain names, dates, counts, text rewriting or chart-wide recoloring.
     if (rect.width >= 4 && rect.width <= 40 && rect.height >= 4 && rect.height <= 40 && !el.textContent.trim()) {
@@ -163,6 +196,26 @@ export function createContrastController(doc = document, {inspectImage, inspectP
       }
     }
     if (luminance(bg) > .25) return;
+    // Generic faint hairlines on a dark surface: borders, 1-3px ring shadows and
+    // empty 1-3px bars. Owned inline paint only; restored on stop().
+    let repairedEdge = false;
+    if (el.namespaceURI === 'http://www.w3.org/1999/xhtml' && el !== doc.body && el !== doc.documentElement && !changingPaint(el, s)) {
+      const outer = el.parentElement && background(el.parentElement) || bg;
+      for (const side of ['Top', 'Right', 'Bottom', 'Left']) {
+        const width = parseFloat(s[`border${side}Width`]);
+        if (!(width > 0 && width <= 3) || s[`border${side}Style`] !== 'solid') continue;
+        const next = hairlineColor(parseColor(s[`border${side}Color`]), bg);
+        if (next) {write(el, `border-${side.toLowerCase()}-color`, next); repairedEdge = true;}
+      }
+      const ring = ringShadow(s.boxShadow, outer);
+      if (ring) {write(el, 'box-shadow', ring); repairedEdge = true;}
+      // An empty 1-3px element (divider/tick) filled with a faint colour.
+      const fill = parseColor(s.backgroundColor);
+      if (fill && fill[3] > 0 && !el.firstChild && Math.min(rect.width, rect.height) <= 3 && Math.max(rect.width, rect.height) <= 800 && s.backgroundImage === 'none') {
+        const next = hairlineColor(fill, outer);
+        if (next) write(el, 'background-color', next);
+      }
+    }
     const iconSvg = el.namespaceURI === 'http://www.w3.org/2000/svg' && el.closest('svg');
     const iconRect = iconSvg && (iconSvg === el ? rect : iconSvg.getBoundingClientRect());
     const smallIcon = iconSvg && iconRect.width <= 40 && iconRect.height <= 40 && el.closest('button,a,[role="button"]') && !iconSvg.querySelector('mask,filter,use,style,pattern,animate,animateTransform,animateMotion,set') && iconSvg.querySelectorAll('*').length <= 24;
@@ -216,7 +269,7 @@ export function createContrastController(doc = document, {inspectImage, inspectP
     if (rounded && (closedBorder || s.boxShadow !== 'none') && surface?.[3] > .9 && parent && contrastRatio(bg, parent) < 1.3) {
       const visibleBorder = sides.some(side => {const color = parseColor(s[`border${side}Color`]); return parseFloat(s[`border${side}Width`]) > 0 && !['none','hidden'].includes(s[`border${side}Style`]) && color && contrastRatio(composite(color, bg), bg) >= 1.6;});
       const visibleShadow = (s.boxShadow.match(/rgba?\([^)]+\)/g) || []).some(value => {const color = parseColor(value); return color && contrastRatio(composite(color, parent), parent) >= 1.8;});
-      if (visibleBorder || visibleShadow) return;
+      if (visibleBorder || visibleShadow || repairedEdge) return;
       write(el, 'outline', '1px solid rgba(190, 202, 218, 0.35)');
       write(el, 'outline-offset', '-1px');
       // Strengthen the edge without conditionally tinting nested card fills.

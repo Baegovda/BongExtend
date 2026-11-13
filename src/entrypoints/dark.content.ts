@@ -7,6 +7,7 @@ import {darkStylesheetOrigins} from "@/modules/dark/css-resource.js";
 import {darkFrameHost} from "@/modules/dark/frame-host.js";
 import {createContrastController} from "@/modules/dark/contrast.js";
 import {createPseudoContrastController} from "@/modules/dark/pseudo-contrast.js";
+import {createHairlineController} from "@/modules/dark/hairline-contrast.js";
 import {createIconContrastController} from "@/modules/dark/icon-contrast.js";
 import {createPaintGuard, createImageBlendGuard} from "@/modules/dark/paint-guard.js";
 // @ts-ignore plain JS: instant dark backdrop before the settings are read
@@ -67,19 +68,20 @@ export default defineContentScript({
         early.start();
         const icons = createIconContrastController(document, () => contrast.update(), {fetchImage: fetchDarkImage});
         const pseudo = createPseudoContrastController(document);
+        const hairline = createHairlineController(document);
         const photos = createImageBlendGuard(document);
-        const contrast = createContrastController(document, {inspectImage: icons.inspect, inspectPseudo: pseudo.inspect, inspectPhoto: photos.inspect});
+        const contrast = createContrastController(document, {inspectImage: icons.inspect, inspectPseudo: pseudo.inspect, inspectHairline: hairline.inspect, inspectPhoto: photos.inspect});
         const paint = createPaintGuard(document);
         let contrastEnabled = false;
         const syncContrast = () => {
-            if (contrastEnabled && document.documentElement?.getAttribute("data-darkreader-scheme") === "dark") {paint.start(); icons.start(); pseudo.start(); contrast.start();}
-            else {paint.stop(); photos.stop(); icons.stop(); pseudo.stop(); contrast.stop();}
+            if (contrastEnabled && document.documentElement?.getAttribute("data-darkreader-scheme") === "dark") {paint.start(); icons.start(); pseudo.start(); hairline.start(); contrast.start();}
+            else {paint.stop(); photos.stop(); icons.stop(); pseudo.stop(); hairline.stop(); contrast.stop();}
         };
         let observedRoot: HTMLElement | null = null;
         const onCleanup = () => {
             paint.stop();
             photos.stop();
-            icons.stop(); pseudo.stop();
+            icons.stop(); pseudo.stop(); hairline.stop();
             contrast.stop();
             document.documentElement?.removeAttribute("data-bong-dark-proxy");
         };
@@ -144,7 +146,7 @@ export default defineContentScript({
                 contrastEnabled = false;
                 paint.stop();
                 photos.stop();
-                icons.stop(); pseudo.stop();
+                icons.stop(); pseudo.stop(); hairline.stop();
                 contrast.stop();
                 if (modules.dark === false || !darkSiteEnabled(settings, hostname)) {
                     auto(false);
@@ -185,7 +187,7 @@ export default defineContentScript({
                 contrastEnabled = false;
                 paint.stop();
                 photos.stop();
-                icons.stop(); pseudo.stop();
+                icons.stop(); pseudo.stop(); hairline.stop();
                 contrast.stop();
                 console.error("BongExtend 다크 모드를 적용하지 못했어요.", error);
             }
