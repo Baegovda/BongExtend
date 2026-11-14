@@ -106,9 +106,9 @@ input[type=number],select,button{background:var(--be-control-bg,var(--be-surface
 <label class="sub">새로고침 간격<select id="followInterval"><option value="5">5초</option><option value="10">10초</option><option value="30">30초</option><option value="60">60초</option></select></label>
 </section>
 <section class="be-card">
-<h4>관심 스트리머 자동 이동</h4>
-<p class="hint">① 보고 있는 채널이나 주소를 추가해요.<br>② 자동 이동을 켜면 방송 시작을 확인해 이동해요.</p>
-<label>방송을 켜면 바로 이동<input type="checkbox" id="watchEnabled"></label>
+<h4>관심 스트리머 방송 시작 시 새 탭 열기</h4>
+<p class="hint">① 보고 싶은 스트리머의 채널 주소를 추가해요.<br>② 켜 두면 치지직을 열어 두지 않아도 방송이 시작될 때 새 탭으로 열어 줘요(30초 안에).</p>
+<label>방송을 켜면 새 탭으로 열기<input type="checkbox" id="watchEnabled"></label>
 <div class="watch-row"><input id="watchInput" aria-label="추가할 채널 주소 또는 ID" placeholder="채널 주소 또는 ID"><button id="watchAdd" type="button" class="primary">추가</button></div>
 <div class="watch-row"><button id="watchCurrent" type="button">보고 있는 채널 추가</button><button id="watchGoNow" type="button">방송 중인 채널로 이동</button></div>
 <p id="watchMsg"></p>

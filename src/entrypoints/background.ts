@@ -11,6 +11,8 @@ import {collectDiagnosis} from "@/modules/diagnose.js";
 import {videoSaveTarget} from "@/modules/downloads/video-menu.js";
 // @ts-ignore pure JS
 import {startWideFullscreenBridge} from "@/modules/chzzk/wide-fullscreen.js";
+// @ts-ignore plain JS
+import {startChzzkWatch} from "@/modules/chzzk/watch-background.js";
 import {onMessage, sendMessage, sendToContentTab} from "@/http/messaging";
 import {migrateLocalStorageData} from "@/storage/migration";
 import {databaseStorage, moduleSchemaStorage} from "@/storage/wxtStorage";
@@ -69,6 +71,7 @@ export default defineBackground(() => {
     startYoutubeHold();
     startVideoHost();
     startWideFullscreenBridge();
+    startChzzkWatch();
     const showOtpToast=createOtpToast();
     const otpPasteTracker=createOtpPasteTracker();
     const otpPasteBridge=startOtpPasteBridge(otpPasteTracker);

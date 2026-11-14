@@ -54,10 +54,9 @@
       const target = W.pickTarget(list.map(x => x.id), went, location.pathname);
       if (target) {
         const name = (list.find(x => x.id === target) || {}).name || '관심 스트리머';
-        navigating = true;
-        log('관심 스트리머 방송 시작 → 이동', target);
-        toast(`${name} 방송이 시작돼서 이동해요`);
-        setTimeout(() => location.assign('https://chzzk.naver.com/live/' + target), 1000);
+        log('관심 스트리머 방송 시작 → 새 탭으로 열기', target);
+        toast(`${name} 방송이 시작돼서 새 탭으로 열어요`);
+        try { chrome.runtime.sendMessage({ type: 'bongextend-chzzk-open-live', id: target }); } catch (e) { log('새 탭 열기 요청 실패:', e.message); }
       }
     } finally { busy = false; }
   }
