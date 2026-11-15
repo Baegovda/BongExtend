@@ -780,7 +780,7 @@ async function setLetterAvatar(imageNode, name, color) {
         dataUrl = await getDataUrl(canvas);
         imageNode.setAttribute("src", dataUrl);
     } catch (error) {
-        // refer to https://jasonsavard.com/forum/discussion/6072/error-when-reading-from-canvas-is-disabled
+        // refer to (원래 앱 링크 삭제)
         console.warn("Canvas writing disabled for privacy so returning empty");
         dataUrl = "";
     }
@@ -1384,7 +1384,6 @@ function openDialogCalendarVersionNotSupported() {
             label: "Update extension",
             primary: true,
             onClick: function() {
-                openUrl("https://jasonsavard.com/wiki/Extension_Updates");
             }
         }]
     });
@@ -1464,7 +1463,7 @@ function initOpenEmailEventListeners() {
 	});
 
     addEventListeners("#openEmailSection", "mouseup", e => {
-		if (e.button == MouseButton.BACK) { // Back button on mouse, ref: https://jasonsavard.com/forum/discussion/3405/hotkey-improvement
+		if (e.button == MouseButton.BACK) { // Back button on mouse, ref: (원래 앱 링크 삭제)
             openInbox();
 		}
 	});
@@ -3228,7 +3227,6 @@ function openEmailPromise(params) {
 				showToast(error, {
 					text:"Disable conversation view",
 					onClick:function() {
-						openUrl("https://jasonsavard.com/wiki/Conversation_View_issue?ref=problemRetrievingMessage");
 					}
 				});
 				logError(error);
@@ -3525,7 +3523,6 @@ function openAICompose(params = {}) {
                     {
                         text: getMessage("moreInfo"),
                         onClick: async function() {
-                            openUrl("https://jasonsavard.com/wiki/Checker_Plus_Compose?ref=firstTimeAICompose");
                         }
                     },
                     {
@@ -4909,7 +4906,7 @@ function openComposeSection(params) {
             sendEmailParams.subject = $composeSubject.value;
             
             sendEmailParams.htmlMessage = "";
-            //sendEmailParams.htmlMessage += "<span style='color:gray;font-size:90%'>To play this message:<br>Download file > Select a program > Choose <b>Google Chrome</b> or any other browser. <a href='https://jasonsavard.com/wiki/Opening_email_attachments?ref=havingTrouble'>Having trouble?</a></span><br><br>";
+            //sendEmailParams.htmlMessage += "<span style='color:gray;font-size:90%'>To play this message:<br>Download file > Select a program > Choose <b>Google Chrome</b> or any other browser. <a href='(원래 앱 링크 삭제)'>Having trouble?</a></span><br><br>";
             sendEmailParams.htmlMessage += "Sent via Checker Plus for Gmail";
             
             sendEmailParams.attachment = {
@@ -5561,7 +5558,7 @@ async function renderMails(params) {
 	console.time("renderMails");
 
     // Get existing mail IDs already in DOM
-    // after removing polymer i duplicate issue refer to https://jasonsavard.com/forum/d/8528-duplicate-email-displays-v34/28
+    // after removing polymer i duplicate issue refer to (원래 앱 링크 삭제)
     const existingMailIds = new Set(
         Array.from($account.querySelectorAll('.mails > .mail'))
             .map(node => node._mail?.id)
@@ -5835,7 +5832,7 @@ function isVisibleInScrollArea($node, $scroll, vpH) {
 		let y = $node.offsetTop;// + getInboxTop();
 		console.info(isVisible($scroll) + " y: " + y + " vph: " + vpH);
 		// when machine is slow it seems visible == false and y == 0
-		// commented: also included vpH <= 0 refer to bug https://jasonsavard.com/forum/discussion/comment/15849#Comment_15849
+		// commented: also included vpH <= 0 refer to bug (원래 앱 링크 삭제)
     	return (!isVisible($scroll) && y == 0) || isVisible($scroll) && y < vpH;
     }
 }
@@ -6279,7 +6276,7 @@ async function init() {
             el.classList.add("disableTransition");
             el.classList.remove("active");
         });
-        // commented because it was causing incomplete transition https://jasonsavard.com/forum/discussion/5149/issue-with-checker-gmails-popup-ignoring-mouse-v21-5-1-v21-5-2
+        // commented because it was causing incomplete transition (원래 앱 링크 삭제)
         //$("#openEmailSection").classList.add("active");
 	} else if (location.href.includes("action=getUserMediaDenied") || location.href.includes("action=getUserMediaFailed")) {
         setTimeout(function() {
@@ -6488,7 +6485,6 @@ async function init() {
                     buttons: [{
                         label: getMessage("moreInfo"),
                         onClick: function() {
-                            openUrl("https://jasonsavard.com/wiki/Keyboard_shortcuts?ref=gmailShortcutDialogMoreInfo");
                         }
                     }]
                 });
@@ -6516,7 +6512,6 @@ async function init() {
 	
 	onClick(".logo-and-title", async function() {
 		if (await storage.get("clickingCheckerPlusLogo") == "openHelp") {
-			openUrl("https://jasonsavard.com/wiki/Checker_Plus_for_Gmail?ref=GmailChecker");
 		} else {
             await sendMessageToBG("openGmail");
 			closeWindow({source:"logoAndTitle"});
@@ -6768,7 +6763,6 @@ async function init() {
                 label: getMessage("moreInfo"),
                 onClick: function(dialog) {
                     dialog.close();
-                    openUrl("https://jasonsavard.com/wiki/Popout?ref=gmailPopoutDialog");
                 }
             }]
         });
@@ -6814,7 +6808,6 @@ async function init() {
     
             if (!DetectClient.isFirefox() && !chrome.runtime.getContexts) {
                 await niceAlert("You must update your browser to continue using Checker Plus.");
-                openUrl("https://jasonsavard.com/wiki/Unstable_browser_channel?ref=no-contexts-api-from-popup");
             } else {
                 if (accountAddingMethod == "autoDetect" && !await hasGmailHostPermission()) {
                     if (await openHostPermissionDialog() == "ok") {
@@ -6858,7 +6851,6 @@ async function init() {
                             buttons: [{
                                 label: getMessage("help"),
                                 onClick: function() {
-                                    openUrl("https://jasonsavard.com/wiki/Auto-detect_sign_in_issues");
                                 }
                             }, {
                                 label: getMessage("options"),
@@ -6917,7 +6909,7 @@ async function init() {
         await renderAccounts();
         console.timeEnd("renderAccounts");
 
-        // patch for https://jasonsavard.com/forum/discussion/comment/22430#Comment_22430
+        // patch for (원래 앱 링크 삭제)
         // patch2 above
         if (selector("#inboxSection").clientHeight < document.body.clientHeight) {
             console.info("Brave patch");

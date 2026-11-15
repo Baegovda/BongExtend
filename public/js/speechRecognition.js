@@ -422,7 +422,6 @@
             const $link = document.createElement("a");
             $link.style.cssText = "font-size:11px";
             $link.target = "_blank";
-            $link.href = "https://jasonsavard.com/wiki/Voice_input#Speech_recognition_stopped";
             $link.textContent = "Why?";
     
             $messageWrapper.append($message, " ", $link);
@@ -1373,7 +1372,7 @@
             if ($previousPhrase.length) {
                 previousNode = $previousPhrase[$previousPhrase.length - 1];
             } else {
-                // might be old code, it was always returning null and so it was capitalizing words when pausing refer to https://jasonsavard.com/forum/discussion/comment/9884#Comment_9884
+                // might be old code, it was always returning null and so it was capitalizing words when pausing refer to (원래 앱 링크 삭제)
                 previousNode = range.startContainer.previousSibling;
             }
             

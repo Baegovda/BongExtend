@@ -815,7 +815,6 @@ function customShowError(error) {
 
                 const a = document.createElement("a");
                 a.textContent = "See solution";
-                a.href = "https://jasonsavard.com/wiki/Corrupt_browser_profile?ref=unknown-internal-error";
                 a.target = "_blank";
                 div.appendChild(a);
             }
@@ -833,10 +832,10 @@ function displayUncaughtError(error) {
 
     const indexedDBError = lowerCaseErrorStr.includes("indexeddb");
     const bucketError = lowerCaseErrorStr.includes("bucket data");
-    const unrelatedToDB = lowerCaseErrorStr.includes("unrelated to the database"); // refer to: https://jasonsavard.com/forum/discussion/comment/37034#Comment_37034
+    const unrelatedToDB = lowerCaseErrorStr.includes("unrelated to the database"); // refer to: (원래 앱 링크 삭제)
     
     const messageSendingError = lowerCaseErrorStr.includes("could not establish connection") || lowerCaseErrorStr.includes("a listener indicated an asynchronous");
-    const sidePanelError = lowerCaseErrorStr.includes("sidepanel api not available"); // happens for avast users: https://jasonsavard.com/forum/d/8533-error-sidepanel-api-not-available/4
+    const sidePanelError = lowerCaseErrorStr.includes("sidepanel api not available"); // happens for avast users: (원래 앱 링크 삭제)
 
     if (messageSendingError || sidePanelError) {
         if (inLocalExtension) {
@@ -854,23 +853,11 @@ function displayUncaughtError(error) {
 
             if (error.cause == ErrorCause.DB_ERROR || indexedDBError || bucketError || unrelatedToDB) {
                 showError(error, {
-                    id: "corruptProfile",
-                    text: "See solution",
-                    onClick: () => {
-                        let url = "https://jasonsavard.com/wiki/Corrupt_browser_profile";
-                        if (bucketError) {
-                            url += "?error=bucket";
-                        }
-                        openUrl(url);
-                    }
+                    id: "corruptProfile"
                 });
             } else {
                 showError(errorStr, {
-                    id: "sendFeedback",
-                    text: "Send feedback",
-                    onClick: () => {
-                        openUrl("https://jasonsavard.com/forum/t/checker-plus-for-gmail?ref=send-feedback");
-                    }
+                    id: "sendFeedback"
                 });
             }
         } catch (e) {
@@ -1982,7 +1969,7 @@ async function initMisc(params = {}) {
 
             globalThis.openCheckerPlusComposeInGmailAction = await storage.get("openCheckerPlusComposeInGmailAction");
     
-            // MUST USE promise with resolve because I could forget an await on one of these async functions above and could lead to race issue and undefined accounts or buttonIcon ref: https://jasonsavard.com/forum/discussion/comment/24170#Comment_24170
+            // MUST USE promise with resolve because I could forget an await on one of these async functions above and could lead to race issue and undefined accounts or buttonIcon ref: (원래 앱 링크 삭제)
             resolve();
         });
     }
@@ -2352,6 +2339,7 @@ async function findTab(url) {
 
 //usage: openUrl(url, {urlToFind:""})
 async function openUrl(url, params = {}) {
+    if (!url) return; // 빈 주소는 열지 않아요.
     const internalTarget = new URL(String(url), location.href);
     if (internalTarget.origin === location.origin && internalTarget.pathname.endsWith("/checkerplus-options.html")) {
         if (typeof window !== "undefined" && window.parent !== window) {
@@ -3499,7 +3487,7 @@ function OAuthForDevices(defaultParams) {
         setExpiryDate(tokenResponse);
         console.log("in refresh: " + tokenResponse.expiryDate.toString());
 
-        // patch #1 of 2 for access revoke concurrency issue, because array items were being overwritten : https://jasonsavard.com/forum/discussion/5171/this-access-was-revoked-error-keeps-happening-even-after-reinstalling-etc#latest
+        // patch #1 of 2 for access revoke concurrency issue, because array items were being overwritten : (원래 앱 링크 삭제)
         // you can reproduce this by setting expired access tokens to ALL accounts and using old expiry dates and then reload the extension, it's intermittent
         await updateToken(tokenResponse);
 
@@ -3574,7 +3562,7 @@ function OAuthForDevices(defaultParams) {
         }
         if (tokenResponse) {
             await ensureToken(tokenResponse);
-            // patch #2 of 2 happened with 3+ accounts - access revoke concurrency issue : https://jasonsavard.com/forum/discussion/5171/this-access-was-revoked-error-keeps-happening-even-after-reinstalling-etc#latest
+            // patch #2 of 2 happened with 3+ accounts - access revoke concurrency issue : (원래 앱 링크 삭제)
             params.tokenResponse = tokenResponse;
             return sendOAuthRequest(params);
         } else {
@@ -4010,7 +3998,7 @@ var syncOptions = (function() {
                 // because QUOTA_BYTES_PER_ITEM is sum of key + value STRINGIFIED! (again)
                 // watchout because the stringify adds quotes and slashes refer to https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify
                 // so let's only use 70% of the max and leave the rest for stringification when the sync.set is called
-                var MAX_CHUNK_SIZE = Math.floor(chrome.storage.sync.QUOTA_BYTES_PER_ITEM * 0.60); // changed from 80 to 70, 60 ref: https://jasonsavard.com/forum/discussion/comment/24198#Comment_24198
+                var MAX_CHUNK_SIZE = Math.floor(chrome.storage.sync.QUOTA_BYTES_PER_ITEM * 0.60); // changed from 80 to 70, 60 ref: (원래 앱 링크 삭제)
     
                 console.log("syncOptions: saving data reason: " + reason + "...");
                 
@@ -5166,7 +5154,7 @@ wrappedDB.syncExternally = async function(key) {
 
 function throwDBError(error) {
     console.error("DB error: ", error);
-    throw Error("Corrupt browser profile. See solution: https://jasonsavard.com/wiki/Corrupt_browser_profile", {cause: ErrorCause.DB_ERROR});
+    throw Error("Corrupt browser profile.", {cause: ErrorCause.DB_ERROR});
 }
 
 function getObjectStore(storeId, mode, key) {
@@ -5175,7 +5163,7 @@ function getObjectStore(storeId, mode, key) {
     } else {
         let trans;
         try {
-            // using relaxed - might have fixed slow issue and maybe corrupt issue: https://jasonsavard.com/forum/discussion/6104/slow-popup-window/p4
+            // using relaxed - might have fixed slow issue and maybe corrupt issue: (원래 앱 링크 삭제)
             trans = wrappedDB.db.transaction([storeId], mode, {durability: "relaxed"});
 			trans.onabort = function(e) {
                 if (e.target.error == "QuotaExceededError") {
@@ -5890,7 +5878,7 @@ function isColorTooLight(color, luminosity) {
                 return true;
             }
         } else {
-            let isYellow = rgb[0] == 255 && rgb[1] == 253 && rgb[2] == 33; // refer to https://jasonsavard.com/forum/discussion/comment/19187#Comment_19187
+            let isYellow = rgb[0] == 255 && rgb[1] == 253 && rgb[2] == 33; // refer to (원래 앱 링크 삭제)
             if (l >= 0.85 || isYellow) {
                 return true;
             }

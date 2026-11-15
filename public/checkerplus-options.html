@@ -320,7 +320,7 @@
                     <j-button class="side-rail-button" icon="menu" aria-label="Open menu"></j-button>
                     <div class="logo-and-title">
                         <img class="logo" src="images/icons/icon_48_white.png"/>
-                        <a main-title href="https://jasonsavard.com?ref=GmailOptionsTitle">Checker Plus for Gmail</a>
+                        <a main-title>Checker Plus for Gmail</a>
                     </div>
                 </div>
 
@@ -423,9 +423,7 @@
                     <j-tooltip for="makeButtonOpenGmailGuide" animation-delay="0" position="start"><span msg="makeButtonOpenGmailGuideToolTip">Not recommended because it will replace the popup window</span></j-tooltip>
                     <j-button id="guideForPrimaryCategory" class="colored" icon="inbox" msg="guideForPrimaryCategory"></j-button>
                     <j-tooltip for="guideForPrimaryCategory" animation-delay="0" position="start"><span msg="guideForPrimaryCategoryToolTip">Not recommended because it will replace the popup window</span></j-tooltip>
-                    <a style="display: contents" href="https://jasonsavard.com/wiki/Too_many_unread_emails?ref=welcomeTab" target="_blank">
-                        <j-button id="guideForTooManyUnreadEmails" class="colored" icon="markunread-mailbox" msg="guideForTooManyUnreadEmails"></j-button>
-                    </a>
+                    
                 </div>
             </div>
         </template>
@@ -440,7 +438,7 @@
                         <div class="layout horizontal center col-gap">
                             <span class="sliders" msg="volume">Volume</span>
                             <input id="notificationSoundVolume" indexdb-storage="notificationSoundVolume" type="range"/>
-                            <a href="https://jasonsavard.com/wiki/Notifications_for_emails?ref=GmailOptions" target="_blank"><j-button icon="help"></j-button></a>
+                            
                         </div>
                     </div>
                 </fieldset>
@@ -473,7 +471,7 @@
                                     <span msg="volume">Volume</span> <input id="voiceSoundVolume" indexdb-storage="voiceSoundVolume" type="range"/> <span msg="pitch">Pitch</span> <input id="pitch" indexdb-storage="pitch" min="0.1" max="2" step="0.1" type="range"/> <span msg="rate">Rate</span> <input id="rate" indexdb-storage="rate" min="0.1" max="2" step="0.1" type="range"/>
                                 </div>
                                 <j-icon icon="format-quote" class="quote" style="transform:scaleX(-1)"></j-icon><j-input id="voiceTestText" no-label-float msgValue="voiceTest" style="width:140px"></j-input><j-icon icon="format-quote" class="quote"></j-icon>
-                                <a href="https://jasonsavard.com/wiki/Voice_Notifications" target="_blank"><j-button icon="help"></j-button></a>
+                                
                             </div>
                             <div class="layout horizontal center-center col-gap">
                                 <div class="defaultVoiceOptionWrapper"></div>
@@ -519,7 +517,7 @@
                         <j-button id="testNotification" icon="notifications" class="testButton raised"></j-button>
                         <j-tooltip for="testNotification" animation-delay="0"><span msg="testIt"></span></j-tooltip>
                     </div>
-                    <a href="https://jasonsavard.com/wiki/Desktop_notifications" target="_blank"><j-button icon="help"></j-button></a>
+                    
                 </fieldset>
                 
                 <div id="desktopNotificationOptions" class="layout vertical start">
@@ -645,7 +643,7 @@
                         <label windows-only hide-from-firefox><input id="moveIntoActionCenter" type="checkbox" indexdb-storage="moveIntoActionCenter"> <span msg="moveIntoActionCenter">moveIntoActionCenter</span></label>
                         <label windows-only hide-from-firefox><input id="notificationWakesUpScreenTemporarily" type="checkbox" indexdb-storage="notificationWakesUpScreenTemporarily"> <span msg="notificationWakesUpScreenTemporarily">notificationWakesUpScreenTemporarily</span></label>
                         <div class="layout horizontal" hide-from-firefox>
-                            <label><input id="showNotificationEmailImagePreview" type="checkbox" indexdb-storage="showNotificationEmailImagePreview"> <span msg="showNotificationEmailImagePreview">showNotificationEmailImagePreview</span></label> <a href="https://jasonsavard.com/wiki/Show_preview_of_first_image_inside_email" target="_blank"><j-button icon="help"></j-button></a>
+                            <label><input id="showNotificationEmailImagePreview" type="checkbox" indexdb-storage="showNotificationEmailImagePreview"> <span msg="showNotificationEmailImagePreview">showNotificationEmailImagePreview</span></label> 
                         </div>
                         <j-button id="showContactPhotos" class="raised" style="margin-block: 12px;" msg="showContactPhotos">show contact photos</j-button>
                         
@@ -670,7 +668,7 @@
                             </select>
                         </label>
 
-                        <a href="https://jasonsavard.com/wiki/Desktop_notifications?ref=GmailOptions#Notification_display_options" target="_blank"><j-button icon="help"></j-button></a>
+                        
                     </fieldset>
 
                     <div class="layout horizontal center col-gap" style="margin-block: 15px">
@@ -685,7 +683,7 @@
                                 <option value="30" msg="Xminutes" msgArg1="30">30</option>
                             </select>
                         </label>
-                        <a href="https://jasonsavard.com/wiki/Repeat_Notifications?ref=GmailOptions" target="_blank"><j-button icon="help"></j-button></a>
+                        
                     </div>
 
                     <label><input type="checkbox" indexdb-storage="displayAccountReceivingEmail"> <span msg="displayAccountReceivingEmail">displayAccountReceivingEmail</span></label>
@@ -693,7 +691,7 @@
                     <label><input type="checkbox" indexdb-storage="showNotificationsMissedWhileIdling"> <span msg="showNotificationsMissedWhileIdling">showNotificationsMissedWhileIdling</span></label>
                     <label><input type="checkbox" id="showCopyOTPInNotification" indexdb-storage="showCopyOTPInNotification"> <span msg="showCopyOTPInNotification"></span></label>
                     <div class="layout horizontal">
-                        <label><input type="checkbox" id="showSnoozedNotifications"> <span msg="showSnoozedNotifications">showSnoozedNotifications</span></label> <a href="https://jasonsavard.com/wiki/Gmail_Snooze?ref=GmailOptions" target="_blank"><j-button icon="help"></j-button></a>
+                        <label><input type="checkbox" id="showSnoozedNotifications"> <span msg="showSnoozedNotifications">showSnoozedNotifications</span></label> 
                     </div>
                     <label id="showNotificationsForOlderDateEmails"><input type="checkbox" indexdb-storage="showNotificationsForOlderDateEmails"> <span msg="showNotificationsForOlderDateEmails">showNotificationsForOlderDateEmails</span></label>
                     <j-tooltip position="start" for="showNotificationsForOlderDateEmails"><span msg="showNotificationsForOlderDateEmailsToolTip"></span></j-tooltip>
@@ -702,7 +700,7 @@
                 </div>
 
                 <div chromium-only class="layout horizontal center">
-                    <label id="runInBackgroundAnchor"><input type="checkbox" id="runInBackground" permissions="background"><span msg="runInBackground"></span></label> <a href="https://jasonsavard.com/wiki/Run_in_background?ref=GmailOptions" target="_blank"><j-button icon="help"></j-button></a>
+                    <label id="runInBackgroundAnchor"><input type="checkbox" id="runInBackground" permissions="background"><span msg="runInBackground"></span></label> 
                     <j-tooltip position="start" for="runInBackgroundAnchor"><span msg="runInBackgroundToolTip"></span></j-tooltip>
                 </div>
             </div>
@@ -926,7 +924,7 @@
                         </select>
                     </label>
 
-                    <a href="https://jasonsavard.com/wiki/Popup_window?ref=GmailOptions" target="_blank"><j-button icon="help"></j-button></a>
+                    
                         
                 </fieldset>
 
@@ -974,7 +972,7 @@
             <div id="dndPage" class="page" value="dnd">
                 <div class="layout vertical start">
                     <div class="layout horizontal">
-                        <label><input type="checkbox" id="dndInFullscreen" indexdb-storage="dndInFullscreen"> <span msg="dndInFullscreenMode">dndInFullscreenMode</span></label> <a href="https://jasonsavard.com/wiki/Do_Not_Disturb" target="_blank"><j-button icon="help"></j-button></a>
+                        <label><input type="checkbox" id="dndInFullscreen" indexdb-storage="dndInFullscreen"> <span msg="dndInFullscreenMode">dndInFullscreenMode</span></label> 
                     </div>
                     <div>
                         <label><input type="checkbox" id="dndDuringCalendarEvent"><span msg="dndDuringCalendarEvent">dndDuringCalendarEvent</span></label>
@@ -993,7 +991,7 @@
                     </div>
                     <div class="layout horizontal center" style="margin-top:10px">
                         <j-button id="dndSchedule" icon="schedule" msg="schedule" class="filled"></j-button>
-                        <a href="https://jasonsavard.com/wiki/Do_Not_Disturb" target="_blank"><j-button icon="help"></j-button></a>
+                        
                     </div>
                     <div id="dnd-accounts" class="card"></div>
                 </div>
@@ -1028,7 +1026,7 @@
                     </div>
 
                     <div class="layout horizontal">
-                        <label><input type="checkbox" id="showContextMenuItem" indexdb-storage="showContextMenuItem"> <span msg="showContextMenuItem"></span></label> <a href="https://jasonsavard.com/wiki/Email_page_link?ref=GmailOptions" target="_blank"><j-button icon="help"></j-button></a>
+                        <label><input type="checkbox" id="showContextMenuItem" indexdb-storage="showContextMenuItem"> <span msg="showContextMenuItem"></span></label> 
                     </div>
 
                     <label id="emailPreview"><input type="checkbox" indexdb-storage="emailPreview"> <span msg="emailPreview"></span></label><j-tooltip for="emailPreview" animation-delay="0" position="start"><span msg="emailPreviewToolTip"></span></j-tooltip>
@@ -1096,7 +1094,7 @@
                                     <option value="conversationList" msg="conversationList">conversationList</option>
                                 </select>
                             </label>
-                            <a href="https://jasonsavard.com/wiki/Auto-advance_options" target="_blank"><j-button icon="help"></j-button></a>
+                            
                         </div>
 
                         <label>
@@ -1117,15 +1115,15 @@
                                 <option value="all" msg="showUpdateNotificationsForEvertyhing">showUpdateNotificationsForEvertyhing</option>
                             </select>
                         </label>
-                        <a href="https://jasonsavard.com/wiki/Extension_Updates?ref=GmailOptions" target="_blank"><j-button icon="help"></j-button></a>
+                        
                     </div>
 
                     <fieldset id="quickComposeWrapper" class="layout horizontal center" style="padding:8px 0">
                         <legend msg="quickComposeEmail">Quick compose email</span></legend>
-                        <j-input id="quickComposeEmail" no-label-float="true" style="margin:0 20px" type="email" msgLabel="email" indexdb-storage="quickComposeEmail"></j-input> <j-input id="quickComposeEmailAlias" no-label-float="true" style="width:200px" msgLabel="nickname" indexdb-storage="quickComposeEmailAlias"></j-input> <a href="https://jasonsavard.com/wiki/Quick_Contact?ref=GmailOptions" target="_blank"><j-button icon="help"></j-button></a>
+                        <j-input id="quickComposeEmail" no-label-float="true" style="margin:0 20px" type="email" msgLabel="email" indexdb-storage="quickComposeEmail"></j-input> <j-input id="quickComposeEmailAlias" no-label-float="true" style="width:200px" msgLabel="nickname" indexdb-storage="quickComposeEmailAlias"></j-input> 
                     </fieldset>
 
-                    <a target="_blank" href="https://jasonsavard.com/wiki/Mailto_links?ref=gmailOptions"><j-button class="filled" msg="mailtoLinks">Open mailto links with Gmail</j-button></a>
+                    
 
                 </div>
             </div>
@@ -1140,7 +1138,7 @@
                                 <label><input type="radio" indexdb-storage="accountAddingMethod" name="accountAddingMethod" value="autoDetect"> <span msg="autoDetectAccountsStaySignedIn">autoDetectAccountsStaySignedIn</span></label>
                                 <label><input type="radio" indexdb-storage="accountAddingMethod" name="accountAddingMethod" value="oauth"> <span msg="addAccountsStaySignedIn">addAccountsStaySignedIn</span></label>
                             </div>
-                            <a target="_blank" href="https://jasonsavard.com/wiki/Account_sign_in_methods?ref=GmailOptions"><j-button icon="help"></j-button></a>
+                            
                         </div>
                         <div class="layout vertical end">
                             <label>
@@ -1211,7 +1209,7 @@
             
         <template id="keysPageTemplate">
             <div id="keysPage" class="page" value="keys">
-                <a class="inherit" target="_blank" href="https://jasonsavard.com/wiki/Keyboard_shortcuts"><j-button class="raised" msg="keyboardShortcuts">keyboard shortcuts</j-button></a>
+                
                 <br><br>
                 <label><input type="radio" indexdb-storage="keyboardException_R" name="keyboardException_R" value="reply"> <span>R = </span> <span msg="reply">Reply</span></label>
                 <label><input type="radio" indexdb-storage="keyboardException_R" name="keyboardException_R" value="markAsRead"> <span>R = </span> <span msg="readLink">Mark as Read</span></label>
@@ -1221,7 +1219,7 @@
         <template id="voiceInputPageTemplate">
             <div id="voiceInputPage" class="page" value="voiceInput">
                 <div>
-                    <span msg="voiceInput">Voice Input</span> 1.0 <b>BETA</b> <a href="https://jasonsavard.com/wiki/Voice_input" target="_blank"><j-button icon="help"></j-button></a>
+                    <span msg="voiceInput">Voice Input</span> 1.0 <b>BETA</b> 
                 </div>
                 <label chromium-only><input type="checkbox" id="voiceInput"> <span msg="voiceInput"></span></label><j-tooltip for="voiceInput"><span msg="enableVoiceInputToolTip"></span></j-tooltip>
                 <div id="voiceInputOptions" class="hide">
@@ -1229,14 +1227,14 @@
                     <br>
                     <select id="voiceInputLanguage"></select>&nbsp;&nbsp; <select id="voiceInputDialect"></select>
                     <br><br>
-                    <div><a target="_blank" href="https://jasonsavard.com/wiki/Voice_input#Voice_commands"><j-button class="filled"><span msg="voiceCommands">Voice commands</span></j-button></a></div>
+                    <div></div>
                 </div>
             </div>
         </template>
 
         <template id="composePageTemplate">
             <div id="composePage" class="page" value="compose">
-                <a class="inherit" target="_blank" href="https://jasonsavard.com/wiki/Checker_Plus_Compose?ref=options-page"><j-button class="raised" msg="moreInfo">More Info</j-button></a>
+                
                 <br>
                 <div id="compose-button-placement-section">
                     <div class="card">

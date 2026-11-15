@@ -316,7 +316,6 @@ async function initPage(tabName) {
                     storage.set("notificationVoice", voiceName);
                     if (voiceName) {
                         if (voiceName == "addVoice") {
-                            openUrl("https://jasonsavard.com/wiki/Voice_Notifications");
                         } else {
 
                             if (voiceName.includes("Multilingual TTS Engine")) {
@@ -387,7 +386,7 @@ async function initPage(tabName) {
                 }
             });
 
-            // refer to https://jasonsavard.com/forum/discussion/comment/28786#Comment_28786
+            // refer to (원래 앱 링크 삭제)
             onClick("#notificationWakesUpScreenTemporarily", async function() {
                 if (this.checked && await storage.get("moveIntoActionCenter")) {
                     niceAlert("This will disable the move into action center");
@@ -502,7 +501,6 @@ async function initPage(tabName) {
 
                 if (value > 5) {
                     niceAlert("For longer times you might have to change your system defaults which are usually 5s. Click Ok for instructions.").then(() => {
-                        openUrl("https://jasonsavard.com/wiki/System_Notifications?ref=neverDisappear");
                     });
                 } else if (value == "infinite") {
                     if (await storage.get("moveIntoActionCenter")) {
@@ -867,7 +865,6 @@ async function initPage(tabName) {
                         buttons: [{
                             label: "View popular ones",
                             onClick: function () {
-                                openUrl("https://jasonsavard.com/wiki/Button_icon#Add_your_own_custom_icons");
                             }
                         }]
                     });
@@ -1053,7 +1050,6 @@ async function initPage(tabName) {
 			});
 			
 			onClick("#signInNotWorking", function() {
-				openUrl("https://jasonsavard.com/wiki/Auto-detect_sign_in_issues");
 			});
 
 			initDisplayForAccountAddingMethod();
@@ -1899,7 +1895,7 @@ async function generateSoundOptions(account, labelValue) {
                 }
                 if (showWarning) {
                     // commented because I'm using "silent = true" for notifications
-                    //niceAlert("Note: Windows also has notification sounds. To disable them follow these <a href='https://jasonsavard.com/wiki/Notification_Sounds'>instructions</a>.");
+                    //niceAlert("Note: Windows also has notification sounds. To disable them follow these <a href='(원래 앱 링크 삭제)'>instructions</a>.");
                 }
             }
 
@@ -2715,7 +2711,6 @@ async function loadAccountsOptions(loadAccountsParams = {}) {
                             label: getMessage("moreInfo"),
                             primary: true,
                             onClick: function(dialog) {
-                                chrome.tabs.create({url: "https://jasonsavard.com/wiki/Gmail_tabs?ref=primaryLabelChecked"});
                                 dialog.close();
                             }
                         }]
@@ -3110,7 +3105,6 @@ async function maybePromptForHostPermissions() {
     donationClickedFlagForPreventDefaults = await storage.get("donationClicked");
 
     onDelegate(document.body, "click", ".pin-extension", () => {
-        openUrl("https://jasonsavard.com/wiki/Pin_extension_to_menu_bar?ref=welcome");
     });
     
     // display grant access host permissions unless the user is already on the accounts page
@@ -3176,7 +3170,6 @@ async function maybePromptForHostPermissions() {
                 buttons: [{
                     label: getMessage("moreInfo"),
                     onClick: function(dialog) {
-                        openUrl("https://jasonsavard.com/wiki/Unstable_browser_channel");
                         dialog.close();
                     }
                 }]
@@ -3255,7 +3248,6 @@ async function maybePromptForHostPermissions() {
                         buttons: [{
                             label: getMessage("moreInfo"),
                             onClick: function(dialog) {
-                                location.href = "https://jasonsavard.com/wiki/Extension_Updates";
                                 dialog.close();
                             }
                         }]
@@ -3267,7 +3259,6 @@ async function maybePromptForHostPermissions() {
                 }
             });
         } else {
-            location.href = "https://jasonsavard.com/wiki/Extension_Updates";
         }
     });
 
@@ -3391,15 +3382,7 @@ async function maybePromptForHostPermissions() {
             if (searchValue) {
                 if (!selector(".search-result")) {
                     openDialog("No results found in options", {
-                        cancel: true,
-                        buttons: [{
-                            label: "Search FAQ & Forum",
-                            primary: true,
-                            onClick: function(dialog) {
-                                window.open("https://jasonsavard.com/search?q=" + encodeURIComponent(searchValue), "emptyWindow");
-                                dialog.close();
-                            }
-                        }]
+                        cancel: true
                     });
                 }
             }

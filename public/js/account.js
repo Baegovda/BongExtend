@@ -78,7 +78,7 @@ function Account() {
             regexs.push(/ on [a-z]{3}, [a-z]{3} \d+/i);	// On Wed, Dec 28, 2011 at 12:36 AM, Jason <jaso
             regexs.push(/ on [a-z]{3} \d+\/\d+\/\d+/i);	// On Wed 15/02/12  8:23 AM , Wade Konowalchuk
             regexs.push(/ on \d+[\/|-]\d+[\/|-]\d+/i);	// on 2011/12/28 Jason <apps@...
-            regexs.push(/ on \w*, \w* \d+(st)?, \d+,/i);	// On Thursday, October 31, 2013, Jason wrote:   OR   On Wednesday, October 15, 2014, Jason <jasonsavard@gmail.com> wrote:
+            regexs.push(/ on \w*, \w* \d+(st)?, \d+,/i);	// On Thursday, October 31, 2013, Jason wrote:   OR   On Wednesday, October 15, 2014, Jason <user@example.com> wrote:
             regexs.push(/ on \w*, \w* \d+(st)?, \d+\:/i);	// On Thursday, Oct 31, 1:02 PM, Jason wrote:
             regexs.push(/ >? on \w* \d+, \d+, at/i);	// In!  > On Oct 5, 2014, at 9:32 AM ...
             regexs.push(/ (on)? ([a-z]{3} )?[a-z]{3} \d+,? \d+ /i); 		// On(optional) Fri(optional) May 04 2012 15:54:46
@@ -260,7 +260,7 @@ function Account() {
             atomFeed = AtomFeed.INBOX;
         }
 
-        // now only using cache for ensuremaiaddress because there were duplicate mail issues https://jasonsavard.com/forum/discussion/comment/16273#Comment_16273
+        // now only using cache for ensuremaiaddress because there were duplicate mail issues (원래 앱 링크 삭제)
         const useCache = params.ensureMailAddressIdentifiedFlag && cachedInboxFeedDetails;
         let responseStatus;
         let responseUrl;
@@ -1065,7 +1065,6 @@ function Account() {
                    }
                 } else if (that.errorCode == JError.GOOGLE_ACCOUNT_WITHOUT_GMAIL) {
                    if (useHtml) {
-                       $instructions.append( createButton("https://jasonsavard.com/wiki/Google_Accounts_without_Gmail?ref=autoDetectPopupError", "moreInfo") );
                    } else {
                        instructions = "Only Gmail or Google Apps can be polled";
                    }
@@ -1095,7 +1094,7 @@ function Account() {
                     }
                } else {
                    if (useHtml) {
-                       $instructions.append($refreshHtml, createButton("https://jasonsavard.com/wiki/Auto-detect_sign_in_issues?ref=autoDetectPopupError", "help"));
+                       $instructions.append($refreshHtml);
                    } else {
                        instructions = "Refresh or try signing out/in or " + getMessage("addAccount");
                    }
@@ -2172,11 +2171,11 @@ function Account() {
 		   if (!message.content) {
 			   message.content = "";
 		   }
-		   message.content += " [File attached] But this extension could not process it. Use <a href='https://jasonsavard.com/forum/t/checker-plus-for-gmail?ref=unknownMimeType'>Checker Plus forum</a> to help me with this issue.";
+		   message.content += " [File attached] But this extension could not process it.";
 	   } else {
 		   if (!message.textContent && !message.content) {
 			   logError("must add logic for mimetype: " + part.mimeType, part);
-			   message.content = "Error unknown mimetype: " + part.mimeType + " <br><br>Search or post this bug on the <a href='https://jasonsavard.com/forum/t/checker-plus-for-gmail?ref=unknownMimeType'>Checker Plus forum</a>";
+			   message.content = "Error unknown mimetype: " + part.mimeType + "";
 		   } else {
 			   if (part.mimeType != "text/x-watch-html" && part.mimeType != "text/x-amp-html") { // ignore x-watch (Apple Watch), also ignore text/x-amp-html because: "It’s recommended structuring your MIME part with text/plain first, text/x-amp-html second, and text/html last"
 				   logError("must add logic for mimetype (but found other content): " + part.mimeType, part);
@@ -2480,7 +2479,7 @@ function Account() {
 
         console.log("text response", text);
 
-        // patch seems sometimes couldn't mark as read or delete and the response is a redirect to the spreauth url, ref: https://jasonsavard.com/forum/discussion/comment/36695#Comment_36695
+        // patch seems sometimes couldn't mark as read or delete and the response is a redirect to the spreauth url, ref: (원래 앱 링크 삭제)
         // v2 watch out cause in Chrome it was <src and in Firefox it was <scr ???
         //text = `<scr "https://mail.google.com/mail/u/0/spreauth"`
         const regex = /https?:\/\/[\w.-]+\/[\w\/.-]*spreauth[\w\/.-]*/g;
@@ -2498,7 +2497,6 @@ function Account() {
         if (params.action == MailAction.DELETE || params.action == MailAction.MARK_AS_READ || params.action == MailAction.ARCHIVE) {
             const gmailSettings = await params.mail.account.getSetting("gmailSettings");
             if (gmailSettings.conversationViewMode === false && await storage.firstTime("conversationViewWarningShown")) {
-                openUrl("https://jasonsavard.com/wiki/Conversation_View_issue");
             }
         }
 
@@ -2660,7 +2658,7 @@ function Account() {
                 params.mail.labels.push(GmailAPI.labels.STARRED);
                 promise = Promise.resolve();
             } else if (params.action == MailAction.REMOVE_STAR) {
-                // remove before complete to fix this bug https://jasonsavard.com/forum/discussion/5266/small-bug-unstar-seems-to-fail-if-you-are-too-quick-to-open-the-mail
+                // remove before complete to fix this bug (원래 앱 링크 삭제)
                 // remove any star variants from the local labels array so UI updates immediately
                 for (const starLabel of GmailAPI.labels.STAR_VARIANTS) {
                     let idx;
@@ -3418,7 +3416,7 @@ function Account() {
 
 			if (labelToUse == SYSTEM_INBOX || labelToUse == SYSTEM_IMPORTANT || labelToUse == SYSTEM_IMPORTANT_IN_INBOX || labelToUse == SYSTEM_PRIMARY || labelToUse == SYSTEM_PURCHASES || labelToUse == SYSTEM_FINANCE || labelToUse == SYSTEM_SOCIAL || labelToUse == SYSTEM_PROMOTIONS || labelToUse == SYSTEM_UPDATES || labelToUse == SYSTEM_FORUMS) {
 				labelToUse = "inbox"; // mbox changed to inbox
-			} else if (labelToUse == SYSTEM_ALL_MAIL || !labelToUse) { // if undefined refer to mysterious bug https://jasonsavard.com/forum/discussion/6551/open-in-webmail-button-doesnt-work#latest
+			} else if (labelToUse == SYSTEM_ALL_MAIL || !labelToUse) { // if undefined refer to mysterious bug (원래 앱 링크 삭제)
 				labelToUse = "all";
 			} else if (labelToUse == SYSTEM_UNREAD) {
 				labelToUse = "search/label%3Aunread";

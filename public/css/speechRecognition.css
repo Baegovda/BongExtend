@@ -14,12 +14,12 @@ input.interim {color:gray}
     margin-left: -4px;
     margin-top: -1px;
     background-position: 0 !important;
-    background: url('https://apps.jasonsavard.com/images/mic.png') !important;
+    background: none !important;
     background-size: 31px !important;
     mask-image: none !important;
     -webkit-mask-image: none !important;
 }
-.talkButton.listening .speechImage {background: url('https://apps.jasonsavard.com/images/mic-animate.gif') !important;background-size: 31px !important}
+.talkButton.listening .speechImage {background: none !important}
 .gU.OoRYyc {position: absolute;right:86px} /* Make status message 'Saved' absolute because it was pushing buttons down when the status would appear */
 			
 .interimText {color:gray}

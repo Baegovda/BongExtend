@@ -255,7 +255,7 @@ class Mail {
             let quotedContent;
             console.log("generatereplyobj:", that.title, that);
             let lastMessage = that.messages.last();
-            if (lastMessage) { // added the check for that.messages because of this bug when using manual add https://jasonsavard.com/forum/discussion/4476/uncaught-typeerror-cannot-read-property-alreadyrepliedto-of-undefined-js-mailaccount-js-3988
+            if (lastMessage) { // added the check for that.messages because of this bug when using manual add (원래 앱 링크 삭제)
                 // user might be doing a 2nd immediate reply so use the previous/original message to build the reply
                 if (lastMessage.alreadyRepliedTo && that.messages.length >= 2) {
                     lastMessage = that.messages[that.messages.length - 2];

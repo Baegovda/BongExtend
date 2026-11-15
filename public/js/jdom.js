@@ -2246,7 +2246,7 @@ function testJdom() {
         <h3>j-button examples</h3>
         <j-button>Basic Button</j-button>
         <j-button icon="close">With Icon</j-button>
-        <j-button src="https://jasonsavard.com/images/logo.webp">With Image</j-button>
+        <j-button>With Image</j-button>
         <j-button icon="close"></j-button>
         <j-button icon="close" class="filled"></j-button>
         <j-button icon="close" class="colored"></j-button>
@@ -2454,7 +2454,7 @@ function testJdom() {
     iconSection.innerHTML = escapeHTMLPolicy.createHTML(`
         <h3>j-icon examples</h3>
         <j-icon icon="close"></j-icon>
-        <j-icon src="https://jasonsavard.com/images/logo.webp"></j-icon>
+        <j-icon></j-icon>
         <j-icon icon="close" invert-icon></j-icon>
         <j-icon icon="close" style="--icon-size: 32px; --icon-color: red;"></j-icon>
     `);

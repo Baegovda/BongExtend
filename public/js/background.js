@@ -49,12 +49,8 @@ storagePromise.catch(error => {
 var detectSleepMode = new DetectSleepMode();
 let initCalled = false;
 
-function openUnstableWarningPage(ref) {
-    let url = "https://jasonsavard.com/wiki/Unstable_browser_channel";
-    if (ref) {
-        url = setUrlParam(url, "ref", ref);
-    }
-	openUrl(url);
+// 원래 앱의 "불안정한 브라우저" 안내 사이트는 열지 않아요.
+function openUnstableWarningPage() {
 }
 
 async function getManagedStorage() {
@@ -599,7 +595,6 @@ globalThis.addEventListener("notificationclick", event => {
             email.open();
         }
     } else if (tag == NotificationTags.SHORTCUT_NOT_APPLICABLE_AT_THIS_TIME) {
-        openUrl("https://jasonsavard.com/wiki/Keyboard_shortcuts");
     } else if (tag == NotificationTags.UPDATE_BROWSER) {
         openUpdateBrowserLink();
     } else if (tag == NotificationTags.UNSTABLE_BROWSER_CHANNEL) {
@@ -1205,7 +1200,7 @@ async function showNotification(params = {}) {
 
                             // Window Chrome notifications can display 2 bold + 3 regular lines
                             // Mac only 1 bold + 2 regular lines
-                            // v2 seems new notifs in Windows can't display more lines https://jasonsavard.com/forum/discussion/comment/22748#Comment_22748
+                            // v2 seems new notifs in Windows can't display more lines (원래 앱 링크 삭제)
                             let manyLinesNotifs = false; //!DetectClient.isMac() && !DetectClient.isChromeOS();
                             let usingTitle = false;
 
@@ -1505,7 +1500,7 @@ async function createNotification(params) { // expected args: options, buttonsWi
     if (DetectClient.isFirefox()) {
         params.options.priority = 2;
     } else {
-        // v2 changed !DetectClient.isMac() to DetectClient.isWindows() because linux notification was not disappearing: https://jasonsavard.com/forum/discussion/comment/33851#Comment_33851
+        // v2 changed !DetectClient.isMac() to DetectClient.isWindows() because linux notification was not disappearing: (원래 앱 링크 삭제)
         // if never and disble requireInteraction and chrome "show notifications in action center" then they will automatically go into action center after ~5 seconds
         // requireInteraction will awake computer if screen is off
         if (DetectClient.isWindows() && (!await storage.get("moveIntoActionCenter") && await storage.get("notificationWakesUpScreenTemporarily"))) {
@@ -1517,7 +1512,7 @@ async function createNotification(params) { // expected args: options, buttonsWi
     const showNotificationDuration = await storage.get("showNotificationDuration");
     
     if (showNotificationDuration == "infinite") {
-        if (!DetectClient.isMac() && !await storage.get("moveIntoActionCenter")) { // refer to https://jasonsavard.com/forum/discussion/comment/34928#Comment_34928
+        if (!DetectClient.isMac() && !await storage.get("moveIntoActionCenter")) { // refer to (원래 앱 링크 삭제)
             params.options.requireInteraction = true;
         }
     } else {
@@ -1707,7 +1702,6 @@ function shortcutNotApplicableAtThisTime(title) {
         icon: Icons.NotificationLogo,
         tag: NotificationTags.SHORTCUT_NOT_APPLICABLE_AT_THIS_TIME,
         newNotificationOnClick: async () => {
-            openUrl("https://jasonsavard.com/wiki/Keyboard_shortcuts");
         }
     });
 }
@@ -2325,7 +2319,7 @@ chrome.runtime.onMessage.addListener(/* DONT USE ASYNC HERE because of return tr
                     mail.account = getAccountById(message.params.mail.account.id);
                 }
 
-                // patch to fetch correct "from" email when user user as sendAs, cause messages are sometimes only fetched from the preview window, so I must put it to the back end so i can generate the reply object. ref: https://jasonsavard.com/forum/d/8244-replies-in-the-popup-are-not-being-sent-from-the-address-in-the-original-e-mail-being-replied-to/9
+                // patch to fetch correct "from" email when user user as sendAs, cause messages are sometimes only fetched from the preview window, so I must put it to the back end so i can generate the reply object. ref: (원래 앱 링크 삭제)
                 const messages = message.params.actionParams?.messages;
                 if (message.params.action == "postReply" && !mail.messages?.length && messages) {
                     console.log("patch to to retrieve correct sendAs");
@@ -2639,7 +2633,6 @@ async function init(source) {
 	}
 
 	if (!chrome.runtime.onMessage || !globalThis.Promise) {
-		openUrl("https://jasonsavard.com/wiki/Old_Chrome_version");
 		return;
     }
 

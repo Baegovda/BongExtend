@@ -262,9 +262,9 @@ const ExtensionId = {
     EdgeStoreCalendar: "fbongfbliechkeaegkjfehhimpenoani",
     EdgeStoreDrive: "ndcbbjeihlogjndoheabejedggehfbei",
     EdgeStoreScreenshot: "dnjgbabpedipbaghlhmcacpoehgpfoei",
-    FirefoxStoreGmail: "checkerplusforgmail@jasonsavard.com",
-    FirefoxStoreCalendar: "checkerplusforgooglecalendar@jasonsavard.com",
-    FirefoxStoreDrive: "checkerplusforgoogledrive@jasonsavard.com",
+    FirefoxStoreGmail: "",
+    FirefoxStoreCalendar: "",
+    FirefoxStoreDrive: "",
     FirefoxStoreScreenshot: "{2b5916ef-4e9b-433c-b744-37b23c511516}",
     LocalGmail: "nkcdjlofpfodhpjihpbicmledhecfldf",
     LocalCalendar: "encfnanpmgmgnblfjgjfbleegminpphg",
@@ -335,9 +335,9 @@ var MAIL_DOMAIN_AND_PATH = MAIL_DOMAIN + MAIL_PATH;
 
 var Urls = {};
 Urls.SignOut = `https://accounts.google.com/Logout?continue=${encodeURIComponent(MAIL_DOMAIN)}&service=mail`; //"https://mail.google.com/mail/logout";
-Urls.NotificationError = "https://jasonsavard.com/forum/t/checker-plus-for-gmail?ref=errorNotification";
-Urls.ExtensionConflict = "https://jasonsavard.com/wiki/Extension_Conflict";
-Urls.CorruptProfile = "https://jasonsavard.com/wiki/Corrupt_browser_profile";
+Urls.NotificationError = "";
+Urls.ExtensionConflict = "";
+Urls.CorruptProfile = "";
 Urls.OauthToken = "https://extensions-auth.uc.r.appspot.com/oauthToken";
 Urls.LinkEmailToRegistration = "https://fcm-450788627700.us-central1.run.app/ajax";
 Urls.AICompose = "https://default-102381006486.us-central1.run.app"; // Proxy server to secure API keys
@@ -1148,9 +1148,7 @@ async function getContact(params) {
 function getPresetPhotoUrl(mail) {
 	let url;
 	if (mail?.authorMail) {
-		if (mail.authorMail.includes("@jasonsavard.com")) { // from forum etc.
-			url = "/images/jason.png";
-		} else if (mail.authorMail.includes("@twitter.com")) {
+		if (mail.authorMail.includes("@twitter.com")) {
 			url = "/images/logos/twitter.png";
 		} else if (mail.authorMail.includes("facebook.com") || mail.authorMail.includes("facebookmail.com")) {
 			url = "/images/logos/facebook.png";
@@ -2446,7 +2444,7 @@ function getURLOrRedirectURL($node) {
     }
 
 	// remove google redirection
-	// ex. "http://www.google.com/url?q=http%3A%2F%2Fjasonsavard.com%2Fwiki"
+	// ex. "http://www.google.com/url?q=http%3A%2F%2Fexample.com%2Fwiki"
 	if (url) {
 		if (/^https?:\/\/www\.google\.com\/url\\?q=(.*)/.test(url)) {
 			// only pull the q param because google redirect adds other params
@@ -2541,7 +2539,7 @@ async function interceptClicks($node) {
     addEventListeners($node, "auxclick", function (event) {
         console.log("auxclick", event);
 		if (event.button == 1) {
-			// firefox patch refer to https://jasonsavard.com/forum/discussion/4077/ff-quantum-middle-click-email-link-issue
+			// firefox patch refer to (원래 앱 링크 삭제)
 			if (!DetectClient.isFirefox()) {
 				const url = getURLOrRedirectURL(event.target);
 				chrome.tabs.create({ url: url, active: false });
@@ -2652,10 +2650,8 @@ async function requestPermission(params = {}) {
         } else if (authPageLoadFailed) {
             await niceAlert("Authorization page could not be loaded. This can happen if access is blocked by your organization or security policy.");
         } else if (error.cause == ErrorCause.ACCESS_DENIED) {
-            await openUrl("https://jasonsavard.com/wiki/Granting_access?ref=permissionDenied&ext=gmail")
         } else if (error.jError == JError.NETWORK_ERROR) {
             await niceAlert("Network problem, click ok for more info");
-            await openUrl("https://jasonsavard.com/wiki/Network_problem?ref=gmail");
         } else {
             throw error;
         }
@@ -2732,7 +2728,6 @@ function openPermissionsDialog(params = {}) {
             icon: "help",
             style: "align-self: center",
             onClick: (dialog) => {
-                openUrl("https://jasonsavard.com/wiki/Granting_access?ref=gmailChecker");
             }
         });
 
@@ -2763,7 +2758,6 @@ function requiresCalendarExtension(source) {
             icon: "open-in-new",
             primary: true,
             onClick: function() {
-                openUrl("https://jasonsavard.com/Checker-Plus-for-Google-Calendar?ref=" + source);
             }
         }]
     });
@@ -2992,7 +2986,7 @@ async function retrieveAccounts(storageKey = "accounts") {
     let accounts;
     
     // fix for: trans abort: DataError: Failed to read large IndexedDB value
-    // ref: https://jasonsavard.com/forum/discussion/comment/28673#Comment_28673
+    // ref: (원래 앱 링크 삭제)
     // and maybe in future catch this new error: https://developer.chrome.com/blog/chrome-130-beta?hl=en#improved_error_reporting_in_indexeddb_for_large_value_read_failures
     try {
         accounts = await storage.get(storageKey);
