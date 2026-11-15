@@ -59,6 +59,30 @@ const applyAdProtectionToOpenTabs = async () => {
     }
 };
 
+// 확장이 설치·업데이트되면 이미 열려 있던 치지직 탭의 예전 스크립트는 연결이 끊겨 멈춰요(통나무 자동 받기·넓은 화면 등).
+// Chrome은 등록된 스크립트를 열린 탭에 다시 넣어 주지 않아서, 그 탭들에 새로 넣어 줘요.
+export const reinjectChzzkIntoOpenTabs = async (getModules: ModulesGetter): Promise<number> => {
+    if (!chrome.scripting?.executeScript) return 0;
+    const modules = await getModules();
+    if (modules.chzzk === false) return 0;
+    await running.catch(() => {});
+    const tabs = await chrome.tabs.query({url: CHZZK_MATCHES});
+    let count = 0;
+    for (const tab of tabs) {
+        if (typeof tab.id !== "number" || tab.discarded) continue;
+        try {
+            // 이번 확장 인스턴스의 스크립트가 이미 돌고 있는 탭(새로 열린 탭)은 건너뛰어요(lib/guard.js의 BongAlive로 확인; ns.js는 광고 차단용으로 따로 들어가서 표시로 못 써요). 같은 스크립트가 두 번 돌면 안 돼요.
+            const [probe] = await chrome.scripting.executeScript({target: {tabId: tab.id}, func: () => typeof (globalThis as unknown as {BongAlive?: unknown}).BongAlive === "function"});
+            if (probe?.result) continue;
+            await chrome.scripting.executeScript({target: {tabId: tab.id, allFrames: true}, files: CHZZK_SCRIPT_FILES});
+            count++;
+        } catch (error) {
+            console.warn("열려 있는 치지직 탭에 스크립트를 다시 넣지 못했어요.", error);
+        }
+    }
+    return count;
+};
+
 export const syncChzzkScripts = (getModules: ModulesGetter): Promise<void> => {
     running = running.then(async () => {
         if (!chrome.scripting?.registerContentScripts) return;

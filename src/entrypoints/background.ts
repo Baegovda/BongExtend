@@ -33,7 +33,7 @@ import {paintToolbarBadge, checkerPlusUnreadCount} from "@/modules/toolbar-badge
 import {createTransMenus, startTransBackground} from "@/modules/trans/background.js";
 // @ts-ignore 공통 모듈 스위치(순수 JS)
 import {MODULES_KEY, getModules} from "@/modules/core-modules.js";
-import {syncChzzkScripts} from "@/modules/chzzk-register";
+import {reinjectChzzkIntoOpenTabs, syncChzzkScripts} from "@/modules/chzzk-register";
 import {CHRONO_SITE_ACCESS_KEY, removeLegacyChronoScripts} from "@/modules/chrono-register";
 // @ts-ignore 페이지에 복사되는 순수 JS라 export 를 쓰지 않는다.
 import "@/modules/chzzk/lib/ads.js";
@@ -782,6 +782,7 @@ export default defineBackground(() => {
     browser.runtime.onInstalled.addListener(async (details) => {
         if (details?.reason === "install" || details?.reason === "update") {
             void refreshUpdateStateAfterInstall(true);
+            void reinjectChzzkIntoOpenTabs(getModules).catch(() => {});
         }
         await createContextMenus();
         if (import.meta.env.PROD) {
