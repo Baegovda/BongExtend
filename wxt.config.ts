@@ -71,6 +71,7 @@ export default defineConfig({
             "contextMenus",
             "declarativeNetRequest",
             "downloads",
+            "downloads.ui",
             "notifications",
             "offscreen",
             "idle",
@@ -105,7 +106,7 @@ export default defineConfig({
             "https://*.googleusercontent.com/*"
         ],
         optional_permissions: [
-            "webRequest", "clipboardRead", "downloads.open", "downloads.ui",
+            "webRequest", "clipboardRead", "downloads.open",
             "identity", "cookies", "gcm", "system.display"
         ],
         content_scripts: [

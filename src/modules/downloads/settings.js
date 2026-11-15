@@ -22,7 +22,8 @@ export const normalizeDownloadSettings = (value) => {
     return normalized.urlContains || normalized.category !== "all" || normalized.folder || normalized.filenameMask ? [normalized] : [];
   }) : [];
   return {
-    replaceChromeUi: Boolean(source.replaceChromeUi),
+    // 기본으로 Chrome 자체 다운로드 알림(말풍선·아이콘)은 숨기고 BongExtend가 보여줘요.
+    replaceChromeUi: source.replaceChromeUi !== false,
     notifications: source.notifications !== false,
     listView: source.listView !== false,
     filenameMask: String(source.filenameMask || "").replace(/[\r\n]/g, "").slice(0, 120),

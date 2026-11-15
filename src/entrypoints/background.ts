@@ -332,6 +332,12 @@ export default defineBackground(() => {
     // 다운로드 관리: Chrome 자체 다운로드 API를 사용하며 저장 경로는 다운로드 폴더 아래로 제한한다.
     const syncDownloadUi = async () => {
         try {
+            // 2026-11-15: 사용자 요청으로 Chrome 자체 다운로드 알림 숨기기를 한 번 켜 줘요(이후 직접 끄면 그대로 둬요).
+            const migrated = await browser.storage.local.get(["core.download:hideChromeUiMigrated", DOWNLOAD_SETTINGS_KEY]);
+            if (!migrated["core.download:hideChromeUiMigrated"]) {
+                const current = (migrated[DOWNLOAD_SETTINGS_KEY] && typeof migrated[DOWNLOAD_SETTINGS_KEY] === "object" ? migrated[DOWNLOAD_SETTINGS_KEY] : {}) as Record<string, unknown>;
+                await browser.storage.local.set({[DOWNLOAD_SETTINGS_KEY]: {...current, replaceChromeUi: true}, "core.download:hideChromeUiMigrated": true});
+            }
             const stored = await browser.storage.local.get([DOWNLOAD_SETTINGS_KEY, MODULES_KEY]);
             const settings = normalizeDownloadSettings(stored[DOWNLOAD_SETTINGS_KEY]);
             const modules = (stored[MODULES_KEY] && typeof stored[MODULES_KEY] === "object" ? stored[MODULES_KEY] : {}) as Record<string, unknown>;
