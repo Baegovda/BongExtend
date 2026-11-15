@@ -777,7 +777,7 @@ class DetectClientClass {
     }
 
     getFirefoxDetails() {
-        return fetchJSON("https://jasonsavard.com/getBrowserDetails");
+        return Promise.reject(new Error("not supported"));
     }
 }
 
@@ -1994,71 +1994,9 @@ async function initAllAccounts() {
     globalThis.ignoredAccounts = await retrieveAccounts("ignoredAccounts");
 }
 
-async function openContributeDialog(key, params = {}) {
-	if (params.monthly) {
-        const content = new DocumentFragment();
-        content.append(getMessage("extraFeaturesMonthlyBlurb"));
-        if (params.footerText) {
-            content.append(createBR(), createBR(), params.footerText);
-        }
-        return openDialog(content, {
-            cancel: true,
-            buttons: [{
-                label: getMessage("moreInfo"),
-                onClick: () => {
-                    openUrl("https://jasonsavard.com/wiki/Gmail_API_Quota?ref=contributeDialog");
-                }
-            }, {
-                label: getMessage("monthlyContribution"),
-                primary: true,
-                onClick: () => {
-                    openUrl(`contribute.html?action=${key}&contributionType=monthly`);
-                }
-            }]
-        })
-    } else if (params.addMultipleAccounts) {
-        const content = new DocumentFragment();
-        content.append(getMessage("manuallyAddingMultipleAccountsCost"), createBR(), createBR(), getMessage("manuallyAddingMultipleAccountsCost2", params.maxAccountsForFree));
-        return openDialog(content, {
-            title: getMessage("extraFeatures"),
-            cancel: true,
-            buttons: [{
-                label: getMessage("contribute"),
-                primary: true,
-                onClick: () => {
-                    openUrl(`contribute.html?action=${key}&contributionType=monthly`);
-                }
-            }]
-        });
-    } else if (params.aiPrompt) {
-        const content = new DocumentFragment();
-        content.append(getMessage("checkerPlusComposeQuota"));
-        return openDialog(content, {
-            title: getMessage("extraFeatures"),
-            cancel: true,
-            buttons: [{
-                label: getMessage("contribute"),
-                primary: true,
-                onClick: () => {
-                    openUrl(`contribute.html?action=${key}`);
-                }
-            }]
-        });
-	} else {
-        const content = new DocumentFragment();
-        content.append(getMessage("extraFeaturesPopup1"), createBR(), getMessage("extraFeaturesPopup2"))
-        return openDialog(content, {
-            title: getMessage("extraFeatures"),
-            cancel: true,
-            buttons: [{
-                label: getMessage("contribute"),
-                primary: true,
-                onClick: () => {
-                    openUrl(`contribute.html?action=${key}`);
-                }
-            }]
-        });
-	}
+// 기부 안내 창은 없앴어요(호출돼도 아무 일도 하지 않아요).
+async function openContributeDialog() {
+	return "ok";
 }
 
 async function setStorage(element, params) {
@@ -2382,13 +2320,9 @@ function initMessages(node) {
     }
 }
 
-async function donationClicked(action, monthly) {
-	if (await storage.get("donationClicked")) {
-		return true;
-	} else {
-		openContributeDialog(action, {monthly: monthly});
-		return false;
-	}
+// 예전에는 기부해야 열리던 기능이에요. BongExtend에서는 모두 열려 있어요.
+async function donationClicked() {
+	return true;
 }
 
 async function getChromeWindows() {
@@ -3893,139 +3827,12 @@ function DetectSleepMode() {
 	}
 }
 
+// 원래 앱의 서버(스킨 목록·기부 확인)와 주고받던 코드는 모두 없앴어요. 이제 어떤 요청도 밖으로 나가지 않아요.
 function Controller() {
-	
-	Controller.DOMAIN = "https://apps.jasonsavard.com/";
-
-	// internal only for now
-	function callAjaxController(params) {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort({reason: "timeout"}), params.timeout || seconds(10));
-
-		return fetchJSON(Controller.DOMAIN + "controller.php", params.data, {
-            method: params.method ? params.method : "GET",
-            headers: {
-                misc: location.href,
-                "item-id": ITEM_ID
-            },
-            signal: controller.signal
-		}).finally(() => clearTimeout(timeoutId));
-	}
-
-	Controller.verifyPayment = async function(itemID, emails) {
-		const response = await callAjaxController({
-            method: "POST",
-            data: {
-                action: "verifyPayment",
-                name: itemID,
-                email: emails
-            }
-        });
-
-        await Controller.processFeatures(response);
-
-        return response;
-	}
-	
-	Controller.getSkins = function(ids, timeMin) {
-		const data = {
-            action: "getSkins",
-            extension: "gmail",
-            misc: location.href
-        };
-
-        if (ids) {
-            data.ids = ids;
-        }
-
-		if (timeMin) {
-			data.timeMin = Math.round(new Date().diffInSeconds(timeMin)); // seconds elapsed since now
-		}
-		
-		return callAjaxController({data:data});
-	}
-
-	Controller.updateSkinInstalls = function(id, offset) {
-		var data = {};
-		data.action = "updateSkinInstalls";
-		data.id = id;
-		data.offset = offset;
-		data.misc = location.href;
-		
-		// had to pass misc as parameter because it didn't seem to be passed with header above
-		return callAjaxController({data:data});
-	}
-
-	Controller.processFeatures = async (paymentInfo) => {
-        await storage.set("paymentInfo", paymentInfo);
-
-        if (paymentInfo.unlocked) {
-            await storage.enable("donationClicked");
-            initRealtimeSync();
-            chrome.runtime.sendMessage({command: "featuresProcessed", paymentInfo: paymentInfo}, function(response) {});
-        }
-	}
-
-    Controller.convertUSDToOtherCurrency = (amount, currency) => {
-        currency ||= getMessage("currencyCode");
-        if (currency == "JPY") {
-            return amount * 100;
-        } else if (currency == "TWD") {
-            return amount * 30;
-        } else if (currency == "CNY") {
-            return amount * 7;
-        } else {
-            return amount;
-        }
-    }
-
-    Controller.getMinimumPayment = async () => {
-        const donationClickedFlag = await storage.get("donationClicked");
-
-        const MIN_PAYMENT_KEY = "_minimumPayment";
-        let minPaymentObj = shallowClone(await storage.get(MIN_PAYMENT_KEY) || {
-            onetime_payment: 10,
-            onetime_payment_reduced: 1,
-            onetime_payment_already_contributed: 5,
-            monthly_payment: 2,
-            yearly_payment: 20
-        });
-        
-        const DAYS_TO_CACHE = 10;
-        if (!minPaymentObj.lastFetchDate || minPaymentObj.lastFetchDate.diffInDays() <= -DAYS_TO_CACHE) {
-            try {
-                minPaymentObj = await callAjaxController({ data: { action: "getMinimumContribution" }, timeout: 2000 });
-                minPaymentObj.lastFetchDate = new Date();
-                await storage.set(MIN_PAYMENT_KEY, minPaymentObj);
-            } catch (error) {
-                console.error("getMinimumPayment error: ", error);
-            }
-        } else {
-            console.log("cached min");
-        }
-
-        minPaymentObj.getOneTimePayment = function(currency) {
-            if (donationClickedFlag) {
-                return Controller.convertUSDToOtherCurrency(this.onetime_payment_already_contributed, currency);
-            } else {
-                return Controller.convertUSDToOtherCurrency(this.onetime_payment, currency);
-            }
-        }
-
-        minPaymentObj.getOneTimeReducedPayment = function(currency) {
-            return Controller.convertUSDToOtherCurrency(this.onetime_payment_reduced, currency);
-        }
-
-        minPaymentObj.getMonthlyPayment = function(currency) {
-            return Controller.convertUSDToOtherCurrency(this.monthly_payment, currency);
-        }
-
-        minPaymentObj.getYearlyPayment = function(currency) {
-            return Controller.convertUSDToOtherCurrency(this.yearly_payment, currency);
-        }
-
-        return minPaymentObj;
-    }
+	Controller.verifyPayment = async () => ({unlocked: true});
+	Controller.getSkins = async () => [];
+	Controller.updateSkinInstalls = async () => {};
+	Controller.processFeatures = async () => {};
 }
 
 function replaceBase64UrlSafeCharacters(str) {
@@ -5628,6 +5435,9 @@ function IndexedDBStorage() {
     }
 
     this.get = async key => {
+        // 기부 여부·결제 정보는 저장된 값과 상관없이 항상 "열림"이에요.
+        if (key === "donationClicked") return true;
+        if (key === "paymentInfo") return {unlocked: true, subscription: true};
         if (cachedItems) {
             // one issue that occurs with cachedItems is since we are not cloning the objects stored/retreived then they can cause issues ie. accounts[].mails
             //console.log("from cache: " + key);

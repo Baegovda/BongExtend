@@ -141,10 +141,6 @@ export default defineConfig({
                 matches: ["https://chzzk.naver.com/*"]
             },
             {
-                resources: ["checkerplus-options.html", "contribute.html"],
-                matches: ["https://jasonsavard.com/*", "https://checkout.stripe.com/*", "https://www.paypal.com/*", "https://nowpayments.io/*"]
-            },
-            {
                 resources: ["css/tabletView.css"],
                 matches: ["https://mail.google.com/*"]
             }

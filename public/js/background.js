@@ -309,43 +309,6 @@ if (chrome.alarms) {
                 if (account) {
                     await getEmailsFromFCMUpdate(account);
                 }
-            } else if (alarm.name == Alarms.UPDATE_SKINS) {
-                console.log("updateSkins...");
-                
-                const skinsSettings = await storage.get("skins");
-                const skinsIds = skinsSettings.map(skin => skin.id);
-                const nightModeSkin = await storage.get("nightModeSkin");
-                
-                if (skinsIds.length || nightModeSkin) {
-                    const skins = await Controller.getSkins(skinsIds, await storage.get("_lastUpdateSkins"));
-                    console.log("skins:", skins);
-                    
-                    let foundSkins = false;
-                    skins.forEach(skin => {
-                        skinsSettings.some(skinSetting => {
-                            if (skinSetting.id == skin.id) {
-                                foundSkins = true;
-                                console.log("update skin: " + skin.id);
-                                copyObj(skin, skinSetting);
-                                return true;
-                            }
-                        });
-                    });
-                    
-                    if (foundSkins) {
-                        storage.set("skins", skinsSettings);
-                    }
-
-                    if (nightModeSkin) {
-                        const nightSkinFromDB = skins.find(skin => skin.id == nightModeSkin.id);
-                        if (nightSkinFromDB) {
-                            copyObj(nightSkinFromDB, nightModeSkin);
-                            await storage.set("nightModeSkin", nightModeSkin);
-                        }
-                    }
-                    
-                    storage.setDate("_lastUpdateSkins");
-                }
             } else if (alarm.name == Alarms.UPDATE_UNINSTALL_URL) {
                 // do this every day so that the daysellapsed is updated in the uninstall url
                 setUninstallUrl(getFirstEmail(accounts));
@@ -1864,7 +1827,6 @@ async function performButtonAction(params) {
 		clearRichNotification(params.notificationId);
 	} else if (params.notificationButtonValue == "reducedDonationAd") {
 		await storage.enable("reducedDonationAdClicked");
-		openUrl("contribute.html?ref=reducedDonationFromNotif");
 		clearRichNotification(params.notificationId);
     } else if (params.notificationButtonValue == "otp-code") {
         const width = 180;
@@ -2772,7 +2734,6 @@ async function init(source) {
         chrome.alarms.create(Alarms.EVERY_MINUTE,           { periodInMinutes: 1 });
         chrome.alarms.create(Alarms.EVERY_DAY,              { periodInMinutes: 60 * 24 });
         chrome.alarms.create(Alarms.UPDATE_CONTACTS,        { periodInMinutes: 60 * 4 }); // 4 hours (used to be every 24 hours)
-        chrome.alarms.create(Alarms.UPDATE_SKINS,           { periodInMinutes: 60 * 24 * 1, delayInMinutes: generateRandomAlarmDelay() }); // 1 day (used to be every 2 days)
         chrome.alarms.create(Alarms.UPDATE_UNINSTALL_URL,   { periodInMinutes: 60 * 24 * 1, delayInMinutes: generateRandomAlarmDelay() }); // 1 day
         chrome.alarms.create(Alarms.SYNC_SIGN_IN_ORDER,     { periodInMinutes: 60 * 24 * 5, delayInMinutes: generateRandomAlarmDelay() }); // 5 days
         chrome.alarms.create(Alarms.SYNC_FETCH_SEND_AS,     { periodInMinutes: 60 * 24 * 5, delayInMinutes: generateRandomAlarmDelay() }); // 5 days

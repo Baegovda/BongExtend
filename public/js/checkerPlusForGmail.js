@@ -3089,13 +3089,8 @@ function findMailById(id) {
 	return foundMail;
 }
 
-function openChangelog(ref) {
-    const url = new URL("https://jasonsavard.com/wiki/Checker_Plus_for_Gmail_changelog");
-    url.searchParams.set("cUrl", chrome.runtime.getURL("contribute.html"));
-    if (ref) {
-        url.searchParams.set("ref", ref);
-    }
-    openUrl(url.href);
+// 원래 앱의 변경 이력 사이트는 열지 않아요. 변경 내용은 BongExtend의 CHANGELOG에 있어요.
+function openChangelog() {
 }
 
 async function isAnAccountCheckingSpam() {

@@ -131,6 +131,10 @@
     };
     void chrome.runtime.sendMessage({type:'BONG_CHZZK_WIDE_FULLSCREEN', wide}).then(complete, () => complete(null));
   }
+  // 사용자가 넓은 화면 버튼을 직접 누르거나 단축키(t)를 눌렀을 때: 화면이 바뀌는 걸 기다리지 않고 곧바로 다시 확인해요.
+  const userToggled = () => { setTimeout(() => checkWide(), 150); setTimeout(() => checkWide(), 700); };
+  document.addEventListener('click', event => { if (event.target instanceof Element && event.target.closest('.pzp-viewmode-button, .pzp-pc-viewmode-button')) userToggled(); }, true);
+  document.addEventListener('keyup', event => { if ((event.key === 't' || event.key === 'T') && !/^(INPUT|TEXTAREA)$/.test(document.activeElement && document.activeElement.tagName || '') && !(document.activeElement && document.activeElement.isContentEditable)) userToggled(); }, true);
   window.addEventListener('focus', () => checkWide(true));
   chrome.runtime.onMessage.addListener((message, sender) => {
     if (message?.type === 'BONG_CHZZK_WIDE_REFRESH' && sender.id === chrome.runtime.id) checkWide(true);

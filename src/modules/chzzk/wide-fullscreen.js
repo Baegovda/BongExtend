@@ -10,15 +10,15 @@ export function startWideFullscreenBridge(chrome = globalThis.chrome, {sleep = m
   // 우리가 창 상태를 바꾸는 동안 생기는 크기 변경 이벤트는 사용자가 F11을 직접 끈 것으로 오해하지 않는다.
   let transitioning = 0;
   const pageDir = value => { try { return new URL(value).pathname; } catch { return ''; } };
-  // Chrome이 직전 창 상태 전환 중이면 요청이 조용히 무시될 수 있어서, 실제로 전체화면이 됐는지 확인하며 최대 3번 시도한다.
+  // Chrome이 직전 창 상태 전환 중(예: 사용자가 F11을 막 끈 직후)이면 요청이 조용히 무시될 수 있어서, 실제로 전체화면이 됐는지 확인하며 최대 6번 시도한다.
   async function enterFullscreen(windowId) {
     transitioning++;
     try {
       let lastError;
-      for (let attempt = 0; attempt < 3; attempt++) {
+      for (let attempt = 0; attempt < 6; attempt++) {
         try { await chrome.windows.update(windowId, {state:'fullscreen'}); lastError = undefined; }
         catch (error) { lastError = error; await sleep(150); continue; }
-        for (let wait = 0; wait < 8; wait++) {
+        for (let wait = 0; wait < 6; wait++) {
           let state;
           try { state = (await chrome.windows.get(windowId)).state; } catch { return false; }
           if (state === 'fullscreen') return true;
