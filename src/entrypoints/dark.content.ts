@@ -199,5 +199,30 @@ export default defineContentScript({
         browser.storage.onChanged.addListener((changes, area) => {
             if (area === "local" && (changes[DARK_SETTINGS_KEY] || changes[MODULES_KEY])) void apply();
         });
+
+        // 유튜브: 다른 탭에 갔다 오면 영상 자리가 회색 판으로 가려진 채 다시 그려지지 않는 경우가 있어요.
+        // (다크 모드를 껐다 켜면 풀리는 증상) 탭으로 돌아올 때 플레이어와 영상을 한 번 다시 그리게 해요. 재생 상태는 건드리지 않아요.
+        if (/(^|\.)youtube\.com$/i.test(hostname)) {
+            let hiddenAt = 0;
+            const repaint = () => {
+                if (!contrastEnabled) return;
+                for (const el of document.querySelectorAll<HTMLElement>("#movie_player, #movie_player video, #cinematics")) {
+                    const previous = el.style.getPropertyValue("transform"), priority = el.style.getPropertyPriority("transform");
+                    el.style.setProperty("transform", "translateZ(0)", "important");
+                    void el.offsetHeight;
+                    requestAnimationFrame(() => requestAnimationFrame(() => {
+                        if (el.style.getPropertyValue("transform") !== "translateZ(0)") return; // 사이트가 바꿨으면 그대로 둬요.
+                        if (previous) el.style.setProperty("transform", previous, priority); else el.style.removeProperty("transform");
+                    }));
+                }
+            };
+            document.addEventListener("visibilitychange", () => {
+                if (document.hidden) { hiddenAt = Date.now(); return; }
+                if (!hiddenAt || Date.now() - hiddenAt < 1000) return;
+                hiddenAt = 0;
+                setTimeout(repaint, 120);
+                setTimeout(repaint, 900);
+            });
+        }
     }
 });
