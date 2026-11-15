@@ -12,16 +12,20 @@ test("only an off→on change counts, and a first observation never does", () =>
 });
 
 const fakeChrome = ({sync, status, tabs = []}) => {
-    const local = {watchStatus: {[A]: "CLOSE"}};
+    const local = {"chzzk.watchStatus": {[A]: "CLOSE"}};
     const created = [], updated = [];
     let alarmHandler;
     const chromeApi = {
         storage: {
-            sync: {get: async (d) => ({...d, ...sync})},
+            sync: {get: async (d) => {
+                const out = {...d};
+                for (const [k, v] of Object.entries(sync)) out[`chzzk.${k}`] = v;
+                return out;
+            }},
             local: {get: async (d) => (typeof d === "string" ? {} : {...d, ...local}), set: async (o) => Object.assign(local, o)},
             onChanged: {addListener() {}}
         },
-        alarms: {create() {}, onAlarm: {addListener: (f) => { alarmHandler = f; }}},
+        alarms: {get: async () => undefined, create: async () => {}, onAlarm: {addListener: (f) => { alarmHandler = f; }}},
         runtime: {id: "x", onStartup: {addListener() {}}, onMessage: {addListener() {}}},
         tabs: {query: async () => tabs, create: async (o) => created.push(o), update: async (id, o) => updated.push([id, o])},
         windows: {update: async () => {}}
@@ -36,7 +40,7 @@ test("a watched streamer going live opens a new tab even with no chzzk tab open"
     startChzzkWatch(f.chromeApi);
     f.fire(); await settle();
     assert.deepEqual(f.created, [{url: liveUrl(A), active: true}]);
-    assert.equal(f.local.watchStatus[A], "OPEN");
+    assert.equal(f.local["chzzk.watchStatus"][A], "OPEN");
 });
 
 test("an already open live tab is focused instead of opening a duplicate", async () => {

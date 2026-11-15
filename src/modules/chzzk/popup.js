@@ -40,14 +40,6 @@ for (const k in DEF) if (k !== 'chatFontSize') $(k).addEventListener('change', e
   const el = e.target;
   BCStore.sync.set({ [k]: el.type === 'checkbox' ? el.checked : Math.max(1, Number(el.value) || DEF[k]) });
 });
-function showCount() {
-  BCStore.local.get({ recoverCount: 0, lastRecover: 0 }, v => {
-    $('count').textContent = v.recoverCount;
-    $('last').textContent = v.lastRecover ? '마지막 복구: ' + new Date(v.lastRecover).toLocaleString('ko-KR') : '';
-  });
-}
-$('reset').onclick = () => BCStore.local.set({ recoverCount: 0, lastRecover: 0 }, showCount);
-showCount();
 
 // ───── 관심 스트리머 자동 이동 ─────
 const WB = globalThis.BongWatch;

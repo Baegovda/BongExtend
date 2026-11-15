@@ -59,13 +59,6 @@
     setTimeout(() => el.remove(), 2800);
   }
 
-  function bumpCounter() {
-    try {
-      BCStore.local.get({ recoverCount: 0 }, v =>
-        BCStore.local.set({ recoverCount: (v.recoverCount || 0) + 1, lastRecover: Date.now() }));
-    } catch (e) { /* context invalidated */ }
-  }
-
   const isLive = v => !isFinite(v.duration) || location.pathname.startsWith('/live/');
   const isBlob = v => (v.currentSrc || v.src || '').startsWith('blob:');
 
@@ -182,7 +175,6 @@
     if (cfg.retryTimer && RT) { rtV = v; rtBusyUntil = s.lastRecover + 1500; rtWatch(v); }
     const lvl = s.level;
     s.level = Math.min(s.level + 1, 3);
-    bumpCounter();
     log('복구 시도 단계', lvl + 1);
     try {
       if (lvl === 0) {
@@ -290,7 +282,6 @@
     if (cfg.retryTimer && !rtTimer) { rtTimer = setInterval(rtRender, 250); }
     if (d.action === 'wait') return;
     wd.attempt++; wd.lastAttempt = now; wd.busyUntil = now + 1500;
-    bumpCounter();
     log('시작 안 됨 감시: 시도', d.action);
     const audio = Player && Player.captureAudioState(main);
     if (d.action === 'play') {

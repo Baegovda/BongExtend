@@ -4,6 +4,8 @@
 const ALARM = "bongextend-chzzk-watch";
 const API = "https://api.chzzk.naver.com";
 const HEX32 = /^[0-9a-f]{32}$/i;
+// 치지직 설정은 BCStore(lib/ns.js)가 "chzzk." 접두사를 붙여 저장해요. 팝업·콘텐츠 스크립트와 같은 키를 써야 해요.
+const K = {enabled: "chzzk.watchEnabled", list: "chzzk.watchList", status: "chzzk.watchStatus"};
 
 // 이전 상태 → 현재 상태에서 '꺼짐 → 켜짐'으로 바뀐 채널 ID들. 이전 기록이 없으면 전환이 아니에요.
 export function newlyLive(prev, now) {
@@ -19,10 +21,10 @@ export const liveUrl = (id) => `https://chzzk.naver.com/live/${id}`;
 
 export function startChzzkWatch(chromeApi = chrome) {
     const settings = async () => {
-        const stored = await chromeApi.storage.sync.get({watchEnabled: true, watchList: []});
+        const stored = await chromeApi.storage.sync.get({[K.enabled]: true, [K.list]: []});
         const modules = (await chromeApi.storage.local.get("core.modules"))["core.modules"];
-        const list = (Array.isArray(stored.watchList) ? stored.watchList : []).filter((x) => x && HEX32.test(String(x.id || "")));
-        return {on: stored.watchEnabled !== false && modules?.chzzk !== false && list.length > 0, list};
+        const list = (Array.isArray(stored[K.list]) ? stored[K.list] : []).filter((x) => x && HEX32.test(String(x.id || "")));
+        return {on: stored[K.enabled] !== false && modules?.chzzk !== false && list.length > 0, list};
     };
     const statusOf = async (id) => {
         const response = await fetch(`${API}/polling/v3.1/channels/${id}/live-status`, {credentials: "include", cache: "no-store"});
@@ -47,23 +49,26 @@ export function startChzzkWatch(chromeApi = chrome) {
         try {
             const {on, list} = await settings();
             if (!on) return;
-            const prev = (await chromeApi.storage.local.get({watchStatus: {}})).watchStatus || {};
+            const prev = (await chromeApi.storage.local.get({[K.status]: {}}))[K.status] || {};
             const now = {};
             for (const entry of list) {
                 try { now[entry.id] = await statusOf(entry.id); } catch { /* 이번엔 건너뛰고 다음에 다시 확인해요. */ }
             }
-            await chromeApi.storage.local.set({watchStatus: {...prev, ...now}});
+            await chromeApi.storage.local.set({[K.status]: {...prev, ...now}});
             const first = list.map((x) => x.id).find((id) => newlyLive(prev, now).includes(id));
             if (first) await openLive(first);
         } catch (error) {
             console.warn("치지직 관심 스트리머 확인에 실패했어요.", error);
         } finally { busy = false; }
     };
-    const ensureAlarm = () => { try { chromeApi.alarms.create(ALARM, {delayInMinutes: 0.5, periodInMinutes: 0.5}); } catch { /* 알람을 못 만들면 열린 치지직 탭이 대신 확인해요. */ } };
-    ensureAlarm();
+    // 서비스 워커가 깨어날 때마다 다시 만들면 알람 시간이 계속 뒤로 밀려요. 없을 때만 만들어요.
+    const ensureAlarm = async () => {
+        try { if (!await chromeApi.alarms.get(ALARM)) await chromeApi.alarms.create(ALARM, {delayInMinutes: 0.5, periodInMinutes: 0.5}); } catch { /* 알람을 못 만들면 열린 치지직 탭이 대신 확인해요. */ }
+    };
+    void ensureAlarm();
     chromeApi.alarms.onAlarm.addListener((alarm) => { if (alarm.name === ALARM) void check(); });
-    chromeApi.runtime.onStartup.addListener(() => { ensureAlarm(); void check(); });
-    chromeApi.storage.onChanged.addListener((changes, area) => { if (area === "sync" && (changes.watchEnabled || changes.watchList)) void check(); });
+    chromeApi.runtime.onStartup.addListener(() => { void ensureAlarm(); void check(); });
+    chromeApi.storage.onChanged.addListener((changes, area) => { if (area === "sync" && (changes[K.enabled] || changes[K.list])) void check(); });
     // 치지직 탭의 확인 스크립트가 방송 시작을 먼저 발견했을 때
     chromeApi.runtime.onMessage.addListener((message, sender, reply) => {
         if (message?.type !== "bongextend-chzzk-open-live" || sender.id !== chromeApi.runtime.id) return undefined;
