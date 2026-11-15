@@ -46,6 +46,8 @@ import {startUsageBackground} from "@/modules/usage/background.js";
 import {startImageToolbarBackground} from "@/modules/image/toolbar-background.js";
 // @ts-ignore plain JS
 import {startYoutubeHold} from "@/modules/youtube/background.js";
+// @ts-ignore plain JS
+import {startDownloadSpinner} from "@/modules/downloads/toolbar-spinner.js";
 // @ts-ignore 순수 JS
 import {startRightClickBackground} from "@/modules/rightclick/background.js";
 // @ts-ignore settings are plain JS shared with the dark-mode popup and content script
@@ -69,6 +71,7 @@ export default defineBackground(() => {
     startUsageBackground();
     startImageToolbarBackground();
     startYoutubeHold();
+    startDownloadSpinner();
     startVideoHost();
     startWideFullscreenBridge();
     startChzzkWatch();
