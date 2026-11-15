@@ -1032,11 +1032,6 @@ async function initPage(tabName) {
                     initColorScheme();
                 } else {
                     this.value = e.target.dataset.previousValue;
-                    try {
-                        var quotaText = await fetch(`https://jasonsavard.com/getQuotaText?space=${"gmail"}`).then(response => response.json());
-                    } catch (error) {
-                        console.error("Error fetching quota text", error);
-                    }
                 }
             });
 

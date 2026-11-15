@@ -106,14 +106,7 @@ chrome.runtime.onInstalled.addListener(async details => {
         // Note: Install dates only as old as implementation of this today, Dec 14th 2013
         await storage.initInstallationVars();
         
-        const managedItems = await getManagedStorage();
-        if (!managedItems?.DoNotOpenWebsiteOnInstall) {
-            const optionsUrl = chrome.runtime.getURL("checkerplus-options.html"); // i moved the "?action=install" to the redirect in the thankyouforinstalling page because siteground was giving me 403 forbidden whenever it found %3F (which is an encoded "?")
-            chrome.tabs.create({
-                url: `https://jasonsavard.com/thankYouForInstalling?app=gmail&optionsUrl=${encodeURIComponent(optionsUrl)}`
-            });
-        }
-        
+        // 설치할 때 원래 앱의 안내 사이트를 열던 동작은 없앴어요(BongExtend는 설치 때 아무 페이지도 열지 않아요).
         // commented because too many for quota
         //sendGA("installed", chrome.runtime.getManifest().version);
 	} else if (details.reason == "update") {
@@ -520,7 +513,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
             sendEmailParams.to = {email:await storage.get("quickComposeEmail")}; // name:storage.get("quickComposeEmailAlias")
             
             var originalMessage = sendEmailParams.message;
-            sendEmailParams.htmlMessage = sendEmailParams.message + "<br><br><span style='color:gray'>Sent from <a style='color:gray;text-decoration:none' href='https://jasonsavard.com/Checker-Plus-for-Gmail?ref=sendpage'>Checker Plus for Gmail</a></span>";
+            sendEmailParams.htmlMessage = sendEmailParams.message;
             // remove message since we put it into the htmlMessage and because it seems when gmail api sends in html only it generates the text/plain
             sendEmailParams.message = null;
             
@@ -571,21 +564,10 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     }
 });
 
-async function setUninstallUrl(email) {
-	if (chrome.runtime.setUninstallURL) {
-		await storagePromise; // previously used await initMisc() but this caused race condition because setUninstallUrl did not have an await in the rest of the code and thus initMisc was called twice consecutively
-		var url = "https://jasonsavard.com/uninstalled?app=gmail";
-		url += "&version=" + encodeURIComponent(chrome.runtime.getManifest().version);
-		url += "&daysInstalled=" + await daysElapsedSinceFirstInstalled();
-		if (email && !/mail\.google\.com/.test(email)) {
-            url += "&e=" + encodeURIComponent(btoa(email));
-            storage.set("_uninstallEmail", email);
-		}
-		if (await storage.get("donationClicked")) {
-			url += "&c=true";
-		}
-		chrome.runtime.setUninstallURL(url);
-	}
+// 제거할 때 열리던 원래 앱 사이트(주소에 설치 기간·메일 주소가 실려 갔어요)는 없앴어요.
+// 예전 버전이 크롬에 저장해 둔 제거 주소도 비워요.
+async function setUninstallUrl() {
+	try { await chrome.runtime.setUninstallURL(""); } catch (error) { /* 지원하지 않는 환경이에요. */ }
 }
 
 async function onButtonClicked(notificationId, buttonIndex) {

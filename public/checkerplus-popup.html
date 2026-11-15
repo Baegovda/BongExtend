@@ -1451,34 +1451,6 @@
                             <div id="newsNotificationBigUpdateMessage" hidden style="text-align:center"><span msg="extensionUpdated">big update</span></div>
                         </j-tooltip>
 
-                        <j-button id="share-icon-button" class="share-button" icon="share" popovertarget-id="share-menu"></j-button>
-                        <j-listbox id="share-menu" popover position="center">
-                            <j-icon-item id="facebook">
-                                <j-icon icon="facebook"></j-icon>
-                                <span>Facebook</span>
-                            </j-icon-item>
-                            <j-icon-item id="twitter">
-                                <j-icon icon="twitter"></j-icon>
-                                <span>Twitter</span>
-                            </j-icon-item>
-                            <j-icon-item id="linkedin">
-                                <j-icon icon="linkedin"></j-icon>
-                                <span>LinkedIn</span>
-                            </j-icon-item>
-                            <j-icon-item id="share-by-email">
-                                <j-icon icon="mail" style="color:#666"></j-icon>
-                                <span msg="email">Email</span>
-                            </j-icon-item>
-                            <j-icon-item id="email-subscription">
-                                <j-icon icon="markunread-mailbox" style="color:#666"></j-icon>
-                                <span>Subscribe</span>
-                            </j-icon-item>
-                            <j-icon-item id="copy-link">
-                                <j-icon icon="link" style="color:#666"></j-icon>
-                                <span>Copy Link</span>
-                            </j-icon-item>
-                        </j-listbox>
-                        <j-tooltip for="share-icon-button" animation-delay="0"><span msg="share">share</span></j-tooltip>
 
                         <j-button id="refresh" icon="refresh" msgTitle="refresh"></j-button>
                         <j-button id="maximize" icon="open-in-browser" msgTitle="openGmailTab"></j-button>
@@ -1518,8 +1490,6 @@
                             <j-item class="separator" disabled></j-item>
                             <j-item class="contribute"><span msg="contribute">contribute</span></j-item>
                             <j-item class="changelog"><span msg="changelog">Changelog</span></j-item>
-                            <j-item class="discoverMyApps"><span msg="discoverMyApps">discoverMyApps</span></j-item>
-                            <j-item class="aboutMe"><span msg="aboutMe">about me</span></j-item>
                             <j-item class="help"><span msg="help">help</span></j-item>
                         </j-listbox>
                     </div>
@@ -1668,7 +1638,7 @@
                         <j-button id="compose" src="images/google-plus-sign.svg" class="filled"></j-button>
                         <j-tooltip id="composeTooltip" for="compose" position="end" animation-delay="0" msg="compose"></j-tooltip>
                     </div>
-                    <a id="skinWatermark" href="https://jasonsavard.com" target="_blank">Craving Greens</a>
+                    <a id="skinWatermark" target="_blank"></a>
                     <j-tooltip for="skinWatermark" position="top" hidden>Author of image</j-tooltip>
                 </div>
                 <div id="tabletViewWrapper">

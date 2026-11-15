@@ -6918,52 +6918,6 @@ async function init() {
 		}
 	});
 
-	if (await storage.get("removeShareLinks")) {
-        hide(".share-button");
-	}
-
-    const $shareButton = selector(".share-button");
-    if ($shareButton) {
-        $shareButton.addEventListener("mouseup", function() {
-            maxHeightOfPopup();
-        });
-    
-        $shareButton.addEventListener("click", async function() {
-            await storage.enable("followMeClicked");
-
-            const shareMenu = byId("share-menu");
-            
-            onClickReplace("#share-menu j-icon-item", event => {
-                const value = event.currentTarget.id;
-                sendGA('shareMenu', value);
-                
-                if (value == "facebook") {
-                    //openUrl("https://www.facebook.com/thegreenprogrammer");
-                    openUrl(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent("https://jasonsavard.com/Checker-Plus-for-Gmail?ref=shareMenu")}`);
-                } else if (value == "twitter") {
-                    //openUrl("https://twitter.com/JasonSavard");
-                    openUrl(`https://twitter.com/intent/tweet?text=${encodeURIComponent("Check out Checker Plus for Gmail")}&url=${encodeURIComponent("https://jasonsavard.com/Checker-Plus-for-Gmail?ref=shareMenu")}`);
-                } else if (value == "linkedin") {
-                    //openUrl("https://www.linkedin.com/in/jasonsavard");
-                    openUrl(`https://www.linkedin.com/shareArticle?mini=true&url=${encodeURIComponent("https://jasonsavard.com/Checker-Plus-for-Gmail?ref=shareMenu")}`);
-                } else if (value == "email-subscription") {
-                    openUrl("https://jasonsavard.com/blog/?show-email-subscription=true");
-                } else if (value == "share-by-email") {
-                    const params = {
-                        subject: "Check out Checker Plus for Gmail",
-                        message: "https://jasonsavard.com/Checker-Plus-for-Gmail?ref=shareMenu",
-                    };
-                    accounts[0].openCompose(params);
-                } else if (value == "copy-link") {
-                    const url = "https://jasonsavard.com/Checker-Plus-for-Gmail?ref=shareMenu";
-                    navigator.clipboard.writeText(url);
-                    showToast(getMessage("done"));
-                    shareMenu.hidePopover();
-                }
-            });
-        });
-    }
-
 	onClick("#refresh", function() {
         hideToast();
         // double click
@@ -7187,20 +7141,8 @@ async function init() {
         openUrl("contribute.html?ref=GmailCheckerOptionsMenu");
     });
 
-    onClick(".discoverMyApps", function() {
-        openUrl("https://jasonsavard.com?ref=GmailCheckerOptionsMenu");
-    });
-
     onClick(".feedback", function() {
         openUrl("https://jasonsavard.com/forum/t/checker-plus-for-gmail?ref=GmailCheckerOptionsMenu");
-    });
-
-    onClick(".followMe", function() {
-        openUrl("https://jasonsavard.com/?followMe=true&ref=GmailCheckerOptionsMenu");
-    });
-
-    onClick(".aboutMe", function() {
-        openUrl("https://jasonsavard.com/about?ref=GmailCheckerOptionsMenu");
     });
 
     onClick(".checker-plus-compose-options", function() {
@@ -7219,21 +7161,6 @@ async function init() {
 		window.close();
 	});
 	
-	if (await daysElapsedSinceFirstInstalled() >= UserNoticeSchedule.DAYS_BEFORE_SHOWING_FOLLOW_ME && !await storage.get("followMeClicked")) {
-        let expired = false;
-        const followMeShownDate = await storage.get("followMeShownDate");
-		if (followMeShownDate) {
-			if (followMeShownDate.diffInDays() <= -UserNoticeSchedule.DURATION_FOR_SHOWING_FOLLOW_ME) {
-				expired = true;
-			}
-		} else {
-			storage.setDate("followMeShownDate");
-		}
-		if (!expired) {
-			selector(".share-button")?.classList.add("swing");
-		}
-	}
-
     const $newsNotification = byId("newsNotification");
     const $newsNotificationReducedDonationMessage = byId("newsNotificationReducedDonationMessage")
 
