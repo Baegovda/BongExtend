@@ -112,6 +112,8 @@
       reportGeneration++;
       reportAttempts = 0; reportPending = false; reportSettled = false; retryAt = 0; unavailableCount = 0;
     }
+    // 탭이 화면에 안 보이면(최소화 등) 기다렸다가, 다시 보일 때(visibilitychange) 바로 보내요.
+    if (wide && document.visibilityState === 'hidden') return;
     if (reportSettled || reportPending || reportAttempts >= MAX_REPORTS || Date.now() < retryAt) return;
     const generation = reportGeneration;
     reportPending = true;

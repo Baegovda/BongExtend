@@ -51,15 +51,21 @@ test('maximized windows return to maximized; pre-existing fullscreen belongs to 
   assert.deepEqual(fullscreen.updates, []);
 });
 
-test('inactive tabs, unfocused windows, disabled settings, other sites and frames cannot enter fullscreen', async () => {
+test('inactive tabs, disabled settings, other sites and frames cannot enter fullscreen', async () => {
   const f = fixture();
   for (const from of [{...f.sender, id:'other'}, {...f.sender, frameId:1}, {...f.sender, url:'https://example.com/live/a'}]) await f.send(true, from);
   await f.send(true, f.sender, 'BONG_COLLAPSE_VERTICAL_TABS');
-  f.windows.get(9).focused = false; await f.send(true);
-  f.windows.get(9).focused = true; f.tabs.get(3).active = false; await f.send(true);
+  f.tabs.get(3).active = false; await f.send(true);
   f.tabs.get(3).active = true; f.sync['chzzk.wideFullscreen'] = false; await f.send(true);
   f.sync['chzzk.wideFullscreen'] = true; f.local['core.modules'] = {chzzk:false}; await f.send(true);
   assert.deepEqual(f.updates, []);
+});
+
+test('a visible active tab enters fullscreen even when Chrome is not the focused app window', async () => {
+  const f = fixture();
+  f.windows.get(9).focused = false;
+  assert.equal((await f.send(true)).status, 'fullscreen');
+  assert.equal(f.windows.get(9).state, 'fullscreen');
 });
 
 test('exit from another document cannot undo a newer wide session', async () => {

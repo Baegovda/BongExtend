@@ -1,5 +1,7 @@
 // Chrome's browser fullscreen (F11), with ownership so existing fullscreen is never undone.
 export const WIDE_FULLSCREEN_KEY = 'core.chzzkWideFullscreen';
+// 전환 기록(최근 30개). 안 될 때 원인을 보려고 남겨요. 주소·제목 같은 내용은 담지 않아요.
+export const WIDE_TRACE_KEY = 'core.chzzkWideTrace';
 const MESSAGE = 'BONG_CHZZK_WIDE_FULLSCREEN';
 const watchPage = value => /^https:\/\/chzzk\.naver\.com\/(live|video)\/[^/?#]+/.test(value || '');
 
@@ -73,7 +75,9 @@ export function startWideFullscreenBridge(chrome = globalThis.chrome, {sleep = m
       chrome.tabs.get(sender.tab.id), chrome.windows.get(windowId)
     ]);
     if (stored['core.modules']?.chzzk === false || prefs['chzzk.wideFullscreen'] === false) return {ok:false, status:'disabled'};
-    if (!tab.active || tab.windowId !== windowId || !window.focused || !watchPage(tab.url) ||
+    // 창이 운영체제에서 '선택된 창'인지는 보지 않아요. 다른 프로그램을 보고 있어도 그 탭이 창의 활성 탭이면 전체화면으로 바꿔요.
+    // (예전에는 선택된 창만 허용해서, 크롬이 앞에 있지 않을 때 넓은 화면이 돼도 전체화면이 안 됐어요.)
+    if (!tab.active || tab.windowId !== windowId || !watchPage(tab.url) ||
         new URL(tab.url).pathname !== new URL(sender.url).pathname) return {ok:false, status:'inactive'};
     if (sameOwner(entry, sender)) {
       if (entry.manualExit) return {ok:true, status:'manual-exit'};
@@ -116,12 +120,26 @@ export function startWideFullscreenBridge(chrome = globalThis.chrome, {sleep = m
     return {ok:true, status:'fullscreen'};
   }
 
+  const trace = async (wide, result, sender) => {
+    try {
+      let window = {};
+      try { window = await chrome.windows.get(sender.tab.windowId); } catch { /* 닫힌 창 */ }
+      const list = (await chrome.storage.local.get(WIDE_TRACE_KEY))[WIDE_TRACE_KEY] || [];
+      list.push({at:Date.now(), wide, status:result?.status || (result?.ok ? 'ok' : 'fail'), error:result?.error ? String(result.error).slice(0, 120) : undefined, state:window.state, focused:window.focused});
+      await chrome.storage.local.set({[WIDE_TRACE_KEY]: list.slice(-30)});
+    } catch { /* 기록은 실패해도 괜찮아요. */ }
+  };
   chrome.runtime.onMessage.addListener((message, sender, reply) => {
     if (message?.type !== MESSAGE || typeof message.wide !== 'boolean' || sender.id !== chrome.runtime.id ||
         !Number.isInteger(sender.tab?.id) || sender.frameId !== 0 || !watchPage(sender.url)) return;
-    void enqueue(() => apply(message.wide, sender)).then(reply, error => {
+    void enqueue(() => apply(message.wide, sender)).then(result => {
+      reply(result);
+      void trace(message.wide, result, sender);
+    }, error => {
       console.warn('치지직 Chrome 전체화면 전환을 완료하지 못했어요.', error);
-      reply({ok:false, status:'unavailable', error:String(error?.message || error)});
+      const result = {ok:false, status:'unavailable', error:String(error?.message || error)};
+      reply(result);
+      void trace(message.wide, result, sender);
     });
     return true;
   });
