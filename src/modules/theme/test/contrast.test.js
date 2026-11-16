@@ -53,7 +53,7 @@ test('glass sheen and primary gradient endpoints preserve readable foregrounds',
             for(const background of [glass,sheen])for(const key of ['text','text2','muted'])
                 assert.ok(contrastRatio(t[key],background)>=4.5,`${name} ${key} on glass ${background}`);
         }
-        const endpoints=name==='dark'?['#405fc4','#5b53aa','#326b89']:['#455cc2','#6351a6','#336b85'];
+        const endpoints=['#3d6ee0','#7a5ad6'];
         for(const color of endpoints)assert.ok(contrastRatio('#ffffff',color)>=4.5,name+' primary '+color);
     }
 });

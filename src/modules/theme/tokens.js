@@ -1,8 +1,8 @@
 // BongExtend: 깊이 있는 유리 면과 진주빛 청색·보라·청록을 위한 공통 토큰.
 // theme.css 의 같은 이름 변수와 숫자를 맞춘다. 대비 테스트가 둘을 비교한다.
 
-export const EASE = "cubic-bezier(0.25, 0.1, 0.25, 1)";
-export const DURATION_MS = 250;
+export const EASE = "cubic-bezier(0.2, 0, 0, 1)";
+export const DURATION_MS = 160;
 export const FONT = '-apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif';
 export const BAR_ALPHA = 0.94;
 
@@ -17,8 +17,8 @@ export const themes = {
         text: "#f5f7fa",
         text2: "#dce0e8",
         muted: "#a3abbc",
-        accent: "#3d63bd",
-        accentHover: "#3557a6",
+        accent: "#3d6ee0",
+        accentHover: "#3560cc",
         accentInk: "#ffffff",
         link: "#adc7fa",
         ok: "#95d5b2",

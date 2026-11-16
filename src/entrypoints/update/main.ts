@@ -1,4 +1,5 @@
 import "@/modules/theme/theme.css";
+import "@/modules/theme/ui.js";
 import {canApplyVersion, checkLatestRelease, isBongExtendManifest, type LatestRelease} from "@/core/update/release";
 import {installSession, pendingDecision, shouldAutoStartInstall, versionLine, type WriteProgress} from "@/core/update/installPlan";
 import {fileKey, type PendingUpdate, type ZipFile} from "@/core/update/types";

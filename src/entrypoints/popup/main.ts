@@ -7,6 +7,7 @@ import {setupMailSettings} from "./mail-settings";
 import {setupWindowControls} from "./window-controls";
 // BongExtend 팝업: 탭 하나에 모듈 화면 하나. 각 모듈 화면은 옛 확장 팝업을 그대로 iframe으로 띄운다.
 import "@/modules/theme/theme.css";
+import "@/modules/theme/ui.js";
 import {sendMessage} from "@/http/messaging";
 import {isNewerVersion} from "@/core/update/availability";
 import {isBongExtendManifest} from "@/core/update/release";
@@ -375,11 +376,12 @@ tabButtons().forEach((b) => {
         void showTab(b.dataset.tab as TabId);
     });
     b.addEventListener("keydown", (e) => {
-        if (!e.altKey || (e.key !== "ArrowLeft" && e.key !== "ArrowRight")) return;
+        const back = e.key === "ArrowLeft" || e.key === "ArrowUp";
+        if (!e.altKey || !(back || e.key === "ArrowRight" || e.key === "ArrowDown")) return;
         e.preventDefault();
         const order = currentOrder();
         const from = order.indexOf(b.dataset.tab as TabId);
-        applyOrder(moveItem(order, from, from + (e.key === "ArrowLeft" ? -1 : 1)));
+        applyOrder(moveItem(order, from, from + (back ? -1 : 1)));
         b.focus();
         saveOrder();
     });
@@ -388,7 +390,7 @@ tabButtons().forEach((b) => {
         item: b,
         list: tabGroup,
         live: tabsNav,
-        axis: "x",
+        axis: "y",
         onClick: () => { void showTab(b.dataset.tab as TabId); },
         onDrop: () => {
             suppressClick = true;
@@ -421,6 +423,7 @@ const firefoxBuild = Boolean(import.meta.env.FIREFOX);
 if (firefoxBuild) firefoxUpdateNote.hidden = false;
 let releaseUrl = "";
 $("ver").textContent = effects.getManifest().version;
+{ const brandVersion = document.getElementById("brandVersion"); if (brandVersion) brandVersion.textContent = `v${effects.getManifest().version}`; }
 
 const setStatus = (text: string, kind = "") => { updateStatus.textContent = text; updateStatus.className = kind; };
 

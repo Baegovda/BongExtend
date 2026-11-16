@@ -1,11 +1,11 @@
 <!doctype html><html lang="ko"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="stylesheet" href="/theme/theme.css">
+<link rel="stylesheet" href="/theme/theme.css"><script defer src="/theme/ui.js"></script>
 <style>
 body{padding:14px 16px}
 .head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:10px}
 .head h3{margin:0}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:start}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:10px;align-items:start}
 .col{display:flex;flex-direction:column;gap:10px}
 .be-card{padding:4px 14px 8px}
 .be-card h4{margin:8px 0 2px}
@@ -34,7 +34,7 @@ body{margin:0;background:var(--be-canvas-gradient,var(--be-bg));min-width:0}
 .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 .col{min-width:0;gap:12px}
 .be-card{padding:10px 14px 12px;border-radius:16px;background:var(--be-glass,var(--be-surface));border:1px solid var(--be-glass-border,var(--be-border));box-shadow:var(--be-glass-shadow,none)}
-.be-card h4{font-size:12px;letter-spacing:0;color:var(--be-text-2);margin:2px 0 6px;padding-bottom:9px;border-bottom:1px solid var(--be-border)}
+.be-card h4{font-size:15px;letter-spacing:0;color:var(--be-text);margin:4px 0 6px;padding-bottom:9px;border-bottom:1px solid var(--be-hairline)}
 label{padding:7px 0;line-height:1.5;min-width:0;overflow-wrap:anywhere}
 label>input,label>select{flex-shrink:0}
 .inline{justify-content:flex-end;flex-wrap:wrap;min-width:0;max-width:65%}
@@ -49,7 +49,7 @@ input[type=number],select,button{background:var(--be-control-bg,var(--be-surface
 .be-advanced{margin-top:8px;border-top:1px solid var(--be-border);padding-top:8px}
 .be-advanced summary{cursor:pointer;color:var(--be-text-2);font-weight:600;line-height:1.6;padding:4px 0}
 .be-advanced summary:focus-visible{outline:2px solid var(--be-accent);outline-offset:3px;border-radius:5px}
-@media(max-width:600px){.grid{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:720px){.grid{grid-template-columns:minmax(0,1fr)}}
 @media(max-width:360px){body{padding:12px}.be-card{padding:10px 12px}label{flex-wrap:wrap}label>input,label>select,.inline{margin-left:auto}.inline{max-width:100%}}
 </style>
 </head><body class="be-page">
