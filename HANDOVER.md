@@ -278,7 +278,7 @@ BongExtend는 메일·다운로더·번역·치지직·디시·환율·다크 �
 - 환율은 src/modules/fx/, 우클릭 복구는 src/modules/rightclick/.
 - PC 영상: native/video/host.py, Launcher.cs, 설치 스크립트. scripts/package-video-helper.ps1로 패키징해요.
 
-사용자는 원작자 허락을 받았다고 지시했어요. 타사 코드의 실제 통합 범위와 자체 어댑터를 구분하고, CHECKERPLUS-ATTRIBUTION.txt, CHRONO-ATTRIBUTION.txt, licenses/ 등 저작권·라이선스 표시는 유지해요.
+사용자는 원작자 허락을 받았다고 지시했어요. 타사 코드의 실제 통합 범위와 자체 어댑터를 구분하고, CHRONO-ATTRIBUTION.txt, licenses/ 등 저작권·라이선스 표시는 유지해요.
 
 ## 최근 완료한 변경
 

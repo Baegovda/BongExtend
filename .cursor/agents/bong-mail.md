@@ -31,7 +31,7 @@ description: 주 에이전트가 Gmail·네이버 메일 감지, 계정 표시, 
 - manifest, wxt.config.ts, package.json·잠금 파일, CHANGELOG와 배포 설정도 주 에이전트 영역이에요.
 - 공통 변경이 필요하면 대상 경로·이유·최소 변경안을 주 에이전트에게 전달해요.
 - 커밋·푸시·태그·릴리스와 다른 세션 생성은 주 에이전트가 맡아요.
-- CHECKERPLUS-ATTRIBUTION.txt와 타사 라이선스·저작권 표시는 유지해요.
+- 타사 라이선스·저작권 표시는 유지해요. (CHECKERPLUS-ATTRIBUTION.txt·CHECKERPLUS-COPYRIGHT는 1.2.142에서 사용자 요청으로 지웠어요.)
 
 # 보존할 동작과 데이터
 - 앱 전체를 Checker Plus로 바꾸지 않고 기존 탭·계정·설정 흐름을 유지해요.
