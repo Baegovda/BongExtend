@@ -101,3 +101,18 @@ test('같은 보상의 재시도는 한 줄로 합치고, 개수가 안 늘면 �
   assert.equal(f.store.logPowerHistory[0].tries, 2);
   assert.equal(f.store.logPowerHistory[0].status, 'unknown');
 });
+
+test('a badge left behind by an older (updated) extension copy is removed so only one shows', async (t) => {
+  const window = new Window({url: 'https://chzzk.naver.com/live/' + id}), document = window.document;
+  t.after(() => window.happyDOM.close());
+  document.body.innerHTML = '<aside id="aside-chatting"><div class="live_chatting_input_tools__x"><button class="live_chatting_input_donation_button__y">후원</button><button class="bongextend-logcount">🪵 0</button><button class="bongextend-logcount">🪵 0</button></div></aside>';
+  window.setTimeout = () => 1; window.setInterval = () => 1; window.clearInterval = () => {};
+  window.fetch = async (url) => url.includes('getUserStatus') ? {ok: true, status: 200, json: async () => ({content: {loggedIn: true}})} : {ok: true, status: 200, json: async () => ({code: 200, content: {amount: 7}})};
+  window.BCStore = {sync: {get: async () => ({logPowerCount: true})}, local: {get: async (d) => d, set: async () => {}}, onChanged: {addListener() {}}};
+  window.chrome = {storage: {local: {get: async () => ({'core.modules': {chzzk: true}})}, onChanged: {addListener() {}}}};
+  window.eval(source);
+  await flush();
+  const badges = document.querySelectorAll('.bongextend-logcount');
+  assert.equal(badges.length, 1);
+  assert.equal(badges[0].querySelector('.num')?.textContent, '7');
+});

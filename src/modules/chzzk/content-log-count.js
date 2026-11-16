@@ -161,6 +161,8 @@ html.theme_dark .bongextend-logpanel li .g.ok{color:#4ade80}
       if (id) void refresh();
     }
     if (!id || !signedIn) { removeUi(); return; }
+    // 확장이 업데이트되면 예전 스크립트는 멈춘 채 자기 표시를 못 지워요. 내 것이 아닌 표시·기록 창은 치워서 하나만 남겨요.
+    for (const old of document.querySelectorAll('.bongextend-logcount, .bongextend-logpanel')) if (old !== badge && old !== panel) old.remove();
     if (badge?.isConnected) return;
     const spot = findSpot();
     if (!spot) return;
