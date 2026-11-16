@@ -240,7 +240,7 @@ JError.GOOGLE_SERVICE_ACCOUNT = "GOOGLE_SERVICE_ACCOUNT";
 JError.GMAIL_BACK_END = "GMAIL_BACK_END";
 JError.CANNOT_ENSURE_MAIN_AND_INBOX_UNREAD = "CANNOT_ENSURE_MAIN_AND_INBOX_UNREAD";
 JError.DID_NOT_CONTRIBUTE = "DID_NOT_CONTRIBUTE";
-JError.DO_NOT_TRACK_MESSAGE = "Use Options > Accounts > Add Accounts or set the default Tracking Protection back to 'Only in private windows'";
+JError.DO_NOT_TRACK_MESSAGE = "설정 > 계정 > 계정 추가를 쓰거나, 브라우저의 추적 방지 기본값을 '비공개 창에서만'으로 되돌려 주세요.";
 JError.HOST_PERMISSION = "HOST_PERMISSION";
 
 var Origins = {};
@@ -635,9 +635,9 @@ async function getAccountsSummary(accounts) {
                     firstNiceError = getMessage("notSignedIn");
                     allSignedOut = true;
                 } else {
-                    firstNiceError = "Problem detecting account.";
+                    firstNiceError = "계정을 찾지 못했어요.";
                     if (ignoredAccounts.length) {
-                        firstNiceError += " Did you ignore all accounts in the Account options?";
+                        firstNiceError += " 계정 설정에서 모든 계정을 제외하지 않았는지 확인해 주세요.";
                     }
                 }
             } else {
@@ -2591,7 +2591,7 @@ async function requestPermission(params = {}) {
         if (!passedScopesTest) {
             hideLoading();
             byId("permissionDialog")?.close();
-            await niceAlert("You must check all permissions to continue");
+            await niceAlert("계속하려면 모든 권한에 체크해 주세요.");
             return requestPermission(params);
         }
 
@@ -2645,13 +2645,13 @@ async function requestPermission(params = {}) {
         const policyEnforced = /policy_enforced/i.test(error?.message || "");
 
         if (policyEnforced) {
-            const requestedData = params.initOAuthContacts ? "your contacts" : params.initOAuthProfiles ? "your profile information" : "the requested Google account data";
-            await niceAlert(`Your organization's security policy has blocked Checker Plus from accessing ${requestedData}. This is not a password or connection problem. Ask your Google Workspace administrator to allow this access.`);
+            const requestedData = params.initOAuthContacts ? "연락처" : params.initOAuthProfiles ? "프로필 정보" : "요청한 Google 계정 정보";
+            await niceAlert(`조직의 보안 정책 때문에 BongExtend 메일이 ${requestedData}에 접근할 수 없어요. 비밀번호나 연결 문제는 아니에요. Google Workspace 관리자에게 접근을 허용해 달라고 요청해 주세요.`);
         } else if (authPageLoadFailed) {
-            await niceAlert("Authorization page could not be loaded. This can happen if access is blocked by your organization or security policy.");
+            await niceAlert("권한 허용 페이지를 열지 못했어요. 조직이나 보안 정책이 접근을 막고 있으면 이럴 수 있어요.");
         } else if (error.cause == ErrorCause.ACCESS_DENIED) {
         } else if (error.jError == JError.NETWORK_ERROR) {
-            await niceAlert("Network problem, click ok for more info");
+            await niceAlert("네트워크에 문제가 있어요. 확인을 누르면 자세한 내용을 볼 수 있어요.");
         } else {
             throw error;
         }
@@ -2731,7 +2731,7 @@ function openPermissionsDialog(params = {}) {
             }
         });
 
-        let message = params.secondAttempt ? "Problem with sign in. Try the Sign in with Google instead." : "";
+        let message = params.secondAttempt ? "로그인에 문제가 있어요. 'Google로 로그인'을 대신 써 보세요." : "";
 
         openDialog(message, {
             id: "permission-dialog",
@@ -2750,11 +2750,11 @@ async function syncSignInOrderForAllAccounts() {
 }
 
 function requiresCalendarExtension(source) {
-    openDialog("This function requires my other extension Checker Plus for Google Calendar",{
-        title: "Extension required",
+    openDialog("이 기능은 지원하지 않아요.",{
+        title: "지원하지 않는 기능",
         cancel: true,
         buttons: [{
-            label: "Get extension",
+            label: "확인",
             icon: "open-in-new",
             primary: true,
             onClick: function() {
@@ -3006,7 +3006,7 @@ async function retrieveAccounts(storageKey = "accounts") {
                 });
                 await storage.set(storageKey, accounts);
             } catch (error) {
-                showMessageNotification("Accounts list may have been corrupted from a power outage", "You'll have to add them again", error);
+                showMessageNotification("정전 등으로 계정 목록이 손상됐을 수 있어요", "계정을 다시 추가해 주세요", error);
             }
         }
 

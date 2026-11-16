@@ -1,0 +1,158 @@
+/* BongExtend 메일 화면을 BongHub 디자인 시스템에 맞춰요(원래 앱의 빨간 머리줄·흰 면·회색 버튼을 걷어내요).
+   색·크기는 /theme/theme.css 토큰을 그대로 따라요. 메일 본문(보낸 사람이 만든 HTML)은 건드리지 않아요. */
+@import url("/theme/theme.css");
+
+:root:root:root {
+  --header-bg-color: transparent;
+  --header-color: var(--be-text);
+  --text-color: var(--be-text);
+  --bg-color: var(--be-bg);
+  --bg-light-color: rgba(255, 255, 255, 0.06);
+  --bg-light-color-hover: rgba(255, 255, 255, 0.1);
+  --border-color: var(--be-control-border);
+  --separator-color: var(--be-hairline);
+  --button: var(--be-brand);
+  --button-primary: var(--be-accent);
+  --button-text-color: #a9c6ff;
+  --input-font-size: 14px;
+  --input-bg-color: var(--be-control-bg);
+  --input-border-radius: var(--be-radius-sm);
+  --focus-visible-color: var(--be-brand);
+  --input-focus-box-shadow: 0 0 0 1px var(--be-brand);
+  --link-color: #a9c6ff;
+  --checkbox-radio-bg-color: var(--be-brand);
+  --default-icon-color: var(--be-text-2);
+  --dark-theme-icon-color: var(--be-text-2);
+  --icon-color: var(--be-text-2);
+  --icon-invert: invert(1);
+  --nav-selected-color: var(--be-text);
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) {
+  :root:root:root {
+    --bg-light-color: rgba(40, 50, 80, 0.05);
+    --bg-light-color-hover: rgba(40, 50, 80, 0.09);
+    --button-text-color: #2f5bc4;
+    --link-color: #2f5bc4;
+    --default-icon-color: var(--be-text-2);
+    --dark-theme-icon-color: var(--be-text-2);
+    --icon-color: var(--be-text-2);
+    --icon-invert: none;
+    color-scheme: light;
+  }
+}
+
+html body {
+  background: var(--be-bg);
+  background-image: var(--be-canvas-gradient);
+  background-attachment: fixed;
+  color: var(--be-text);
+  font-family: var(--be-font);
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 머리줄: 빨간 띠 대신 투명한 유리 줄 */
+html .site-header, html .site-header:not([no-bg-color]) {
+  background: rgba(9, 11, 16, 0.6) !important;
+  color: var(--be-text) !important;
+  border-bottom: 1px solid var(--be-hairline);
+  box-shadow: none !important;
+  -webkit-backdrop-filter: var(--be-acrylic-blur); backdrop-filter: var(--be-acrylic-blur);
+}
+@media (prefers-color-scheme: light) { html .site-header, html .site-header:not([no-bg-color]) { background: rgba(255, 255, 255, 0.7) !important; } }
+html .site-header [main-title] { font: 600 17px/1.2 var(--be-font-display); color: var(--be-text) !important; }
+html .site-header .logo { width: 28px; height: 28px; padding: 5px; border-radius: 8px; background: var(--be-brand-gradient); box-shadow: var(--be-card-edge); box-sizing: border-box; }
+html .site-header #version, html .site-header #version-text { color: var(--be-muted) !important; font-size: 12px; }
+
+/* 상단 분류: BongHub 알약 메뉴 */
+html .secondary-nav { background: transparent !important; padding: 6px 16px 10px; }
+html .secondary-nav ul { display: inline-flex; flex-wrap: wrap; gap: 2px; padding: 4px !important; margin: 0; background: rgba(0, 0, 0, 0.28); border: 1px solid var(--be-hairline); border-radius: var(--be-radius); }
+@media (prefers-color-scheme: light) { html .secondary-nav ul { background: rgba(40, 50, 80, 0.06); } }
+html .secondary-nav li { list-style: none; border: 0 !important; }
+html .secondary-nav li a { display: block; padding: 7px 11px !important; border-radius: var(--be-radius-sm); color: var(--be-text-2) !important; font: 600 13px/1 var(--be-font) !important; text-decoration: none; transition: background-color var(--be-duration) var(--be-ease), color var(--be-duration) var(--be-ease); }
+html .secondary-nav li a:hover { background: rgba(255, 255, 255, 0.06); color: var(--be-text) !important; }
+html .secondary-nav li.selected a, html .secondary-nav li[selected] a, html .secondary-nav li a[aria-current], html .secondary-nav li.active a { background: var(--be-control-hover); color: var(--be-text) !important; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12); }
+html .secondary-nav li::after, html .secondary-nav li a::after { display: none !important; }
+
+/* 묶음 상자(fieldset·card) = 유리 카드 */
+html fieldset, html .card {
+  background: var(--be-card-fill) !important;
+  border: 1px solid var(--be-card-stroke) !important;
+  border-radius: var(--be-radius) !important;
+  box-shadow: var(--be-card-edge), var(--be-card-shadow) !important;
+  padding: 12px 16px 14px;
+}
+html legend { padding: 0 6px; color: var(--be-text); font: 600 15px/1.3 var(--be-font-display); background: none !important; }
+html .site-main { padding-inline: 16px; }
+
+/* 입력칸·선택칸 */
+html select, html input[type=text], html input[type=search], html input[type=number], html input[type=email], html input[type=url], html textarea, html j-input input {
+  background-color: var(--be-control-bg) !important;
+  border: 1px solid var(--be-control-border) !important;
+  border-radius: var(--be-radius-sm) !important;
+  color: var(--be-text) !important;
+  font: 14px/1.3 var(--be-font);
+  box-shadow: none !important;
+}
+html select:focus, html input:focus, html textarea:focus { border-color: var(--be-brand) !important; outline: none; }
+html select option { background: #202430; color: #f5f7fa; }
+@media (prefers-color-scheme: light) { html select option { background: #fff; color: #24262d; } }
+
+/* 버튼: 보조 = 반투명 면 + 얇은 테두리, 주 = 그라데이션 */
+html j-button:not([icon]):not(.side-rail-button), html button:not([class*="mail"]):not(.fab) {
+  border-radius: var(--be-radius-sm);
+}
+html j-button[raised], html j-button.colored, html j-button[primary], html .ok-button {
+  background: var(--be-accent-gradient) !important;
+  color: #fff !important;
+  border: 0 !important;
+}
+html j-button[outlined], html j-button[tonal] {
+  background: var(--be-control-bg) !important;
+  border: 1px solid var(--be-control-border) !important;
+  color: var(--be-text) !important;
+}
+
+/* 체크박스 → BongHub 토글 (설정 화면만. 메일 목록의 선택 칸은 그대로) */
+html[data-bonghub=options] input[type=checkbox]:not([hidden]) {
+  -webkit-appearance: none; appearance: none; flex: 0 0 auto;
+  width: 40px; height: 22px; margin: 0 10px 0 0; border-radius: 999px; border: 0; position: relative; cursor: pointer; vertical-align: middle;
+  background: var(--be-control-bg); box-shadow: inset 0 0 0 1px var(--be-control-border);
+  transition: background-color 150ms ease-out;
+}
+html[data-bonghub=options] input[type=checkbox]:not([hidden])::after {
+  content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%;
+  background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3); transition: transform 150ms ease-out;
+}
+html[data-bonghub=options] input[type=checkbox]:not([hidden]):checked { background: var(--be-switch-gradient); box-shadow: none; }
+html[data-bonghub=options] input[type=checkbox]:not([hidden]):checked::after { transform: translateX(18px); }
+html input[type=radio] { accent-color: var(--be-brand); }
+html input[type=range] { accent-color: var(--be-brand); }
+
+/* 대화상자·메뉴 */
+html dialog, html [popover] {
+  background: var(--be-menu-bg) !important;
+  color: var(--be-text) !important;
+  border: 1px solid var(--be-menu-stroke) !important;
+  border-radius: var(--be-radius-panel) !important;
+  box-shadow: var(--be-card-shadow) !important;
+  -webkit-backdrop-filter: var(--be-acrylic-blur); backdrop-filter: var(--be-acrylic-blur);
+}
+html dialog::backdrop { background: rgba(5, 8, 16, 0.55); backdrop-filter: blur(6px); }
+html a { color: var(--link-color); }
+html ::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--be-text) 22%, transparent) !important; border: 2px solid transparent; background-clip: padding-box; }
+
+@media (prefers-reduced-transparency: reduce) {
+  html .site-header, html dialog, html [popover] { backdrop-filter: none; -webkit-backdrop-filter: none; }
+  html fieldset, html .card { background: var(--be-surface) !important; }
+}
+
+/* 다듬기: 카드 제목은 테두리 위가 아니라 카드 안쪽 첫 줄에, 분류 메뉴는 왼쪽부터 촘촘히 */
+html fieldset { position: relative; margin-top: 36px !important; padding-top: 14px; }
+html fieldset > legend { position: absolute; top: -27px; left: 2px; margin: 0; padding: 0 !important; opacity: 1 !important; white-space: nowrap; }
+html .secondary-nav ul { width: auto !important; max-width: 100%; justify-content: flex-start !important; }
+html .secondary-nav li { flex: 0 0 auto !important; width: auto !important; }
+html .site-header j-input, html .site-header input[type=search] { background: var(--be-control-bg) !important; border-radius: var(--be-radius-sm) !important; color: var(--be-text) !important; }
+html .site-header input::placeholder { color: var(--be-muted); }
+html .label-text, html label { color: var(--be-text-2); }

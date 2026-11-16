@@ -2,7 +2,7 @@
 
 function closeWindow() {
     setTimeout(() => {
-        document.body.append(getMessage("done"), createBR(), createBR(), `You can close this window!`);
+        document.body.append(getMessage("done"), createBR(), createBR(), `이제 이 창을 닫아도 돼요.`);
 
         try {
             window.close();
@@ -31,10 +31,10 @@ function closeWindow() {
             } catch (error) {
                 console.error("error opening popup", error);
                 // for firefox cause it requires a user gesture
-                await niceAlert("Click the extension icon to open the popup window");
+                await niceAlert("확장 아이콘을 눌러 메일 창을 열어 주세요.");
                 BongExtendCheckerPlusAction.openPopup();
             }
-            await niceAlert("Click to close this window", true);
+            await niceAlert("눌러서 이 창을 닫아 주세요.", true);
             closeWindow();
         }
     });

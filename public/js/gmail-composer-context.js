@@ -160,8 +160,8 @@
                 if ($bottomArea && $composeArea && !$bottomArea.querySelector(".aiComposeButton")) {
 
                     //console.log("addAIComposeButtons3")
-                    const checkerPlusComposeTitle = localStorage.getItem("checkerPlusComposeTitle") || "Checker Plus Compose";
-                    console.log("Adding Checker Plus Compose button... " + checkerPlusComposeTitle);
+                    const checkerPlusComposeTitle = localStorage.getItem("checkerPlusComposeTitle") || "BongExtend 메일 쓰기";
+                    console.log("Adding BongExtend mail compose button... " + checkerPlusComposeTitle);
 
                     // Create AI reply button
                     $aiComposeButton = document.createElement("td");
@@ -209,7 +209,7 @@
 
                         const emailData = getEmailData();
                         if (!emailData) {
-                            alert('No email content found to generate a reply.');
+                            alert('답장을 만들 메일 내용을 찾지 못했어요.');
                             return;
                         }
 
@@ -228,7 +228,7 @@
                                 // ignore this error
                             } else {
                                 // Error: Extension context invalidated
-                                alert("Reload this page to use the AI Compose feature.");
+                                alert("AI 메일 쓰기를 쓰려면 이 페이지를 새로고침해 주세요.");
                             }
                         }
                     }, { signal: aiComposeAbortController.signal });
@@ -304,7 +304,7 @@
         }
 
         if (message.command === "initCheckerPlusCompose") {
-            console.log("Init Checker Plus Compose:", message);
+            console.log("Init BongExtend mail compose:", message);
             localStorage.setItem("checkerPlusComposeTitle", message.strings?.checkerPlusCompose);
             transferParameters = message;
             scheduleAddAIComposeButtons();
@@ -312,13 +312,13 @@
             const success = insertTextIntoComposeArea(message.responseText);
             sendResponse({ success: success });
         } else if (message.command === "removeAICompose") {
-            console.log("Removing Checker Plus Compose buttons and observers...");
+            console.log("Removing BongExtend mail compose buttons and observers...");
             cleanUp();
             sendResponse({ success: true });
         }
     });
 
-    console.log('Checker Plus Compose feature enabled, initializing... ' + location.href);
+    console.log('BongExtend mail compose feature enabled, initializing... ' + location.href);
 
     const scheduleAddAIComposeButtons = (() => {
         let pending = false;
@@ -342,7 +342,7 @@
 
         // If the DOM flag no longer matches our unique ID, we are a zombie.
         if (document.documentElement.dataset[SCRIPT_ATTR] !== SCRIPT_ID) {
-            console.log("Detected orphaned script, stopping Checker Plus Compose observers and buttons...");
+            console.log("Detected orphaned script, stopping BongExtend mail compose observers and buttons...");
             cleanUp();
             return;
         }

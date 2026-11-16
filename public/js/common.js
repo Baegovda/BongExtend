@@ -814,7 +814,7 @@ function customShowError(error) {
                 div.textContent += " ";
 
                 const a = document.createElement("a");
-                a.textContent = "See solution";
+                a.textContent = "해결 방법 보기";
                 a.target = "_blank";
                 div.appendChild(a);
             }
@@ -822,7 +822,7 @@ function customShowError(error) {
             document.body.prepend(div);
         });
     } else {
-        showMessageNotification("Error in Checker Plus", "Restart browser or reinstall the extension", error);
+        showMessageNotification("BongExtend 메일 오류", "브라우저를 다시 시작하거나 확장 프로그램을 다시 설치해 주세요.", error);
     }
 }
 
@@ -2126,7 +2126,7 @@ function initPaperElement($nodes, params = {}) {
                             element.checked = granted;
                         } else {
                             element.checked = false;
-                            niceAlert("Might not be supported by this OS");
+                            niceAlert("이 운영체제에서는 지원하지 않을 수 있어요.");
                         }
                     });
                 } else {			
@@ -2136,7 +2136,7 @@ function initPaperElement($nodes, params = {}) {
                         } else {
                             // The permissions have not been removed (e.g., you tried to remove required permissions).
                             element.checked = true;
-                            niceAlert("These permissions could not be removed, they might be required!");
+                            niceAlert("이 권한은 꼭 필요해서 없앨 수 없어요.");
                         }
                     });
                 }
@@ -2255,7 +2255,7 @@ function initMessages(node) {
 	});
 
 	function addWarning(attrName) {
-        const WARNING_MESSAGE = "Not supported by this browser!";
+        const WARNING_MESSAGE = "이 브라우저에서는 지원하지 않아요.";
 		const $nodes = selectorAll(`[${attrName}]`);
 
         $nodes.forEach(el => {
@@ -3356,7 +3356,7 @@ function OAuthForDevices(defaultParams) {
             if (error.status == "INVALID_ARGUMENT") { // happens with "Invalid to header" ie. not email in to field
                 // use message from error
             } else if (error == "invalid_grant" || error == "invalid_request" || error.code == ErrorCodes.BAD_REQUEST || error.code == ErrorCodes.UNAUTHORIZED) { // i removed 400 because it happens when entering invalid data like a quick add of "8pm-1am Test 1/1/19"
-                error.message = "You need to re-grant access, it was probably revoked";
+                error.message = "접근 권한이 취소된 것 같아요. 다시 허용해 주세요.";
             }
 
             console.error("oauthFetch: " + (error?.cause || error?.code || error));
@@ -3645,7 +3645,7 @@ function OAuthForDevices(defaultParams) {
             
             let redirectURI = `${chrome.identity.getRedirectURL()}provider_cb`;
             if (!redirectURI.includes('chromiumapp.org') && !redirectURI.includes('allizom.org')) {
-                niceAlert("Your are using an un-Googled Chromium based browser which might not support a secure sign in.");
+                niceAlert("Google 기능이 빠진 Chromium 브라우저를 쓰고 있어요. 안전한 로그인이 안 될 수 있어요.");
                 redirectURI = redirectURI.replace('ch40m1umapp.qjz9zk', 'chromiumapp.org');
             }
             
@@ -4023,7 +4023,7 @@ var syncOptions = (function() {
                 
                 var chunkId = getUniqueId();
 
-                const QUOTA_ERROR_STR = "Settings to large. If you need to replicate the settings you can take screenshots of the option pages and set them manually onto the other device.";
+                const QUOTA_ERROR_STR = "설정이 너무 커서 동기화할 수 없어요. 다른 기기에 옮기려면 설정 화면을 캡처해 두고 직접 맞춰 주세요.";
 
                 // set firefox defaults
                 chrome.storage.sync.QUOTA_BYTES ??= 102400;
@@ -5072,27 +5072,27 @@ function showMessageNotification(title, message, error, errorType) {
         
         if (errorType == "extensionConflict") {
             notificationId = "extensionConflict";
-            buttonTitle = "Click here to resolve issue";
+            buttonTitle = "눌러서 해결하기";
         } else if (errorType == "spreauth") {
             notificationId = `spreauthUrl_${error?.cause?.spreauthUrl}`;
             buttonTitle = getMessage("signIn");
         } else if (errorType == "corruptProfile") {
             notificationId = "corruptProfile";
-            buttonTitle = "Click for a solution";
+            buttonTitle = "해결 방법 보기";
         } else {
             notificationId = "error";
-            buttonTitle = "If this is frequent then click here to report it";
+            buttonTitle = "자주 생기면 눌러서 알려 주세요";
         }
 
         if (supportsNotificationButtons()) {
             if (DetectClient.isChrome()) {
-                options.contextMessage = "Error: " + errorMsg;
+                options.contextMessage = "오류: " + errorMsg;
             } else { // looks like Edge and maybe other browsers don't show contextMessage
-                options.message += " Error: " + errorMsg;
+                options.message += " 오류: " + errorMsg;
             }
             options.buttons = [{title:buttonTitle}];
         } else {
-            options.message += " Error: " + errorMsg;
+            options.message += " 오류: " + errorMsg;
         }
     } else {
         notificationId = "message";
@@ -5113,11 +5113,11 @@ function showMessageNotification(title, message, error, errorType) {
 function showCouldNotCompleteActionNotification(error, extensionConflict) {
     console.log("showCouldNotCompleteActionNotification", error, error.cause);
     if (error?.cause?.spreauthUrl) {
-        showMessageNotification("Error with last action.", "Authentication", error, "spreauth");
+        showMessageNotification("방금 작업을 하지 못했어요.", "다시 로그인해 주세요", error, "spreauth");
     } else if (extensionConflict) {
-		showMessageNotification("Error with last action.", "Try again.", error, "extensionConflict");
+		showMessageNotification("방금 작업을 하지 못했어요.", "다시 해 주세요.", error, "extensionConflict");
 	} else {
-		showMessageNotification("Error with last action.", "Try again or sign out and in.", error);
+		showMessageNotification("방금 작업을 하지 못했어요.", "다시 하거나 로그아웃 후 다시 로그인해 주세요.", error);
 	}
 }
 
@@ -5245,7 +5245,7 @@ wrappedDB.open = function(dbName, storeId, version) {
                 console.error("onblocked", e);
                 // you can reproduce this might by uping the db version number, but without restarting the extension - just open the extension options page
                 // might be opened in service worker or another tab
-                reject("DB version update blocked, try restarting the browser");
+                reject("저장소 업데이트가 막혔어요. 브라우저를 다시 시작해 주세요.");
                 //e.target.result.close();
             };
             
@@ -5583,7 +5583,7 @@ function IndexedDBStorage() {
             }, error => { // note: this is a onRejected else
                 that.openingPromise = null;
                 console.error(error);
-                showMessageNotification("Corrupted profile", "Click for more info", error, "corruptProfile");
+                showMessageNotification("브라우저 프로필이 손상됐어요", "눌러서 자세히 보기", error, "corruptProfile");
                 throw error;
             });
 

@@ -131,7 +131,7 @@ chrome.runtime.onInstalled.addListener(async details => {
             const options = {
                 type: "basic",
                 title: getMessage("extensionUpdated"),
-                message: "Checker Plus for Gmail " + chrome.runtime.getManifest().version,
+                message: "BongExtend 메일 " + chrome.runtime.getManifest().version,
                 iconUrl: Icons.NotificationLogo,
             }
 
@@ -519,7 +519,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     } else if (ContextMenu.DND_OPTIONS == info.menuItemId) {
         openDNDOptions();
     } else {
-        showMessageNotification("No code assigned to this menu", "Try re-installing the extension.");
+        showMessageNotification("이 메뉴에 연결된 기능이 없어요", "확장을 다시 설치해 보세요.");
     }
 });
 
@@ -803,7 +803,7 @@ async function generateNotificationButton(buttons, buttonsWithValues, value, ema
 		} else if (value == "dismiss") {
             button = initButtonObj(maybeAppendAllMsg(getMessage("dismiss"), emails), "checkmark.png");
 		} else if (value == "otp-code") {
-            const scanNote = emails.first()?.otpCodeUsesFullContent ? " - Full message scan (local)" : "";
+            const scanNote = emails.first()?.otpCodeUsesFullContent ? " - 전체 메일에서 찾음 (이 PC에서만)" : "";
             button = initButtonObj(`${getMessage("copy")} ${strParam}${scanNote}`);
         }
 
@@ -1036,7 +1036,7 @@ async function showNotification(params = {}) {
         firstEmail = params.emails.first();
     }
     if (!firstEmail) {
-        var error = "Could not find any emails";
+        var error = "메일을 찾지 못했어요.";
         console.error(error);
         throw new Error(error);
     }
@@ -1045,11 +1045,11 @@ async function showNotification(params = {}) {
     if (desktopNotification) {
         const dndState = await isDND({notificationRelated: true, account: firstEmail.account});
         if (dndState) {
-            return "DND is enabled";
+            return "방해 금지 모드가 켜져 있어요.";
         } else {
             const passedDoNotShowNotificationIfGmailTabOpenTest = await ensureDoNotShowNotificationIfGmailTabOpenTest(params);
             if (passedDoNotShowNotificationIfGmailTabOpenTest) {
-                var NOTIFICATION_DISABLE_WARNING = "Normally a notification for this email or some of these emails will not appear because you unchecked the notification in your Accounts/Labels settings for this particular email/label";
+                var NOTIFICATION_DISABLE_WARNING = "계정/라벨 설정에서 이 메일(또는 라벨)의 알림을 꺼 두어서, 평소에는 이 메일들의 알림이 뜨지 않아요.";
                 
                 const notifications = await firstEmail.account.getSetting("notifications");
                 var notificationFlagForLabelsOfNewestEmail = await getSettingValueForLabels(firstEmail.account, notifications, firstEmail.labels, desktopNotification);
@@ -1116,7 +1116,7 @@ async function showNotification(params = {}) {
                             }
                         }
                     } else {
-                        var error = "Notification disabled for this email";
+                        var error = "이 메일은 알림이 꺼져 있어요.";
                         console.warn(error);
                         throw new Error(error);
                     }
@@ -1301,7 +1301,7 @@ async function showNotification(params = {}) {
                                 }
                             }
                         } else {
-                            var warning = "Notification disabled for this email";
+                            var warning = "이 메일은 알림이 꺼져 있어요.";
                             console.warn(warning);
                             return warning;
                         }
@@ -1417,14 +1417,14 @@ async function showNotification(params = {}) {
                     }
                 } else {
                     // notification are probably set to Off
-                    return "Notification settings are incorrect";
+                    return "알림 설정이 올바르지 않아요.";
                 }							
             } else {
                 console.info("failed: passedDoNotShowNotificationIfGmailTabOpenTest");
             }
         }
     } else {
-        return "Notifications are probably disabled in the extension";
+        return "확장에서 알림이 꺼져 있는 것 같아요.";
     }
 }
 
@@ -1480,7 +1480,7 @@ async function showNotificationTest(params = {}) {
                 throw new Error(warning);
             }
         }).catch(error => {
-            throw new Error("Error: " + error + " You might have disabled the notifications");
+            throw new Error("오류: " + error + " 알림이 꺼져 있을 수 있어요.");
         });
     } else {
         throw new Error(params.requirementText);
@@ -1698,7 +1698,7 @@ function restartCheckEmailTimer(immediately) {
 
 function shortcutNotApplicableAtThisTime(title) {
     showWebNotification(title, {
-        body: "Click here to remove this shortcut.",
+        body: "여기를 누르면 이 단축키를 없애요.",
         icon: Icons.NotificationLogo,
         tag: NotificationTags.SHORTCUT_NOT_APPLICABLE_AT_THIS_TIME,
         newNotificationOnClick: async () => {
@@ -1723,7 +1723,7 @@ function executeAction(mails, actionName) {
 			showCouldNotCompleteActionNotification(error, extensionConflictFlag);
 		});
 	} else {
-		showMessageNotification("Error in Checker Plus", "Too many emails to " + actionName + " , please use the Gmail webpage!");
+		showMessageNotification("BongExtend 메일 오류", "한 번에 처리할 메일이 너무 많아요. Gmail 웹페이지에서 해 주세요.");
 		mails.first().account.openInbox();
 	}
 }
@@ -2141,7 +2141,7 @@ if (chrome.commands) {
         var errorMsg;
         const richNotifId = await storage.get("_richNotifId");
         if (command == "markAsReadInNotificationWindow") {
-            errorMsg = "Cannot mark email as read because there are no email notifications visible";
+            errorMsg = "보이는 메일 알림이 없어서 읽음으로 표시할 수 없어요.";
             if (await storage.get("desktopNotification") != "rich") {
                 if (webNotification) {
                     if (webNotification.tag.includes("email_")) {
@@ -2174,7 +2174,7 @@ if (chrome.commands) {
                 }
             }
         } else if (command == "openEmailDisplayedInNotificationWindow") {
-            errorMsg = "Cannot open email because there are no email notifications visible";
+            errorMsg = "보이는 메일 알림이 없어서 메일을 열 수 없어요.";
             if (await storage.get("desktopNotification") != "rich") {
                 if (webNotification) {
                     if (webNotification.tag.includes("email_")) {
@@ -2590,8 +2590,8 @@ async function init(source) {
 
 	try {
         if (!DetectClient.isFirefox() && !chrome.runtime.getContexts) {
-            showWebNotification("You must update your browser", {
-                body: "To continue using Checker Plus you must update your browser. Click for more info.",
+            showWebNotification("브라우저를 업데이트해 주세요", {
+                body: "BongExtend 메일을 계속 쓰려면 브라우저를 업데이트해 주세요.",
                 icon: Icons.NotificationLogo,
                 tag: NotificationTags.UNSTABLE_BROWSER_CHANNEL,
                 newNotificationOnClick: async () => {
@@ -2605,8 +2605,8 @@ async function init(source) {
                     chrome.storage.local.set({"detectedChromeVersion": new Date().toJSON()});
                     result = await DetectClient.getChromeChannel();
                     if (result.oldVersion) {
-                        showWebNotification("You are using an old browser version", {
-                            body: "Click for more info. Bugs might occur, but all issues will be ignored unless you update Chrome.",
+                        showWebNotification("오래된 브라우저 버전이에요", {
+                            body: "눌러서 자세히 보기. 오류가 생길 수 있으니 Chrome을 업데이트해 주세요.",
                             icon: Icons.NotificationLogo,
                             tag: NotificationTags.UPDATE_BROWSER,
                             newNotificationOnClick: async () => {
@@ -2614,8 +2614,8 @@ async function init(source) {
                             }
                         });
                     } else if (result?.channel != "stable" && result?.channel != "extended") {
-                        showWebNotification("You are not using the stable channel of Chrome", {
-                            body: "Click for more info. Bugs might occur, but all issues will be ignored unless you update to stable channel of Chrome.",
+                        showWebNotification("안정 버전 Chrome이 아니에요", {
+                            body: "눌러서 자세히 보기. 오류가 생길 수 있으니 안정 버전 Chrome을 써 주세요.",
                             icon: Icons.NotificationLogo,
                             tag: NotificationTags.UNSTABLE_BROWSER_CHANNEL,
                             newNotificationOnClick: async () => {
@@ -2721,7 +2721,7 @@ async function init(source) {
             startCheckEmailTimer();
         }).catch(error => {
             console.error(error);
-            showMessageNotification("Problem starting extension", "Try re-installing the extension.", error);
+            showMessageNotification("확장을 시작하지 못했어요", "확장을 다시 설치해 보세요.", error);
         });
 
         chrome.alarms.create(Alarms.EVERY_MINUTE,           { periodInMinutes: 1 });
@@ -2761,7 +2761,7 @@ async function init(source) {
         console.error("init error", error);
 		if (!globalThis.settingsError) {
 			logError("starting extension: " + error, error);
-			showMessageNotification("Problem starting extension", "Try re-installing the extension.", error);
+			showMessageNotification("확장을 시작하지 못했어요", "확장을 다시 설치해 보세요.", error);
 		}
 	});
 

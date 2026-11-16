@@ -1,7 +1,7 @@
 <!DOCTYPE html>
-<html>
+<html lang="ko" data-bonghub="options">
 <head>
-  	<title>Checker Plus for Gmail - Options</title>
+  	<title>BongExtend 메일 설정</title>
   	<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
 
     <link rel="stylesheet" href="css/jdom.css">
@@ -309,6 +309,7 @@
     <script defer src="js/mail.js"></script>
   	<script defer src="js/options.js"></script>
   	
+<link rel="stylesheet" href="/css/bonghub-mail.css">
 </head>
 
 <body>
@@ -317,14 +318,14 @@
         <div class="header-and-secondary-nav">
             <div class="header-content">
                 <div class="header-start">
-                    <j-button class="side-rail-button" icon="menu" aria-label="Open menu"></j-button>
+                    <j-button class="side-rail-button" icon="menu" aria-label="메뉴 열기"></j-button>
                     <div class="logo-and-title">
-                        <img class="logo" src="images/icons/icon_48_white.png"/>
-                        <a main-title>Checker Plus for Gmail</a>
+                        <img class="logo" src="/icons/32.png" alt=""/>
+                        <a main-title>BongExtend 메일 설정</a>
                     </div>
                 </div>
 
-                <nav class="primary-nav" aria-label="Main Navigation"></nav>
+                <nav class="primary-nav" aria-label="주 메뉴"></nav>
                 
                 <div class="utility-items">
                     <j-input id="search" type="search" msgLabel="search"></j-input>
@@ -332,7 +333,7 @@
                 </div>
             </div>
 
-            <nav class="secondary-nav" aria-label="Secondary Navigation">
+            <nav class="secondary-nav" aria-label="보조 메뉴">
                 <ul>
                     <li value="welcome"><a href="#" msg="welcome">Welcome</a></li>
                     <li value="notifications"><a href="#" msg="notifications">Notifications</a></li>
@@ -453,11 +454,11 @@
                             <option value='native' msgFF="native">
                                 <div two-line>
                                     <div msg="native">native</div>
-                                    <div secondary>No language detection</div>
+                                    <div secondary>언어 감지 안 함</div>
                                 </div>
                             </option>
                             <hr>
-                            <optgroup id="ttsVoices" label="Voices"></optgroup>
+                            <optgroup id="ttsVoices" label="음성"></optgroup>
                             <hr>
                             <option value='addVoice'><span msg="addSpeechEngines">Add voice</span>...</option>
                         </select>
@@ -552,7 +553,7 @@
                                     <option value='reply' msgFF="reply">
                                         <div two-line>
                                             <div msg="reply">reply</div>
-                                            <div secondary>same rules as General > Compose & Reply Button</div>
+                                            <div secondary>일반 > 메일 쓰기·답장 버튼과 같은 규칙</div>
                                         </div>
                                     </option>
                                     <option value="replyInPopup" msg="replyInPopup">Reply in popup</option>
@@ -577,7 +578,7 @@
                                     <option value='reply'>
                                         <div two-line>
                                             <div msg="reply">reply</div>
-                                            <div secondary>same rules as General > Compose & Reply Button</div>
+                                            <div secondary>일반 > 메일 쓰기·답장 버튼과 같은 규칙</div>
                                         </div>
                                     </option>
                                     <option value="replyInPopup" msg="replyInPopup">Reply in popup</option>
@@ -603,7 +604,7 @@
                                     <option value='reply'>
                                         <div two-line>
                                             <div msg="reply">reply</div>
-                                            <div secondary>same rules as General > Compose & Reply Button</div>
+                                            <div secondary>일반 > 메일 쓰기·답장 버튼과 같은 규칙</div>
                                         </div>
                                     </option>
                                     <option value="replyInPopup" msg="replyInPopup">Reply in popup</option>
@@ -1043,7 +1044,7 @@
                     <label><input type="checkbox" id="enableSwiping" indexdb-storage="enableSwiping"> <span msg="enableSwiping"></span></label>
                     <label><input type="checkbox" id="deleteAfterOTP" indexdb-storage="deleteAfterOTP"> <span msg="deleteAfterOTP"></span></label>
                     <div class="layout horizontal center col-gap">
-                        <label><input type="checkbox" id="openGmailInNewTab" indexdb-storage="openGmailInNewTab"> <span msg="openGmailInNewTab"></span></label> <span style="color:gray;font-size:small">(For actions inside popup window)</span>
+                        <label><input type="checkbox" id="openGmailInNewTab" indexdb-storage="openGmailInNewTab"> <span msg="openGmailInNewTab"></span></label> <span style="color:gray;font-size:small">(메일 창 안에서 한 동작에만)</span>
                     </div>
                     <label><input type="checkbox" id="insertSignatureBeforeQuotedText" indexdb-storage="insertSignatureBeforeQuotedText"> <span msg="insertSignatureBeforeQuotedText"></span></label>
                     
@@ -1219,7 +1220,7 @@
         <template id="voiceInputPageTemplate">
             <div id="voiceInputPage" class="page" value="voiceInput">
                 <div>
-                    <span msg="voiceInput">Voice Input</span> 1.0 <b>BETA</b> 
+                    <span msg="voiceInput">Voice Input</span> 1.0 <b>베타</b> 
                 </div>
                 <label chromium-only><input type="checkbox" id="voiceInput"> <span msg="voiceInput"></span></label><j-tooltip for="voiceInput"><span msg="enableVoiceInputToolTip"></span></j-tooltip>
                 <div id="voiceInputOptions" class="hide">
@@ -1263,12 +1264,12 @@
             <div id="adminPage" class="page" value="admin">
                 <div class="layout horizontal col-gap">
                     <fieldset class="options selected">
-                        <legend>via signed in browser user</legend>
+                        <legend>브라우저 로그인 계정으로</legend>
                         <j-button id="saveSyncOptions" class="filled" icon="cloud-upload" msg="saveOptions"></j-button>
                         <j-button id="loadSyncOptions" class="filled" icon="cloud-download" msg="loadOptions"></j-button>
                     </fieldset>
                     <fieldset class="options selected">
-                        <legend>via local file</legend>
+                        <legend>내 PC 파일로</legend>
                         <j-button id="exportToFileOptions" class="filled" icon="file-download" msg="exportOptions"></j-button>
                         <input type="file" id="jsonFileInput" accept=".json" hidden>
                         <j-button id="importFromFileOptions" class="filled" icon="file-upload" msg="importOptions"></j-button>
@@ -1279,17 +1280,17 @@
                     <j-button id="deleteAllCustomSounds" class="filled" icon="queue-music" msg="deleteCustomSounds"></j-button>
                     <j-button id="resetTranslationSettings" class="filled" icon="translate" msg="resetTranslationSettings"></j-button>
                     <j-button id="revokeAllAccess" class="filled" icon="remove-circle-outline" msg="revokeAccess"></j-button>
-                    <j-button id="resetSettings" class="filled" icon="settings"><span>Reset Settings to Defaults</span></j-button>
-                    <j-button id="reload-extension" class="filled" icon="refresh">Reload extension</j-button>
-                    <j-button id="debugSignInIssue" class="filled" icon="bug-report"><span>Debug sign-in issue (ie. Edge appears signed out)</span></j-button>
-                    <j-button id="reinitGmailSignIn" class="filled" icon="autorenew"><span>Reinitialize sign-in via offscreen document</span></j-button>
+                    <j-button id="resetSettings" class="filled" icon="settings"><span>설정을 기본값으로 되돌리기</span></j-button>
+                    <j-button id="reload-extension" class="filled" icon="refresh">확장 다시 불러오기</j-button>
+                    <j-button id="debugSignInIssue" class="filled" icon="bug-report"><span>로그인 문제 진단 (예: Edge에서 로그아웃된 것처럼 보일 때)</span></j-button>
+                    <j-button id="reinitGmailSignIn" class="filled" icon="autorenew"><span>백그라운드에서 로그인 다시 확인하기</span></j-button>
                 </div>
 
                 <fieldset class="options selected">
-                    <legend style="color:red;font-weight:bold;font-size:16px">WARNING: Do not use these settings unless your developer instructs you!</legend>
+                    <legend style="color:red;font-weight:bold;font-size:16px">주의: 안내받은 경우가 아니면 이 설정은 바꾸지 마세요!</legend>
                     <div style="margin:10px 0">
                         <label>
-                            <span class="label-text">Max unauthorized accounts</span>
+                            <span class="label-text">권한 없는 계정 최대 개수</span>
                             <select id="maxUnauthorizedAccount" indexdb-storage="maxUnauthorizedAccount">
                                 <option value='1'>1</option>
                                 <option value='2'>2</option>
@@ -1298,7 +1299,7 @@
                         </label>
                     
                         <label>
-                            <span class="label-text">Restart Interval</span>
+                            <span class="label-text">자동 다시 시작 간격</span>
                             <select id="restartInterval" indexdb-storage="restartInterval" style="width: 200px;">
                                 <option value="0" msg="never">never</option>
                                 <option value="0.5" msg="Xdays" msgArg1="0.5"></option>
@@ -1309,10 +1310,10 @@
                         </label>
                         <br><br>
                         <label><input type="checkbox" id="console_messages" indexdb-storage="console_messages"> <span msg="showConsoleMessages" msgToolTip="showConsoleMessagesTitle">log messages</span></label>
-                        <label><input type="checkbox" id="highlightDates" indexdb-storage="highlightDates"> Highlight dates</label>
-                        <label><input type="checkbox" id="doNotSerializeMails" indexdb-storage="doNotSerializeMails"> Do not cache mail content</label>
-                        <label><input type="checkbox" id="cacheStorage"> Cache storage</label>
-                        <label><input type="checkbox" id="disableOnline" indexdb-storage="disableOnline"> Disable online check</label>
+                        <label><input type="checkbox" id="highlightDates" indexdb-storage="highlightDates"> 날짜 강조</label>
+                        <label><input type="checkbox" id="doNotSerializeMails" indexdb-storage="doNotSerializeMails"> 메일 내용 캐시 안 함</label>
+                        <label><input type="checkbox" id="cacheStorage"> 캐시 저장소</label>
+                        <label><input type="checkbox" id="disableOnline" indexdb-storage="disableOnline"> 온라인 확인 끄기</label>
                     </div>
                 </fieldset>
             </div>
@@ -1321,8 +1322,8 @@
     
     <template id="runInBackgroundDialogTemplate">
         <ol>
-            <li>You must enable the Chrome > Setting > System (chrome://settings/system) <b>Continue running background apps when Google Chrome is closed"</b></li>
-            <li>Make sure you are not clearing data that prevents your Google Account from automatically sign in when you restart the browser</li>
+            <li>Chrome > 설정 > 시스템 (chrome://settings/system)에서 <b>Google Chrome이 종료되어도 백그라운드 앱 계속 실행</b>을 켜 주세요</li>
+            <li>브라우저를 다시 시작할 때 Google 계정이 자동 로그인되도록, 종료 시 데이터 삭제 설정을 꺼 두세요</li>
         </ol>
     </template>
     
@@ -1340,7 +1341,7 @@
 				<option value='cash.mp3'>
 					<div two-line>
 						<div>Cash</div>
-						<div secondary>for orders receipts, PayPal</div>
+						<div secondary>주문·영수증, PayPal용</div>
                     </div>
 				</option>
 				<option value='chime.mp3' msg="chime"></option>
@@ -1351,26 +1352,26 @@
 				<option value='kiss.mp3'>
 					<div two-line>
 						<div>Kiss</div>
-						<div secondary>for spouse</div>
+						<div secondary>배우자용</div>
 					</div>
 				</option>
 				<option value='ohno.mp3'>
 					<div two-line>
 						<div>Oh no</div>
-						<div secondary>for Mom</div>
+						<div secondary>엄마용</div>
 					</div>
 				 </option>
 				<option value='pianohappy.mp3'>Piano Happy</option>
 				<option value='scary.mp3'>
 					<div two-line>
 						<div>Scary</div>
-						<div secondary>for Boss</div>
+						<div secondary>상사용</div>
 					</div>
 				 </option>
 				<option value='tech.mp3'>
 					<div two-line>
 						<div>Tech</div>
-						<div secondary>for Blogs</div>
+						<div secondary>블로그용</div>
 					</div>
 				</option>
 				<option value='Typewriter Bell.mp3'>Typewriter Bell</option>
@@ -1380,7 +1381,7 @@
 				<option value='youvegotmail.mp3'>
 					<div two-line>
 						<div>You've got mail</div>
-						<div secondary>from your developer :)</div>
+						<div secondary>기본 알림 소리</div>
 					</div>
 				</option>
             </select>
@@ -1413,9 +1414,9 @@
         <div class="recordSoundWrapper layout vertical center-center" style="gap: 10px;padding:20px">
             <j-button id="recordSoundButton" icon="mic" class="filled"></j-button>
             <div class="audioWrapper" style="margin-top:30px">
-                <audio controls><source/>Your browser does not support the audio element.</audio>
+                <audio controls><source/>이 브라우저는 오디오 재생을 지원하지 않아요.</audio>
             </div>
-            <j-input id="recordedSoundTitle" name="recordedSoundTitle" type="text" label="Title" value="my sound" required></j-input>
+            <j-input id="recordedSoundTitle" name="recordedSoundTitle" type="text" label="제목" value="내 소리" required></j-input>
         </div>
 	</template>
 </body>

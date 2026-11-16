@@ -1104,14 +1104,14 @@ function Account() {
                    instructions = "";
                    if (useHtml) {
                        if (error == JError.ACCESS_REVOKED) {
-                           $instructions.append($refreshHtml, " or ");
+                           $instructions.append($refreshHtml, " 또는 ");
                        }
-                       $instructions.append( createButton("checkerplus-options.html#accounts", "addAccount"), "to re-grant access!" );
+                       $instructions.append( createButton("checkerplus-options.html#accounts", "addAccount"), "을(를) 눌러 다시 권한을 주세요." );
                    } else {
                        if (error == JError.ACCESS_REVOKED) {
-                           instructions += "Refresh or ";
+                           instructions += "새로고침 또는 ";
                        }
-                       instructions += getMessage("addAccount") + " to re-grant access!";
+                       instructions += getMessage("addAccount") + "을(를) 눌러 다시 권한을 주세요.";
                    }
                } else {
                    if (useHtml) {

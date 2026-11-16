@@ -6,7 +6,7 @@
 		html { color-scheme: dark; background: #0b0d12; }
 		@media (prefers-color-scheme: light) { html { color-scheme: light; background: #f3f4f6; } }
 	</style>
-	<title>Checker Plus for Gmail</title>
+	<title>BongExtend 메일</title>
 	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
 
 	<link rel="icon" href="images/icons/icon_32.png" sizes="32x32"/>
@@ -1423,6 +1423,7 @@
     <script defer src="js/bongextend-reader-zoom.js"></script>
     <script defer src="js/bongextend-mail-reader.js"></script>
     <script defer src="js/bongextend-mail-ui.js"></script>
+<link rel="stylesheet" href="/css/bonghub-mail.css">
 </head>
 
 <body id="gmail-extension-popup" class="popup polymer2" gmail-version="jdom">
@@ -1431,16 +1432,16 @@
             <header class="site-header" no-bg-color>
                 <div class="header-content">
                     <div class="header-start">
-                        <j-button class="side-rail-button" icon="menu" aria-label="Open menu" hidden></j-button>
+                        <j-button class="side-rail-button" icon="menu" aria-label="메뉴 열기" hidden></j-button>
                         <div class="logo-and-title">
-                            <img class="logo" src="/images/icons/icon_64.png"/>
-                            <a main-title href="#">Checker Plus for Gmail</a>
+                            <img class="logo" src="/icons/32.png" alt=""/>
+                            <a main-title href="#">BongExtend 메일</a>
                         </div>
                     </div>
 
-                    <nav class="primary-nav" aria-label="Main Navigation">
+                    <nav class="primary-nav" aria-label="주 메뉴">
                         <div id="searchInputWrapper">
-                            <j-button icon="arrow-back" role="button" aria-label="search"></j-button> <j-input id="searchInput" type="text"></j-input>
+                            <j-button icon="arrow-back" role="button" aria-label="검색"></j-button> <j-input id="searchInput" type="text"></j-input>
                         </div>
                     </nav>
                     
@@ -1628,7 +1629,7 @@
                         <j-tooltip id="composeTooltip" for="compose" position="end" animation-delay="0" msg="compose"></j-tooltip>
                     </div>
                     <a id="skinWatermark" target="_blank"></a>
-                    <j-tooltip for="skinWatermark" position="top" hidden>Author of image</j-tooltip>
+                    <j-tooltip for="skinWatermark" position="top" hidden>이미지 만든 사람</j-tooltip>
                 </div>
                 <div id="tabletViewWrapper">
                     <div id="tabs"></div>
@@ -1642,18 +1643,18 @@
             <header class="site-header" no-bg-color>
                 <div class="header-content">
                     <div class="header-start">
-                        <j-button id="ai-compose-back" icon="arrow-back" role="button" aria-label="search"></j-button>
+                        <j-button id="ai-compose-back" icon="arrow-back" role="button" aria-label="검색"></j-button>
                         <div class="logo-and-title">
-                            <img class="logo" src="/images/icons/icon_64.png"/>
-                            <a main-title href="#">Checker Plus for Gmail</a>
+                            <img class="logo" src="/icons/32.png" alt=""/>
+                            <a main-title href="#">BongExtend 메일</a>
                         </div>
                     </div>
 
-                    <nav class="primary-nav" aria-label="Main Navigation">
+                    <nav class="primary-nav" aria-label="주 메뉴">
                     </nav>
                     
                     <div class="utility-items">
-                        <j-button id="stop-ai-prompt-audio" class="filled" icon="pause" title="Stop audio playback" aria-label="Stop audio playback" hidden></j-button>
+                        <j-button id="stop-ai-prompt-audio" class="filled" icon="pause" title="소리 재생 멈추기" aria-label="소리 재생 멈추기" hidden></j-button>
                         <j-button icon="more-vert" msgTitle="options" popovertarget-id="ai-options-menu"></j-button>
                         <j-listbox id="ai-options-menu" popover>
                             <j-icon-item class="checker-plus-compose-options">
@@ -1661,8 +1662,8 @@
                                 <span msg="options"></span>
                             </j-icon-item>
                             <j-item id="ai-compose-listen-toggle">
-                                <span>Listen to response</span>
-                                <span id="ai-compose-listen-toggle-state" style="margin-inline-start:8px;opacity:.75">On</span>
+                                <span>답변 읽어 주기</span>
+                                <span id="ai-compose-listen-toggle-state" style="margin-inline-start:8px;opacity:.75">켜짐</span>
                             </j-item>
                             <j-item class="separator" disabled></j-item>
                             <j-item class="checker-plus-compose-help"><span msg="help">help</span></j-item>
@@ -1674,7 +1675,7 @@
 
             <div id="AIComposeMainArea">
                 <details id="emailContextSection" class="section" no-animation>
-                    <summary id="emailContextLabel" class="section-label">Email context</summary>
+                    <summary id="emailContextLabel" class="section-label">메일 내용</summary>
                     <div id="emailContextWrapper">
                         <div id="emailContext" readonly></div>
                     </div>
@@ -1720,7 +1721,7 @@
                             <j-button id="back" icon="arrow-back"></j-button>
                         </div>
 
-                        <nav class="primary-nav" aria-label="Main Navigation">
+                        <nav class="primary-nav" aria-label="주 메뉴">
                         </nav>
                         
                         <div class="utility-items">
@@ -1744,7 +1745,7 @@
                                 <j-icon-item id="menu-move-label"><j-icon icon="moveFolderIcon"></j-icon><span msg="moveLabel">moveLabel</span></j-icon-item>
                                 <j-icon-item id="changeLabels"><j-icon icon="label"></j-icon><span msg="changeLabels">changge labels</span></j-icon-item>
                                 <j-icon-item id="markAsSpam-menu-item"><j-icon icon="report"></j-icon><span msg="reportSpam">reportSpam</span></j-icon-item>
-                                <j-icon-item id="menu-view-preview-light"><j-icon icon="highlight"></j-icon><span id="menu-view-preview-light-text">Preview in light theme</span></j-icon-item>
+                                <j-icon-item id="menu-view-preview-light"><j-icon icon="highlight"></j-icon><span id="menu-view-preview-light-text">밝은 테마로 미리 보기</span></j-icon-item>
                                 <j-icon-item id="revertAutoSizing"><j-icon icon="fullscreen"></j-icon><span msg="revertAutoSizing">revertAutoSizing</span></j-icon-item>
                                 <j-icon-item id="menu-add-to-google-calendar"><j-icon icon="event"></j-icon><span msg="addToGoogleCalendar">addToGoogleCalendar</span></j-icon-item>
                                 <j-icon-item id="menu-listen-to-email"><j-icon icon="headset"></j-icon><span msg="listenToYourEmail">listenToYourEmail</span></j-icon-item>
@@ -1761,7 +1762,7 @@
                     <meta class="u-url"></meta>
                     <div id="openEmailHeader" class="layout horizontal center">
                         <div class="layout horizontal flex center">
-                            <div class="openEmailSubject p-name flex" title="Open in Gmail">{{title}}</div>
+                            <div class="openEmailSubject p-name flex" title="Gmail에서 열기">{{title}}</div>
                             <div id="openEmailLabels" class="layout horizontal wrap labels" style="max-width:30%">
                                 <template id="openEmailLabelsTemplate">
                                     <div class="label layout horizontal"><div class="labelName">{{name}}</div> <div class="removeLabel">⨯</div></div>
@@ -1795,7 +1796,7 @@
                         <j-button id="translate-button" class="raised" icon="translate"><span id="translate-button-text"></span></j-button>
                         <j-button id="show-original-text" class="invisible raised" icon="undo"></j-button>
                         <div id="download-translation" hidden>
-                            Downloading model <progress id="download-translation-progress" style="margin: 0 10px" max="100"></progress>
+                            번역 모델 내려받는 중 <progress id="download-translation-progress" style="margin: 0 10px" max="100"></progress>
                         </div>
                         <j-button id="translation-options-button" class="raised" icon="settings"></j-button>
                     </div>
@@ -1831,9 +1832,9 @@
 
                     <div id="emoji-popover" popover position="center">
                         <div class="emoji-container layout horizontal center">
-                            <j-button class="emoji" id="thumbs-up" title="Thumbs Up">👍</j-button>
-                            <j-button class="emoji" id="love" title="Love">❤️</j-button>
-                            <j-button class="emoji" id="funny" title="Funny">😂</j-button>
+                            <j-button class="emoji" id="thumbs-up" title="좋아요">👍</j-button>
+                            <j-button class="emoji" id="love" title="사랑해요">❤️</j-button>
+                            <j-button class="emoji" id="funny" title="웃겨요">😂</j-button>
                         </div>
                     </div>
 
@@ -1851,10 +1852,10 @@
                             <j-button id="forward" class="outline" icon="forward" msg="forward">Forward</j-button>
                             <j-button id="add-reaction" icon="tag-faces" msgTitle="addReaction" popovertarget-id="emoji-popover"></j-button>
                             <j-button class="ai-compose-button">✨</j-button>
-                            <j-tooltip msg="checkerPlusCompose">Checker Plus Compose</j-tooltip>
+                            <j-tooltip msg="checkerPlusCompose">BongExtend 메일 쓰기</j-tooltip>
                         </div>
                         <j-button id="ai-compose-in-reply-button" class="ai-compose-button">✨</j-button>
-                        <j-tooltip position="end" msg="checkerPlusCompose">Checker Plus Compose</j-tooltip>
+                        <j-tooltip position="end" msg="checkerPlusCompose">BongExtend 메일 쓰기</j-tooltip>
                         <div class="sendButtons layout vertical">
                             <j-button id="send" class="colored sendButton" class="filled" icon="send" button-look></j-button>
                             <j-button id="sendAndArchive" class="colored sendButton" hidden class="filled">send and archive</j-button>
@@ -1873,7 +1874,7 @@
                             <j-button id="composeBack" icon="arrow-back"></j-button>
                         </div>
 
-                        <nav class="primary-nav" aria-label="Main Navigation">
+                        <nav class="primary-nav" aria-label="주 메뉴">
                         </nav>
                         
                         <div class="utility-items">
@@ -1897,13 +1898,13 @@
                         <j-input id="composeTo" class="composeField flex" type="text"></j-input>
                     </div>
                     <div class="acSuggestions"></div>
-                    <j-button id="fetchContacts" tabIndex=-1>Fetch contacts</j-button>
+                    <j-button id="fetchContacts" tabIndex=-1>연락처 불러오기</j-button>
                     <div class="fieldRow"><j-input id="composeSubject" class="composeField" type="text" msgPlaceholder="subject"></j-input></div>
                     <div class="recordSoundWrapper" style="margin:20px">
                         <j-button id="recordSoundButton" icon="mic" class="colored" button-only></j-button>
                         <div class="audioWrapper" style="margin-top:30px">
                             <audio controls>
-                            <source/>Your browser does not support the audio element.</audio>
+                            <source/>이 브라우저는 오디오 재생을 지원하지 않아요.</audio>
                         </div>
                     </div>
                     <div id="recordVideoWrapper" class="layout vertical center">
@@ -1988,7 +1989,7 @@
     </template>
 
     <template id="displayDensityDialogTemplate">
-        <div style="font-style:italic;color:gray;margin-block-end: 10px;">Mark some emails as unread to see results.</div>
+        <div style="font-style:italic;color:gray;margin-block-end: 10px;">메일 몇 개를 안 읽음으로 표시하면 결과를 볼 수 있어요.</div>
         <label><input type="radio" name="display-density" value="comfortable"/><span msg="comfortable">comfortable</span></label>
         <label><input type="radio" name="display-density" value="cozy"/><span msg="cozy">cozy</span></label>
         <label><input type="radio" name="display-density" value="compact"/><span msg="compact">compact</span></label>
@@ -2007,15 +2008,15 @@
     <template id="customSkinDialogTemplate">
         <div class="layout vertical">
             <div class="layout horizontal center">
-                <div class="flex" style="color:gray;margin-bottom:2px">Enter <a href="https://en.wikipedia.org/wiki/Cascading_Style_Sheets" target="_blank">CSS</a> below</div>
+                <div class="flex" style="color:gray;margin-bottom:2px">아래에 <a href="https://en.wikipedia.org/wiki/Cascading_Style_Sheets" target="_blank">CSS</a>를 입력해 주세요</div>
             </div>
             <textarea style="margin-bottom:10px;width:400px;height:200px" autofocus></textarea>
-            <j-input id="customBackgroundImageUrl" label="Background image url (Use imgur.com to host it)"></j-input>
+            <j-input id="customBackgroundImageUrl" label="배경 이미지 주소 (imgur.com 등에 올린 주소)"></j-input>
         </div>
     </template>
     
     <template id="audioDialogTemplate">
-        <audio id="audio-attachment" controls preload="false"><source/>Your browser does not support the audio element.</audio>
+        <audio id="audio-attachment" controls preload="false"><source/>이 브라우저는 오디오 재생을 지원하지 않아요.</audio>
     </template>
 
     <template id="videoDialogTemplate">
@@ -2044,16 +2045,16 @@
             }
         </style>
         <div id="keys">
-            <div>Newer / older conversation</div>
-            <div class="key-wrapper"><div>k</div> or <div>j</div></div>
+            <div>새 대화 / 이전 대화</div>
+            <div class="key-wrapper"><div>k</div> 또는 <div>j</div></div>
             <div><span msg="previous">prev</span> / <span msg="next">next</span></div>
-            <div class="key-wrapper"><div>Up arrow</div> or <div>Down arrow</div></div>
-            <div><span msg="inbox"></span> or <span msg="open">open conversation</span></div>
-            <div class="key-wrapper"><div>Left arrow</div> or <div>Right arrow</div></div>
+            <div class="key-wrapper"><div>위 화살표</div> 또는 <div>아래 화살표</div></div>
+            <div><span msg="inbox"></span> 또는 <span msg="open">open conversation</span></div>
+            <div class="key-wrapper"><div>왼쪽 화살표</div> 또는 <div>오른쪽 화살표</div></div>
             <div msg="compose">compose</div>
             <div class="key-wrapper"><div>c</div></div>
             <div msg="open">open</div>
-            <div class="key-wrapper"><div>o</div> or <div>Enter</div></div>
+            <div class="key-wrapper"><div>o</div> 또는 <div>Enter</div></div>
             <div msg="delete">delete</div>
             <div class="key-wrapper"><div>#</div></div>
             <div msg="archive">archive</div>
@@ -2063,7 +2064,7 @@
             <div msg="starLinkTitle">star</div>
             <div class="key-wrapper"><div>s</div></div>
             <div><span msg="reply"></span> / <span msg="replyToAll">replyall</span></div>
-            <div class="key-wrapper"><div>r</div> or <div>a</div></div>
+            <div class="key-wrapper"><div>r</div> 또는 <div>a</div></div>
             <div msg="moveLabel">move label</div>
             <div class="key-wrapper"><div>v</div></div>
             <div msg="refresh">refresh</div>

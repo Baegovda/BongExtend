@@ -44,7 +44,7 @@ watch(() => props.modelValue, (newValue) => {
 });
 
 const transformStyle = computed(() => ({
-  transform: `translateX(${translateX.value ?? (isOn.value ? 18 : 0)}px)`
+  transform: `translateX(${translateX.value ?? (isOn.value ? 20 : 0)}px)`
 }));
 
 const toggle = () => {
@@ -62,7 +62,7 @@ const toggle = () => {
 
 const handlePointerMove = (ev: PointerEvent) => {
   if (props.disabled || !isDown.value) return;
-  translateX.value = Math.max(0, Math.min(18, Math.ceil(ev.offsetX)));
+  translateX.value = Math.max(0, Math.min(20, Math.ceil(ev.offsetX)));
 };
 
 const handlePointerDown = () => {
@@ -86,17 +86,20 @@ const handlePointerOut = () => {
 
 <style lang="scss" scoped>
 .refresher-checkbox {
-  background-color: var(--be-surface-3, #e0e0e0);
-  border-radius: 25px;
+  background: var(--be-control-bg, #e0e0e0);
+  box-shadow: inset 0 0 0 1px var(--be-control-border, transparent);
+  border-radius: 999px;
   cursor: pointer;
   display: flex;
-  height: 20px;
+  flex: 0 0 auto;
+  height: 26px;
   position: relative;
-  transition: all 0.3s cubic-bezier(0.19, 1, 0.22, 1);
-  width: 38px;
+  transition: background-color 150ms ease-out;
+  width: 46px;
 
   &[data-on="true"] {
-    background-color: var(--be-accent, #4caf50);
+    background: var(--be-switch-gradient, #4c8afe);
+    box-shadow: none;
   }
 
   &.disabled {
@@ -107,40 +110,27 @@ const handlePointerOut = () => {
   .selected {
     background-color: white;
     border-radius: 50%;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
     cursor: grab;
-    height: 16px;
-    left: 2px;
+    height: 20px;
+    left: 3px;
     position: absolute;
-    top: 2px;
-    transition: transform 0.25s cubic-bezier(0.19, 1, 0.22, 1);
-    width: 16px;
+    top: 3px;
+    transition: transform 150ms ease-out;
+    width: 20px;
 
     &:active {
       cursor: grabbing;
     }
   }
 
-  &:hover:not(.disabled) {
-    transform: scale(1.05);
-  }
 
-  &:active:not(.disabled) {
-    transform: scale(0.95);
-  }
 }
 
 @media (prefers-color-scheme: dark) {
   .refresher-checkbox {
-    background-color: var(--be-surface-3, #555);
-
-    &[data-on="true"] {
-      background-color: var(--be-accent, #66bb6a);
-    }
-
     .selected {
-      background-color: #f5f5f5;
-      box-shadow: 0 2px 4px rgba(255, 255, 255, 0.1);
+      background-color: #ffffff;
     }
   }
 }

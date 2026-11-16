@@ -162,7 +162,7 @@ async function reloadExtension() {
         if (chrome.runtime.reload) {
             chrome.runtime.reload();
         } else {
-            niceAlert("You must disable/re-enable the extension in the extensions page or restart the browser");
+            niceAlert("확장 프로그램 관리 페이지에서 확장을 껐다 켜거나 브라우저를 다시 시작해 주세요.");
         }
     } else {
         await sendMessageToBG("resetInitMiscWindowVars");
@@ -371,10 +371,10 @@ async function initPage(tabName) {
                 if (this.checked) {
                     let msg;
                     if (DetectClient.isWindows()) {
-                        msg = "Make sure the Windows option is also set: System > Notifications > Google Chrome > Show notifications in action center.\n\n";
+                        msg = "Windows 설정도 함께 켜 주세요: 시스템 > 알림 > Google Chrome > 알림 센터에 알림 표시\n\n";
                     }
 
-                    await niceAlert(`${msg}This will also set the option 'Close after' to 'never'.`);
+                    await niceAlert(`${msg}'닫기 시간' 설정도 '닫지 않음'으로 바뀌어요.`);
 
                     if (await storage.get("notificationWakesUpScreenTemporarily")) {
                         storage.set("notificationWakesUpScreenTemporarily", false);
@@ -389,7 +389,7 @@ async function initPage(tabName) {
             // refer to (원래 앱 링크 삭제)
             onClick("#notificationWakesUpScreenTemporarily", async function() {
                 if (this.checked && await storage.get("moveIntoActionCenter")) {
-                    niceAlert("This will disable the move into action center");
+                    niceAlert("알림 센터로 옮기기 설정이 꺼져요.");
                     storage.set("moveIntoActionCenter", false);
                     byId("moveIntoActionCenter").checked = false;
                     byId("moveIntoActionCenter").dispatchEvent(new Event('change'));
@@ -399,7 +399,7 @@ async function initPage(tabName) {
 			onClick("#runInBackground", function (e) {
                 if (e.target.checked) {
                     if (DetectClient.isMac()) {
-                        niceAlert("Unfortunately Chrome no longer supports this on Mac");
+                        niceAlert("아쉽지만 Mac의 Chrome에서는 더 이상 지원하지 않아요.");
                     } else {
                         openDialog(initTemplate("runInBackgroundDialogTemplate"));
                     }
@@ -416,7 +416,7 @@ async function initPage(tabName) {
                     const $icon = document.createElement("j-icon");
                     $icon.setAttribute("icon", "more-vert");
 
-                    content.append("Make sure to also grant access to each Gmail account:", createBR(), "Popup Window > Email Account Menu ", $icon, " > Show Contact Photos");
+                    content.append("각 Gmail 계정에도 접근을 허용해 주세요:", createBR(), "메일 창 > 계정 메뉴 ", $icon, " > 연락처 사진 표시");
                     niceAlert(content);
                 }
 			});
@@ -460,9 +460,9 @@ async function initPage(tabName) {
                         const $link = document.createElement("a");
                         $link.href = "https://support.google.com/chrome/answer/3220216";
                         $link.style.color = "blue";
-                        $link.textContent = "Chrome notifications";
+                        $link.textContent = "Chrome 알림 도움말";
 
-                        content.append("Permission denied! Refer to ", $link, " to enable them." + " (permission: " + permission + ")");
+                        content.append("권한이 거부됐어요. ", $link, "을 보고 켜 주세요." + " (권한: " + permission + ")");
 						niceAlert(content);
 					}
 				});
@@ -500,13 +500,13 @@ async function initPage(tabName) {
                 });
 
                 if (value > 5) {
-                    niceAlert("For longer times you might have to change your system defaults which are usually 5s. Click Ok for instructions.").then(() => {
+                    niceAlert("더 오래 보이게 하려면 시스템 기본값(보통 5초)을 바꿔야 할 수 있어요. 확인을 누르면 방법을 알려 드려요.").then(() => {
                     });
                 } else if (value == "infinite") {
                     if (await storage.get("moveIntoActionCenter")) {
                         // ignore
                     } else {
-                        niceAlert("Note with this option: " + getMessage("notificationWakesUpScreenTemporarily"));
+                        niceAlert("이 설정을 쓰면: " + getMessage("notificationWakesUpScreenTemporarily"));
                     }
                 }
 			});
@@ -563,17 +563,17 @@ async function initPage(tabName) {
             addEventListeners("#dndInFullscreen", "change", function () {
                 if (this.checked) {
                     const container = document.createElement("div");
-                    let textNode = document.createTextNode("This will only detect fullscreen use in the browser.");
+                    let textNode = document.createTextNode("브라우저 안의 전체 화면만 감지해요.");
                     container.append(textNode, createBR());
                     if (DetectClient.isWindows()) {
-                        textNode = document.createTextNode("For detecting fullscreen in apps and games use: ");
+                        textNode = document.createTextNode("앱이나 게임의 전체 화면은 다음 설정을 쓰세요: ");
                         container.append(textNode);
                         const node = document.createElement("span");
                         node.style.cssText = "font-weight: bold";
-                        node.textContent = "System > Notifications > Turn on do not disturb automatically";
+                        node.textContent = "시스템 > 알림 > 방해 금지 모드 자동으로 켜기";
                         container.append(node);
                     } else {
-                        textNode = document.createTextNode("For detecting fullscreen in apps and games use your system settings.");
+                        textNode = document.createTextNode("앱이나 게임의 전체 화면은 시스템 설정을 쓰세요.");
                         container.append(textNode);
                     }
 
@@ -816,15 +816,15 @@ async function initPage(tabName) {
 									storeIcon();
 									showToast(getMessage("done"));
 								} else {
-									openDialog("Use this icon for all email states?", {
+									openDialog("모든 메일 상태에 이 아이콘을 쓸까요?", {
                                         buttons: [{
-                                            label: "Only this one",
+                                            label: "이것만",
                                             onClick: () => {
                                                 storeIcon();
                                                 niceAlert(getMessage("done"));
                                             }
                                         }, {
-                                            label: "Yes to all",
+                                            label: "모두 적용",
                                             primary: true,
                                             onClick: () => {
                                                 storeIcon(true);
@@ -838,7 +838,7 @@ async function initPage(tabName) {
 
 							img.onerror = function (e) {
 								console.error(e);
-								niceAlert("Error loading image, try another image!");
+								niceAlert("이미지를 불러오지 못했어요. 다른 이미지를 골라 주세요.");
 							}
 
 							img.src = this.result;
@@ -850,9 +850,9 @@ async function initPage(tabName) {
 						fileReader.onabort = fileReader.onerror = function (e) {
 							console.error("fileerror: ", e);
 							if (e.currentTarget.error.name == "NotFoundError") {
-								alert("Temporary error, please try again.");
+								alert("잠깐 문제가 생겼어요. 다시 해 주세요.");
 							} else {
-								alert(e.currentTarget.error.message + " Try again.");
+								alert(e.currentTarget.error.message + " 다시 해 주세요.");
 							}
 						}
 
@@ -863,7 +863,7 @@ async function initPage(tabName) {
 					openDialog($dialog, {
                         closeButton: true,
                         buttons: [{
-                            label: "View popular ones",
+                            label: "인기 아이콘 보기",
                             onClick: function () {
                             }
                         }]
@@ -890,7 +890,7 @@ async function initPage(tabName) {
 			updateCustomIcons();
 
 			onClick("#testButtonIconAnimation", async function() {
-				niceAlert("Don't look here, look at the top right :)")
+				niceAlert("여기 말고 오른쪽 위를 봐 주세요 :)")
 				await sleep(seconds(1));
                 buttonIcon.startAnimation({testAnimation:true});
 			});
@@ -990,13 +990,13 @@ async function initPage(tabName) {
 
             addEventListeners("#autoCollapseConversations", "change", function() {
 				if (!this.checked) {
-					niceAlert("Done. But, but not recommended because it will slow the loading of message.");
+					niceAlert("완료했어요. 다만 메일이 늦게 열릴 수 있어서 권장하지 않아요.");
 				}
 			});
 
             addEventListeners("#progressivelyLoadEmails", "change", function() {
 				if (!this.checked) {
-					niceAlert("Done. But, but not recommended because it will slow the loading of the window.");
+					niceAlert("완료했어요. 다만 창이 늦게 열릴 수 있어서 권장하지 않아요.");
 				}
 			});
 
@@ -1004,7 +1004,7 @@ async function initPage(tabName) {
                 await waitForStorageSync();
 				var that = this;
 				if (await storage.get("accountAddingMethod") == "autoDetect") {
-					niceAlert("Only available with enabling adding accounts method in Accounts tab");
+					niceAlert("계정 탭에서 '계정 추가' 방식을 켜야 쓸 수 있어요.");
 
 					// reset it now
 					that.checked = false;
@@ -1089,7 +1089,7 @@ async function initPage(tabName) {
             byId("pollingInterval").addEventListener("change", async function(e) {
 				const pollingInterval = e.target.value;
                 if (pollingInterval == "realtime" && !supportsRealtime()) {
-					niceAlert("Not available with this browser");
+					niceAlert("이 브라우저에서는 쓸 수 없어요.");
 				} else if (getSelectedRadioValue("accountAddingMethod") == "autoDetect" && pollingInterval == "realtime") {
 					e.preventDefault();
                     e.target.value = e.target.dataset.previousValue;
@@ -1119,7 +1119,7 @@ async function initPage(tabName) {
                     } catch (error) {
 						console.error(error)
 						selector("#pollingInterval").value = previousPollingInterval;
-						niceAlert("Could not enable real-time!" + " (error: " + error + ")");
+						niceAlert("실시간 확인을 켜지 못했어요." + " (오류: " + error + ")");
                     }
 				}
 			});
@@ -1156,7 +1156,7 @@ async function initPage(tabName) {
                 await initAllAccounts();
         
                 if (response?.syncSignInIdError) {
-                    niceAlert("Could not determine the sign in order, so assuming " + accounts.length);
+                    niceAlert("로그인 순서를 알 수 없어서 이 개수로 정했어요: " + accounts.length);
                 }
         
                 loadAccountsOptions({ selectedEmail: tokenResponse.userEmail });
@@ -1170,7 +1170,7 @@ async function initPage(tabName) {
 				syncSignInOrderForAllAccounts().then(() => {
 					showToast(getMessage("done"));
 				}).catch(error => {
-					niceAlert("Try signing out and into your Gmail accounts and then do this sync again. error: " + error);
+					niceAlert("Gmail 계정에서 로그아웃했다가 다시 로그인한 뒤 다시 맞춰 주세요. 오류: " + error);
 				}).then(() => {
 					hideLoading();
 				});
@@ -1412,12 +1412,12 @@ async function initPage(tabName) {
                     const response = await sendMessageToBG("removeAllAccountsAccess");
             
                     if (response?.error) {
-                        niceAlert("Problem: " + response?.error);
+                        niceAlert("문제가 생겼어요: " + response?.error);
                     } else {
-                        niceAlert("Done. The auto-detect mode uses default access to mail.google.com when you installed the extension. Therefore you would have to remove the extension to complete this task.");
+                        niceAlert("완료했어요. 자동 감지 방식은 설치할 때 받은 mail.google.com 기본 접근을 써요. 그래서 이 작업을 끝내려면 확장을 삭제해야 해요.");
                     }
                 } else {
-                    openDialog("This will revoke access to all accounts. You could instead uncheck the accounts in the Accounts section.", {
+                    openDialog("모든 계정의 접근 권한을 취소해요. 대신 계정 항목에서 계정 체크만 해제해도 돼요.", {
                         cancel: true,
                         buttons: [{
                             label: getMessage("continue"),
@@ -1430,10 +1430,10 @@ async function initPage(tabName) {
                                 await initAllAccounts();
                         
                                 if (response?.error) {
-                                    niceAlert("Problem: " + response?.error);
+                                    niceAlert("문제가 생겼어요: " + response?.error);
                                 } else {
                                     pollAndLoad({showNotification: false});
-                                    niceAlert("Done");
+                                    niceAlert("완료했어요.");
                                 }
                             }
                         }]
@@ -1445,7 +1445,7 @@ async function initPage(tabName) {
                 localStorage.clear();
                 await storage.clear();
                 
-                niceAlert("Click OK to restart the extension").then(() => {
+                niceAlert("확인을 누르면 확장이 다시 시작돼요.").then(() => {
                     reloadExtension();
                 });
             });
@@ -1467,11 +1467,11 @@ async function initPage(tabName) {
                     pre.textContent = debugInfoText;
 
                     openDialog(pre, {
-                        title: "Sign-in debug info (also logged to the background service worker console)",
+                        title: "로그인 진단 정보 (백그라운드 콘솔에도 기록돼요)",
                         closeButton: true,
                         modal: false,
                         buttons: [{
-                            label: "Copy to clipboard",
+                            label: "클립보드에 복사",
                             icon: "content-copy",
                             onClick: () => {
                                 navigator.clipboard.writeText(debugInfoText);
@@ -1481,7 +1481,7 @@ async function initPage(tabName) {
                     });
                 } catch (error) {
                     hideLoading();
-                    niceAlert("Problem gathering debug info: " + error);
+                    niceAlert("진단 정보를 모으지 못했어요: " + error);
                 }
             });
 
@@ -1494,22 +1494,22 @@ async function initPage(tabName) {
                     if (response?.loaded) {
                         await initAllAccounts();
                         pollAndLoad({showNotification: false});
-                        niceAlert("mail.google.com was loaded in the background (offscreen document). Check the Accounts section or popup to see if sign-in was detected.");
+                        niceAlert("mail.google.com을 백그라운드에서 불러왔어요. 계정 항목이나 메일 창에서 로그인이 잡혔는지 확인해 주세요.");
                     } else if (response?.timedOut) {
-                        niceAlert("Timed out waiting for mail.google.com to load in the offscreen document.");
+                        niceAlert("mail.google.com을 불러오는 데 시간이 너무 오래 걸렸어요.");
                     } else {
-                        niceAlert("Could not load mail.google.com in the offscreen document.");
+                        niceAlert("mail.google.com을 불러오지 못했어요.");
                     }
                 } catch (error) {
                     hideLoading();
-                    niceAlert("Problem: " + error);
+                    niceAlert("문제가 생겼어요: " + error);
                 }
             });
 
 			onClick("#saveSyncOptions", function (event) {
 				syncOptions.save("manually saved").then(function () {
-					openDialog("Reminder, make sure you are signed into the browser for the sync to complete", {
-						title: "Sync completed",
+					openDialog("동기화가 끝나려면 브라우저에 로그인되어 있어야 해요.", {
+						title: "동기화 완료",
 						buttons: [{
                             label: getMessage("moreInfo"),
                             onClick: () => {
@@ -1523,7 +1523,7 @@ async function initPage(tabName) {
 					});
 				}).catch(error => {
 					const errorDiv = document.createElement("div");
-                    errorDiv.textContent = "Problem exporting to sync storage, try using the export to local file option.";
+                    errorDiv.textContent = "동기화 저장소로 내보내지 못했어요. '파일로 내보내기'를 써 보세요.";
                     errorDiv.appendChild(document.createElement("br"));
                     errorDiv.appendChild(document.createElement("br"));
                     const errorSpan = document.createElement("span");
@@ -1547,17 +1547,17 @@ async function initPage(tabName) {
 					if (response?.items) {
 						return new Promise(function (resolve, reject) {
                             const content = new DocumentFragment();
-                            content.append(response.error, createBR(), createBR(), "You can force it but it might create issues in the extension and the only solution will be to re-install without loading settings!")
+                            content.append(response.error, createBR(), createBR(), "강제로 할 수는 있지만 확장에 문제가 생길 수 있고, 그러면 설정 없이 다시 설치하는 방법밖에 없어요.")
 
 							openDialog(content, {
-								title: "Problem",
+								title: "문제가 생겼어요",
                                 buttons: [{
-                                    label: "Cancel",
+                                    label: "취소",
                                     onClick: () => {
                                         reject("cancelledByUser");
                                     }
                                 }, {
-                                    label: "Force it",
+                                    label: "강제로 하기",
                                     primary: true,
                                     onClick: () => {
                                         reject(response.items);
@@ -1572,7 +1572,7 @@ async function initPage(tabName) {
 					console.log("syncoptions then");
 					return syncOptions.load(items);
 				}).then(function () {
-					niceAlert("Click OK to restart the extension").then(() => {
+					niceAlert("확인을 누르면 확장이 다시 시작돼요.").then(() => {
 						reloadExtension();
 					});
 				}).catch(error => {
@@ -1582,10 +1582,10 @@ async function initPage(tabName) {
                             const container = document.createElement('div');
 
                             // Create text nodes and elements
-                            const text1 = document.createTextNode("Could not find any synced data!");
+                            const text1 = document.createTextNode("동기화된 데이터를 찾지 못했어요.");
                             const br1 = document.createElement('br');
                             const br2 = document.createElement('br');
-                            const text2 = document.createTextNode("Make sure you sign in to Chrome on your other computer AND this one ");
+                            const text2 = document.createTextNode("다른 컴퓨터와 이 컴퓨터 모두 Chrome에 로그인해 주세요. ");
                             const link = document.createElement('a');
                             link.target = '_blank';
                             link.href = 'https://support.google.com/chrome/answer/185277';
@@ -1599,7 +1599,7 @@ async function initPage(tabName) {
                             container.appendChild(link);
                             openDialog(container);
                         } else {
-                            openDialog("error loading options: " + error);
+                            openDialog("설정을 불러오지 못했어요: " + error);
                         }
 					}
 				});
@@ -1614,7 +1614,7 @@ async function initPage(tabName) {
                     niceAlert(response.error);
                 } else {
                     if (await storage.get("accountAddingMethod") == "oauth") {
-                        niceAlert("For security reasons you will need to re-add your accounts after importing the file.");
+                        niceAlert("보안을 위해 파일을 가져온 뒤 계정을 다시 추가해야 해요.");
                     }
                     downloadObject(response.data, "gmail-options.json");
                 }
@@ -1637,9 +1637,9 @@ async function initPage(tabName) {
                             syncOptions.importIndexedDB(jsonObject, true).then(async () => {
                                 const exportDate = await storage.get("_exportDate");
                                 if (exportDate?.diffInDays() < -30) { // 1 month
-                                    await niceAlert("Importing old configuration files, may cause issues and might require a re-installation of the extension.");
+                                    await niceAlert("오래된 설정 파일을 가져오면 문제가 생길 수 있고, 확장을 다시 설치해야 할 수도 있어요.");
                                 }
-                                niceAlert("Click OK to restart the extension", true).then(() => {
+                                niceAlert("확인을 누르면 확장이 다시 시작돼요.", true).then(() => {
                                     reloadExtension();
                                 });
                             }).catch(error => {
@@ -1647,12 +1647,12 @@ async function initPage(tabName) {
                             });
                         } catch (error) {
                             console.error("Error parsing JSON:", error);
-                            niceAlert("Invalid JSON file. Please select a valid JSON file.");
+                            niceAlert("올바른 JSON 파일이 아니에요. 다른 파일을 골라 주세요.");
                         }
                     };
                     reader.onerror = function(e) {
                         console.error("Error reading file:", e);
-                        niceAlert("Error reading file. Please try again.");
+                        niceAlert("파일을 읽지 못했어요. 다시 해 주세요.");
                     };
                     reader.readAsText(file);
                 }
@@ -1670,13 +1670,13 @@ async function initPage(tabName) {
 
             selector("#console_messages").addEventListener("change", async () => {
                 await waitForStorageSync();
-                await niceAlert("Click OK to restart the extension");
+                await niceAlert("확인을 누르면 확장이 다시 시작돼요.");
                 reloadExtension();
             });
 
             selector("#disableOnline").addEventListener("change", async () => {
                 await waitForStorageSync();
-                await niceAlert("Click OK to restart the extension");
+                await niceAlert("확인을 누르면 확장이 다시 시작돼요.");
                 reloadExtension();
             });
 
@@ -1736,7 +1736,7 @@ async function showOptionsSection(tabName) {
                 BongExtendCheckerPlusAction.openPopup().catch(error => {
                     console.error(error);
                     // for firefox cause it requires a user gesture
-                    niceAlert("Click the extension icon to open the popup window").then(() => {
+                    niceAlert("확장 아이콘을 눌러 메일 창을 열어 주세요.").then(() => {
                         BongExtendCheckerPlusAction.openPopup().catch(error => {});
                     });
                 });
@@ -2386,7 +2386,7 @@ async function requestGmailHostPermissions() {
         hide("#grant-host-permission");
         return granted;
     } else {
-        niceAlert("That's OK, you can try the Add Account option in the Accounts tab.");
+        niceAlert("괜찮아요. 계정 탭의 '계정 추가'를 써 보세요.");
         highlightAddAccount();
     }
 }
@@ -2610,7 +2610,7 @@ async function loadAccountsOptions(loadAccountsParams = {}) {
                             }
                         }
                     } else {
-                        niceAlert("Could not find account! Click OK to refresh").then(() => {
+                        niceAlert("계정을 찾지 못했어요. 확인을 누르면 새로고침해요.").then(() => {
                             pollAndLoad({showNotification:true, refresh:true});
                         });
                     }
@@ -2622,15 +2622,15 @@ async function loadAccountsOptions(loadAccountsParams = {}) {
                     (async () => {
                         if (await account.getSetting("showSignature", "accountsShowSignature") && await account.hasSignature()) {
                             processEnabledSetting(event.target, "showSignature");
-                            showToast("Signatures disabled");
+                            showToast("서명을 껐어요");
                         } else {
                             showLoading();
                             account.fetchSendAs().then(async sendAsData => {
                                 if (await account.hasSignature()) {
                                     processEnabledSetting(event.target, "showSignature");
-                                    showToast("Signatures enabled");
+                                    showToast("서명을 켰어요");
                                 } else {
-                                    niceAlert("No signatures found! Have you created one in your Gmail?") // https://support.google.com/mail/answer/8395
+                                    niceAlert("서명이 없어요. Gmail에서 서명을 만들었는지 확인해 주세요.") // https://support.google.com/mail/answer/8395
                                 }
                             }).catch(error => {
                                 niceAlert(error);
@@ -2733,20 +2733,20 @@ async function loadAccountsOptions(loadAccountsParams = {}) {
 
             if (await storage.get("accountAddingMethod") == "autoDetect" && values.length > 5) {
                 const content = new DocumentFragment();
-                content.append("1) I recommend monitoring less than 5 labels for faster polling and avoiding lockouts");
+                content.append("1) 빠른 확인과 계정 잠김 방지를 위해 라벨은 5개 미만으로 고르는 게 좋아요");
                 content.append(createBR());
-                content.append("2) Consider using the ALL MAIL label instead");
+                content.append("2) 대신 '전체보관함' 라벨을 써 보세요");
                 content.append(createBR());
-                content.append("3) Try the add accounts option above");
+                content.append("3) 위의 '계정 추가' 방식을 써 보세요");
 
                 openDialog(content, {
-                    title: "Too many labels! Here are some solutions"
+                    title: "라벨이 너무 많아요. 이렇게 해 보세요"
                 });
             }
             
             if (allMail && values.length >= 2) {
-                openDialog("If you select ALL MAIL then you should unselect the other labels or else you will get duplicates!", {
-                    title: "Duplicate labels warning"
+                openDialog("'전체보관함'을 고르면 다른 라벨은 해제해 주세요. 안 그러면 같은 메일이 두 번 보여요.", {
+                    title: "라벨 중복 주의"
                 });
             }
     
@@ -2811,14 +2811,14 @@ async function playSound(soundName) {
     if (soundName == SYSTEM_DEFAULT_SOUND) {
         chrome.notifications.create("", {
             type: "basic",
-            title: "Test Notification",
-            message: "Testing default sound",
+            title: "알림 시험",
+            message: "기본 소리를 시험하고 있어요",
             iconUrl: Icons.NotificationLogo,
             silent: false
         }, notificationId => {
             if (chrome.runtime.lastError) {
                 console.error(chrome.runtime.lastError);
-                niceAlert("Could not show notification: " + chrome.runtime.lastError.message);
+                niceAlert("알림을 띄우지 못했어요: " + chrome.runtime.lastError.message);
             } else {
                 // auto-clear after a short time
                 setTimeout(() => {
@@ -2966,7 +2966,7 @@ async function addCustomSound(params) {
 			});
 		}
 	}).catch(error => {
-		var error = "Error saving file: " + error + " Try a smaller file or another one or click the 'Not working' link.";
+		var error = "파일을 저장하지 못했어요: " + error + " 더 작은 파일이나 다른 파일을 써 보세요.";
 		niceAlert(error);
 		logError(error);
 	});
@@ -3135,7 +3135,7 @@ async function maybePromptForHostPermissions() {
         }
 
         fileReader.onabort = fileReader.onerror = function (e) {
-            niceAlert("Problem loading file");
+            niceAlert("파일을 불러오지 못했어요.");
         }
 
         console.log("file", file)
@@ -3159,14 +3159,14 @@ async function maybePromptForHostPermissions() {
                 
         if (DetectClient.isOpera()) {
             if (!window.Notification) {
-                niceAlert("Desktop notifications are not yet supported in this browser!");				
+                niceAlert("이 브라우저는 아직 데스크톱 알림을 지원하지 않아요.");				
             }
             if (window.chrome && !window.chrome.tts) {
-                niceAlert("Voice notifications are not yet supported in this browser!");				
+                niceAlert("이 브라우저는 아직 음성 알림을 지원하지 않아요.");				
             }
 
-            openDialog("Bugs might occur, you can use this extension, however, for obvious reasons, these bugs and reviews will be ignored unless you can replicate them on stable channel of Chrome.", {
-                title: "You are not using the stable channel of Chrome!",
+            openDialog("쓸 수는 있지만 오류가 생길 수 있어요. 안정 버전 Chrome에서 다시 확인되지 않는 문제는 고치기 어려워요.", {
+                title: "안정 버전 Chrome이 아니에요",
                 buttons: [{
                     label: getMessage("moreInfo"),
                     onClick: function(dialog) {
@@ -3181,24 +3181,24 @@ async function maybePromptForHostPermissions() {
             console.log("fetch response", items);
 
             const content = new DocumentFragment();
-            content.append("Would you like to use your previous extension options? ");
+            content.append("예전에 쓰던 설정을 다시 불러올까요? ");
 
             const $note = document.createElement("div");
             $note.style.cssText = "margin-top:4px;font-size:12px;color:gray";
-            $note.textContent = "(If you had previous issues you should do this later)";
+            $note.textContent = "(예전에 문제가 있었다면 나중에 하는 게 좋아요)";
             content.append($note);
 
             openDialog(content, {
-                title: "Restore settings",
+                title: "설정 복원",
                 cancel: true,
             }).then(response => {
                 if (response == "ok") {
                     syncOptions.load(items).then(items => {
                         resetCustomSounds();
                         
-                        openDialog("Options restored!", {
+                        openDialog("설정을 복원했어요.", {
                             buttons: [{
-                                label: "Restart extension",
+                                label: "확장 다시 시작",
                                 primary: true,
                                 onClick: function(dialog) {
                                     reloadExtension();
@@ -3253,9 +3253,9 @@ async function maybePromptForHostPermissions() {
                         }]
                     });
                 } else if (status == "throttled") {
-                    openDialog("Throttled, try again later!");
+                    openDialog("요청이 너무 많아요. 잠시 뒤 다시 해 주세요.");
                 } else {
-                    openDialog("Response: " + status + " new version " + details.version);
+                    openDialog("결과: " + status + " 새 버전 " + details.version);
                 }
             });
         } else {
@@ -3381,7 +3381,7 @@ async function maybePromptForHostPermissions() {
             }
             if (searchValue) {
                 if (!selector(".search-result")) {
-                    openDialog("No results found in options", {
+                    openDialog("설정에서 찾는 항목이 없어요.", {
                         cancel: true
                     });
                 }

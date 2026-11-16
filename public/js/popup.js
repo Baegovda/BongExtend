@@ -228,12 +228,12 @@ async function initTabs(email) {
 					// force refresh of labels
 					account.getLabels(true).then(labels => {
                         console.log("labels hard", labels);
-						showToast("You have renamed or removed some Gmail labels. You have to re-select them in the extension options.");
+						showToast("Gmail 라벨 이름이 바뀌었거나 삭제됐어요. 설정에서 라벨을 다시 골라 주세요.");
 					});
 				}
 			}
 		}).catch(error => {
-			showError("Error loading labels: " + error);
+			showError("라벨을 불러오지 못했어요: " + error);
 		});
 	
 	}
@@ -339,7 +339,7 @@ function initPopupView() {
                 });
             } else {
                 setTimeout(() => {
-                    showError("Refresh or sign out and in!");
+                    showError("새로고침하거나 로그아웃 후 다시 로그인해 주세요.");
                 }, 500)
             }
             
@@ -381,7 +381,7 @@ function initPopupView() {
                     resolve(true);
                 } else {
                     // mainly for Firefox users who already had inbox view as their default because it requires a user gesture
-                    openDialog("Permission required").then(() => {
+                    openDialog("권한이 필요해요.").then(() => {
                         chrome.permissions.request(permissionsObj, async granted => {
                             if (granted) {
                                 showLoading();
@@ -420,7 +420,7 @@ function initPopupView() {
                         hideLoading();
                     }, 500);
                 } else {
-                    showError("Could not obtain permissions to load Inbox view")
+                    showError("받은편지함 보기에 필요한 권한을 받지 못했어요.")
                 }
             });
         }
@@ -1137,7 +1137,7 @@ function openDialogWithSearch($dialog, $search, $selectionsWrapper, $selections)
         // because i DID NOT set autoCloseDisabled="true" then the .close happens automatically
     }).catch(error => {
         // on close
-        showError("error: " + error);
+        showError("오류: " + error);
     });
     $search.value = "";
     $search.style.opacity = "1";
@@ -1206,7 +1206,7 @@ function openMoveLabelDialog(mail, params = {}) {
                     : executeMailAction(mail, "moveLabel", {actionParams: {newLabel: labelObj.id}});
 
                 actionPromise.then(() => {
-                    showToast("Moved to " + labelObj.name);
+                    showToast("옮겼어요: " + labelObj.name);
                     if (params.onMoved) {
                         params.onMoved();
                     }
@@ -1220,7 +1220,7 @@ function openMoveLabelDialog(mail, params = {}) {
         openDialogWithSearch($moveLabelDialog, $moveLabelDialog.querySelector("#moveLabelSearch"), $moveLabels, $moveLabelDialog.querySelectorAll(".moveLabel"));
     }).catch(error => {
         hideLoading();
-        showError("error: " + error);
+        showError("오류: " + error);
     });
 }
 
@@ -1273,7 +1273,7 @@ function openChangeLabelsDialog(mail, params = {}) {
         openDialogWithSearch($changeLabelsDialog, $changeLabelsDialog.querySelector("#changeLabelSearch"), $changeLabelsWrapper, $changeLabelsDialog.querySelectorAll(".changeLabel"));
     }).catch(error => {
         hideLoading();
-        showError("error: " + error);
+        showError("오류: " + error);
     });
 }
 
@@ -1373,15 +1373,15 @@ function initEmailListContextMenu() {
 function openDialogCalendarVersionNotSupported() {
     // not supported yet
     const content = new DocumentFragment();
-    content.append("The extension Checker Plus for Google Calendar is required.");
+    content.append("이 기능은 지원하지 않아요.");
     content.append(createBR());
-    content.append("But your version does not currently support this feature.");
+    content.append("지금 버전에서는 쓸 수 없어요.");
 
     openDialog(content, {
-        title: "Not supported yet",
+        title: "지원하지 않는 기능",
         cancel: true,
         buttons: [{
-            label: "Update extension",
+            label: "확장 업데이트",
             primary: true,
             onClick: function() {
             }
@@ -1677,7 +1677,7 @@ function initOpenEmailEventListeners() {
 		const mail = getOpenEmail();
 		const $mail = getMailNode(mail);
 
-		showToast("Playing email...", {
+		showToast("메일 읽어 주는 중...", {
             duration: seconds(999),
 			text:       getMessage("stop"),
 			onClick:    () => {
@@ -1797,11 +1797,11 @@ async function openEmail(params) {
             history.pushState({openEmail:true}, "", "#open-email");
         } catch (error) {
             logError(error);
-            showError("error: " + error);
+            showError("오류: " + error);
             throw error;
         }
     } else {
-        const error = "Email might already be read!";
+        const error = "이미 읽은 메일일 수 있어요.";
         showError(error);
         throw error;
     }
@@ -2439,7 +2439,7 @@ function openEmailPromise(params) {
                                                     console.log("being translation..." + mail.messages.last().content?.length);
                                                     const translationPromise = translator.translate(mail.messages.last().content);
                                                     const timeout = setTimeout(() => {
-                                                        showToast("The content is long and it's taking longer than expected.");
+                                                        showToast("내용이 길어서 생각보다 오래 걸리고 있어요.");
                                                     }, seconds(7));
                                                     translation = await translationPromise;
                                                     clearTimeout(timeout);
@@ -2516,7 +2516,7 @@ function openEmailPromise(params) {
 						hide($trimmedContent);
                         const $elipsis = document.createElement("div");
                         $elipsis.classList.add("showTrimmedContent");
-                        $elipsis.title = "Show trimmed content";
+                        $elipsis.title = "숨긴 내용 보기";
                         $elipsis.textContent = "...";
 						/*
 						$elipsis.click(function() {
@@ -2548,7 +2548,7 @@ function openEmailPromise(params) {
                                 const $source = document.createElement("source");
                                 $source.src = soundSrc;
 
-                                $audio.append($source, "Your browser does not support the audio element.");
+                                $audio.append($source, "이 브라우저는 오디오 재생을 지원하지 않아요.");
 
                                 $td.append($audio);
 								el.append($td);
@@ -2663,7 +2663,7 @@ function openEmailPromise(params) {
 								}).catch(error => {
 									console.error("error in fetchpromise", error);
                                     const span = document.createElement("span");
-                                    span.textContent = `Error loading image: ${error}`;
+                                    span.textContent = `이미지를 불러오지 못했어요: ${error}`;
 									$messageBody.querySelectorAll("img").forEach(el => el.replaceWith(span));
 								});
 							} else {
@@ -3177,7 +3177,7 @@ function openEmailPromise(params) {
                         $replyArea.classList.remove("sending");
                         $replyArea.querySelector("#send").textContent = getMessage("send");
                         if (error?.sessionExpired) {
-                            showError("There's a problem. Save your reply outside of this extension or try again.");
+                            showError("문제가 생겼어요. 답장 내용을 다른 곳에 저장해 두거나 다시 해 주세요.");
                         } else {
                             showError(error);
                         }
@@ -3223,9 +3223,9 @@ function openEmailPromise(params) {
 				}
 			} else {
 				// happens sometimes if a single message from the thread was deleted (ie. using "Delete this message" from dropdown on the right of message in Gmail)
-				const error = "Problem retrieving message, this could happen if you deleted an individual message!";
+				const error = "메일을 불러오지 못했어요. 대화 중 메일 하나를 지웠다면 이럴 수 있어요.";
 				showToast(error, {
-					text:"Disable conversation view",
+					text:"대화형 보기 끄기",
 					onClick:function() {
 					}
 				});
@@ -3238,7 +3238,7 @@ function openEmailPromise(params) {
                     const otpCode = await mail.getOTPCode();
                     if (otpCode) {
                         const otpCodeDisplay = mail.otpCodeUsesFullContent
-                            ? `${otpCode} - Full message scan (local)`
+                            ? `${otpCode} - 전체 메일에서 찾음 (이 PC에서만)`
                             : otpCode;
                         showToast(otpCodeDisplay, {
                             text: getMessage("copy"),
@@ -3283,9 +3283,9 @@ function openEmailPromise(params) {
 			hideProgress();
 		}).catch(error => {
             if (error?.cause == ErrorCause.MUST_UPDATE_BROWSER) {
-                showError(error?.error || error.message || "Your browser is not supported. Please update your browser to the latest version.");
+                showError(error?.error || error.message || "지원하지 않는 브라우저예요. 브라우저를 최신 버전으로 업데이트해 주세요.");
             } else {
-                showError(error + ", please try again later!");
+                showError(error + ", 잠시 뒤 다시 해 주세요.");
             }
             console.trace(error);
 			logError("error in getThread: " + error);
@@ -3611,7 +3611,7 @@ function openAICompose(params = {}) {
             return;
         }
 
-        $listenToPromptResponseToggleState.textContent = await storage.get("aiComposeListenToPromptResponse") ? "On" : "Off";
+        $listenToPromptResponseToggleState.textContent = await storage.get("aiComposeListenToPromptResponse") ? "켜짐" : "꺼짐";
     };
 
     const shouldPlayPromptResponseAudio = async () => {
@@ -3996,7 +3996,7 @@ function openAICompose(params = {}) {
                 }).then(() => {
                     if (chrome.runtime.lastError) {
                         console.error('Error inserting response:', chrome.runtime.lastError);
-                        alert('Error inserting response: ' + chrome.runtime.lastError.message);
+                        alert('답장을 넣지 못했어요: ' + chrome.runtime.lastError.message);
                     } else {
                         window.close();
                     }
@@ -4232,7 +4232,7 @@ async function requestPermissionForContacts(account) {
         } else {
             refresh();
             showToast(getMessage("contactsLoaded"));
-            niceAlert("You can also enable them in notifications: Options > Notifications > Show Contact Photos");
+            niceAlert("알림에서도 켤 수 있어요: 설정 > 알림 > 연락처 사진 표시");
         }
     }
 }
@@ -4820,7 +4820,7 @@ function openComposeSection(params) {
 	}).catch(error => {
 		console.error("media error", error);
 		if (error.name == "PermissionDismissedError") {
-			openDialog("You must grant access to use this feature.", {
+			openDialog("이 기능을 쓰려면 접근을 허용해야 해요.", {
                 cancel: true,
                 buttons: [{
                     label: getMessage("grantAccess"),
@@ -4833,12 +4833,12 @@ function openComposeSection(params) {
 		} else if (error.name == "NotAllowedError" || error.name == "PermissionDeniedError") {
 			if (isSidePanel || isDetached) {
 				if (location.href.includes("action=getUserMediaDenied") || location.href.includes("action=getUserMediaFailed")) {
-					openDialog("Click Allow to grant access.", {
-						title: "You must grant access to use this feature"
+					openDialog("'허용'을 눌러 접근을 허락해 주세요.", {
+						title: "이 기능을 쓰려면 접근을 허용해야 해요"
 					}).then(response => {
                         if (response == "ok") {
                             onClickReplace([$recordSoundButton, $recordVideoButton], function() {
-                                openDialog("I assume you granted access now let's refresh the page", {
+                                openDialog("접근을 허용했다면 페이지를 새로고침해 주세요.", {
                                     buttons: [{
                                         label: getMessage("refresh"),
                                         primary: true,
@@ -4882,12 +4882,12 @@ function openComposeSection(params) {
         const tos = Array.from(selectorAll(".chip")).map(el => el._data);
         
         if (tos.length == 0) {
-            openDialog("Please specify at least one recipient.");
+            openDialog("받는 사람을 한 명 이상 적어 주세요.");
             return;
         }
         
         if (((voiceEmail && !$recordSoundWrapper.classList.contains("recording")) || (videoEmail && !$recordVideoWrapper.classList.contains("recording"))) && !base64Data) {
-            openDialog("You forgot to record a message.");
+            openDialog("녹음한 메시지가 없어요.");
             return;
         }
 
@@ -4907,7 +4907,6 @@ function openComposeSection(params) {
             
             sendEmailParams.htmlMessage = "";
             //sendEmailParams.htmlMessage += "<span style='color:gray;font-size:90%'>To play this message:<br>Download file > Select a program > Choose <b>Google Chrome</b> or any other browser. <a href='(원래 앱 링크 삭제)'>Having trouble?</a></span><br><br>";
-            sendEmailParams.htmlMessage += "Sent via Checker Plus for Gmail";
             
             sendEmailParams.attachment = {
                 filename: voiceEmail ? VOICE_MESSAGE_FILENAME_PREFIX + ".wav" : VIDEO_MESSAGE_FILENAME_PREFIX + (VIDEO_CONTENT_TYPE === VIDEO_FORMAT_MP4 ? ".mp4" : ".webm"),
@@ -4927,12 +4926,12 @@ function openComposeSection(params) {
                 // insert slight delay because seems sendEmail bottlenecks when sending large attachments
                 setTimeout(async () => {
                     executeAccountAction(account, "sendEmail", {actionParams: sendEmailParams}).then(async () => {
-                        showToast("Sent");
+                        showToast("보냈어요");
                         
                         if (!await storage.get("donationClicked")) {
                             openContributeDialog("sendAttachment", {
                                 monthly: true,
-                                footerText: "<i style='color:gray'>For testing this message will be sent to yourself at " + account.getEmail() + "</i>"
+                                footerText: "<i style='color:gray'>시험용으로 이 메시지는 나에게 보내져요: " + account.getEmail() + "</i>"
                             });
                         }
                         
@@ -4943,7 +4942,7 @@ function openComposeSection(params) {
                         sendGA('sendAttachment', 'success');
                     }).catch(error => {
                         console.error(error);
-                        openDialog("There was problem sending the email. Don't worry you can still download the message and attach it yourself in Gmail", {
+                        openDialog("메일을 보내지 못했어요. 메시지를 내려받아 Gmail에서 직접 첨부할 수 있어요.", {
                             title: error,
                             cancel: true,
                             buttons: [{
@@ -5358,7 +5357,7 @@ async function renderAccounts() {
 					}, 50);
 				} else {
 					if (await storage.firstTime("onlyCheckerPlusSupportsClickToScroll")) {
-						openDialog("Only the Checker Plus view supports click to scroll to account", {
+						openDialog("이 보기에서는 계정 위치로 이동할 수 없어요.", {
 							cancel: true,
                             buttons: [{
                                 label: getMessage("switchToCheckerPlus"),
@@ -5622,7 +5621,7 @@ async function renderMails(params) {
 			if (!$mails.querySelector(".showMoreEmails")) {
                 const $showMoreEmails = document.createElement("div");
                 $showMoreEmails.classList.add("showMoreEmails");
-                $showMoreEmails.title = "Show more emails";
+                $showMoreEmails.title = "메일 더 보기";
 
                 const $expandMore = document.createElement("j-button");
                 $expandMore.setAttribute("icon", "expand-more");
@@ -6630,7 +6629,7 @@ async function init() {
             reversePopupView(true);
             renderMoreAccountMails();
         } else {
-            showError("Problem with permission for inbox view")
+            showError("받은편지함 보기 권한에 문제가 있어요.")
         }
     });
     
@@ -6758,7 +6757,7 @@ async function init() {
         && !location.href.includes("action=getUserMediaDenied")
         && !location.href.includes("action=getUserMediaFailed")
         && !location.href.includes("source=grantedAccess")) {
-        openDialog("For more popout options like creating shortcuts visit the Popout FAQ", {
+        openDialog("따로 띄운 메일 창이에요. 바로가기 만들기 같은 추가 기능은 지원하지 않아요.", {
             buttons: [{
                 label: getMessage("moreInfo"),
                 onClick: function(dialog) {
@@ -6773,7 +6772,7 @@ async function init() {
 	initPopupView();
 
     if (isRequestingPermission) {
-        niceAlert("Please repeat the action from this window");
+        niceAlert("이 창에서 다시 해 주세요.");
     }
 
 	onClick(".side-rail-button", async function() {
@@ -6807,7 +6806,7 @@ async function init() {
             const accountsSummary = await getAccountsSummary(accounts);
     
             if (!DetectClient.isFirefox() && !chrome.runtime.getContexts) {
-                await niceAlert("You must update your browser to continue using Checker Plus.");
+                await niceAlert("BongExtend 메일을 계속 쓰려면 브라우저를 업데이트해 주세요.");
             } else {
                 if (accountAddingMethod == "autoDetect" && !await hasGmailHostPermission()) {
                     if (await openHostPermissionDialog() == "ok") {
@@ -6832,7 +6831,7 @@ async function init() {
                         console.log("accountsSummary", accountsSummary);
                         if (accountAddingMethod == "autoDetect") {
                             if (accountsSummary.allSignedOut) {
-                               message = "Must sign in!";
+                               message = "로그인이 필요해요.";
                             } else {
                                 if (accountsSummary.firstNiceError) {
                                     message = accountsSummary.firstNiceError;
@@ -6841,7 +6840,7 @@ async function init() {
                                 }
                             }
                         } else {
-                            message = "Must add an account!";
+                            message = "계정을 추가해 주세요.";
                         }
                     }
         
@@ -7025,7 +7024,7 @@ async function init() {
                             dialog.close();
                             showToast(getMessage("done"));
                         } else {
-                            niceAlert("Please select the text and right click > Copy");
+                            niceAlert("글자를 선택한 뒤 오른쪽 클릭 > 복사를 눌러 주세요.");
                         }
                         storage.remove("autoSave");
                     }
