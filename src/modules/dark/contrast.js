@@ -164,7 +164,8 @@ export function createContrastController(doc = document, {inspectImage, inspectP
     if (rect.width < 1 || rect.height < 1 || rect.bottom < -100 || rect.top > win.innerHeight + 100 || rect.right < 0 || rect.left > win.innerWidth) return;
     const s = styleOf(el); stats.measured++;
     if (s.visibility !== 'visible' || s.display === 'none') return;
-    if (Number(s.opacity) >= .99) inspectImage?.(el);
+    // Icons that fade in on hover are inspected too; the image path checks opacity itself.
+    inspectImage?.(el);
     const text = [...el.childNodes].some(n => n.nodeType === 3 && n.textContent.trim());
     const foreground = parseColor(s.color);
     if (text && foreground) {

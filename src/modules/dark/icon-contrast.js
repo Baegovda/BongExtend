@@ -32,9 +32,104 @@ export function repairIconPixels(data, width, height, background, limits = ICON_
   return changed >= 8 ? out : null;
 }
 
+
+// Small CSS icons drawn from an inline data: SVG (background-image on an element
+// or its ::before/::after). Text-only rewrite: never fetched, never rasterized.
+// Neutral dark paint (explicit, or the implicit black of unpainted shapes) is
+// lifted to a readable colour; coloured paint and masked/referencing SVGs stay.
+const NEUTRAL_NAMES = {black:0,white:255,gray:128,grey:128,silver:192,darkgray:169,darkgrey:169,dimgray:105,dimgrey:105};
+const svgPaint = value => {
+  const v = String(value || '').trim().toLowerCase();
+  const hex = v.match(/^#([a-f\d]{3}|[a-f\d]{6})$/);
+  if (hex) {const d = hex[1].length === 3 ? [...hex[1]].map(c => c + c).join('') : hex[1]; return [0,2,4].map(i => parseInt(d.slice(i, i + 2), 16)).concat(1);}
+  if (v in NEUTRAL_NAMES) return [NEUTRAL_NAMES[v], NEUTRAL_NAMES[v], NEUTRAL_NAMES[v], 1];
+  return parseColor(v);
+};
+export function recolorSvgDataUrl(url, background, target = 7) {
+  const m = String(url || '').match(/^data:image\/svg\+xml(;base64)?(?:;[^,]*)?,([\s\S]*)$/i);
+  if (!m || url.length > 32768 || !background) return null;
+  let text;
+  try {text = m[1] ? atob(m[2]) : decodeURIComponent(m[2]);} catch {return null;}
+  if (!/^\s*(?:<\?xml[^>]*>\s*)?<svg[\s>]/i.test(text)) return null;
+  if (/<(?:script|foreignObject|image|use|style|mask|clipPath|pattern|filter|animate|set|linearGradient|radialGradient)\b|\son\w+\s*=|href\s*=|url\(|<!DOCTYPE|<!ENTITY/i.test(text)) return null;
+  let changed = 0;
+  const lift = value => {
+    const color = svgPaint(value);
+    if (!color || color[3] === 0 || Math.max(...color.slice(0,3)) - Math.min(...color.slice(0,3)) > 25) return null;
+    if (contrastRatio(composite(color, background), background) >= 3) return null;
+    return readableColor(color, background, target);
+  };
+  text = text.replace(/\s(fill|stroke)\s*=\s*(["'])([^"']*)\2/gi, (all, name, quote, value) => {const next = lift(value); if (!next) return all; changed++; return ` ${name}=${quote}${next}${quote}`;});
+  // Unpainted shapes render black by default; give the root a readable fill.
+  const root = text.match(/<svg\b[^>]*>/i)[0];
+  const unpainted = /<(?:path|circle|rect|polygon|polyline|ellipse)\b(?![^>]*\sfill\s*=)[^>]*>/i.test(text);
+  if (unpainted && !/\sfill\s*=/i.test(root)) {
+    const next = lift('#000');
+    if (next) {text = text.replace(root, root.replace(/^<svg\b/i, `<svg fill="${next}"`)); changed++;}
+  }
+  return changed ? 'data:image/svg+xml,' + encodeURIComponent(text) : null;
+}
+
 export function createIconContrastController(doc = document, onSettled = () => {}, {fetchImage} = {}) {
   const win = doc.defaultView, cache = new Map(), records = new WeakMap(), refs = new Set(), aborts = new Set();
   let active = false, generation = 0, pending = 0;
+  // Inline data-SVG icons: one owned stylesheet keyed by a per-element token.
+  const svgMarker = 'data-bong-svgicon', svgRecords = new Map();
+  const svgPrefix = `s${win.crypto?.getRandomValues ? win.crypto.getRandomValues(new Uint32Array(1))[0] : Date.now()}-`;
+  let svgSheet = null, svgSerial = 0, svgPublishPending = false;
+  const svgPublish = () => {
+    if (svgPublishPending) return; svgPublishPending = true;
+    win.queueMicrotask(() => {
+      svgPublishPending = false;
+      if (!active) return;
+      if (!svgSheet?.isConnected) {svgSheet = doc.createElement('style'); svgSheet.setAttribute('data-bong-svgicon-sheet', ''); (doc.head || doc.documentElement).appendChild(svgSheet);}
+      const css = [];
+      for (const r of svgRecords.values()) for (const [part, value] of r.parts) css.push(`[${svgMarker}="${r.token}"]${part ? '::' + part : ''}{background-image:url("${value}")!important}`);
+      svgSheet.textContent = css.join('\n');
+    });
+  };
+  const svgRestore = el => {const r = svgRecords.get(el); if (!r) return; if (el.getAttribute(svgMarker) === r.token) el.removeAttribute(svgMarker); svgRecords.delete(el); svgPublish();};
+  // Backdrop for icons that fade in on hover: opacity is ignored on purpose.
+  const iconBackdrop = el => {
+    for (let n = el, depth = 0; n && depth++ < 16; n = n.parentElement) {
+      const s = win.getComputedStyle(n);
+      if (s.filter !== 'none' || s.mixBlendMode !== 'normal') return null;
+      if (n !== el && s.backgroundImage !== 'none') return null;
+      const c = parseColor(s.backgroundColor);
+      if (c?.[3] >= .95) return composite(c, [24,26,27,1]);
+    }
+    return null;
+  };
+  const inspectSvgIcon = el => {
+    const old = svgRecords.get(el);
+    if (old && el.getAttribute(svgMarker) !== old.token) {svgRecords.delete(el); svgPublish(); return;}
+    if (el.closest('[hidden],[inert],[contenteditable],[data-bong-contrast-ignore],.a3s,.ii,[data-message-id]')) {if (old) svgRestore(el); return;}
+    const rect = el.getBoundingClientRect();
+    if (rect.width < 8 || rect.height < 8 || rect.width > 48 || rect.height > 48) return;
+    const found = [];
+    for (const part of ['', 'before', 'after']) {
+      const s = part ? win.getComputedStyle(el, '::' + part) : win.getComputedStyle(el);
+      if (part && (s.content === 'none' || s.content === 'normal')) continue;
+      if (part && (parseFloat(s.width) > 48 || parseFloat(s.height) > 48)) continue;
+      const mm = s.backgroundImage.match(/^url\(["']?(data:image\/svg\+xml[\s\S]*?)["']?\)$/i);
+      if (mm) found.push([part, mm[1]]);
+    }
+    // Our own replacement is what computed style shows now: nothing new to do.
+    if (old && found.length === old.parts.length && found.every(([p, v]) => old.parts.some(([q, w]) => q === p && w === v))) return;
+    if (!found.length) {if (old) svgRestore(el); return;}
+    const bg = iconBackdrop(el);
+    if (!bg || contrastRatio([255,255,255,1], bg) < 4.5) {if (old) svgRestore(el); return;}
+    const next = [];
+    for (const [part, value] of found) {
+      const fixed = recolorSvgDataUrl(value, bg);
+      if (fixed) next.push([part, fixed]);
+    }
+    if (!next.length) {if (old) svgRestore(el); return;}
+    const token = old?.token || svgPrefix + (++svgSerial);
+    el.setAttribute(svgMarker, token);
+    svgRecords.set(el, {token, parts: next}); refs.add(new WeakRef(el));
+    svgPublish();
+  };
   const restore = el => {
     const r = records.get(el); if (!r) return;
     if (el.style.getPropertyValue(r.property) === r.written && el.style.getPropertyPriority(r.property) === 'important') {
@@ -122,6 +217,9 @@ export function createIconContrastController(doc = document, onSettled = () => {
   };
   const inspect = el => {
     if (!active || !el.isConnected || el.namespaceURI !== 'http://www.w3.org/1999/xhtml') return;
+    if (el.tagName !== 'IMG') inspectSvgIcon(el);
+    // Bitmap repair below still needs a fully visible element.
+    if (Number(win.getComputedStyle(el).opacity) < .99) return;
     const old=records.get(el);
     if (el.closest('[hidden],[inert],[aria-hidden="true"],[disabled],[aria-disabled="true"],[contenteditable],[data-bong-contrast-ignore],.a3s,.ii,[data-message-id]')) {if(old)restore(el);return;}
     const control = el.closest('button,a,[role="button"]');
@@ -169,6 +267,6 @@ export function createIconContrastController(doc = document, onSettled = () => {
   return {
     inspect,
     start(){active=true;},
-    stop(){active=false;generation++;for(const controller of aborts)controller.abort();for(const ref of refs){const el=ref.deref();if(el)restore(el);}refs.clear();cache.clear();}
+    stop(){active=false;generation++;for(const controller of aborts)controller.abort();for(const ref of refs){const el=ref.deref();if(el){restore(el);const r=svgRecords.get(el);if(r&&el.getAttribute(svgMarker)===r.token)el.removeAttribute(svgMarker);}}refs.clear();cache.clear();svgRecords.clear();svgSheet?.remove();svgSheet=null;}
   };
 }

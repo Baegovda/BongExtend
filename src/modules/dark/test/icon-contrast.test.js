@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {repairIconPixels, LOGO_LIMITS} from '../icon-contrast.js';
+import {repairIconPixels, LOGO_LIMITS, recolorSvgDataUrl} from '../icon-contrast.js';
 
 test('transparent control bitmap brightens neutral glyphs while preserving brand pixels and antialias alpha',()=>{
   const data=new Uint8ClampedArray(20*20*4);
@@ -27,4 +27,20 @@ test('a large black logo on a transparent background is lifted to a bright gray 
   const result=repairIconPixels(data,w,h,[24,26,27,1],LOGO_LIMITS);assert.ok(result);
   const i=(50*w+60)*4;assert.ok(result[i]>=180,'logo glyph should be bright');assert.equal(result[i+3],255);
   assert.equal(result[3],0);
+});
+
+test('inline data SVG icons with default black paint get a readable root fill; colored or masked SVGs stay',()=>{
+  const bg=[24,26,27,1];
+  const black="data:image/svg+xml,"+encodeURIComponent("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M0 0h24v24H0z'/></svg>");
+  const fixed=recolorSvgDataUrl(black,bg);assert.ok(fixed);
+  const text=decodeURIComponent(fixed.slice(fixed.indexOf(',')+1));
+  assert.match(text,/^<svg fill="rgb\(/);assert.match(text,/<path d='M0 0h24v24H0z'\/>/);
+  const explicit="data:image/svg+xml,"+encodeURIComponent("<svg xmlns='http://www.w3.org/2000/svg'><path fill='#333' d='M0 0h1v1z'/><path fill='#e33' d='M1 1h1v1z'/></svg>");
+  const t2=decodeURIComponent(recolorSvgDataUrl(explicit,bg).split(',')[1]);
+  assert.doesNotMatch(t2,/#333/);assert.match(t2,/#e33/);
+  const masked="data:image/svg+xml,"+encodeURIComponent("<svg xmlns='http://www.w3.org/2000/svg'><mask id='m'/><path d='M0 0h1v1z'/></svg>");
+  assert.equal(recolorSvgDataUrl(masked,bg),null);
+  const light="data:image/svg+xml,"+encodeURIComponent("<svg xmlns='http://www.w3.org/2000/svg' fill='#eee'><path d='M0 0h1v1z'/></svg>");
+  assert.equal(recolorSvgDataUrl(light,bg),null);
+  assert.equal(recolorSvgDataUrl('data:image/png;base64,AAAA',bg),null);
 });
