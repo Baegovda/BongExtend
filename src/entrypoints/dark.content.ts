@@ -12,6 +12,7 @@ import {createIconContrastController} from "@/modules/dark/icon-contrast.js";
 import {createPaintGuard, createImageBlendGuard} from "@/modules/dark/paint-guard.js";
 // @ts-ignore plain JS: instant dark backdrop before the settings are read
 import {createEarlyDarkGuard} from "@/modules/dark/early-guard.js";
+import {announceTakeover, createFallbackSweeper, listenForTakeover} from "@/modules/dark/stale-guard.js";
 
 const MODULES_KEY = "core.modules";
 
@@ -62,6 +63,8 @@ export default defineContentScript({
             void existing.apply();
             return;
         }
+        // 업데이트 전의 고아 스크립트(다른 실행 공간)가 남아 있으면 먼저 물러나게 해요. 테마를 켜기 전에 보내야 해요.
+        announceTakeover(document);
         let generation = 0;
         // 설정을 읽는 동안 흰 화면이 번쩍이지 않게 어두운 바탕을 먼저 칠해요. 결과가 정해지면 걷어내요.
         const early = createEarlyDarkGuard(document);
@@ -73,6 +76,11 @@ export default defineContentScript({
         const contrast = createContrastController(document, {inspectImage: icons.inspect, inspectPseudo: pseudo.inspect, inspectHairline: hairline.inspect, inspectPhoto: photos.inspect});
         const paint = createPaintGuard(document);
         let contrastEnabled = false;
+        // 탭이 보인 뒤에도 다크 리더의 임시 바탕이 남으면 걷어내요(예전 버전 고아 스크립트 대비).
+        const sweeper = createFallbackSweeper(document, {
+            isActive: () => contrastEnabled,
+            onSweep: () => early.release(true)
+        });
         const syncContrast = () => {
             if (contrastEnabled && document.documentElement?.getAttribute("data-darkreader-scheme") === "dark") {paint.start(); icons.start(); pseudo.start(); hairline.start(); contrast.start();}
             else {paint.stop(); photos.stop(); icons.stop(); pseudo.stop(); hairline.stop(); contrast.stop();}
@@ -152,6 +160,7 @@ export default defineContentScript({
                     auto(false);
                     disable();
                     early.release(true);
+                    sweeper.stop();
                     return;
                 }
 
@@ -182,8 +191,10 @@ export default defineContentScript({
                 }
                 syncContrast();
                 early.release();
+                sweeper.start();
             } catch (error) {
                 early.release(true);
+                sweeper.stop();
                 contrastEnabled = false;
                 paint.stop();
                 photos.stop();
@@ -194,35 +205,25 @@ export default defineContentScript({
         };
 
         const onReady = () => { void apply(); };
+        // 이 스크립트가 고아가 된 뒤 새 버전이 들어오면, 페이지를 새 버전에게 깨끗이 넘겨요.
+        listenForTakeover(document, () => !globalThis.chrome?.runtime?.id, () => {
+            generation++;
+            contrastEnabled = false;
+            sweeper.stop();
+            schemeObserver.disconnect();
+            document.removeEventListener("__darkreader__cleanUp", onCleanup);
+            document.removeEventListener("DOMContentLoaded", onReady);
+            early.release(true);
+            paint.stop(); photos.stop();
+            icons.stop(); pseudo.stop(); hairline.stop();
+            contrast.stop();
+            try { auto(false); disable(); } catch { /* 이미 꺼져 있어요. */ }
+            if (scope[controllerKey]?.apply === apply) delete scope[controllerKey];
+        });
         scope[controllerKey] = {apply};
         void apply();
         browser.storage.onChanged.addListener((changes, area) => {
             if (area === "local" && (changes[DARK_SETTINGS_KEY] || changes[MODULES_KEY])) void apply();
         });
-
-        // 유튜브: 다른 탭에 갔다 오면 영상 자리가 회색 판으로 가려진 채 다시 그려지지 않는 경우가 있어요.
-        // (다크 모드를 껐다 켜면 풀리는 증상) 탭으로 돌아올 때 플레이어와 영상을 한 번 다시 그리게 해요. 재생 상태는 건드리지 않아요.
-        if (/(^|\.)youtube\.com$/i.test(hostname)) {
-            let hiddenAt = 0;
-            const repaint = () => {
-                if (!contrastEnabled) return;
-                for (const el of document.querySelectorAll<HTMLElement>("#movie_player, #movie_player video, #cinematics")) {
-                    const previous = el.style.getPropertyValue("transform"), priority = el.style.getPropertyPriority("transform");
-                    el.style.setProperty("transform", "translateZ(0)", "important");
-                    void el.offsetHeight;
-                    requestAnimationFrame(() => requestAnimationFrame(() => {
-                        if (el.style.getPropertyValue("transform") !== "translateZ(0)") return; // 사이트가 바꿨으면 그대로 둬요.
-                        if (previous) el.style.setProperty("transform", previous, priority); else el.style.removeProperty("transform");
-                    }));
-                }
-            };
-            document.addEventListener("visibilitychange", () => {
-                if (document.hidden) { hiddenAt = Date.now(); return; }
-                if (!hiddenAt || Date.now() - hiddenAt < 1000) return;
-                hiddenAt = 0;
-                setTimeout(repaint, 120);
-                setTimeout(repaint, 900);
-            });
-        }
     }
 });
