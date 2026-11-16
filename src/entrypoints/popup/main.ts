@@ -90,8 +90,9 @@ checkerPlusMailFrame.addEventListener("load", () => {
     stopGmailTheme?.();stopGmailTheme=undefined;
     try {
         const doc = checkerPlusMailFrame.contentDocument;
-        const optionsPage = checkerPlusMailFrame.contentWindow?.location.pathname.endsWith("/checkerplus-options.html");
-        checkerPlusMailHome.hidden = !optionsPage;
+        // 메일함이 아닌 내부 화면(답장 대상 고르기·권한 안내 등)을 메일 탭 안에서 열었으면 돌아가기 버튼을 보여 줘요.
+        const otherPage = !checkerPlusMailFrame.contentWindow?.location.pathname.endsWith("/checkerplus-popup.html");
+        checkerPlusMailHome.hidden = !otherPage;
         if (doc?.body?.id === "gmail-extension-popup") {
             applyEmbeddedTheme(doc, "bongextend-checkerplus-embedded", "checkerplus-embed.css");
             stopGmailTheme=watchGmailTheme(doc);

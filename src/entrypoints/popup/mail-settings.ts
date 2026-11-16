@@ -97,4 +97,11 @@ export function setupMailSettings() {
         if (event.origin === MAIL_ORIGIN && event.source === frame.contentWindow && event.data?.type === "bongextend-mail-settings") void open();
     });
     if (new URLSearchParams(location.search).has("mailSettings")) void open();
+    // 팝업 밖에서 메일 설정을 누르면 표시만 남기고 팝업을 열어요. 30초 안의 요청이면 바로 설정을 띄워요.
+    else void chrome.storage.local.get("core.pendingMailSettings").then(stored => {
+        const at = Number(stored["core.pendingMailSettings"]);
+        if (!at) return;
+        void chrome.storage.local.remove("core.pendingMailSettings");
+        if (Date.now() - at < 30000) void open();
+    }).catch(() => {});
 }

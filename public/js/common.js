@@ -2346,6 +2346,14 @@ async function openUrl(url, params = {}) {
             window.parent.postMessage({type: "bongextend-mail-settings"}, location.origin);
             return;
         }
+        // 팝업 밖(알림·우클릭 메뉴·다른 화면)에서 눌러도 따로 창을 띄우지 않고 BongExtend 팝업의 메일 탭 안에서 설정을 열어요.
+        try {
+            await chrome.storage.local.set({"core.popupTab": "gmail", "core.pendingMailSettings": Date.now()});
+            if (chrome.action?.openPopup) { await chrome.action.openPopup(); return; }
+        } catch (error) {
+            console.warn("팝업을 열 수 없어 창으로 열어요.", error);
+            try { await chrome.storage.local.remove("core.pendingMailSettings"); } catch (removeError) {}
+        }
         return chrome.windows.create({url: chrome.runtime.getURL("popup.html?mailSettings=1"), type: "popup", width: 1000, height: 760});
     }
     // 그 밖의 내부 화면은 메일 탭에서 열어요.

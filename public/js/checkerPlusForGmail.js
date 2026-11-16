@@ -1506,7 +1506,9 @@ async function openTabOrPopup(params) {
 		} else {
 			url = params.url;
 		}
-		if (await storage.get("openComposeReplyAction") == "tab") {
+		// BongExtend 팝업 안에서는 답장 대상 고르기(compose.html) 같은 내부 화면도 따로 창을 띄우지 않고 메일 탭 안에서 열어요.
+		const inApp = globalThis.location?.href?.includes("source=bongextend") && new URL(url, location.href).origin === location.origin;
+		if (inApp || await storage.get("openComposeReplyAction") == "tab") {
 			openUrl(url);
 		} else {
 			params.url = url;
