@@ -2,8 +2,12 @@ import {parseColor, contrastRatio, composite, readableColor} from './contrast.js
 
 // Only small transparent bitmap controls are eligible. Decode locally, preserve
 // every saturated pixel and alpha value, and never send page data to a service.
-export function repairIconPixels(data, width, height, background) {
-  if (!width || !height || width > 512 || height > 256 || width * height > 65536) return null;
+// Logo-sized images (header brand marks) get larger decode limits than icons.
+export const ICON_LIMITS = Object.freeze({width: 512, height: 256, pixels: 65536, bytes: 131072, target: 4.5});
+// A brand mark should stand out like the header text, not merely pass 4.5:1.
+export const LOGO_LIMITS = Object.freeze({width: 1200, height: 400, pixels: 320000, bytes: 524288, target: 10});
+export function repairIconPixels(data, width, height, background, limits = ICON_LIMITS) {
+  if (!width || !height || width > limits.width || height > limits.height || width * height > limits.pixels) return null;
   let clear = 0, painted = 0, neutral = 0;
   for (let i = 0; i < data.length; i += 4) {
     if (data[i + 3] < 8) clear++;
@@ -21,7 +25,7 @@ export function repairIconPixels(data, width, height, background) {
     // Evaluate the opaque glyph color; antialiased edge alpha stays untouched.
     const color = [data[i], data[i+1], data[i+2], 1];
     if (contrastRatio(color, background) >= 3) continue;
-    const next = parseColor(readableColor(color, background, 4.5));
+    const next = parseColor(readableColor(color, background, limits.target ?? 4.5));
     if (!next) continue;
     out[i] = next[0]; out[i+1] = next[1]; out[i+2] = next[2]; changed++;
   }
@@ -52,7 +56,7 @@ export function createIconContrastController(doc = document, onSettled = () => {
     }
     return null;
   };
-  const decode = async (url, bg) => {
+  const decode = async (url, bg, limits = ICON_LIMITS) => {
     const controller = new AbortController(); aborts.add(controller);
     const timer = win.setTimeout(()=>controller.abort(), 3000);
     let bitmap, objectURL, svgDocument;
@@ -62,14 +66,14 @@ export function createIconContrastController(doc = document, onSettled = () => {
       if (!response.ok || !/^image\/(png|webp|svg\+xml)$/i.test(mime)) return null;
       const reader = response.body?.getReader(); if (!reader) return null;
       const chunks = []; let size = 0;
-      for (;;) {const {value,done}=await reader.read(); if (done) break; size+=value.length; if(size>131072){await reader.cancel();return null;} chunks.push(value);}
+      for (;;) {const {value,done}=await reader.read(); if (done) break; size+=value.length; if(size>limits.bytes){await reader.cancel();return null;} chunks.push(value);}
       const blob = new Blob(chunks, {type:mime});
       if (/svg/i.test(mime)) {
         const source = await blob.text(); if (/<!DOCTYPE|<!ENTITY/i.test(source)) return null;
         const svg = new win.DOMParser().parseFromString(source, 'image/svg+xml');
         svgDocument = svg;
         const dimensions = ['width','height'].map(name => svg.documentElement.getAttribute(name) || '');
-        if (dimensions.some(value => !/^\d+(?:\.\d+)?(?:px)?$/.test(value)) || Number.parseFloat(dimensions[0]) > 512 || Number.parseFloat(dimensions[1]) > 256 || Number.parseFloat(dimensions[0])*Number.parseFloat(dimensions[1]) > 65536) return null;
+        if (dimensions.some(value => !/^\d+(?:\.\d+)?(?:px)?$/.test(value)) || Number.parseFloat(dimensions[0]) > limits.width || Number.parseFloat(dimensions[1]) > limits.height || Number.parseFloat(dimensions[0])*Number.parseFloat(dimensions[1]) > limits.pixels) return null;
         // Only standalone static vector glyphs; no references, active content,
         // embedded images or network-dependent resources are rasterized.
         if (svg.querySelector('parsererror,script,foreignObject,image,use,style,filter,animate,animateTransform,animateMotion,set,discard') || Array.from(svg.querySelectorAll('*')).some(node => Array.from(node.attributes).some(a => a.name === 'style' || /^on/i.test(a.name) || /href$/i.test(a.name) || /url\s*\(/i.test(a.value.replace(/url\(\s*(['"]?)#[\w-]+\1\s*\)/g,''))))) return null;
@@ -79,11 +83,11 @@ export function createIconContrastController(doc = document, onSettled = () => {
       } else {
         bitmap = await win.createImageBitmap(blob);
       }
-      if (bitmap.width > 512 || bitmap.height > 256 || bitmap.width * bitmap.height > 65536) return null;
+      if (bitmap.width > limits.width || bitmap.height > limits.height || bitmap.width * bitmap.height > limits.pixels) return null;
       const canvas = doc.createElement('canvas'); canvas.width=bitmap.width;canvas.height=bitmap.height;
       const ctx = canvas.getContext('2d', {willReadFrequently:true}); if(!ctx)return null;
       ctx.drawImage(bitmap,0,0);
-      const pixels=ctx.getImageData(0,0,canvas.width,canvas.height), repaired=repairIconPixels(pixels.data,canvas.width,canvas.height,bg);
+      const pixels=ctx.getImageData(0,0,canvas.width,canvas.height), repaired=repairIconPixels(pixels.data,canvas.width,canvas.height,bg,limits);
       if(!repaired)return null;
       pixels.data.set(repaired);ctx.putImageData(pixels,0,0);
       let result;
@@ -128,10 +132,13 @@ export function createIconContrastController(doc = document, onSettled = () => {
     if (old && old.written === el.style.getPropertyValue(old.property) && old.signature === signature(el) && bg && old.background === bg.join(',')) return;
     if (old) restore(el);
     const rect=el.getBoundingClientRect();
-    if(rect.width<4||rect.height<4||rect.width>160||rect.height>64||rect.bottom<0||rect.top>win.innerHeight||rect.right<0||rect.left>win.innerWidth)return;
+    // A site's brand mark (logo class/id/alt/file name) may be larger than an icon:
+    // a dark logo on a transparent PNG/SVG disappears on a dark header.
+    const logo=image && rect.width<=480 && rect.height<=140 && rect.width/Math.max(rect.height,1)>=1.2 && (/logo|로고/i.test(el.alt||'') || /logo/i.test(el.currentSrc||'') || Boolean(el.closest('[class*="logo" i],[id*="logo" i]')));
+    if(rect.width<4||rect.height<4||(!logo&&(rect.width>160||rect.height>64))||rect.bottom<0||rect.top>win.innerHeight||rect.right<0||rect.left>win.innerWidth)return;
     // Standalone logos must be short, wide, labelled glyph assets. Square
     // images require a genuine control; product photos remain original.
-    if(image && !control && (rect.height>40 || rect.width/rect.height<1.4 || !el.alt?.trim()))return;
+    if(image && !control && !logo && (rect.height>40 || rect.width/rect.height<1.4 || !el.alt?.trim()))return;
     const style=win.getComputedStyle(el);
     if(style.filter!=='none'||style.visibility!=='visible'||Number(style.opacity)<.99)return;
     const property=image?'content':'background-image';
@@ -154,7 +161,7 @@ export function createIconContrastController(doc = document, onSettled = () => {
     if(cache.has(key)){const cached=cache.get(key);if(typeof cached==='string')apply(cached);return;}
     if(pending>=2||cache.size>=48)return;
     cache.set(key,null);pending++;const token=generation;
-    void decode(url.href,bg).then(result=>{
+    void decode(url.href,bg,logo?LOGO_LIMITS:ICON_LIMITS).then(result=>{
       if(token!==generation)return;
       cache.set(key,result);apply(result);onSettled();
     }).finally(()=>{pending--;if(active)onSettled();});

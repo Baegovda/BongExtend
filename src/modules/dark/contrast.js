@@ -214,6 +214,13 @@ export function createContrastController(doc = document, {inspectImage, inspectP
       if (fill && fill[3] > 0 && !el.firstChild && Math.min(rect.width, rect.height) <= 3 && Math.max(rect.width, rect.height) <= 800 && s.backgroundImage === 'none') {
         const next = hairlineColor(fill, outer);
         if (next) write(el, 'background-color', next);
+        // Opaque dark bars that draw an icon (☰ menu lines, ✕ strokes): 2-4 empty
+        // short bars side by side, or a bar inside a control. Neutral only.
+        else if (fill[3] > .95 && Math.max(rect.width, rect.height) <= 48 && Math.max(...fill.slice(0,3)) - Math.min(...fill.slice(0,3)) <= 25 && contrastRatio(fill, outer) < 3) {
+          const siblings = el.parentElement ? [...el.parentElement.children] : [];
+          const bars = siblings.length >= 2 && siblings.length <= 4 && siblings.every(item => !item.firstChild && item.tagName === el.tagName);
+          if (bars || el.closest('button,a,[role="button"]')) {const light = readableColor(fill, outer, 7); if (light) write(el, 'background-color', light);}
+        }
       }
     }
     const iconSvg = el.namespaceURI === 'http://www.w3.org/2000/svg' && el.closest('svg');
@@ -227,7 +234,8 @@ export function createContrastController(doc = document, {inspectImage, inspectP
         const paint = styleOf(el);
         for (const property of ['fill','stroke']) {
           const value = parseColor(paint[property]);
-          if (value && value[3] > 0) {const next = readableColor(value, bg, 3); if (next) write(el, property, next);}
+          // Gray glyphs that only just pass 3:1 still look dim on a dark header; lift neutral ones to 7:1 like nearby text.
+          if (value && value[3] > 0) {const neutral = Math.max(...value.slice(0,3)) - Math.min(...value.slice(0,3)) <= 25; const next = readableColor(value, bg, neutral ? 7 : 3); if (next) write(el, property, next);}
         }
       }
     }
