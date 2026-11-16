@@ -48,6 +48,8 @@
     reward.nextAt = now + RETRY_MS;
     lastClick = now;
     button.click();
+    // 기록 창(content-log-count.js)에 누른 걸 알려줘요.
+    try { globalThis.__bongLogPowerClicked?.({ channel, text: button.textContent || '' }); } catch { /* 기록 실패는 무시해요. */ }
     // 클릭은 요청일 뿐, 실제 수령 성공 여부는 사이트가 처리해요.
   }
 
