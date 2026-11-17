@@ -125,7 +125,7 @@ export const applyImport = async (plan: ImportPlan, local: Area, sync: Area): Pr
 };
 
 // 설정이 아닌 자동 기억값(방문한 사이트 목록 등)은 내보내지 않아요.
-const CORE_CACHE_KEYS = ["darkNativeSites"];
+const CORE_CACHE_KEYS = ["darkNativeSites", "chzzkWideFullscreen", "chzzkWideTrace"];
 const withoutCaches = (core: Rec): Rec => {
     for (const key of CORE_CACHE_KEYS) delete core[key];
     return core;

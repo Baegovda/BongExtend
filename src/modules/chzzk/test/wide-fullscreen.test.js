@@ -13,13 +13,15 @@ function fixture(previousState = 'normal', existing = {}) {
   const tabs = new Map([[3, {id:3, active:true, windowId:9, url}]]);
   const session = structuredClone(existing), updates = [], local = {}, sync = {};
   const api = {
-    runtime: {id:'self', onMessage:event(), connectNative:() => assert.fail('Native shortcuts must never be called')},
+    runtime: {id:'self', onMessage:event(), onStartup:event(), connectNative:() => assert.fail('Native shortcuts must never be called')},
     windows: {get:async id => {if (!windows.has(id)) throw Error('No window'); return {...windows.get(id)};},
       update:async (id, value) => {updates.push({id,...value}); Object.assign(windows.get(id), value); return {...windows.get(id)};},
       onBoundsChanged:event(), onRemoved:event()},
     tabs: {get:async id => ({...tabs.get(id)}), sendMessage:async () => {}, onActivated:event(), onRemoved:event(), onUpdated:event(), onDetached:event()},
-    storage: {session:{get:async () => structuredClone(session), set:async value => Object.assign(session, structuredClone(value))},
-      local:{get:async () => local}, sync:{get:async () => sync}, onChanged:event()}
+    // 소유 기록은 local에 저장돼요(업데이트 뒤에도 남게). 시험에서는 f.session으로 그 값을 봐요.
+    storage: {local:{get:async key => key === WIDE_FULLSCREEN_KEY ? structuredClone({[WIDE_FULLSCREEN_KEY]: session[WIDE_FULLSCREEN_KEY]}) : local,
+        set:async value => { for (const [k, v] of Object.entries(value)) { if (k === WIDE_FULLSCREEN_KEY) session[k] = structuredClone(v); else local[k] = v; } }},
+      sync:{get:async () => sync}, onChanged:event()}
   };
   startWideFullscreenBridge(api, {sleep: async () => {}});
   const sender = {id:'self', frameId:0, documentId:'document-one', url, tab:{...tabs.get(3)}};
@@ -197,4 +199,32 @@ test('fullscreen lost without a manual-exit record is re-entered on the next wid
   const response = await f.send(true);
   assert.equal(response.ok, true);
   assert.equal(f.windows.get(9).state, 'fullscreen');
+});
+
+test('ownership survives an extension update, so leaving wide mode still restores the window', async () => {
+  const f = fixture();
+  assert.equal((await f.send(true)).status, 'fullscreen');
+  // 업데이트(⟳): 새 서비스 워커가 같은 저장소로 다시 시작해요.
+  const again = startWideFullscreenBridge(f.api, {sleep: async () => {}});
+  void again;
+  await flush();
+  await f.send(false);
+  assert.equal(f.windows.get(9).state, 'normal');
+  assert.deepEqual(f.session[WIDE_FULLSCREEN_KEY], {});
+});
+
+test('a moved-on page address does not block the visible tab from entering fullscreen', async () => {
+  const f = fixture();
+  f.tabs.get(3).url = 'https://chzzk.naver.com/live/' + 'b'.repeat(32);
+  assert.equal((await f.send(true)).status, 'fullscreen');
+});
+
+test('activating a Chzzk tab whose scripts went away puts them back', async () => {
+  const f = fixture();
+  const healed = [];
+  const api = {...f.api, tabs: {...f.api.tabs, sendMessage: async () => { throw Error('Receiving end does not exist'); }, onActivated: {addListener: fn => { api._activate = fn; }}}, runtime: {...f.api.runtime, onMessage: {addListener: () => {}}}};
+  startWideFullscreenBridge(api, {sleep: async () => {}, reinject: async tabId => healed.push(tabId)});
+  api._activate({tabId: 3, windowId: 9});
+  await flush(); await flush(); await flush();
+  assert.deepEqual(healed, [3]);
 });

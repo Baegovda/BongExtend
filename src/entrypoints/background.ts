@@ -33,7 +33,7 @@ import {paintToolbarBadge, checkerPlusUnreadCount} from "@/modules/toolbar-badge
 import {createTransMenus, startTransBackground} from "@/modules/trans/background.js";
 // @ts-ignore 공통 모듈 스위치(순수 JS)
 import {MODULES_KEY, getModules} from "@/modules/core-modules.js";
-import {reinjectChzzkIntoOpenTabs, syncChzzkScripts} from "@/modules/chzzk-register";
+import {reinjectChzzkIntoOpenTabs, reinjectChzzkIntoTab, syncChzzkScripts} from "@/modules/chzzk-register";
 import {CHRONO_SITE_ACCESS_KEY, removeLegacyChronoScripts} from "@/modules/chrono-register";
 // @ts-ignore 페이지에 복사되는 순수 JS라 export 를 쓰지 않는다.
 import "@/modules/chzzk/lib/ads.js";
@@ -78,7 +78,9 @@ export default defineBackground(() => {
     startYoutubeHold();
     startDownloadSpinner();
     startVideoHost();
-    startWideFullscreenBridge();
+    startWideFullscreenBridge(chrome, {reinject: (tabId: number) => reinjectChzzkIntoTab(tabId, getModules)});
+    // 확장이 깨어날 때마다 연결이 끊긴 치지직 탭이 있으면 스크립트를 다시 넣어요(업데이트 순간에 못 넣은 탭 대비).
+    void reinjectChzzkIntoOpenTabs(getModules).catch(() => {});
     startChzzkWatch();
     const showOtpToast=createOtpToast();
     const otpPasteTracker=createOtpPasteTracker();

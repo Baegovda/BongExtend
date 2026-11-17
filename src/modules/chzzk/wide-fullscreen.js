@@ -5,7 +5,7 @@ export const WIDE_TRACE_KEY = 'core.chzzkWideTrace';
 const MESSAGE = 'BONG_CHZZK_WIDE_FULLSCREEN';
 const watchPage = value => /^https:\/\/chzzk\.naver\.com\/(live|video)\/[^/?#]+/.test(value || '');
 
-export function startWideFullscreenBridge(chrome = globalThis.chrome, {sleep = ms => new Promise(resolve => setTimeout(resolve, ms))} = {}) {
+export function startWideFullscreenBridge(chrome = globalThis.chrome, {sleep = ms => new Promise(resolve => setTimeout(resolve, ms)), reinject} = {}) {
   let pending = Promise.resolve();
   // 우리가 창 상태를 바꾸는 동안 생기는 크기 변경 이벤트는 사용자가 F11을 직접 끈 것으로 오해하지 않는다.
   let transitioning = 0;
@@ -34,8 +34,10 @@ export function startWideFullscreenBridge(chrome = globalThis.chrome, {sleep = m
     pending = result.catch(() => {});
     return result;
   };
-  const load = async () => (await chrome.storage.session.get(WIDE_FULLSCREEN_KEY))[WIDE_FULLSCREEN_KEY] || {};
-  const save = entries => chrome.storage.session.set({[WIDE_FULLSCREEN_KEY]: entries});
+  // 누가 전체화면을 켰는지(소유) 기록. 예전에는 session 저장소에 둬서 확장이 업데이트(⟳)되면 지워졌고,
+  // 그 뒤로는 넓은 화면을 꺼도 전체화면이 풀리지 않았어요(사용자가 직접 켠 F11로 여김). 이제 local에 두고 브라우저를 다시 켤 때만 지워요.
+  const load = async () => (await chrome.storage.local.get(WIDE_FULLSCREEN_KEY))[WIDE_FULLSCREEN_KEY] || {};
+  const save = entries => chrome.storage.local.set({[WIDE_FULLSCREEN_KEY]: entries});
   const sameOwner = (entry, sender) => entry?.tabId === sender.tab.id &&
     (!entry.documentId || entry.documentId === sender.documentId);
 
@@ -77,8 +79,8 @@ export function startWideFullscreenBridge(chrome = globalThis.chrome, {sleep = m
     if (stored['core.modules']?.chzzk === false || prefs['chzzk.wideFullscreen'] === false) return {ok:false, status:'disabled'};
     // 창이 운영체제에서 '선택된 창'인지는 보지 않아요. 다른 프로그램을 보고 있어도 그 탭이 창의 활성 탭이면 전체화면으로 바꿔요.
     // (예전에는 선택된 창만 허용해서, 크롬이 앞에 있지 않을 때 넓은 화면이 돼도 전체화면이 안 됐어요.)
-    if (!tab.active || tab.windowId !== windowId || !watchPage(tab.url) ||
-        new URL(tab.url).pathname !== new URL(sender.url).pathname) return {ok:false, status:'inactive'};
+    // 주소(경로)까지 같아야 한다는 조건은 뺐어요. 방송을 옮긴 직후에는 탭 주소와 보낸 문서 주소가 잠깐 달라서, 보고 있는 탭인데도 거절했어요.
+    if (!tab.active || tab.windowId !== windowId || !watchPage(tab.url)) return {ok:false, status:'inactive'};
     if (sameOwner(entry, sender)) {
       if (entry.manualExit) return {ok:true, status:'manual-exit'};
       if (window.state === 'fullscreen') {
@@ -149,7 +151,8 @@ export function startWideFullscreenBridge(chrome = globalThis.chrome, {sleep = m
     const entries = await load();
     if (entries[windowId]?.tabId !== tabId) await restore(entries, windowId);
     // Tab activation doesn't always produce a window focus/visibility event (e.g. after closing a tab).
-    void chrome.tabs.sendMessage(tabId, {type:'BONG_CHZZK_WIDE_REFRESH'}).catch(() => {});
+    // 받는 스크립트가 없으면(업데이트 뒤 연결이 끊긴 탭) 치지직 스크립트를 다시 넣어요.
+    void chrome.tabs.sendMessage(tabId, {type:'BONG_CHZZK_WIDE_REFRESH'}).catch(() => reinject?.(tabId)).catch(() => {});
   }));
   chrome.tabs.onRemoved.addListener((tabId, info) => handle(async () => {
     const entries = await load();
@@ -179,6 +182,17 @@ export function startWideFullscreenBridge(chrome = globalThis.chrome, {sleep = m
     entry.manualExit = true;
     await save(entries);
   }));
+  // 브라우저를 다시 켜면 창 번호가 바뀌어서 지난 기록은 쓸 수 없어요.
+  chrome.runtime.onStartup?.addListener(() => handle(() => save({})));
+  // 확장이 다시 시작될 때 이미 닫힌 창의 기록은 정리해요.
+  handle(async () => {
+    const entries = await load();
+    let changed = false;
+    for (const id of Object.keys(entries)) {
+      try { await chrome.windows.get(Number(id)); } catch { delete entries[id]; changed = true; }
+    }
+    if (changed) await save(entries);
+  });
   chrome.windows.onRemoved.addListener(windowId => handle(async () => {
     const entries = await load();
     if (entries[windowId]) {delete entries[windowId]; await save(entries);}
