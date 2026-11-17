@@ -1,6 +1,7 @@
 import {setupCurrencyPicker} from './fx-picker';
 import {setupUsage} from './usage';
 import {setupImage} from './image';
+import {setupShop} from './shop';
 import {setupNaverMail} from './naver-mail';
 import {watchGmailTheme} from './mail-appearance';
 import {setupMailSettings} from "./mail-settings";
@@ -46,18 +47,18 @@ import {VIDEO_HISTORY_KEY, VIDEO_STATUS_KEY, unseenVideos, videoHistory, videoIn
 
 const effects = createChromeEffects();
 
-type TabId = "chzzk" | "trans" | "dc" | "gmail" | "fx" | "dark" | "download" | "usage" | "image" | "update";
+type TabId = "chzzk" | "trans" | "dc" | "gmail" | "fx" | "dark" | "download" | "usage" | "image" | "shop" | "update";
 
 const FRAMES: Partial<Record<TabId, string>> = {
     chzzk: "/chzzk/popup.html",
     trans: "/trans/popup/popup.html",
     dc: "/dc.html"
 };
-const NAMES: Partial<Record<TabId, string>> = {chzzk: "치지직", trans: "번역", dc: "디시", gmail: "메일", fx: "환율", dark: "다크 모드", download: "다운로더", usage: "사용량", image: "이미지"};
+const NAMES: Partial<Record<TabId, string>> = {chzzk: "치지직", trans: "번역", dc: "디시", gmail: "메일", fx: "환율", dark: "다크 모드", download: "다운로더", usage: "사용량", image: "이미지", shop: "쇼핑"};
 const TAB_KEY = "core.popupTab";
 // 탭 순서. core.* 이라 전체 백업·복원에 포함되고, 디시 초기화(refresher:*)와는 무관.
 const ORDER_KEY = "core.popupTabOrder";
-const DEFAULT_ORDER: TabId[] = ["chzzk", "trans", "dc", "gmail", "fx", "dark", "download", "usage", "image"];
+const DEFAULT_ORDER: TabId[] = ["chzzk", "trans", "dc", "gmail", "fx", "dark", "download", "usage", "image", "shop"];
 const TAB_IDS: TabId[] = [...DEFAULT_ORDER, "update"];
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -107,7 +108,7 @@ checkerPlusMailHome.addEventListener("click", () => {
 let current: TabId = "chzzk";
 let pageBeforeSettings: TabId = "chzzk";
 
-type ModuleId = "chzzk" | "trans" | "dc" | "gmail" | "fx" | "dark" | "download" | "usage" | "image";
+type ModuleId = "chzzk" | "trans" | "dc" | "gmail" | "fx" | "dark" | "download" | "usage" | "image" | "shop";
 const moduleOptions = [...document.querySelectorAll<HTMLInputElement>("[data-module-toggle]")];
 const paintModuleOptions = async () => {
     const modules = await getModules() as Record<ModuleId, boolean>;
@@ -166,6 +167,7 @@ const paintAutoReadLog = async () => {
 
 const usageView = setupUsage((error) => console.warn("사용량을 불러오지 못했어요.", error));
 const imageView = setupImage();
+const shopView = setupShop();
 
 const showTab = async (tab: TabId, persist = true) => {
     if (tab === "update" && current !== "update") pageBeforeSettings = current;
@@ -197,6 +199,7 @@ const showTab = async (tab: TabId, persist = true) => {
     if (tab === "fx") void refreshFx();
     if (tab === "usage") usageView.show(); else usageView.hide();
     if (tab === "image") void imageView.show();
+    if (tab === "shop") void shopView.show();
     if (tab === "update") { void paintModuleOptions(); void paintAutoReadLog(); }
     if (persist) void effects.storageSet({[TAB_KEY]: tab});
 };

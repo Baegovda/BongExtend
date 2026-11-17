@@ -43,7 +43,11 @@ import {startFxBackground} from "@/modules/fx/background.js";
 // @ts-ignore plain JS usage collector
 import {startUsageBackground} from "@/modules/usage/background.js";
 // @ts-ignore plain JS image toolbar worker
-import {startImageToolbarBackground} from "@/modules/image/toolbar-background.js";
+import {openSiteImageSearch, startImageToolbarBackground} from "@/modules/image/toolbar-background.js";
+// @ts-ignore plain JS image search engines
+import {DEFAULT_ENGINES, buildEngineUrl} from "@/modules/image/toolbar.js";
+// @ts-ignore plain JS shopping price tracker worker
+import {startShopBackground, takeQuietShopDownload} from "@/modules/shop/background.js";
 // @ts-ignore plain JS
 import {startYoutubeHold} from "@/modules/youtube/background.js";
 // @ts-ignore plain JS
@@ -70,6 +74,7 @@ export default defineBackground(() => {
     startNaverMail();
     startUsageBackground();
     startImageToolbarBackground();
+    startShopBackground();
     startYoutubeHold();
     startDownloadSpinner();
     startVideoHost();
@@ -371,6 +376,8 @@ export default defineBackground(() => {
     });
     chrome.downloads.onChanged.addListener((delta) => {
         if (delta.state?.current !== "complete" || delta.state.previous === "complete") return;
+        // 쇼핑의 '사진 받기'는 여러 장을 한 번에 받아서 장마다 알림을 띄우지 않아요.
+        if (takeQuietShopDownload(delta.id)) return;
         void (async () => {
             const stored = await chrome.storage.local.get([DOWNLOAD_SETTINGS_KEY, MODULES_KEY]);
             const settings = normalizeDownloadSettings(stored[DOWNLOAD_SETTINGS_KEY]);
@@ -621,6 +628,17 @@ export default defineBackground(() => {
             contexts: ["audio"]
         },
         {
+            id: "bongImageSearch",
+            title: "이미지로 검색",
+            contexts: ["image"]
+        },
+        ...(DEFAULT_ENGINES as Array<{id: string; name: string}>).map((engine) => ({
+            id: `bongImageSearch-${engine.id}`,
+            parentId: "bongImageSearch",
+            title: engine.name,
+            contexts: ["image"] as ["image"]
+        })),
+        {
             id: "bongDiagnose",
             title: "BongExtend 화면 진단 정보 복사",
             contexts: ["all"]
@@ -656,6 +674,21 @@ export default defineBackground(() => {
     browser.contextMenus.onClicked.addListener((info, tab) => {
         if (!tab?.id) return;
         // 타입 안전 메시징: 활성 탭에 전달
+        if (typeof info.menuItemId === "string" && info.menuItemId.startsWith("bongImageSearch-")) {
+            const engine = (DEFAULT_ENGINES as Array<{id: string; name: string; url?: string; site?: string}>).find((row) => `bongImageSearch-${row.id}` === info.menuItemId);
+            const srcUrl = info.srcUrl || "";
+            if (!engine || !/^https?:\/\//i.test(srcUrl)) return;
+            void getModules().then(async (modules: Record<string, boolean>) => {
+                if (modules.image === false) return;
+                if (engine.url) { await chrome.tabs.create({url: buildEngineUrl(engine.url, srcUrl), windowId: tab.windowId, index: tab.index + 1, openerTabId: tab.id}); return; }
+                const result = await openSiteImageSearch(chrome, {site: engine.site, url: srcUrl, pageUrl: info.pageUrl || tab.url || "", tab});
+                if (!result?.ok) throw new Error(result?.error || "검색을 시작하지 못했어요.");
+            }).catch((error: unknown) => {
+                void chrome.notifications.create("bongextend-image-search-error", {type: "basic", iconUrl: chrome.runtime.getURL("icons/128.png"), title: "이미지로 검색",
+                    message: `${engine.name} 검색을 시작하지 못했어요. 이미지 탭에서 '모든 웹사이트에서 사용 허용'을 눌렀는지 확인해 주세요. (${String((error as Error)?.message || error).slice(0, 80)})`}).catch(() => {});
+            });
+            return;
+        }
         switch (info.menuItemId) {
             case "bongDiagnose": {
                 // 이상해 보이는 요소의 색·필터 정보를 클립보드에 복사해요(글자 내용·입력값은 담지 않아요).

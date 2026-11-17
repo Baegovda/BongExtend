@@ -25,6 +25,7 @@
         <button data-tab="download" role="tab" title="끌어서 순서 바꾸기 (Alt+↑/↓)" type="button"><span class="nav-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5"/><path d="M5 19h14"/></svg></span><span class="nav-label">다운로더</span><span id="downloadBadge" class="tab-badge download" hidden></span></button>
         <button data-tab="usage" role="tab" title="끌어서 순서 바꾸기 (Alt+↑/↓)" type="button"><span class="nav-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19V11M10 19V6M15 19v-5M20 19V9"/></svg></span><span class="nav-label">사용량</span></button>
         <button data-tab="image" role="tab" title="끌어서 순서 바꾸기 (Alt+↑/↓)" type="button"><span class="nav-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="14" rx="2.5"/><circle cx="9" cy="10" r="1.6"/><path d="m4.5 17 4.5-4 3.5 3 3-2.5 4 3.5"/></svg></span><span class="nav-label">이미지</span></button>
+        <button data-tab="shop" role="tab" title="끌어서 순서 바꾸기 (Alt+↑/↓)" type="button"><span class="nav-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8h14l-1.2 10.2a2 2 0 0 1-2 1.8H8.2a2 2 0 0 1-2-1.8z"/><path d="M9 8V6.5a3 3 0 0 1 6 0V8"/><path d="m9.5 14 2 1.8 3.5-3.6"/></svg></span><span class="nav-label">쇼핑</span></button>
     </div>
     <div class="window-tools">
     <button id="mailRefreshNow" class="mail-shell-action" type="button" title="메일 새로고침" aria-label="메일 새로고침"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M6.1 7a7 7 0 0 1 11.6-1L20 9M4 15l2.3 3A7 7 0 0 0 18 17"/></svg></button>
@@ -149,6 +150,26 @@
         <p class="be-hint">글자가 함께 복사된 경우나 사이트가 직접 처리하는 경우에는 건드리지 않아요. 이미지는 이 탭 안에서 업로드 칸으로만 옮겨요.</p>
         <p id="imageStatus" class="be-hint" role="status"></p>
     </section>
+    <section class="panel be-shell shop-panel" data-frame="shop" hidden>
+        <div class="be-title">
+            <h3>쇼핑</h3>
+            <span class="be-sub">알리익스프레스 · 타오바오 가격 기록과 가격 내림 알림</span>
+        </div>
+        <div class="be-card be-sec">
+            <h4>상품 페이지</h4>
+            <label class="be-row"><span class="be-row-text"><span>가격 기록 창</span><small>상품 페이지 오른쪽 아래에 가격 그래프 · 관심 상품 · 링크 복사 · 사진 받기가 나와요</small></span><input type="checkbox" role="switch" id="shop-panel" aria-label="상품 페이지 가격 기록 창"></label>
+            <p id="shopPermissionState" class="be-hint" role="status"></p>
+            <div class="be-actions"><button id="shopPermission" type="button" class="primary">알리익스프레스 · 타오바오 연결 허용</button></div>
+        </div>
+        <div class="be-card be-sec">
+            <h4>관심 상품</h4>
+            <label class="be-row"><span class="be-row-text"><span>가격 내리면 알림</span><small>6시간마다 확인해요. 컴퓨터를 쓰는 중이면 하루에 한 번만, 뒤쪽 탭에서 잠깐 열어 가격을 읽고 닫아요</small></span><input type="checkbox" role="switch" id="shop-alerts" aria-label="관심 상품 가격 내림 알림"></label>
+            <div id="shopWatchList" class="shop-list"></div>
+            <div class="be-actions"><button id="shopCheckNow" type="button">지금 가격 확인</button></div>
+        </div>
+        <p class="be-hint">가격 기록은 상품 페이지를 볼 때와 관심 상품을 확인할 때 쌓여요. 이 PC에만 저장되고 다른 곳으로 보내지 않아요(설정 내보내기에도 들어가지 않아요).</p>
+        <p id="shopStatus" class="be-hint" role="status"></p>
+    </section>
     <section class="panel be-shell mail-panel" data-frame="gmail" hidden>
         <button id="checkerPlusMailHome" class="checkerplus-mail-home" type="button" hidden>메일함으로 돌아가기</button>
         <iframe id="checkerPlusMailFrame" class="checkerplus-mail-frame" title="메일" data-src="/checkerplus-popup.html?source=bongextend"></iframe>
@@ -262,6 +283,7 @@
                         <label class="be-row"><span class="be-row-text"><span>다운로더</span><small>파일 받기 · 목록 · 저장 규칙</small></span><input type="checkbox" role="switch" data-module-toggle="download" aria-label="다운로더 모듈 사용"></label>
                         <label class="be-row"><span class="be-row-text"><span>사용량</span><small>Claude·Codex 사용한 한도</small></span><input type="checkbox" role="switch" data-module-toggle="usage" aria-label="사용량 모듈 사용"></label>
                         <label class="be-row"><span class="be-row-text"><span>이미지</span><small>이미지 붙여넣기 등 이미지 기능</small></span><input type="checkbox" role="switch" data-module-toggle="image" aria-label="이미지 모듈 사용"></label>
+                        <label class="be-row"><span class="be-row-text"><span>쇼핑</span><small>알리익스프레스 · 타오바오 가격 기록과 알림</small></span><input type="checkbox" role="switch" data-module-toggle="shop" aria-label="쇼핑 모듈 사용"></label>
                     </div>
                     <p id="moduleStatus" class="be-hint" role="status"></p>
                     <details id="autoReadLogBox" class="be-hint">

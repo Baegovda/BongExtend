@@ -134,17 +134,29 @@ export async function siteUploadSteps(site, mime, base64) {
     return {ok: false, error: "지원하지 않는 사이트예요."};
 }
 
+const waitForTabComplete = (chromeApi, tabId, timeout = 15000) => new Promise((resolve) => {
+    const finish = () => { chromeApi.tabs.onUpdated.removeListener(listener); clearTimeout(timer); resolve(); };
+    const listener = (id, change) => { if (id === tabId && change.status === "complete") finish(); };
+    const timer = setTimeout(finish, timeout);
+    chromeApi.tabs.onUpdated.addListener(listener);
+    chromeApi.tabs.get(tabId).then((tab) => { if (tab.status === "complete") finish(); }).catch(finish);
+});
+
+// 알리익스프레스 · 타오바오의 '이미지로 검색'을 새 탭에서 대신 해 줘요(도구 막대와 오른쪽 클릭 메뉴가 함께 써요).
+export async function openSiteImageSearch(chromeApi, {site, url, pageUrl, tab}) {
+    const start = SITE_START[site];
+    if (!start || !isHttp(url)) return {ok: false, error: "지원하지 않는 검색이에요."};
+    const image = await withReferer(chromeApi, url, pageUrl, () => fetchImageAsBase64(url));
+    if (!image.ok) return image;
+    const opened = await chromeApi.tabs.create({url: start, active: true, ...(tab?.id != null ? {windowId: tab.windowId, index: tab.index + 1, openerTabId: tab.id} : {})});
+    await waitForTabComplete(chromeApi, opened.id);
+    const [result] = await chromeApi.scripting.executeScript({target: {tabId: opened.id}, func: siteUploadSteps, args: [site, image.mime, image.data]});
+    return result?.result || {ok: false, error: "검색을 시작하지 못했어요."};
+}
+
 export function startImageToolbarBackground(chromeApi = chrome) {
     // 지난 실행에서 남은 임시 규칙 정리
     try { chromeApi.declarativeNetRequest?.updateSessionRules?.({removeRuleIds: Array.from({length: RULE_SLOTS}, (_, i) => RULE_BASE + i)}).catch?.(() => {}); } catch { /* 지원하지 않으면 건너뛰어요. */ }
-    const waitForTab = (tabId, timeout = 15000) => new Promise((resolve) => {
-        const finish = () => { chromeApi.tabs.onUpdated.removeListener(listener); clearTimeout(timer); resolve(); };
-        const listener = (id, change) => { if (id === tabId && change.status === "complete") finish(); };
-        const timer = setTimeout(finish, timeout);
-        chromeApi.tabs.onUpdated.addListener(listener);
-        chromeApi.tabs.get(tabId).then((tab) => { if (tab.status === "complete") finish(); }).catch(finish);
-    });
-
     const settingsNow = async () => {
         const stored = await chromeApi.storage.local.get([IMAGE_SETTINGS_KEY, MODULES_KEY]);
         const moduleOn = stored[MODULES_KEY]?.image !== false;
@@ -206,14 +218,7 @@ export function startImageToolbarBackground(chromeApi = chrome) {
             } else if (type === "bongextend-image-fetch") {
                 reply(await withReferer(chromeApi, message.url, message.pageUrl, () => fetchImageAsBase64(message.url)));
             } else if (type === "bongextend-image-site-search") {
-                const start = SITE_START[message.site];
-                if (!start || !isHttp(message.url)) { reply({ok: false, error: "지원하지 않는 검색이에요."}); return; }
-                const image = await withReferer(chromeApi, message.url, message.pageUrl, () => fetchImageAsBase64(message.url));
-                if (!image.ok) { reply(image); return; }
-                const tab = await chromeApi.tabs.create({url: start, windowId: sender.tab.windowId, index: sender.tab.index + 1, openerTabId: sender.tab.id, active: true});
-                await waitForTab(tab.id);
-                const [result] = await chromeApi.scripting.executeScript({target: {tabId: tab.id}, func: siteUploadSteps, args: [message.site, image.mime, image.data]});
-                reply(result?.result || {ok: false, error: "검색을 시작하지 못했어요."});
+                reply(await openSiteImageSearch(chromeApi, {site: message.site, url: message.url, pageUrl: message.pageUrl, tab: sender.tab}));
             } else if (type === "bongextend-image-open") {
                 if (!isHttp(message.url)) { reply({ok: false}); return; }
                 // 디시인사이드 같은 곳은 게시글 주소(Referer) 없이 이미지 주소를 바로 열면 막아요. 새 탭을 열 때만 잠깐 붙여줘요.
