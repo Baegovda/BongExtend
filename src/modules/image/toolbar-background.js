@@ -103,11 +103,31 @@ export async function siteUploadSteps(site, mime, base64) {
         return {ok: true};
     }
     if (site === "taobao") {
-        const input = await until(() => document.querySelector('input[type="file"]'));
-        if (!input) return {ok: false, error: "파일 입력칸을 찾지 못했어요."};
-        fill(input);
-        const search = await until(() => Array.from(document.querySelectorAll('[class*="image-search-context"] *')).find((el) => el.children.length === 0 && el.textContent.trim() === "搜索"));
-        if (!search) return {ok: false, error: "검색 버튼을 찾지 못했어요."};
+        // 로그인한 타오바오는 첫 화면을 다 그린 뒤에도 이미지 검색 칸을 다시 만들어서, 처음 넣은 사진이 사라질 수 있어요
+        // (팝업만 열리고 "Ctrl+V 붙여넣기" 빈칸으로 남음). 사진이 들어갔는지(검색 단추가 보이는지) 확인하고,
+        // 안 들어갔으면 파일 입력칸 → 팝업에 붙여넣기 순서로 번갈아 다시 넣어요.
+        const pick = () => document.querySelector('[class*="image-search"] input[type="file"]') || document.querySelector('input[type="file"]');
+        const visible = (el) => el && el.getClientRects().length > 0;
+        const findSearch = () => Array.from(document.querySelectorAll('[class*="image-search-context"] *')).find((el) => el.children.length === 0 && el.textContent.trim() === "搜索" && visible(el));
+        const paste = async () => {
+            const popup = document.querySelector('[class*="image-search-context-wrapper"]');
+            if (!visible(popup)) {
+                document.querySelector('[class*="image-search-icon-wrapper"], [class*="image-search-icon-outerMode"]')?.click();
+                await wait(800);
+            }
+            const transfer = new DataTransfer();
+            transfer.items.add(file);
+            (document.activeElement || document.body).dispatchEvent(new ClipboardEvent("paste", {clipboardData: transfer, bubbles: true, cancelable: true}));
+        };
+        const end = Date.now() + 30000;
+        let search = null, tries = 0;
+        while (!search && Date.now() < end) {
+            const input = await until(pick, Math.max(0, end - Date.now()));
+            if (!input) break;
+            if (tries++ % 2 === 0) fill(input); else await paste();
+            search = await until(findSearch, 4000);
+        }
+        if (!search) return {ok: false, error: tries ? "타오바오 이미지 검색에 사진을 넣지 못했어요." : "파일 입력칸을 찾지 못했어요."};
         (search.closest("button") || search).click();
         return {ok: true};
     }
