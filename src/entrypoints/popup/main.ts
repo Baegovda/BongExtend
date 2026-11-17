@@ -16,7 +16,7 @@ import {AUTO_ATTEMPT_KEY, INSTALL_STATE_KEY, type InstallState} from "@/core/upd
 import {describeUpdateError, promiseWithTimeout, UPDATE_TIMEOUT_MESSAGE, UPDATE_UI_TIMEOUT_MS, UPDATE_UNKNOWN_MESSAGE} from "@/core/update/timeout";
 // @ts-ignore 순수 JS
 import {getModules, setModuleEnabled} from "@/modules/core-modules.js";
-import {moveItem, normalizeTabOrder} from "@/core/popup/tabOrder";
+import {moveItem, normalizeTabOrder, pickStartTab} from "@/core/popup/tabOrder";
 import {createPointerDrag, edgeScrollDelta, gridDropIndex} from "@/core/popup/pointerDrag";
 import type {DragEnd} from "@/core/popup/pointerDrag";
 import {exportAllSettings, importSettingsText} from "@/modules/settings-io";
@@ -44,6 +44,8 @@ import {DARK_SETTINGS_KEY, darkSiteEnabled, darkSitePattern, normalizeDarkHost, 
 import {completedDownloadsBadge, DOWNLOAD_SETTINGS_KEY, normalizeDownloadSettings} from "@/modules/downloads/settings.js";
 // @ts-ignore plain JS shared with the video bridge
 import {VIDEO_HISTORY_KEY, VIDEO_STATUS_KEY, unseenVideos, videoHistory, videoInProgress} from "@/modules/downloads/video-history.js";
+// @ts-ignore plain JS shared with the worker
+import {summarizeDownloads} from "@/modules/downloads/toolbar-spinner.js";
 
 const effects = createChromeEffects();
 
@@ -648,11 +650,18 @@ if (embedded) {
     document.documentElement.classList.add("embed");
     tabsNav.classList.remove("order-pending");
     queueMicrotask(() => { void showTab(embed as TabId, false); });
-} else effects.storageGet([TAB_KEY, ORDER_KEY]).then((v: Record<string, unknown>) => {
+} else effects.storageGet([TAB_KEY, ORDER_KEY]).then(async (v: Record<string, unknown>) => {
     applyOrder(normalizeTabOrder(v[ORDER_KEY], DEFAULT_ORDER));
     tabsNav.classList.remove("order-pending");
-    const saved = v[TAB_KEY] as TabId | undefined;
-    void showTab(new URLSearchParams(location.search).has("mailSettings") ? "gmail" : saved && TAB_IDS.includes(saved) ? saved : "chzzk");
+    const params = new URLSearchParams(location.search);
+    // 받는 중인 파일(동영상 저장 포함)이 있으면 다운로더 탭을 먼저 보여줘요.
+    let downloadsActive = false;
+    try {
+        const [items, stored] = await Promise.all([chrome.downloads.search({state: "in_progress"}), chrome.storage.local.get(VIDEO_STATUS_KEY)]);
+        downloadsActive = summarizeDownloads(items, stored[VIDEO_STATUS_KEY]).active;
+    } catch { /* 확인하지 못하면 메일부터 보여줘요. */ }
+    void showTab(pickStartTab({mailSettings: params.has("mailSettings") || params.has("mail"), windowed: params.has("window"), saved: v[TAB_KEY], downloadsActive,
+        modules: await getModules() as Record<string, boolean>, tabs: TAB_IDS, fallback: "chzzk" as TabId}));
 });
 
 // ===== 다크 모드 설정 =====
