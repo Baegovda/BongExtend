@@ -44,6 +44,8 @@ import {startFxBackground} from "@/modules/fx/background.js";
 import {startUsageBackground} from "@/modules/usage/background.js";
 // @ts-ignore plain JS image toolbar worker
 import {openSiteImageSearch, startImageToolbarBackground} from "@/modules/image/toolbar-background.js";
+// 크롬이 붙잡아 둔(위험 경고 · 검사) 다운로드 판별: 다운로더 화면과 같은 파일을 써요(전역 BongDownloadDanger).
+import "../../public/download-danger.js";
 // @ts-ignore plain JS image search engines
 import {DEFAULT_ENGINES, buildEngineUrl} from "@/modules/image/toolbar.js";
 // @ts-ignore plain JS shopping price tracker worker
@@ -375,6 +377,34 @@ export default defineBackground(() => {
             }
         })();
         return true;
+    });
+    // 크롬이 '위험할 수 있는 파일'로 붙잡은 다운로드: 크롬 기본 표시를 우리 다운로더로 바꿔 두면 크롬의 확인 창이 안 보여요.
+    // 그래서 알림으로 알려 주고, 누르면 다운로더를 열어 '그래도 받기 / 버리기'를 고를 수 있게 해요.
+    chrome.downloads.onChanged.addListener((delta) => {
+        if (!delta.danger?.current) return;
+        void (async () => {
+            const [item] = await chrome.downloads.search({id: delta.id});
+            const danger = (globalThis as unknown as {BongDownloadDanger?: {dangerHold: (i: unknown) => {kind: string; detail: string} | null}}).BongDownloadDanger;
+            const hold = danger?.dangerHold(item);
+            if (!hold || hold.kind !== "warn") return;
+            const stored = await chrome.storage.local.get([DOWNLOAD_SETTINGS_KEY, MODULES_KEY]);
+            const settings = normalizeDownloadSettings(stored[DOWNLOAD_SETTINGS_KEY]);
+            const modules = (stored[MODULES_KEY] && typeof stored[MODULES_KEY] === "object" ? stored[MODULES_KEY] : {}) as Record<string, unknown>;
+            if (modules.download === false || !settings.replaceChromeUi) return;
+            const name = item.filename?.replace(/\\/g, "/").split("/").pop() || "파일";
+            await chrome.notifications.create(`bongextend-download-held-${delta.id}`, {
+                type: "basic", iconUrl: browser.runtime.getURL("/icons/128.png"), title: "다운로드 확인이 필요해요",
+                message: `${name}\n${hold.detail} 다운로더에서 '그래도 받기'나 '버리기'를 눌러 주세요.`, requireInteraction: true
+            });
+        })().catch(() => {});
+    });
+    chrome.notifications.onClicked.addListener((notificationId) => {
+        if (!notificationId.startsWith("bongextend-download-held-")) return;
+        chrome.notifications.clear(notificationId);
+        void (async () => {
+            await chrome.storage.local.set({"core.popupTab": "download"});
+            await chrome.windows.create({url: chrome.runtime.getURL("popup.html?window=1"), type: "popup", width: 840, height: 640});
+        })().catch(() => {});
     });
     chrome.downloads.onChanged.addListener((delta) => {
         if (delta.state?.current !== "complete" || delta.state.previous === "complete") return;

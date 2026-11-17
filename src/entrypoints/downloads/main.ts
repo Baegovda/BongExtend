@@ -129,7 +129,14 @@ const render = () => {
 
         const actions = document.createElement("div");
         actions.className = "download-actions";
-        if (item.state === "in_progress") {
+        // 크롬이 '위험할 수 있는 파일'·'검사 필요'로 붙잡아 둔 다운로드는 여기서 받을지 정해요.
+        const hold = (globalThis as unknown as {BongDownloadDanger?: {dangerHold: (i: unknown) => {kind: string; short: string; detail: string; canKeep: boolean} | null}}).BongDownloadDanger?.dangerHold(item);
+        if (hold) {
+            progressText.textContent = `${hold.short} · ${hold.detail}`;
+            row.dataset.state = "held";
+            if (hold.canKeep) addButton(actions, "그래도 받기", () => chrome.downloads.acceptDanger(item.id));
+            addButton(actions, "버리기", () => chrome.downloads.cancel(item.id));
+        } else if (item.state === "in_progress") {
             if (item.paused) addButton(actions, "이어받기", () => chrome.downloads.resume(item.id));
             else addButton(actions, "잠시 멈춤", () => chrome.downloads.pause(item.id));
             addButton(actions, "취소", () => chrome.downloads.cancel(item.id));

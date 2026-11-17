@@ -39,3 +39,7 @@ footer button{font-size:11px!important;font-weight:550!important;padding:4px 9px
 .download-row.active .download-info{grid-template-columns:minmax(80px,1fr) minmax(150px,1.7fr) minmax(34px,auto) 52px auto}
 @media(max-width:600px){.download-row.active .download-info{grid-template-columns:minmax(70px,1fr) minmax(120px,1.6fr) 34px 46px auto}}
 @media(max-width:440px){.download-row.active .source{display:block}.download-row.active .download-info{grid-template-columns:minmax(60px,1fr) minmax(100px,1.4fr) 32px auto}.download-row.active .meta time{display:none}}
+
+/* 크롬이 붙잡아 둔 다운로드(확인 필요 · 검사 중 · 차단됨) */
+.download-row.held{border-color:color-mix(in srgb,var(--be-warn) 55%,transparent)}
+.download-row.held .row-actions button:first-child{color:var(--be-warn)}
