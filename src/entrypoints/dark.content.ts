@@ -13,6 +13,7 @@ import {createPaintGuard, createImageBlendGuard} from "@/modules/dark/paint-guar
 // @ts-ignore plain JS: instant dark backdrop before the settings are read
 import {createEarlyDarkGuard} from "@/modules/dark/early-guard.js";
 import {announceTakeover, createFallbackSweeper, listenForTakeover} from "@/modules/dark/stale-guard.js";
+import {NATIVE_DARK_KEY, classifyNativeDark, nativeDarkSites, sampleNativeColors, withNativeDark} from "@/modules/dark/native-dark.js";
 
 const MODULES_KEY = "core.modules";
 
@@ -144,10 +145,53 @@ export default defineContentScript({
             }
         });
 
+        // 원래부터 어두운 사이트면 다크 리더를 입히지 않아요(한 번 더 어둡게 하면 글자가 사라져요).
+        // null: 아직 모름. 맨 위 문서에서만 재고, 결과는 사이트별로 기억해요(하위 프레임은 기억만 따라요).
+        let nativeDark: boolean | null = null;
+        let nativeCheckStarted = false;
+        const topFrame = window === window.top;
+        const turnOff = () => {
+            contrastEnabled = false;
+            paint.stop(); photos.stop();
+            icons.stop(); pseudo.stop(); hairline.stop();
+            contrast.stop();
+            auto(false);
+            disable();
+            early.release(true);
+            sweeper.stop();
+        };
+        const saveNativeDark = async (dark: boolean) => {
+            const stored = await browser.storage.local.get(NATIVE_DARK_KEY);
+            const at = nativeDarkSites(stored[NATIVE_DARK_KEY])[hostname];
+            if (Boolean(at) === dark && (!dark || Date.now() - at < 7 * 24 * 60 * 60 * 1000)) return;
+            await browser.storage.local.set({[NATIVE_DARK_KEY]: withNativeDark(stored[NATIVE_DARK_KEY], hostname, dark)});
+        };
+        const checkNativeDark = (attempt: number, themedNow: boolean) => {
+            if (nativeDark !== null) return;
+            let result: boolean | null = null;
+            try { result = classifyNativeDark(sampleNativeColors(document)); } catch { result = null; }
+            // "어둡다"는 바로 믿어요. "밝다"는 페이지가 다 불러와진 뒤에만 믿어요(스타일이 덜 붙었을 수 있어요).
+            if (result === null || (result === false && document.readyState !== "complete")) {
+                if (attempt < 8) setTimeout(() => checkNativeDark(attempt + 1, themedNow), 1500);
+                return;
+            }
+            nativeDark = result;
+            void saveNativeDark(result).catch(() => {});
+            if (result && themedNow) turnOff();
+            else if (!result && !themedNow) void apply();
+        };
+        const scheduleNativeCheck = (themedNow: boolean) => {
+            if (!topFrame || nativeCheckStarted || nativeDark !== null) return;
+            nativeCheckStarted = true;
+            const start = () => setTimeout(() => checkNativeDark(0, themedNow), 800);
+            if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start, {once: true});
+            else start();
+        };
+
         const apply = async () => {
             const current = ++generation;
             try {
-                const stored = await browser.storage.local.get([DARK_SETTINGS_KEY, MODULES_KEY]);
+                const stored = await browser.storage.local.get([DARK_SETTINGS_KEY, MODULES_KEY, NATIVE_DARK_KEY]);
                 if (current !== generation) return;
                 const settings = normalizeDarkSettings(stored[DARK_SETTINGS_KEY]);
                 const modules = (stored[MODULES_KEY] && typeof stored[MODULES_KEY] === "object" ? stored[MODULES_KEY] : {}) as Record<string, unknown>;
@@ -161,6 +205,12 @@ export default defineContentScript({
                     disable();
                     early.release(true);
                     sweeper.stop();
+                    return;
+                }
+                if (nativeDark === true || (nativeDark === null && nativeDarkSites(stored[NATIVE_DARK_KEY])[hostname])) {
+                    // 기억해 둔 어두운 사이트: 처음부터 원래 화면으로 두고, 다 뜬 뒤 아직도 어두운지 다시 확인해요.
+                    turnOff();
+                    scheduleNativeCheck(false);
                     return;
                 }
 
@@ -192,6 +242,7 @@ export default defineContentScript({
                 syncContrast();
                 early.release();
                 sweeper.start();
+                scheduleNativeCheck(true);
             } catch (error) {
                 early.release(true);
                 sweeper.stop();

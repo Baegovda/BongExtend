@@ -124,6 +124,13 @@ export const applyImport = async (plan: ImportPlan, local: Area, sync: Area): Pr
     return plan.labels;
 };
 
+// 설정이 아닌 자동 기억값(방문한 사이트 목록 등)은 내보내지 않아요.
+const CORE_CACHE_KEYS = ["darkNativeSites"];
+const withoutCaches = (core: Rec): Rec => {
+    for (const key of CORE_CACHE_KEYS) delete core[key];
+    return core;
+};
+
 export const buildExport = (local: Rec, sync: Rec): Rec => {
     const pick = (src: Rec, prefix: string) => {
         const out: Rec = {};
@@ -140,7 +147,7 @@ export const buildExport = (local: Rec, sync: Rec): Rec => {
         chzzk: {sync: pick(sync, "chzzk."), local: pick(local, "chzzk.")},
         trans: {settings: local[TRANS_KEY] ?? null, alwaysOrigins: originList(local[ALWAYS_ORIGINS_KEY])},
         dc,
-        core: pick(local, "core.")
+        core: withoutCaches(pick(local, "core."))
     };
 };
 

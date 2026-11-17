@@ -57,6 +57,12 @@ describe("settings import", () => {
         expect(l2.data["trans.alwaysOrigins"]).toEqual(["https://shop.example"]);
     });
 
+    test("remembered dark-site cache is not exported", () => {
+        const out = buildExport({"core.modules": {dark: true}, "core.darkNativeSites": {"studio.example": 1}}, {});
+        expect((out.core as Record<string, unknown>).darkNativeSites).toBeUndefined();
+        expect((out.core as Record<string, unknown>).modules).toEqual({dark: true});
+    });
+
     test("unknown data is rejected", () => {
         expect(() => planImport("nope")).toThrow();
         expect(() => planImport(JSON.stringify({foo: 1}))).toThrow();
