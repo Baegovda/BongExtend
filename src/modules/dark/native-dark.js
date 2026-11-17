@@ -31,7 +31,7 @@ export function colorLightness(value) {
 
 const DARK_L = 0.4, LIGHT_TEXT_L = 0.62;
 
-// 표본 판정: 바탕 표본의 70% 이상이 어둡고, 글자 표본이 있으면 그중 60% 이상이 밝아야 해요.
+// 표본 판정: 바탕 표본의 70% 이상이 어둡고, 어두운 바탕 위 글자 표본이 있으면 그중 60% 이상이 밝아야 해요.
 // 표본이 너무 적으면 아직 모른다(null)고 답해요.
 export function classifyNativeDark({backgrounds, texts}) {
     if (backgrounds.length < 8) return null;
@@ -46,11 +46,17 @@ const SKIP = /^(IMG|VIDEO|CANVAS|SVG|IFRAME|PICTURE|OBJECT|EMBED)$/i;
 // 지금 화면에서 바탕·글자 밝기 표본을 모아요. 다크 리더 스타일은 이 함수 안에서만 꺼져요.
 export function sampleNativeColors(doc) {
     const win = doc.defaultView;
+    const root = doc.documentElement;
+    // 색이 부드럽게 바뀌는 효과(transition)가 있으면 스타일을 꺼도 잠깐은 다크 모드 색이 읽혀요(예: Tripo 분류 칩).
+    // 재는 동안만 그 효과를 멈춰요. darkreader 클래스라서 다크 리더가 이 스타일을 건드리지 않아요.
+    const calm = doc.createElement("style");
+    calm.className = "darkreader bong-native-probe";
+    calm.textContent = "*,*::before,*::after{transition:none !important}";
     const sheets = [];
     for (const style of doc.querySelectorAll("style.darkreader, style[data-bong-dark-early]")) {
         if (style.sheet && !style.sheet.disabled) { style.sheet.disabled = true; sheets.push(style.sheet); }
     }
-    const root = doc.documentElement;
+    root.appendChild(calm);
     try {
         const lightOf = el => colorLightness(win.getComputedStyle(el).backgroundColor);
         const rootL = (() => {
@@ -61,21 +67,25 @@ export function sampleNativeColors(doc) {
             // 바탕색이 없으면 브라우저 기본 캔버스: 사이트가 dark color-scheme을 쓰면 어둡고 아니면 흰색이에요.
             return /dark/.test(win.getComputedStyle(root).colorScheme) && !/light/.test(win.getComputedStyle(root).colorScheme) ? 0.15 : 1;
         })();
+        // 요소 뒤의 바탕 밝기: 불투명한 바탕을 찾을 때까지 위로 올라가요. 배경 그림이 있으면 모른다(undefined).
+        const backgroundOf = el => {
+            for (let n = el; n && n.nodeType === 1; n = n.parentElement) {
+                const s = win.getComputedStyle(n);
+                if (s.backgroundImage !== "none") return undefined;
+                const c = colorLightness(s.backgroundColor);
+                if (c && c[1] >= 0.9) return c[0];
+            }
+            return rootL;
+        };
         const backgrounds = [];
         const w = win.innerWidth, h = win.innerHeight;
         for (let row = 0; row < 5; row++) for (let col = 0; col < 6; col++) {
             const el = doc.elementFromPoint((col + 0.5) * w / 6, (row + 0.5) * h / 5);
             if (!el || SKIP.test(el.tagName) || el.closest("svg")) continue;
-            let found = null, unknown = false;
-            for (let n = el; n && n.nodeType === 1; n = n.parentElement) {
-                const s = win.getComputedStyle(n);
-                if (s.backgroundImage !== "none") { unknown = true; break; }
-                const c = colorLightness(s.backgroundColor);
-                if (c && c[1] >= 0.9) { found = c[0]; break; }
-            }
-            if (unknown) continue;
-            backgrounds.push(found ?? rootL);
+            const l = backgroundOf(el);
+            if (l !== undefined) backgrounds.push(l);
         }
+        // 글자는 어두운 바탕 위에 있는 것만 봐요(어두운 사이트에도 흰 단추 위 검정 글자는 흔해요).
         const texts = [];
         const walker = doc.createTreeWalker(doc.body || root, 4);
         for (let node, seen = 0; (node = walker.nextNode()) && texts.length < 30 && seen < 600; seen++) {
@@ -87,29 +97,53 @@ export function sampleNativeColors(doc) {
             const s = win.getComputedStyle(el);
             if (s.visibility !== "visible" || s.backgroundClip === "text") continue;
             const c = colorLightness(s.color);
-            if (c && c[1] >= 0.5) texts.push(c[0]);
+            if (!c || c[1] < 0.5) continue;
+            const behind = backgroundOf(el);
+            if (behind !== undefined && behind < DARK_L) texts.push(c[0]);
         }
         return {backgrounds, texts};
     } finally {
         for (const sheet of sheets) sheet.disabled = false;
+        // 원래 스타일로 다시 계산한 뒤에 효과를 되돌려야 색이 바뀌는 애니메이션이 생기지 않아요.
+        root.getBoundingClientRect();
+        calm.remove();
     }
 }
 
-// 저장해 둔 "원래 어두운 사이트" 목록.
+// 한 번 잰 결과를 믿을지 정해요.
+// "어둡다"는 1.5초 간격으로 두 번 연속 나와야 믿어요(로딩 중 잠깐 어두운 화면 때문에 꺼지지 않게).
+// "밝다"는 페이지가 다 불러와졌거나 마지막 확인일 때 믿어요(끝없이 불러오는 페이지에서 확인을 포기하지 않게).
+export function settleNativeCheck(result, darkStreak, {complete, last}) {
+    const streak = result === true ? darkStreak + 1 : 0;
+    if (result === true && streak >= 2) return {verdict: true, streak};
+    if (result === false && (complete || last)) return {verdict: false, streak};
+    return {verdict: null, streak};
+}
+
+// 저장해 둔 사이트 목록. 값이 양수면 "원래 어두운 사이트"(처음부터 그대로 둬요),
+// 음수면 "페이지마다 달라요"(어두운 페이지도 밝은 페이지도 봤어요: 다크 모드를 먼저 입히고 페이지마다 확인만 해요).
+// 타오바오·티몰 상품 페이지처럼 가게마다 꾸밈이 다른 사이트가 통째로 꺼지지 않게 해요.
 export function nativeDarkSites(value, now = Date.now()) {
     const out = {};
     if (value && typeof value === "object" && !Array.isArray(value)) {
         for (const [host, at] of Object.entries(value)) {
-            if (typeof host === "string" && host.length < 256 && Number.isFinite(at) && now - at < NATIVE_DARK_TTL) out[host] = at;
+            if (typeof host === "string" && host.length < 256 && Number.isFinite(at) && at !== 0 && now - Math.abs(at) < NATIVE_DARK_TTL) out[host] = at;
         }
     }
     return out;
 }
 
+// 처음부터 다크 모드 없이 띄울 사이트인가요?
+export function startsNativeDark(value, host, now = Date.now()) {
+    return nativeDarkSites(value, now)[host] > 0;
+}
+
 export function withNativeDark(value, host, dark, now = Date.now()) {
     const sites = nativeDarkSites(value, now);
+    const prev = sites[host];
     delete sites[host];
-    if (dark) sites[host] = now;
-    const entries = Object.entries(sites).sort((a, b) => b[1] - a[1]).slice(0, MAX_SITES);
+    if (dark) sites[host] = prev < 0 ? -now : now;
+    else if (prev) sites[host] = -now;
+    const entries = Object.entries(sites).sort((a, b) => Math.abs(b[1]) - Math.abs(a[1])).slice(0, MAX_SITES);
     return Object.fromEntries(entries);
 }

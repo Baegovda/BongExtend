@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import {classifyNativeDark, colorLightness, nativeDarkSites, withNativeDark} from "../native-dark.js";
+import {classifyNativeDark, colorLightness, nativeDarkSites, settleNativeCheck, startsNativeDark, withNativeDark} from "../native-dark.js";
 
 test("reads lightness from rgb and oklab/oklch computed colors", () => {
     assert.deepEqual(colorLightness("rgb(0, 0, 0)"), [0, 1]);
@@ -28,11 +28,34 @@ test("remembers sites with a cap and an expiry", () => {
     const now = 1_000_000_000_000;
     let sites = withNativeDark(undefined, "studio.example", true, now);
     assert.deepEqual(sites, {"studio.example": now});
-    sites = withNativeDark(sites, "studio.example", false, now);
-    assert.deepEqual(sites, {});
+    assert.equal(startsNativeDark(sites, "studio.example", now), true);
+    assert.deepEqual(withNativeDark(undefined, "light.example", false, now), {}, "plain light sites are not stored");
     assert.deepEqual(nativeDarkSites({"old.example": now - 31 * 864e5, "new.example": now, bad: "x"}, now), {"new.example": now});
     let many = {};
     for (let i = 0; i < 120; i++) many = withNativeDark(many, `s${i}.example`, true, now + i);
     assert.equal(Object.keys(many).length, 100);
     assert.ok(many["s119.example"] && !many["s0.example"], "keeps the most recent");
+});
+
+test("a site with both dark and light pages is only checked per page, never skipped up front", () => {
+    const now = 1_000_000_000_000;
+    // Taobao/Tmall: one shop page looked dark, the next product page is light.
+    let sites = withNativeDark(undefined, "detail.tmall.com", true, now);
+    sites = withNativeDark(sites, "detail.tmall.com", false, now + 1);
+    assert.deepEqual(sites, {"detail.tmall.com": -(now + 1)});
+    assert.equal(startsNativeDark(sites, "detail.tmall.com", now + 2), false);
+    sites = withNativeDark(sites, "detail.tmall.com", true, now + 3);
+    assert.equal(startsNativeDark(sites, "detail.tmall.com", now + 4), false, "stays mixed");
+    assert.deepEqual(nativeDarkSites({"m.example": -(now - 31 * 864e5)}, now), {}, "mixed entries expire too");
+});
+
+test("trusts dark only twice in a row and light once loaded or on the last try", () => {
+    let r = settleNativeCheck(true, 0, {complete: false, last: false});
+    assert.deepEqual(r, {verdict: null, streak: 1}, "a single dark sample may be a loading screen");
+    r = settleNativeCheck(true, r.streak, {complete: false, last: false});
+    assert.equal(r.verdict, true);
+    assert.deepEqual(settleNativeCheck(false, 1, {complete: false, last: false}), {verdict: null, streak: 0});
+    assert.equal(settleNativeCheck(false, 0, {complete: true, last: false}).verdict, false);
+    assert.equal(settleNativeCheck(false, 0, {complete: false, last: true}).verdict, false, "never-ending loads still get a light verdict");
+    assert.equal(settleNativeCheck(null, 1, {complete: true, last: true}).verdict, null);
 });

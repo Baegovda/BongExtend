@@ -13,7 +13,7 @@ import {createPaintGuard, createImageBlendGuard} from "@/modules/dark/paint-guar
 // @ts-ignore plain JS: instant dark backdrop before the settings are read
 import {createEarlyDarkGuard} from "@/modules/dark/early-guard.js";
 import {announceTakeover, createFallbackSweeper, listenForTakeover} from "@/modules/dark/stale-guard.js";
-import {NATIVE_DARK_KEY, classifyNativeDark, nativeDarkSites, sampleNativeColors, withNativeDark} from "@/modules/dark/native-dark.js";
+import {NATIVE_DARK_KEY, classifyNativeDark, nativeDarkSites, sampleNativeColors, settleNativeCheck, startsNativeDark, withNativeDark} from "@/modules/dark/native-dark.js";
 
 const MODULES_KEY = "core.modules";
 
@@ -160,25 +160,30 @@ export default defineContentScript({
             early.release(true);
             sweeper.stop();
         };
+        let darkStreak = 0;
         const saveNativeDark = async (dark: boolean) => {
             const stored = await browser.storage.local.get(NATIVE_DARK_KEY);
-            const at = nativeDarkSites(stored[NATIVE_DARK_KEY])[hostname];
-            if (Boolean(at) === dark && (!dark || Date.now() - at < 7 * 24 * 60 * 60 * 1000)) return;
-            await browser.storage.local.set({[NATIVE_DARK_KEY]: withNativeDark(stored[NATIVE_DARK_KEY], hostname, dark)});
+            const prev = nativeDarkSites(stored[NATIVE_DARK_KEY])[hostname];
+            const next = withNativeDark(stored[NATIVE_DARK_KEY], hostname, dark);
+            // 판정이 그대로면 7일에 한 번만 시간을 갱신해요.
+            if (Math.sign(prev ?? 0) === Math.sign(next[hostname] ?? 0) && (!prev || Date.now() - Math.abs(prev) < 7 * 24 * 60 * 60 * 1000)) return;
+            await browser.storage.local.set({[NATIVE_DARK_KEY]: next});
         };
         const checkNativeDark = (attempt: number, themedNow: boolean) => {
             if (nativeDark !== null) return;
             let result: boolean | null = null;
             try { result = classifyNativeDark(sampleNativeColors(document)); } catch { result = null; }
-            // "어둡다"는 바로 믿어요. "밝다"는 페이지가 다 불러와진 뒤에만 믿어요(스타일이 덜 붙었을 수 있어요).
-            if (result === null || (result === false && document.readyState !== "complete")) {
-                if (attempt < 8) setTimeout(() => checkNativeDark(attempt + 1, themedNow), 1500);
+            const last = attempt >= 8;
+            const {verdict, streak} = settleNativeCheck(result, darkStreak, {complete: document.readyState === "complete", last});
+            darkStreak = streak;
+            if (verdict === null) {
+                if (!last) setTimeout(() => checkNativeDark(attempt + 1, themedNow), 1500);
                 return;
             }
-            nativeDark = result;
-            void saveNativeDark(result).catch(() => {});
-            if (result && themedNow) turnOff();
-            else if (!result && !themedNow) void apply();
+            nativeDark = verdict;
+            void saveNativeDark(verdict).catch(() => {});
+            if (verdict && themedNow) turnOff();
+            else if (!verdict && !themedNow) void apply();
         };
         const scheduleNativeCheck = (themedNow: boolean) => {
             if (!topFrame || nativeCheckStarted || nativeDark !== null) return;
@@ -207,7 +212,7 @@ export default defineContentScript({
                     sweeper.stop();
                     return;
                 }
-                if (nativeDark === true || (nativeDark === null && nativeDarkSites(stored[NATIVE_DARK_KEY])[hostname])) {
+                if (nativeDark === true || (nativeDark === null && startsNativeDark(stored[NATIVE_DARK_KEY], hostname))) {
                     // 기억해 둔 어두운 사이트: 처음부터 원래 화면으로 두고, 다 뜬 뒤 아직도 어두운지 다시 확인해요.
                     turnOff();
                     scheduleNativeCheck(false);
