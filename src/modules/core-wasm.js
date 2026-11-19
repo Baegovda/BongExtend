@@ -123,6 +123,41 @@ export function coreCallText(name, texts) {
     }
 }
 
+/**
+ * zip 바이트를 Rust 로 풀어요. 답: {value: [{path, data}…]} / {fallback} / undefined(준비 안 됨·실패).
+ * 파일마다 따로 복사해서(slice) 예전 길처럼 각자 자기 메모리를 가져요.
+ */
+export function coreExtractZip(zipBytes) {
+    if (state === 'idle') void prepareCoreWasm();
+    if (state !== 'wasm' || !engine) return undefined;
+    if (!(zipBytes instanceof Uint8Array)) return {fallback: 'not bytes'};
+    const ex = engine;
+    const size = zipBytes.length;
+    let ptr = 0, out = 0, outLen = 0;
+    try {
+        ptr = ex.alloc(size);
+        new Uint8Array(ex.memory.buffer, ptr, size).set(zipBytes);
+        out = ex.extract_zip(ptr, size);
+        outLen = ex.reply_len();
+        const memory = ex.memory.buffer;
+        const jsonLen = new DataView(memory, out, 4).getUint32(0, true);
+        const reply = JSON.parse(decoder.decode(new Uint8Array(memory, out + 4, jsonLen)));
+        if (!reply || !Object.prototype.hasOwnProperty.call(reply, 'v')) return {fallback: String(reply?.x || '')};
+        const base = out + 4 + jsonLen;
+        const files = reply.v.map(([path, start, length]) => ({path, data: new Uint8Array(memory, base + start, length).slice()}));
+        return {value: files};
+    } catch {
+        state = 'off';
+        engine = null;
+        globalThis.__bongCoreEngine = state;
+        return undefined;
+    } finally {
+        if (engine) {
+            try { if (ptr) ex.dealloc(ptr, size); if (out) ex.dealloc(out, outLen); } catch { /* 메모리 정리 실패는 결과에 영향이 없어요. */ }
+        }
+    }
+}
+
 /** Rust 결과({value}) 또는 undefined(예전 자바스크립트 길을 쓰세요). */
 export function coreCall(name, args) {
     const reply = coreCallRaw(name, args);

@@ -3,7 +3,7 @@
 //! 태그 이름 비교는 'i'(유니코드 없음)라 영문자만 대소문자를 무시해요 — 바이트로 비교하면 정확히 같아요.
 //! 자바스크립트가 오류를 던지는 입력(&#99999999; 같은 범위 밖 글자, 깨진 %XX)은 Fallback 으로 예전 길에 맡겨요.
 use crate::js::{is_js_space, js_trim, Fallback, R};
-use serde_json::{json, Value};
+use serde_json::Value;
 
 /// hay 안에서 needle(영문자 대소문자 무시)을 from 부터 찾아요(바이트 위치).
 /// 첫 글자가 영문자가 아니면(대부분 '<') 그 바이트를 memchr 로 빠르게 찾아서 그 자리만 비교해요.
@@ -439,7 +439,7 @@ mod tests {
     fn reads_a_feed() {
         let feed = r#"<?xml version="1.0"?><feed><title>Gmail - Inbox for a.b@mail.example.com</title><fullcount> 3 </fullcount><entry><title>안녕 &amp; &#128512; <![CDATA[<b>x</b>]]></title><summary>  미리   보기 </summary><link rel="alternate" href="https://mail.google.com/mail/u/0?x=1&amp;y=2#inbox/18c%ED%95%9C" type="text/html" /><issued>2026-11-20</issued><id>tag:gmail.google.com,2004:1700</id><author><name>보낸이</name><email>s@ex.com</email></author></entry><entry><id></id></entry></feed>"#;
         let v = parse_atom(feed).unwrap();
-        assert_eq!(v["unread"], json!(3));
+        assert_eq!(v["unread"], serde_json::json!(3));
         assert_eq!(v["email"], "a.b@mail.example.com");
         assert_eq!(v["messages"][0]["subject"], "안녕 & 😀 x");
         assert_eq!(v["messages"][0]["snippet"], "미리 보기");

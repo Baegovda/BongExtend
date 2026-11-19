@@ -1,5 +1,6 @@
 // 브라우저와 bun 테스트에서 같이 쓰는 zip 리더. stored(0)와 deflate(8)만 푼다.
 import type {ZipFile} from "@/core/update/types";
+import {coreExtractZip, prepareCoreWasm} from "@/modules/core-wasm.js";
 
 const SIG_EOCD = 0x06054b50;
 const SIG_CEN = 0x02014b50;
@@ -108,9 +109,22 @@ const inflateRaw = async (data: Uint8Array): Promise<Uint8Array> => {
     return new Uint8Array(await new Response(stream).arrayBuffer());
 };
 
+// 압축 풀기는 Rust(native/core-wasm/src/zip.rs)가 먼저 해요. 결과가 예전 길과 바이트까지 같은지는 zip-rust.test.ts 가 봐요.
+// Rust 가 "예전 길로"라고 하는 zip(손상·위험한 경로·manifest 없음 등)이나 엔진이 준비 안 되면 아래 예전 길이 똑같은 오류를 내요.
+// 재 본 값(설치 zip 520개 파일, 11.5MB): 예전 길 약 100ms → Rust 약 40ms. 아주 작은 zip 은 엔진 준비 비용이 더 커서 예전 길로 풀어요.
+const RUST_FROM = 64 * 1024;
+export const extractAll = async (buf: Uint8Array | ArrayBuffer): Promise<ZipFile[]> => {
+    const bytes = asBytes(buf);
+    if (bytes.length >= RUST_FROM && (await prepareCoreWasm())) {
+        const fast = coreExtractZip(bytes);
+        if (fast && "value" in fast) return fast.value as ZipFile[];
+    }
+    return extractAllJs(bytes);
+};
+
 // 하나라도 실패하면 예외. 호출부는 그때 디스크에 아무것도 쓰지 않는다.
 // 공통 최상위 폴더만 있고 루트에 manifest.json이 없으면 그 폴더를 벗긴다.
-export const extractAll = async (buf: Uint8Array | ArrayBuffer): Promise<ZipFile[]> => {
+export const extractAllJs = async (buf: Uint8Array | ArrayBuffer): Promise<ZipFile[]> => {
     const bytes = asBytes(buf);
     const view = viewOf(bytes);
     const files: ZipFile[] = [];

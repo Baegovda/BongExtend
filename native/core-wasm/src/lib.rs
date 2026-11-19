@@ -4,6 +4,7 @@
 pub mod atom;
 pub mod js;
 pub mod otp;
+pub mod zip;
 
 use js::Fallback;
 use serde_json::{json, Value};
@@ -126,6 +127,19 @@ pub unsafe extern "C" fn call(ptr: *const u8, len: usize) -> *mut u8 {
     let mut boxed = reply.into_boxed_slice();
     let out = boxed.as_mut_ptr();
     core::mem::forget(boxed);
+    REPLY_LEN = out_len;
+    out
+}
+
+/// zip 파일 바이트(ptr,len)를 풀어요. 답은 [u32 JSON 길이][JSON][풀린 데이터] (zip::extract_reply), 길이는 reply_len.
+/// # Safety
+/// ptr..ptr+len 은 alloc 으로 받은 메모리여야 해요.
+#[no_mangle]
+pub unsafe extern "C" fn extract_zip(ptr: *const u8, len: usize) -> *mut u8 {
+    let request = core::slice::from_raw_parts(ptr, len);
+    let reply = zip::extract_reply(request).into_boxed_slice();
+    let out_len = reply.len();
+    let out = Box::into_raw(reply) as *mut u8;
     REPLY_LEN = out_len;
     out
 }
