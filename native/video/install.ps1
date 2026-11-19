@@ -8,12 +8,19 @@ if (!$ExtensionId) {
 if ($ExtensionId -notmatch '^[a-p]{32}$') { throw 'Open the video downloader tab and download the connection file first.' }
 $dest=Join-Path $env:LOCALAPPDATA 'BongExtend\video-helper'
 New-Item -ItemType Directory -Force -Path $dest | Out-Null
-$python=(Get-Command python -ErrorAction Stop).Source
-& $python -c "import sys; assert sys.version_info >= (3,10)"
-if ($LASTEXITCODE -ne 0) {throw 'Python 3.10 or newer is required.'}
+# Rust 보조 프로그램(bongextend-video-host.exe)이 기본이에요. 파이썬은 있으면 예비로만 써요(없어도 돼요).
+$rust=Join-Path $PSScriptRoot 'bongextend-video-host.exe'
+$hasRust=Test-Path -LiteralPath $rust
+if ($hasRust) { Copy-Item -LiteralPath $rust -Destination $dest -Force }
+$pythonOk=$false
+$python=(Get-Command python -ErrorAction SilentlyContinue).Source
+if ($python) {
+ & $python -c "import sys; assert sys.version_info >= (3,10)" 2>$null
+ if ($LASTEXITCODE -eq 0) { $pythonOk=$true; [IO.File]::WriteAllText((Join-Path $dest 'python.txt'),$python) }
+}
+if (!$hasRust -and !$pythonOk) {throw 'Python 3.10 or newer is required.'}
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'host.py') -Destination $dest -Force
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'BongExtendVideo.exe') -Destination $dest -Force
-[IO.File]::WriteAllText((Join-Path $dest 'python.txt'),$python)
 function Get-Asset($repo,$name) {
  $release=Invoke-RestMethod "https://api.github.com/repos/$repo/releases/latest"
  $asset=$release.assets | Where-Object name -eq $name | Select-Object -First 1

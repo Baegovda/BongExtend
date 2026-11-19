@@ -34,6 +34,10 @@ jobs:
             -   name: Test local video host
                 run: python3 -m unittest discover -s native/video -p 'test_*.py'
 
+            # Rust 보조 프로그램: 기능 시험 + 파이썬 보조 프로그램과 답이 같은지(골든) 확인해요.
+            -   name: Test Rust video host
+                run: cargo test --manifest-path native/video-rs/Cargo.toml
+
             -   name: Build
                 run: bun run build
 

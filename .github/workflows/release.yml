@@ -50,6 +50,9 @@ jobs:
             -   name: Test local video host
                 run: python3 -m unittest discover -s native/video -p 'test_*.py'
 
+            -   name: Test Rust video host
+                run: cargo test --manifest-path native/video-rs/Cargo.toml
+
             -   name: Check tag matches package version
                 if: github.ref_type == 'tag'
                 run: |

@@ -1,0 +1,27 @@
+[package]
+name = "bongextend-video-host"
+version = "1.0.0"
+edition = "2021"
+license = "GPL-3.0-only"
+description = "BongExtend local video helper (native messaging host). Rust port of native/video/host.py."
+publish = false
+
+[[bin]]
+name = "bongextend-video-host"
+path = "src/main.rs"
+
+[lib]
+name = "video_host"
+path = "src/lib.rs"
+
+[dependencies]
+serde_json = { version = "1", features = ["preserve_order"] }
+url = "2"
+ureq = { version = "2", default-features = false, features = ["tls", "json"] }
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "unwind"
+strip = true
