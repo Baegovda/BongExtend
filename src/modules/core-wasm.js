@@ -158,6 +158,45 @@ export function coreExtractZip(zipBytes) {
     }
 }
 
+/**
+ * 바이트를 받는 Rust 함수용(파일 내용 등): [u32 이름 길이][이름][u32 덧붙임 길이][덧붙임][바이트…]. 답은 coreCallText 와 같아요.
+ */
+export function coreCallBytes(name, extra, data) {
+    if (state === 'idle') void prepareCoreWasm();
+    if (state !== 'wasm' || !engine) return undefined;
+    if (!(data instanceof Uint8Array)) return {fallback: 'not bytes'};
+    const ex = engine;
+    const nameBytes = encoder.encode(name);
+    const extraBytes = encoder.encode(String(extra));
+    const size = 8 + nameBytes.length + extraBytes.length + data.length;
+    let ptr = 0, out = 0, outLen = 0;
+    try {
+        ptr = ex.alloc(size);
+        const bytes = new Uint8Array(ex.memory.buffer, ptr, size);
+        const view = new DataView(ex.memory.buffer, ptr, size);
+        let at = 0;
+        view.setUint32(at, nameBytes.length, true); at += 4;
+        bytes.set(nameBytes, at); at += nameBytes.length;
+        view.setUint32(at, extraBytes.length, true); at += 4;
+        bytes.set(extraBytes, at); at += extraBytes.length;
+        bytes.set(data, at);
+        out = ex.call_bytes(ptr, size);
+        outLen = ex.reply_len();
+        const reply = JSON.parse(decoder.decode(new Uint8Array(ex.memory.buffer, out, outLen)));
+        if (reply && Object.prototype.hasOwnProperty.call(reply, 'v')) return {value: reply.v};
+        return {fallback: String(reply?.x || '')};
+    } catch {
+        state = 'off';
+        engine = null;
+        globalThis.__bongCoreEngine = state;
+        return undefined;
+    } finally {
+        if (engine) {
+            try { if (ptr) ex.dealloc(ptr, size); if (out) ex.dealloc(out, outLen); } catch { /* 메모리 정리 실패는 결과에 영향이 없어요. */ }
+        }
+    }
+}
+
 /** Rust 결과({value}) 또는 undefined(예전 자바스크립트 길을 쓰세요). */
 export function coreCall(name, args) {
     const reply = coreCallRaw(name, args);

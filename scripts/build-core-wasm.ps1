@@ -10,7 +10,10 @@ $cargo=(Get-Command cargo -ErrorAction SilentlyContinue).Source
 if (!$cargo -and (Test-Path "$env:USERPROFILE\.cargo\bin\cargo.exe")) { $cargo="$env:USERPROFILE\.cargo\bin\cargo.exe" }
 if (!$cargo) {throw 'Rust (cargo) is required'}
 $features = if ($Experiments) { @('--features', 'experiments') } else { @() }
-& $cargo build --release --target wasm32-unknown-unknown --manifest-path (Join-Path $crate 'Cargo.toml') @features
+# WebAssembly SIMD(동시 처리 명령)를 켜요. 크롬 91부터 되고 이 확장은 크롬 109 이상만 받아요. 찾기(memchr)가 여러 바이트를 한 번에 봐서 빨라져요.
+$oldFlags = $env:RUSTFLAGS
+$env:RUSTFLAGS = '-C target-feature=+simd128'
+try { & $cargo build --release --target wasm32-unknown-unknown --manifest-path (Join-Path $crate 'Cargo.toml') @features } finally { $env:RUSTFLAGS = $oldFlags }
 if ($LASTEXITCODE -ne 0) {throw 'WebAssembly build failed'}
 $wasm=Join-Path $crate 'target\wasm32-unknown-unknown\release\bongextend_core.wasm'
 $bytes=[IO.File]::ReadAllBytes($wasm)

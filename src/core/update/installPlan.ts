@@ -5,7 +5,7 @@
 // 2) 나머지 파일
 // 3) manifest.json 하나만, 맨 마지막
 import {compareVersions} from "@/core/semver";
-import {coreCallText, coreWasmState} from "@/modules/core-wasm.js";
+import {coreCallBytes, coreCallText, coreWasmState} from "@/modules/core-wasm.js";
 import {fileKey, type PendingDecision, type PendingUpdate, type ZipFile} from "@/core/update/types";
 
 export type WriteProgress = {
@@ -109,52 +109,51 @@ const resolveHtmlUrl = (fromHtml: string, raw: string): string | null => {
     return resolveSpecifier(fromHtml, trimmed.startsWith(".") ? trimmed : `./${trimmed}`);
 };
 
-export const htmlAssetRefs = (fromHtml: string, html: string): string[] => {
-    const refs: string[] = [];
-    const pattern = /\b(?:src|href)\s*=\s*["']([^"']+)["']/gi;
-    let match: RegExpExecArray | null;
+// 세 정규식이 잡는 글자(match[1]) 목록. Rust 판(native/core-wasm/src/refs.rs)이 같은 글자를 파일 바이트에서 바로 찾아요.
+export type RefKind = "html" | "css" | "js";
+const REF_PATTERNS: Record<RefKind, RegExp> = {
+    html: /\b(?:src|href)\s*=\s*["']([^"']+)["']/gi,
+    js: /(?:import\s*(?:[^'"\n;]*?\sfrom\s*)?|export\s+[^'"\n;]*?\sfrom\s*|import\s*\(\s*)["']([^"']+)["']/g,
+    css: /url\(\s*["']?([^"')]+)["']?\s*\)/gi
+};
 
-    while ((match = pattern.exec(html))) {
-        const resolved = resolveHtmlUrl(fromHtml, match[1] ?? "");
+export const refCapturesJs = (kind: RefKind, text: string): string[] => {
+    const pattern = new RegExp(REF_PATTERNS[kind].source, REF_PATTERNS[kind].flags);
+    const out: string[] = [];
+    let match: RegExpExecArray | null;
+    while ((match = pattern.exec(text))) out.push(match[1] ?? "");
+    return out;
+};
+
+const resolveAll = (kind: RefKind, fromFile: string, captures: string[]): string[] => {
+    const refs: string[] = [];
+    for (const raw of captures) {
+        const resolved = kind === "js" ? resolveSpecifier(fromFile, raw) : resolveHtmlUrl(fromFile, raw);
         if (resolved) refs.push(resolved);
     }
-
     return refs;
 };
 
-export const jsModuleRefs = (fromFile: string, source: string): string[] => {
-    const refs: string[] = [];
-    const pattern = /(?:import\s*(?:[^'"\n;]*?\sfrom\s*)?|export\s+[^'"\n;]*?\sfrom\s*|import\s*\(\s*)["']([^"']+)["']/g;
-    let match: RegExpExecArray | null;
+export const htmlAssetRefs = (fromHtml: string, html: string): string[] => resolveAll("html", fromHtml, refCapturesJs("html", html));
 
-    while ((match = pattern.exec(source))) {
-        const spec = match[1] ?? "";
-        const resolved = resolveSpecifier(fromFile, spec);
-        if (resolved) refs.push(resolved);
-    }
+export const jsModuleRefs = (fromFile: string, source: string): string[] => resolveAll("js", fromFile, refCapturesJs("js", source));
 
-    return refs;
-};
+export const cssUrlRefs = (fromFile: string, css: string): string[] => resolveAll("css", fromFile, refCapturesJs("css", css));
 
-export const cssUrlRefs = (fromFile: string, css: string): string[] => {
-    const refs: string[] = [];
-    const pattern = /url\(\s*["']?([^"')]+)["']?\s*\)/gi;
-    let match: RegExpExecArray | null;
+const kindOf = (key: string): RefKind | null =>
+    key.endsWith(".html") ? "html" : key.endsWith(".css") ? "css" : key.endsWith(".js") || key.endsWith(".mjs") ? "js" : null;
 
-    while ((match = pattern.exec(css))) {
-        const resolved = resolveHtmlUrl(fromFile, match[1] ?? "");
-        if (resolved) refs.push(resolved);
-    }
-
-    return refs;
-};
-
+// 큰 파일은 Rust 가 바이트에서 바로 잡아요(글자로 바꾸기 + 정규식보다 빨라요). 엔진이 이미 준비된 업데이트 화면에서만 써요.
+// 결과가 같은지는 installPlan-rust.test.ts 가 비교해요. UTF-8 이 아닌 파일 등은 Rust 가 예전 길로 보내요.
+const REFS_RUST_FROM = 2048;
 const refsOf = (key: string, file: ZipFile): string[] => {
-    const text = textOf(file);
-    if (key.endsWith(".html")) return htmlAssetRefs(key, text);
-    if (key.endsWith(".css")) return cssUrlRefs(key, text);
-    if (key.endsWith(".js") || key.endsWith(".mjs")) return jsModuleRefs(key, text);
-    return [];
+    const kind = kindOf(key);
+    if (!kind) return [];
+    if (file.data.length >= REFS_RUST_FROM && coreWasmState() === "wasm") {
+        const fast = coreCallBytes("update.refs", kind, file.data);
+        if (fast && "value" in fast) return resolveAll(kind, key, fast.value as string[]);
+    }
+    return resolveAll(kind, key, refCapturesJs(kind, textOf(file)));
 };
 
 // entryHtml에서 따라간 파일. zip에 실제로 있는 것만 포함한다.

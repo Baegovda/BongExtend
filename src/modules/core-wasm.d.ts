@@ -4,5 +4,6 @@ export function prepareCoreWasm(): Promise<boolean>;
 export function coreWasmState(): "idle" | "loading" | "wasm" | "off";
 export function coreCallRaw(name: string, args: unknown[]): CoreReply;
 export function coreCallText(name: string, texts: string[]): CoreReply;
+export function coreCallBytes(name: string, extra: string, data: Uint8Array): CoreReply;
 export function coreExtractZip(zipBytes: Uint8Array): CoreReply<{path: string[]; data: Uint8Array}[]>;
 export function coreCall(name: string, args: unknown[]): {value: unknown} | undefined;

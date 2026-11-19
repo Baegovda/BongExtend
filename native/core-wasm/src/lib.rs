@@ -6,6 +6,7 @@ pub mod extra;
 pub mod js;
 pub mod otp;
 pub mod profile;
+pub mod refs;
 pub mod zip;
 
 use js::Fallback;
@@ -181,6 +182,44 @@ pub unsafe extern "C" fn call(ptr: *const u8, len: usize) -> *mut u8 {
     let mut boxed = reply.into_boxed_slice();
     let out = boxed.as_mut_ptr();
     core::mem::forget(boxed);
+    REPLY_LEN = out_len;
+    out
+}
+
+/// 바이트를 받는 함수: [u32 이름 길이][이름][u32 덧붙임 길이][덧붙임(글자)][바이트…] → 답은 call_text 와 같은 JSON.
+pub fn handle_bytes(request: &[u8]) -> Vec<u8> {
+    let parsed = (|| {
+        let take = |at: &mut usize| -> Option<&[u8]> {
+            let len = u32::from_le_bytes(request.get(*at..*at + 4)?.try_into().ok()?) as usize;
+            *at += 4;
+            let s = request.get(*at..*at + len)?;
+            *at += len;
+            Some(s)
+        };
+        let mut at = 0usize;
+        let name = core::str::from_utf8(take(&mut at)?).ok()?;
+        let extra = core::str::from_utf8(take(&mut at)?).ok()?;
+        Some((name, extra, &request[at..]))
+    })();
+    let reply = match parsed {
+        Some(("update.refs", kind, bytes)) => match refs::refs(kind, bytes) {
+            Ok(v) => json!({"v": v}),
+            Err(Fallback(why)) => json!({"x": why}),
+        },
+        Some(_) => json!({"x": "unknown function"}),
+        None => json!({"x": "bad request"}),
+    };
+    serde_json::to_vec(&reply).unwrap_or_else(|_| br#"{"x":"encode"}"#.to_vec())
+}
+
+/// # Safety
+/// ptr..ptr+len 은 alloc 으로 받은 메모리여야 해요.
+#[no_mangle]
+pub unsafe extern "C" fn call_bytes(ptr: *const u8, len: usize) -> *mut u8 {
+    let request = core::slice::from_raw_parts(ptr, len);
+    let reply = handle_bytes(request).into_boxed_slice();
+    let out_len = reply.len();
+    let out = Box::into_raw(reply) as *mut u8;
     REPLY_LEN = out_len;
     out
 }

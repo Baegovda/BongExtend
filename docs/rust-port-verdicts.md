@@ -25,13 +25,18 @@ Rust 코드는 `native/core-wasm/src/extra.rs`(cargo 기능 `experiments`, 배�
 
 ## 실행 프로파일 확인(안쪽 함수까지, 2026-11-20)
 
-표의 "잰 시간"·"하한 증명"은 밖으로 내보낸 함수만 잴 수 있어요. 그래서 안쪽 함수까지 빠짐없이 보려고 실제 확장을 띄우는 검증 스크립트 30개(번역·메일·네이버 메일·인증번호·치지직·다크 13종·다운로드·환율·팝업·업데이트·쇼핑·디시; 로컬·가짜 페이지만)를 CPU 프로파일러(0.1ms 간격)를 붙여 돌렸어요. 함수 이름을 보려고 측정 때만 `BONG_NO_MINIFY=1` 로 묶었어요(배포 묶음은 그대로).
+표의 "잰 시간"·"하한 증명"은 밖으로 내보낸 함수만 잴 수 있어요. 그래서 안쪽 함수까지 빠짐없이 보려고 실제 확장을 띄우는 검증 스크립트 30개(번역·메일·네이버 메일·인증번호·치지직·다크 13종·다운로드·환율·팝업·업데이트·쇼핑·디시; 로컬·가짜 페이지만)를 CPU 프로파일러(0.1ms 간격, 측정 도구 때문에 타이밍이 흔들린 3개는 1ms)를 붙여 돌렸어요. 페이지·콘텐츠 스크립트뿐 아니라 백그라운드 서비스 워커에도 크롬 전체 연결(CDP Target.attachToTarget)로 붙었어요(워커가 꺼질 수 있어 2초마다 끊어 저장). 30개 모두 끝까지 통과한 상태로 잡혔어요(낡았던 검증 스크립트 8개는 따로 고쳤어요). 함수 이름을 보려고 측정 때만 `BONG_NO_MINIFY=1` 로 묶었어요(배포 묶음은 그대로).
+
+- 최종(30개 장면, 프로파일 154개 = 페이지 87 + 서비스 워커 67): 확장 코드 시간 3,890ms = 가져온 외부 코드 1,902ms(49%), 브라우저 기능 1,016ms(26%), 출처를 못 이은 묶음 초기화 590ms(15%), 브라우저 기능을 직접 안 쓰는 함수 381ms(10%, 131개). 서비스 워커 안 확장 코드 1,213ms 는 대부분 외부 메일 엔진(크롬 번역 문구 API chrome.i18n, Intl 날짜, WebCrypto, 큰 스크립트 첫 실행)이에요.
+- 131개: 하한 증명 42개, 화면 요소·스타일 객체 42개, Intl 2개(moneyFormat, formatDate), 나머지 47개는 하나씩 확인(네트워크·크롬·파일 시스템·IndexedDB·WebCrypto 연결, 또는 실제 입력 하한이 더 큼: normalizeVersion 0.07µs < 1.31µs, parseScan 0.49µs < 33µs, normalizeDarkSettings 0.07µs < 9µs 등). 그중 업데이트 화면의 `collectReachable` 만 엔진이 이미 있는 화면이고 하한(0.053ms)이 JS(0.31ms)보다 작아서 실제로 Rust 로 옮겼어요(위 installPlan.ts 줄).
+
+아래는 1차(서비스 워커 없이) 기록이에요.
 
 - 소스 전체 함수: 4,001개(안쪽 함수 2,622개). 브라우저 기능을 직접 쓰는 함수 1,316개, 안 쓰는 함수 2,685개(@babel/parser 로 셈).
 - 30개 장면에서 확장 코드가 쓴 시간 합계 1,255ms: 가져온 외부 코드(Checker Plus 메일 엔진 등) 413ms(33%), 브라우저 기능을 쓰는 함수 435ms(35%), 출처를 못 이은 묶음 코드(Vue·라이브러리 초기화 등) 250ms(20%), 브라우저 기능을 직접 안 쓰는 함수 156ms(12%, 81개).
 - 그 81개: 하한 증명으로 반드시 느림 26개(예: textLineMode 15.9ms, currencyName 13.1ms), 실제로는 화면 요소·스타일 객체를 받아 읽는 함수 35개(예: step 10.2ms, lineClampOf 8.5ms, stable 5.5ms), Intl 표기기 1개(moneyFormat), 나머지 19개는 하나씩 봤어요: availableCurrencyCodes(실제 입력 하한 88µs > JS 59µs), formatMoney(Intl), readableColor·textPaint·colorIo(이미 Rust 또는 그 다리), beginWiper·normalizeRect(화면 위치), syncRightClick·inject·flush·getStatus·disconnect·listener·set(크롬 기능·비동기 연결), normalizeTheme·normalizeHosts·publicHost(설정 읽을 때 한 번, 30개 장면 합쳐 0.4~1.6ms), 치지직 wide.js 시작 코드(정규식 만들기).
 - 결론: 실제 실행에서 시간을 쓴 우리 함수는 안쪽 함수까지 모두 위 판정 중 하나에 들어가고, 새로 옮길 후보는 나오지 않았어요. 순수 계산이 다 합쳐 30개 장면에 156ms(장면당 약 5ms)라서, 이를 전부 없애도 엔진이 없는 화면에서 엔진을 준비하는 비용(0.9ms)과 주고받는 비용을 넘기 어려워요.
-- 한계: 백그라운드 서비스 워커에는 이 방식으로 프로파일러를 붙이지 못했어요(서비스 워커의 무거운 계산인 인증번호·피드·프로필 사진은 이미 Rust). 30개 중 5개 스크립트(verify-modules-browser, verify-downloader-manager-browser, verify-ui-workflows, verify-fx-currencies-browser, verify-chzzk-wide-browser)는 예전 화면 이름·주소를 찾다가 중간에 끝나서(이번 변경과 무관, 배포 묶음으로도 같음) 그 앞부분까지만 잡혔어요.
+- 1차의 한계(서비스 워커 없음, 낡은 스크립트 8개가 중간에 끝남)는 위 최종 측정에서 메웠어요.
 
 | 파일 | 줄 | 브라우저 기능 | 잰 시간 | Rust 하한 증명 | 판정 | 근거 |
 |---|---:|---:|---|---|---|---|
@@ -62,7 +67,7 @@ Rust 코드는 `native/core-wasm/src/extra.rs`(cargo 기능 `experiments`, 배�
 | `src/core/settings.ts` | 68 | 6 | 불러오면 바로 브라우저 기능을 씀 | - | 자바스크립트 | 저장소 읽기·쓰기 + 값 정리 switch 한 번 |
 | `src/core/update/autoInstall.ts` | 26 | 0 | 함수 1개, 최대 0.08µs (`shouldLaunchUpdater`) | 1/1개 반드시 느림 | 자바스크립트 | 내보내는 순수 함수 모두 Rust 하한(주고받기만, 계산 0)이 JS 보다 커서 어떤 Rust 구현도 이길 수 없어요(가장 긴 함수 0.08µs) |
 | `src/core/update/availability.ts` | 18 | 0 | 함수 2개, 최대 0.33µs (`isNewerVersion`) | 2/2개 반드시 느림 | 자바스크립트 | 내보내는 순수 함수 모두 Rust 하한(주고받기만, 계산 0)이 JS 보다 커서 어떤 Rust 구현도 이길 수 없어요(가장 긴 함수 0.33µs) |
-| `src/core/update/installPlan.ts` | 296 | 0 | 함수 9개, 최대 0.31µs (`normalizeAssetPath`) | 9/9개 반드시 느림 | Rust로 옮김 | 설치 순서 정렬 `orderFiles` 를 Rust(`extra.rs` order_keys)로: localeCompare 의 ICU 기본 규칙을 출력 가능한 ASCII 에 한해 옮김(두 글자 조합 9,025개·무작위 경로·배포 파일 모두 같음, 다른 글자는 예전 길). 크롬 0.647 → 0.143ms(4.5배). `collectPriorityKeys` 0.26ms·`missingReachable` 은 JS(정규식으로 자바스크립트 import 를 읽는 배포 검사용) |
+| `src/core/update/installPlan.ts` | 296 | 0 | 함수 9개, 최대 0.31µs (`normalizeAssetPath`) | 9/9개 반드시 느림 | Rust로 옮김 | 설치 순서 정렬 `orderFiles` 를 Rust(`extra.rs` order_keys)로: localeCompare 의 ICU 기본 규칙을 출력 가능한 ASCII 에 한해 옮김(두 글자 조합 9,025개·무작위 경로·배포 파일 모두 같음, 다른 글자는 예전 길). 크롬 0.647 → 0.143ms(4.5배). 우선 파일 찾기(`collectReachable` 의 참조 글자 잡기, 세 정규식)도 Rust(`refs.rs`, 파일 바이트에서 바로)로: 무작위 글 9천 개·배포 파일 162개(크롬 V8 정규식과도) 다름 0, 크롬 0.16 → 0.13~0.16ms(SIMD 켠 엔진; 끈 엔진에선 0.20ms 로 느려서 SIMD 와 함께만 남김). 경로 계산(`resolveSpecifier` 등)은 0.3µs 대라 JS |
 | `src/core/update/manifestRefs.ts` | 90 | 0 | 함수 1개, 최대 0.34µs (`manifestReferencedFiles`) | 1/1개 반드시 느림 | 자바스크립트 | 배포 검사 전용(bun·CI), 사용자 브라우저에서 안 돌아요 |
 | `src/core/update/noEval.ts` | 56 | 0 | 함수 2개, 최대 6.29µs (`findUnsafeEvalInFiles`) | 0/2개 반드시 느림, 나머지(findUnsafeEvalInFiles, unsafeEvalHits)는 근거 칸 | 자바스크립트 | `findUnsafeEvalInFiles`·`unsafeEvalHits` 는 배포 검사 전용(bun·CI, 배포 한 번에 7.7ms), 사용자 브라우저에서 안 돌아요. Rust 로 만든 결과를 검사하는 독립 검사기라 같은 엔진에 넣지 않아요 |
 | `src/core/update/progress.ts` | 94 | 0 | 함수 3개, 최대 0.14µs (`formatBytes`) | 2/2개 반드시 느림 | 자바스크립트 | `computeProgress` 0.16µs, 나머지 다운로드 스트림 읽기 |
@@ -296,7 +301,7 @@ Rust 코드는 `native/core-wasm/src/extra.rs`(cargo 기능 `experiments`, 배�
 | `src/utils/user.ts` | 207 | 7 | 불러오면 바로 브라우저 기능을 씀 | - | 자바스크립트 | `getType` 0.03µs, 나머지 저장소 읽기 |
 | `src/utils/userDataInsert.ts` | 107 | 14 | - | - | 자바스크립트 | 닉네임 옆에 정보 끼워 넣기(DOM 14회) |
 
-합계: 옮긴 기능은 8가지(zip 풀기, 설치 순서 정렬, 메일 인증번호, Gmail 피드, 프로필 사진 찾기, 다크 픽셀, 다크 색 대비, 영상 보조 프로그램)예요. 세는 단위가 달라요: 기능 8가지 중 7가지가 src 의 파일 7개(zip.ts, installPlan.ts, otp.js, atom.js, actions.js, contrast.js, icon-contrast.js)에 들어 있고, 여기에 Rust 로 가는 다리 파일 3개(core-wasm.js, dark-wasm.js, icon-pixels.js)를 더해 'Rust 를 쓰는 파일' 10개예요. 영상 보조 프로그램은 src 밖(`native/video-rs`)이에요. 나머지 250개 파일은 자바스크립트로 둬요(파일 260개).
+합계: 옮긴 기능은 9가지(zip 풀기, 설치 순서 정렬, 업데이트 우선 파일 찾기, 메일 인증번호, Gmail 피드, 프로필 사진 찾기, 다크 픽셀, 다크 색 대비, 영상 보조 프로그램)예요. 세는 단위가 달라요: 기능 9가지 중 8가지가 src 의 파일 7개(zip.ts, installPlan.ts(정렬·우선 파일 찾기 둘), otp.js, atom.js, actions.js, contrast.js, icon-contrast.js)에 들어 있고, 여기에 Rust 로 가는 다리 파일 3개(core-wasm.js, dark-wasm.js, icon-pixels.js)를 더해 'Rust 를 쓰는 파일' 10개예요. 영상 보조 프로그램은 src 밖(`native/video-rs`)이에요. 나머지 250개 파일은 자바스크립트로 둬요(파일 260개).
 
  앞의 표가 파일마다 판정과 근거를 보여 줘요. 브라우저 밖 프로그램 중 영상 보조 프로그램(`native/video-rs`)도 Rust로 옮겼어요. 가져온 외부 코드(`public/` 의 Checker Plus 메일 엔진·DarkReader·Chrono 다운로더·Autolinker)는 우리 코드가 아니라서 판정에서 뺐어요.
 
