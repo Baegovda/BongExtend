@@ -57,6 +57,10 @@ jobs:
             -   name: Test Rust dark pixels
                 run: cargo test --manifest-path native/dark-pixels/Cargo.toml
 
+            # 규칙·분석 로직(Rust): 기능 시험. 자바스크립트와의 결과 비교는 bun run test 의 *-rust.test.js 가 해요.
+            -   name: Test Rust core
+                run: cargo test --manifest-path native/core-wasm/Cargo.toml
+
             -   name: Check tag matches package version
                 if: github.ref_type == 'tag'
                 run: |

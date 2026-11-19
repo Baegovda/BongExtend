@@ -1,7 +1,28 @@
+import {coreCallText} from "../core-wasm.js";
 // 인증번호는 외부 서비스로 보내거나 저장하지 않고 메모리에서만 처리해요.
 const CONTEXT = /인증\s*(?:번호|코드)|확인\s*(?:번호|코드)|일회용\s*(?:번호|코드|비밀번호)|보안\s*(?:번호|코드)|verification\s*code|security\s*code|confirmation\s*code|login\s*code|sign[ -]?in\s*code|one[ -]?time\s*(?:code|password|passcode)|passcode|\botp\b|验证码|驗證碼|認証コード/gi;
 const CANDIDATE = /(?<![A-Z0-9])(?:[0-9]{3}[ \t][0-9]{3}|[A-Z0-9]{3}-[A-Z0-9]{3}|[0-9]{4,8}|[A-Z0-9]{6,8})(?![A-Z0-9])/giu;
+// 문맥 단어가 하나라도 있는지만 빠르게 봐요(전역 검색이 아니라 첫 맞음에서 멈춰요).
+const HAS_CONTEXT = new RegExp(CONTEXT.source, "i");
+// 이보다 짧은 글은 Rust로 건너가는 비용이 계산보다 커서 자바스크립트가 그대로 처리해요(재 본 값).
+const RUST_FROM = 1500;
+
+// 무거운 부분(후보 찾기·순위)은 Rust(native/core-wasm)가 해요. 결과가 같은지는 test/otp-rust.test.js 가 비교해요.
+// - 문맥 단어가 아예 없으면(대부분의 메일) 바로 null — 예전 길도 이때는 null 이에요.
+// - 짧은 글, 준비 전, Rust가 "예전 길로"라고 하면 아래 자바스크립트 길을 써요.
 export function extractMailOtp(subject, body = "") {
+    // String(x || "") 와 같게: 거짓 값은 빈 글자, 글자가 아닌 값은 예전 길로.
+    const plain = (value) => (typeof value === "string" ? value : value ? null : "");
+    const s = plain(subject), b = plain(body);
+    if (s !== null && b !== null && s.length + b.length >= RUST_FROM) {
+        if (!HAS_CONTEXT.test(s) && !HAS_CONTEXT.test(b.slice(0, 200000))) return null;
+        const fast = coreCallText("gmail.extractOtp", [s, b]);
+        if (fast && "value" in fast) return fast.value;
+    }
+    return extractMailOtpJs(subject, body);
+}
+
+export function extractMailOtpJs(subject, body = "") {
     for (const text of [String(subject || ""), String(body || "").slice(0, 200000)]) {
         const contexts = [...text.matchAll(CONTEXT)];
         if (!contexts.length) continue;

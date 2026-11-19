@@ -1,3 +1,4 @@
+import {coreCallText} from "../core-wasm.js";
 // Gmail Atom 피드(로그인 쿠키로 받는 읽지 않은 메일)를 읽는다.
 
 export const decodeXml = (value) => String(value || "")
@@ -32,7 +33,19 @@ export const emailFromTitle = (title) => {
     return match ? match[0] : "";
 };
 
+// 피드 읽기는 Rust(native/core-wasm)가 먼저 해요. 준비 전이거나 Rust가 "예전 길로"라고 하면(자바스크립트가 오류를 내는
+// 드문 피드 포함) 아래 예전 길을 써요. 결과가 같은지는 test/atom-rust.test.js 가 비교해요.
+// 메일이 없는 짧은 피드는 Rust로 건너가는 비용이 더 커서 자바스크립트가 그대로 읽어요(재 본 값: 약 1,000자부터 Rust가 빨라요).
+const RUST_FROM = 1000;
 export const parseAtom = (xml) => {
+    if (typeof xml === "string" && xml.length >= RUST_FROM) {
+        const fast = coreCallText("gmail.parseAtom", [xml]);
+        if (fast && "value" in fast) return fast.value;
+    }
+    return parseAtomJs(xml);
+};
+
+export const parseAtomJs = (xml) => {
     const text = String(xml || "");
     if (!text.includes("<feed")) return null;
     const full = Number((text.match(/<fullcount>\s*(\d+)\s*<\/fullcount>/i) || [])[1] || 0);

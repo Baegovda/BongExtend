@@ -1,0 +1,22 @@
+[package]
+name = "bongextend-core"
+version = "1.0.0"
+edition = "2021"
+license = "GPL-3.0-only"
+description = "BongExtend rule/parsing logic in Rust (downloads, mail, update checks, shop), built to WebAssembly. Each function matches the old JavaScript exactly or answers 'fallback'."
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+path = "src/lib.rs"
+
+[dependencies]
+serde_json = { version = "1", features = ["preserve_order"] }
+memchr = "2"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

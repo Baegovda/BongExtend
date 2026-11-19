@@ -8,5 +8,6 @@ native/video/BongExtendVideo.exe
 native/video/__pycache__/
 native/video-rs/target/
 native/dark-pixels/target/
+native/core-wasm/target/
 
 native/video/BongExtendBrowser.exe
