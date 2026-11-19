@@ -96,6 +96,14 @@
   const MAX_UNAVAILABLE = 120;
   let unavailableCount = 0;
   let reportGeneration = 0, reportAttempts = 0, reportPending = false, reportSettled = false, retryAt = 0;
+  const FALSE_SETTLE_MS = 500;
+  let falseSince = 0, falseTimer = 0;
+  // 기록용 판단 근거: 플레이어 틀의 상태 표시(class)와 버튼 글자만 보내요(주소·제목·채팅은 담지 않아요).
+  const detail = button => {
+    const box = layout();
+    const cls = box ? String(box.className || '').split(/\s+/).filter(c => /^(is_|type_|has_|wide|large)/i.test(c)).join(' ') : 'none';
+    return `${cls} | ${button ? (button.getAttribute('aria-label') || button.getAttribute('title') || '').slice(0, 20) : 'no-button'}`.slice(0, 120);
+  };
   const wideObserver = new MutationObserver(() => {
     if (!frame) frame = requestAnimationFrame(() => {frame = 0; checkWide();});
   });
@@ -106,7 +114,14 @@
       if (root) wideObserver.observe(root, {attributes:true, attributeFilter:['class']});
       if (button && button !== root) wideObserver.observe(button, {attributes:true, attributeFilter:['class','aria-pressed','aria-checked','aria-label','title']});
     }
-    const wide = wideFullscreen && !!pageKey() && D.wideState(info(button)) === true;
+    const detected = wideFullscreen && !!pageKey() && D.wideState(info(button)) === true;
+    // 넓은 화면이 풀렸다는 판단은 잠깐 더 지켜봐요. 전체화면으로 바뀌는 순간 치지직이 화면을 다시 그리면서
+    // 잠깐 넓은 화면 표시가 빠질 수 있는데, 그걸 믿으면 막 켠 전체화면을 곧바로 다시 풀어 버려요.
+    if (!detected && lastWide === true && wideFullscreen && pageKey()) {
+      if (!falseSince) falseSince = Date.now();
+      if (Date.now() - falseSince < FALSE_SETTLE_MS) { clearTimeout(falseTimer); falseTimer = setTimeout(() => checkWide(), FALSE_SETTLE_MS + 50); return; }
+    } else falseSince = 0;
+    const wide = detected;
     if (force || wide !== lastWide) {
       lastWide = wide;
       reportGeneration++;
@@ -129,7 +144,7 @@
       else if (response?.status === 'unavailable' && !response.error && unavailableCount++ < MAX_UNAVAILABLE) { reportAttempts = Math.max(0, reportAttempts - 1); retryAt = Date.now() + 5000; }
       else retryAt = Date.now() + Math.min(RETRY_MS * reportAttempts, 5000);
     };
-    void chrome.runtime.sendMessage({type:'BONG_CHZZK_WIDE_FULLSCREEN', wide}).then(complete, () => complete(null));
+    void chrome.runtime.sendMessage({type:'BONG_CHZZK_WIDE_FULLSCREEN', wide, detail:detail(button)}).then(complete, () => complete(null));
   }
   // 사용자가 넓은 화면 버튼을 직접 누르거나 단축키(t)를 눌렀을 때: 화면이 바뀌는 걸 기다리지 않고 곧바로 다시 확인해요.
   const userToggled = () => { setTimeout(() => checkWide(), 150); setTimeout(() => checkWide(), 700); };

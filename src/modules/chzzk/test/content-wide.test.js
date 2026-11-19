@@ -15,7 +15,7 @@ function fixture(t, reply) {
   window.chrome = {runtime:{id:'self',onMessage:{addListener(){}},sendMessage:async message => {requests.push(message); return reply(requests.length);}}};
   window.eval(readFileSync(new URL('../lib/wide.js', import.meta.url), 'utf8'));
   window.eval(readFileSync(new URL('../content-wide.js', import.meta.url), 'utf8'));
-  return {requests, tick:async () => {now += 5000; tick(); await new Promise(resolve => setImmediate(resolve));}};
+  return {requests, window, tick:async (step = 5000) => {now += step; tick(); await new Promise(resolve => setImmediate(resolve));}};
 }
 
 test('wide fullscreen retries a transient rejected request without another layout change', async t => {
@@ -56,4 +56,29 @@ test('manual fullscreen exit and disabled settings are not repeatedly overridden
     for (let i=0; i<4; i++) await f.tick();
     assert.equal(f.requests.length, 1);
   }
+});
+
+test('a wide layout that flickers off for a moment does not leave fullscreen', async t => {
+  const f = fixture(t, () => ({ok:true, status:'fullscreen'}));
+  await new Promise(resolve => setImmediate(resolve));
+  assert.deepEqual(f.requests.map(r => r.wide), [true]);
+  assert.match(f.requests[0].detail, /is_large/);
+  // 전체화면으로 바뀌는 순간 치지직이 잠깐 넓은 화면 표시를 뺐다가 다시 붙여요.
+  const box = f.window.document.getElementById('live_player_layout'), button = f.window.document.querySelector('button');
+  box.classList.remove('is_large'); button.setAttribute('aria-label', '넓은 화면');
+  await f.tick(0);
+  box.classList.add('is_large'); button.setAttribute('aria-label', '좁은 화면');
+  await f.tick(600);
+  assert.deepEqual(f.requests.map(r => r.wide), [true], 'no exit was sent');
+});
+
+test('turning wide mode off still leaves fullscreen after a short check', async t => {
+  const f = fixture(t, () => ({ok:true, status:'fullscreen'}));
+  await new Promise(resolve => setImmediate(resolve));
+  const box = f.window.document.getElementById('live_player_layout'), button = f.window.document.querySelector('button');
+  box.classList.remove('is_large'); button.setAttribute('aria-label', '넓은 화면');
+  await f.tick(0);
+  assert.deepEqual(f.requests.map(r => r.wide), [true], 'not yet');
+  await f.tick(600);
+  assert.deepEqual(f.requests.map(r => r.wide), [true, false]);
 });

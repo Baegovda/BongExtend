@@ -48,4 +48,6 @@ test('wide scoreCandidate / wideState', () => {
   assert.equal(D.wideState({ cls: 'pzp-viewmode-button--active', label: '넓은 화면' }), true);
   assert.equal(D.wideState({ cls: 'pzp-viewmode-button', label: '넓은 화면', layoutKnown: true, layoutWide: false }), false);
   assert.equal(D.wideState({ cls: 'pzp-viewmode-button', label: '기본 화면' }), true);
+  // 넓은 화면일 때 치지직 버튼은 '좁은 화면'을 제안해요. 플레이어 틀 표시가 빠져도 넓은 화면으로 봐요.
+  assert.equal(D.wideState({ cls: 'pzp-viewmode-button', label: '좁은 화면', layoutKnown: true, layoutWide: false }), true);
 });

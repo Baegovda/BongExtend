@@ -2,7 +2,8 @@
 (function (root) {
   'use strict';
   const LABEL = /넓은\s*화면|와이드|wide/i;
-  const ACTIVE_LABEL = /기본\s*화면|넓은\s*화면\s*(해제|끄기)|wide\s*(off|exit)|축소/i;
+  // 지금 넓은 화면이라서 버튼이 '좁은 화면 / 기본 화면 / 넓은 화면 해제'를 제안하는 경우. 치지직은 넓은 화면일 때 버튼 글자를 '좁은 화면'으로 바꿔요.
+  const ACTIVE_LABEL = /기본\s*화면|좁은\s*화면|넓은\s*화면\s*(해제|끄기)|wide\s*(off|exit)|narrow|축소/i;
   const CLS = /viewmode|wide|screen-mode|theater/i;
   // 후보 요소 정보 {cls, label, text} → 점수(0이면 후보 아님). 전체화면 버튼은 제외.
   function scoreCandidate(info) {

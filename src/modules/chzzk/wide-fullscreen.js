@@ -122,12 +122,12 @@ export function startWideFullscreenBridge(chrome = globalThis.chrome, {sleep = m
     return {ok:true, status:'fullscreen'};
   }
 
-  const trace = async (wide, result, sender) => {
+  const trace = async (wide, result, sender, detail) => {
     try {
       let window = {};
       try { window = await chrome.windows.get(sender.tab.windowId); } catch { /* 닫힌 창 */ }
       const list = (await chrome.storage.local.get(WIDE_TRACE_KEY))[WIDE_TRACE_KEY] || [];
-      list.push({at:Date.now(), wide, status:result?.status || (result?.ok ? 'ok' : 'fail'), error:result?.error ? String(result.error).slice(0, 120) : undefined, state:window.state, focused:window.focused});
+      list.push({at:Date.now(), wide, status:result?.status || (result?.ok ? 'ok' : 'fail'), error:result?.error ? String(result.error).slice(0, 120) : undefined, state:window.state, focused:window.focused, detail:typeof detail === 'string' ? detail.slice(0, 120) : undefined});
       await chrome.storage.local.set({[WIDE_TRACE_KEY]: list.slice(-30)});
     } catch { /* 기록은 실패해도 괜찮아요. */ }
   };
@@ -136,12 +136,12 @@ export function startWideFullscreenBridge(chrome = globalThis.chrome, {sleep = m
         !Number.isInteger(sender.tab?.id) || sender.frameId !== 0 || !watchPage(sender.url)) return;
     void enqueue(() => apply(message.wide, sender)).then(result => {
       reply(result);
-      void trace(message.wide, result, sender);
+      void trace(message.wide, result, sender, message.detail);
     }, error => {
       console.warn('치지직 Chrome 전체화면 전환을 완료하지 못했어요.', error);
       const result = {ok:false, status:'unavailable', error:String(error?.message || error)};
       reply(result);
-      void trace(message.wide, result, sender);
+      void trace(message.wide, result, sender, message.detail);
     });
     return true;
   });
