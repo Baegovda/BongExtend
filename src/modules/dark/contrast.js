@@ -7,7 +7,7 @@ export const parseColor = value => {
   return n.length >= 3 && n.every(Number.isFinite) ? [...n.slice(0, 3), n[3] ?? 1] : null;
 };
 export const composite = (front, back) => [...front.slice(0, 3).map((v, i) => v * front[3] + back[i] * (1 - front[3])), 1];
-const luminance = c => c.slice(0, 3).map(v => {v /= 255; return v <= .04045 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4;}).reduce((sum, v, i) => sum + v * [.2126, .7152, .0722][i], 0);
+export const luminance = c => c.slice(0, 3).map(v => {v /= 255; return v <= .04045 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4;}).reduce((sum, v, i) => sum + v * [.2126, .7152, .0722][i], 0);
 export const contrastRatio = (a, b) => (Math.max(luminance(a), luminance(b)) + .05) / (Math.min(luminance(a), luminance(b)) + .05);
 export const readableColor = (foreground, background, target = 4.5) => {
   return repairColor(foreground, color => contrastRatio(composite(color, background), background), target);

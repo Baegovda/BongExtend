@@ -1,4 +1,5 @@
 import {parseColor, contrastRatio, composite, readableColor} from './contrast.js';
+import {prepareIconPixels, repairIconPixelsWasm} from './icon-pixels.js';
 
 // Only small transparent bitmap controls are eligible. Decode locally, preserve
 // every saturated pixel and alpha value, and never send page data to a service.
@@ -72,6 +73,8 @@ export function recolorSvgDataUrl(url, background, target = 7) {
 
 export function createIconContrastController(doc = document, onSettled = () => {}, {fetchImage} = {}) {
   const win = doc.defaultView, cache = new Map(), records = new WeakMap(), refs = new Set(), aborts = new Set();
+  // 빠른 픽셀 보정(WebAssembly)을 미리 준비해요. 준비 전에 온 그림은 예전 계산으로 처리해요.
+  void prepareIconPixels();
   let active = false, generation = 0, pending = 0;
   // Inline data-SVG icons: one owned stylesheet keyed by a per-element token.
   const svgMarker = 'data-bong-svgicon', svgRecords = new Map();
@@ -182,7 +185,10 @@ export function createIconContrastController(doc = document, onSettled = () => {
       const canvas = doc.createElement('canvas'); canvas.width=bitmap.width;canvas.height=bitmap.height;
       const ctx = canvas.getContext('2d', {willReadFrequently:true}); if(!ctx)return null;
       ctx.drawImage(bitmap,0,0);
-      const pixels=ctx.getImageData(0,0,canvas.width,canvas.height), repaired=repairIconPixels(pixels.data,canvas.width,canvas.height,bg,limits);
+      // 빠른 길(Rust → WebAssembly)이 준비됐으면 그걸 쓰고, 아니면 예전 자바스크립트 계산을 써요. 결과는 같아요.
+      const pixels=ctx.getImageData(0,0,canvas.width,canvas.height);
+      const fast=repairIconPixelsWasm(pixels.data,canvas.width,canvas.height,bg,limits);
+      const repaired=fast===undefined?repairIconPixels(pixels.data,canvas.width,canvas.height,bg,limits):fast;
       if(!repaired)return null;
       pixels.data.set(repaired);ctx.putImageData(pixels,0,0);
       let result;

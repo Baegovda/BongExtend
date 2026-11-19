@@ -38,6 +38,10 @@ jobs:
             -   name: Test Rust video host
                 run: cargo test --manifest-path native/video-rs/Cargo.toml
 
+            # 다크 모드 픽셀 보정(Rust): 기능 시험. 자바스크립트와의 결과 비교는 bun run test 의 icon-pixels.test.js 가 해요.
+            -   name: Test Rust dark pixels
+                run: cargo test --manifest-path native/dark-pixels/Cargo.toml
+
             -   name: Build
                 run: bun run build
 

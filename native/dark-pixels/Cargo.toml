@@ -1,0 +1,18 @@
+[package]
+name = "bongextend-dark-pixels"
+version = "1.0.0"
+edition = "2021"
+license = "GPL-3.0-only"
+description = "BongExtend dark mode: icon/logo pixel contrast repair (Rust port of repairIconPixels, built to WebAssembly)."
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+path = "src/lib.rs"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
