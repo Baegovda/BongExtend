@@ -10,7 +10,13 @@ const {chromium}=require('playwright'),fs=require('node:fs'),os=require('node:os
   const before=await page.locator('#arrowPath').getAttribute('stroke');await page.screenshot({path:path.join(folder,'before.png')});
   const source=require('./inline-dark.cjs').contrastSource()+'\n'+fs.readFileSync('src/modules/dark/icon-contrast.js','utf8').replace(/^import[^\n]*\n/gm,'').replace(/export /g,'');
   await page.addScriptTag({content:source+';window.icons=createIconContrastController(document,()=>contrast.update());window.contrast=createContrastController(document,{inspectImage:icons.inspect});icons.start();contrast.start();'});
-  await page.waitForFunction(()=>document.querySelector('#data [data-bong-icon-owned]'));
+  // Since 1.2.145 inline data-SVG icons are recolored through one owned stylesheet keyed by data-bong-svgicon
+  // (the element's own style stays untouched), so the old data-bong-icon-owned inline write no longer happens here.
+  await page.waitForFunction(()=>document.querySelector('#data .glyph[data-bong-svgicon]'));
+  const glyph=await page.locator('#data .glyph').evaluate(e=>({shown:getComputedStyle(e).backgroundImage,own:e.style.backgroundImage}));
+  assert.match(glyph.shown,/^url\("data:image\/svg\+xml,/,'data SVG arrow is drawn from the recolored copy');
+  assert.match(decodeURIComponent(glyph.shown),/stroke="(?!#333333)[^"]+"/,'neutral #333333 stroke is lifted');
+  assert.match(glyph.own,/data:image\/svg\+xml;base64/,'page inline style is left untouched');
   assert.notEqual(await page.locator('#arrowPath').evaluate(e=>getComputedStyle(e).stroke),'rgb(51, 51, 51)');
   assert.equal(await page.locator('#arrowPath').getAttribute('stroke'),before);
   assert.equal(await page.locator('#brand').evaluate(e=>getComputedStyle(e).fill),'rgb(22, 139, 224)');
@@ -21,7 +27,8 @@ const {chromium}=require('playwright'),fs=require('node:fs'),os=require('node:os
   await page.locator('#arrowPath').evaluate(el=>el.setAttribute('stroke','#333333'));await page.waitForTimeout(200);
   assert.notEqual(await page.locator('#arrowPath').evaluate(el=>getComputedStyle(el).stroke),'rgb(51, 51, 51)');
   await page.screenshot({path:path.join(folder,'dark.png')});await page.evaluate(()=>{icons.stop();contrast.stop()});
-  assert.equal(await page.locator('#arrowPath').evaluate(e=>getComputedStyle(e).stroke),'rgb(51, 51, 51)');assert.equal(await page.locator('[data-bong-icon-owned]').count(),0);
+  assert.equal(await page.locator('#arrowPath').evaluate(e=>getComputedStyle(e).stroke),'rgb(51, 51, 51)');assert.equal(await page.locator('[data-bong-icon-owned],[data-bong-svgicon],[data-bong-svgicon-sheet]').count(),0);
+  assert.equal(await page.locator('#data .glyph').evaluate(e=>getComputedStyle(e).backgroundImage.startsWith('url("data:image/svg+xml;base64,')),true,'OFF shows the original data SVG again');
   assert.match(await page.locator('#data .glyph').evaluate(e=>e.style.backgroundImage),/data:image\/svg\+xml;base64/);
   console.log('PASS enabled neutral inline/data SVG arrows, brand/disabled/hidden, stable passes and OFF restore');
  }finally{await browser.close()}
