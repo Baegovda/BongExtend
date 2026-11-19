@@ -19,14 +19,20 @@ const {chromium}=require('playwright'),fs=require('node:fs'),path=require('node:
   const protectedBefore=await guards();
   const helpers=require('./inline-dark.cjs').contrastSource()+'\n'+fs.readFileSync('src/modules/dark/icon-contrast.js','utf8').replace(/^import[^\n]*\n/gm,'').replace(/export /g,'');
   await page.addScriptTag({content:helpers+';window.icons=createIconContrastController(document,()=>contrast.update());window.contrast=createContrastController(document,{inspectImage:icons.inspect});icons.start();contrast.start();'});await page.waitForTimeout(500);
-  await page.waitForFunction(()=>document.querySelector('#dataGlyph').hasAttribute('data-bong-icon-owned'));
+  // Since 1.2.145 inline data-SVG icons are recolored through one owned stylesheet keyed by data-bong-svgicon
+  // (the element's own style stays untouched) instead of data-bong-icon-owned inline writes.
+  const glyphBefore=await page.locator('#dataGlyph').getAttribute('style');
+  await page.waitForFunction(()=>document.querySelector('#dataGlyph').hasAttribute('data-bong-svgicon'));
+  assert.equal(await page.locator('#dataGlyph').getAttribute('style'),glyphBefore,'icon inline style is not rewritten');
+  const glyphPaint=await page.locator('#dataGlyph').evaluate(e=>decodeURIComponent(getComputedStyle(e).backgroundImage));
+  assert.ok(glyphPaint.includes('<svg')&&!/stroke="#333333"/i.test(glyphPaint),'data-SVG glyph is recolored for the dark button: '+glyphPaint.slice(0,160));
   assert.equal(await page.locator('#alpha').evaluate(e=>getComputedStyle(e.parentElement).opacity),'0.72');
   assert.match(await page.locator('#alpha').evaluate(e=>e.style.color),/0\.85\)/);
   assert.notEqual(await page.locator('#svgGlyph').evaluate(e=>getComputedStyle(e).stroke),'rgb(51, 51, 51)');
   const repaired=await read();console.log('HELPER',repaired);assert.equal(repaired[0].border,baseline[0].border);assert.equal(repaired[1].shadow,baseline[1].shadow);await page.screenshot({path:path.join(folder,'helper-dark.png')});
   assert.deepEqual(await guards(),protectedBefore);
   const passes=await page.evaluate(()=>contrast.stats.passes);await page.waitForTimeout(700);assert.equal(await page.evaluate(()=>contrast.stats.passes),passes,'no inline observer feedback loop');
-  await page.evaluate(()=>{icons.stop();contrast.stop()});await page.waitForTimeout(200);const stopped=await read();assert.equal(stopped[0].border,baseline[0].border);assert.equal(stopped[1].shadow,baseline[1].shadow);assert.equal(await page.locator('[data-bong-icon-owned]').count(),0);console.log('STOP',stopped);console.log(folder);
+  await page.evaluate(()=>{icons.stop();contrast.stop()});await page.waitForTimeout(200);const stopped=await read();assert.equal(stopped[0].border,baseline[0].border);assert.equal(stopped[1].shadow,baseline[1].shadow);assert.equal(await page.locator('[data-bong-icon-owned],[data-bong-svgicon]').count(),0);console.log('STOP',stopped);console.log(folder);
   await page.evaluate(()=>DarkReader.disable());await page.waitForTimeout(100);assert.equal((await read())[0].border,'rgb(255, 255, 255)');
  }finally{await browser.close()}
 })().catch(e=>{console.error(e);process.exitCode=1});

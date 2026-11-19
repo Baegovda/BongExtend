@@ -15,14 +15,17 @@ const {chromium}=require('playwright'),fs=require('node:fs'),os=require('node:os
    await chrome.storage.local.set({'core.update:autoCheck':false,'core.popupTab':'fx','fx.favorites':['keep-me'],'fx.table':{base:'krw',date:'2026-11-09',fetchedAt:Date.now()+3600000,rates:{krw:1,usd:0.0007,eur:0.0006,jpy:0.11,cny:0.005,gbp:0.0005,btc:0.00000001,eth:0.0000002,nzd:0.001,aed:0.002,sol:0.000003}}});
   });
   await context.addInitScript(()=>{globalThis.WebSocket=class{constructor(){this.readyState=0;}close(){}};});
-  const page=await context.newPage();await page.goto(`chrome-extension://${id}/popup.html`);
+  const page=await context.newPage();
+  // Since 1.2.153 the popup opens on mail first (saved tab is ignored), so every load selects the FX tab explicitly.
+  const showFx=async()=>{await page.locator('[data-tab="fx"]').click();await page.locator('#fxManageCurrencies').waitFor();};
+  await page.goto(`chrome-extension://${id}/popup.html`);await showFx();
   await page.waitForFunction(()=>document.querySelectorAll('#fxMore [data-code]').length===8);
   await page.locator('#fxManageCurrencies').click();await page.locator('#fxCurrencySearch').fill('뉴질랜드');
   assert.equal(await page.locator('#fxCurrencyList input').count(),1);
   await page.locator('[data-currency="nzd"]').check();await page.locator('#fxPickerApply').click();
   await page.locator('#fxMore [data-code="nzd"]').waitFor();
   await page.locator('#fxManageCurrencies').click();await page.locator('#fxCurrencySearch').fill('solana');await page.locator('[data-currency="sol"]').check();await page.locator('#fxPickerApply').click();
-  await page.reload();await page.locator('#fxMore [data-code="sol"]').waitFor();
+  await page.reload();await showFx();await page.locator('#fxMore [data-code="sol"]').waitFor();
   assert.equal(await worker.evaluate(async()=>(await chrome.storage.local.get('fx.favorites'))['fx.favorites'][0]),'keep-me');
   await page.locator('#fxManageCurrencies').click();await page.locator('#fxSelectAll').click();await page.locator('#fxPickerApply').click();
   assert.equal(await page.locator('#fxMore [data-code]').count(),11);
@@ -33,7 +36,7 @@ const {chromium}=require('playwright'),fs=require('node:fs'),os=require('node:os
   await page.locator('#fxMore [data-code="aed"]').click();assert.equal(await page.locator('#fxTo').inputValue(),'aed');
   const catalog=JSON.parse(fs.readFileSync('src/modules/fx/currency-names.js','utf8').split('export const CURRENCY_NAMES = ')[1].trim().replace(/;$/,''));
   await worker.evaluate(async codes=>{const rates=Object.fromEntries(codes.map(code=>[code,code==='krw'?1:0.001]));await chrome.storage.local.set({'fx.table':{base:'krw',date:'2026-11-09',fetchedAt:Date.now()+3600000,rates}});},Object.keys(catalog));
-  await page.reload();await page.locator('#fxManageCurrencies').click();await page.locator('#fxSelectAll').click();await page.locator('#fxPickerApply').click();
+  await page.reload();await showFx();await page.locator('#fxManageCurrencies').click();await page.locator('#fxSelectAll').click();await page.locator('#fxPickerApply').click();
   assert.equal(await page.locator('#fxMore [data-code]').count(),Object.keys(catalog).length);
   await page.locator('#fxMore [data-code]').last().scrollIntoViewIfNeeded();
   console.log('PASS complete catalog renders and scrolls:',Object.keys(catalog).length);

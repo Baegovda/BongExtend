@@ -1,59 +1,53 @@
-// Actual packaged manager in a disposable Chrome profile. No personal downloads.
+// Actual packaged download manager (downloads.html, BongExtend's own engine since 1.2.94) in a disposable Chrome profile.
+// The only download is a tiny file from a local test server; no personal downloads, accounts or network services.
 const {chromium}=require('playwright');
-const fs=require('node:fs'),path=require('node:path'),os=require('node:os'),assert=require('node:assert/strict');
+const fs=require('node:fs'),path=require('node:path'),os=require('node:os'),http=require('node:http'),assert=require('node:assert/strict');
 (async()=>{
  const folder=fs.mkdtempSync(path.join(os.tmpdir(),'be-manager-')),ext=path.join(folder,'extension');fs.cpSync('.output/chrome-mv3',ext,{recursive:true});
- if(process.argv.includes('--source'))for(const file of ['download-module.css','download-module.js','ui/index.html'])fs.copyFileSync(path.join('public',file),path.join(ext,file));
- if(process.argv.includes('--source'))fs.copyFileSync('src/modules/theme/theme.css',path.join(ext,'theme/theme.css'));
- const diagnostic=process.argv.includes('--diagnose'),vendor=process.argv.includes('--vendor');
- if(vendor){const html=path.join(ext,'ui/index.html');fs.writeFileSync(html,fs.readFileSync(html,'utf8').replace('<link rel="stylesheet" href="/download-module.css">','').replace('<script src="/download-module.js"></script>',''));}
+ const server=http.createServer((req,res)=>{res.writeHead(200,{'Content-Type':'application/octet-stream','Content-Disposition':'attachment; filename="bongextend-ui-fixture.bin"'});res.end('local fixture');});
+ await new Promise(r=>server.listen(0,'127.0.0.1',r));const url=`http://127.0.0.1:${server.address().port}/bongextend-ui-fixture.bin`;
  const context=await chromium.launchPersistentContext(path.join(folder,'profile'),{channel:'chrome',headless:true,viewport:{width:734,height:500},ignoreDefaultArgs:['--disable-extensions'],args:['--enable-unsafe-extension-debugging']});
  try{
-  const {id}=await(await context.browser().newBrowserCDPSession()).send('Extensions.loadUnpacked',{path:ext});
+  const cdp=await context.browser().newBrowserCDPSession();await cdp.send('Browser.setDownloadBehavior',{behavior:'allowAndName',downloadPath:path.join(folder,'files'),eventsEnabled:true});
+  const {id}=await cdp.send('Extensions.loadUnpacked',{path:ext});
   const worker=context.serviceWorkers()[0]||await context.waitForEvent('serviceworker');await worker.evaluate(()=>chrome.storage.local.set({'core.update:autoCheck':false}));
-  const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text().split('\n')[0])});await page.emulateMedia({colorScheme:'dark'});await page.goto(`chrome-extension://${id}/ui/index.html`);await page.locator('.loading-overlay').waitFor({state:'hidden'});
-  await page.waitForTimeout(350);
-  if(process.argv.includes('--bridge-only')){console.log(JSON.stringify(await page.evaluate(async()=>({name:Ta(We),keys:await Promise.all([4,8,13].map(async id=>({id,keys:await(await vf()).a([String(id)])})))}))));return;}
-  const start=page.locator('a.mdl-noty__primary-action').filter({hasText:/^시작$/});
-  if(await start.count())await start.evaluate(e=>e.click());
+  const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text().split('\n')[0])});
+  await page.emulateMedia({colorScheme:'dark'});await page.goto(`chrome-extension://${id}/downloads.html`);await page.locator('#downloadStats').filter({hasText:'최근 기록 0개'}).waitFor();
   await page.waitForTimeout(250);
-  const checkToolbar=async()=>assert.equal(await page.locator('#dy_tbar button[id]').evaluateAll(buttons=>buttons.filter(b=>b.getBoundingClientRect().width).every(b=>{const r=b.getBoundingClientRect();return r.left>=0&&r.right<=innerWidth&&!!b.getAttribute('aria-label')&&!!(b.title||b.querySelector('.mdl-tooltip')?.textContent);})),true);
-  if(!diagnostic)await checkToolbar();
+  // Every visible control stays inside the window and has a readable name.
+  const checkControls=async()=>assert.deepEqual(await page.locator('button,select,input,textarea').evaluateAll(controls=>controls.filter(c=>c.getClientRects().length&&c.getBoundingClientRect().width).filter(c=>{const r=c.getBoundingClientRect(),name=(c.getAttribute('aria-label')||c.textContent||c.title||c.placeholder||c.closest('label')?.textContent||'').trim();return r.left<0||r.right>innerWidth+.5||!name;}).map(c=>c.id||c.outerHTML.slice(0,80))),[],'controls stay inside the window and are named');
+  const checkNoScroll=async()=>assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'no horizontal page scroll');
+  const brightness=selector=>page.locator(selector).first().evaluate(e=>{let n=e;while(n){const c=getComputedStyle(n).backgroundColor.match(/[\d.]+/g).map(Number);if(c.length<4||c[3]>0)return (c[0]+c[1]+c[2])/3;n=n.parentElement;}return 255;});
+  await checkControls();await checkNoScroll();
+  assert.equal(await page.locator('#empty').isVisible(),true,'empty state is shown');
+  assert.ok(await brightness('body')<80,'dark page background');
   await page.screenshot({path:path.join(folder,'manager-dark.png')});
-  if(process.argv.includes('--baseline')){console.log('Evidence:',folder);return;}
-  assert.notEqual(await page.locator('#dy_lnav').evaluate(e=>getComputedStyle(e).backgroundColor),'rgb(250, 250, 250)');
-  await page.emulateMedia({colorScheme:'light'});await page.waitForTimeout(200);await page.screenshot({path:path.join(folder,'manager-light.png')});
+  await page.emulateMedia({colorScheme:'light'});await page.waitForTimeout(200);assert.ok(await brightness('body')>180,'light page background');await page.screenshot({path:path.join(folder,'manager-light.png')});
   await page.setViewportSize({width:440,height:620});await page.waitForTimeout(250);await page.screenshot({path:path.join(folder,'manager-narrow.png')});
-  if(!diagnostic){assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);await checkToolbar();}
-  if(!diagnostic)console.log('PASS empty themes, 734/440 toolbar bounds and accessible names. Evidence:',folder);
-  console.log('new task',await page.evaluate(()=>chrome.runtime.sendMessage({cmd:'new_task',add_paused:true,tasks:[{url:'http://downloads.test:45678/bongextend-ui-fixture.bin'}],source:75})));
-  await page.reload();await page.locator('.loading-overlay').waitFor({state:'hidden'});
-  await page.locator('#filterTaskAll').click();
-  await page.waitForTimeout(3000);
-  await page.waitForTimeout(800);
-  const taskCount=await page.evaluate(()=>new Promise(resolve=>{const r=indexedDB.open('downloady',2);r.onsuccess=()=>{const db=r.result,q=db.transaction('tasks-v2').objectStore('tasks-v2').count();q.onsuccess=()=>{db.close();resolve(q.result)};};}));
-  if(diagnostic)console.log('UI bridge',await page.evaluate(async()=>({name:Ta(We),present:Boolean(globalThis[Ta(We)]),tasks:await wf.eg(4,'missing'),keys:await Promise.all([4,8,13].map(async id=>({id,keys:await(await vf()).a([String(id)])})))})));
+  await checkNoScroll();await checkControls();
+  console.log('PASS empty themes, 734/440 control bounds and accessible names. Evidence:',folder);
+
+  const downloadId=await page.evaluate(url=>chrome.downloads.download({url}),url);
+  await page.waitForFunction(id=>chrome.downloads.search({id}).then(([d])=>d?.state==='complete'),downloadId);
+  const row=page.locator('.download-row[data-state="complete"]').filter({hasText:'127.0.0.1'});await row.waitFor();
+  await page.locator('#downloadStats').filter({hasText:'1개 완료'}).waitFor();
+  for(const name of ['열기','폴더 보기','기록 지우기'])assert.equal(await row.getByRole('button',{name}).isVisible(),true,name);
+  await checkNoScroll();await checkControls();
   await page.screenshot({path:path.join(folder,'manager-item-light.png')});
-  console.log('Actual paused task count:',taskCount,'visible rows:',await page.locator('#dy_tb .slick-row').count());
-  if(diagnostic){console.log(JSON.stringify({vendor,filter:await page.locator('#filterTaskAll').getAttribute('filter_str'),geometry:await page.evaluate(()=>['#dy_tb','.slick-viewport','.grid-canvas'].map(selector=>{const e=document.querySelector(selector),r=e.getBoundingClientRect(),s=getComputedStyle(e);return{selector,rect:[r.x,r.y,r.width,r.height],height:s.height,display:s.display}})),errorCount:errors.length,promoCorsCount:errors.filter(e=>e.includes('promo.json')).length,otherErrors:errors.filter(e=>!e.includes('promo.json')&&!e.includes('net::ERR_FAILED'))},null,2));console.log('Evidence:',folder);return;}
-  assert.ok((await page.locator('#dy_tb').innerText()).includes('bongextend-ui-fixture'));
-  await page.locator('#dy_tb .slick-row').first().click();
-  assert.equal(await page.evaluate(async()=>{const tasks=await wf.eg(4,[]);return (await wf.eg(8,[],[tasks[0].id])).length}),1,'live task lookup uses the readonly bridge');
-  assert.equal(await page.evaluate(()=>wf.eg(13,-1,'finished')),0,'paused task must not count as complete');
-  await page.screenshot({path:path.join(folder,'manager-selected.png')});
-  await page.locator('#dy_searchbox_btn').click();
-  await page.locator('#dy_searchbox_input').fill('no-matching-fixture');
-  await page.locator('#dy_searchbox_input').press('Enter');
-  await page.waitForTimeout(400);
-  assert.equal(await page.locator('#dy_tb .slick-row').count(),0);
-  await page.locator('#dy_searchbox_input').fill('');
-  await page.locator('#dy_searchbox_input').press('Enter');
-  await page.waitForTimeout(400);
-  assert.ok(await page.locator('#dy_tb .slick-row').count());
-  await page.locator('#dy_searchbox_btn').click();
-  await page.emulateMedia({colorScheme:'dark'});await page.waitForTimeout(400);
-  for(const selector of ['#dy_searchbox_btn','#dy_lnav_filter_recycled > .material-icons'])assert.ok(await page.locator(selector).evaluate(e=>Number(getComputedStyle(e).color.match(/\d+/)[0])>150),selector+' dark control contrast');
+  // Search and filters hide/show the row; the empty notice follows.
+  await page.locator('#search').fill('no-matching-fixture');assert.equal(await page.locator('.download-row').count(),0);assert.equal(await page.locator('#empty').isVisible(),true);
+  await page.locator('#search').fill('/ui-fixture\\.bin$/');assert.equal(await page.locator('.download-row').count(),1,'regex search');
+  await page.locator('#search').fill('');await page.locator('#stateFilter').selectOption('in_progress');assert.equal(await page.locator('.download-row').count(),0);
+  await page.locator('#stateFilter').selectOption('complete');assert.equal(await page.locator('.download-row').count(),1);
+  await page.locator('#typeFilter').selectOption('images');assert.equal(await page.locator('.download-row').count(),0);await page.locator('#typeFilter').selectOption('all');
+  await page.locator('#stateFilter').selectOption('all');assert.equal(await page.locator('.download-row').count(),1);
+  // Table/list view toggle is remembered.
+  await page.locator('#viewToggle').click();await page.waitForFunction(()=>chrome.storage.local.get('core.downloads').then(v=>v['core.downloads']?.listView===false));
+  assert.equal(await page.locator('#downloadList').evaluate(e=>e.classList.contains('table-view')),true);await page.locator('#viewToggle').click();
+  await page.emulateMedia({colorScheme:'dark'});await page.setViewportSize({width:734,height:500});await page.waitForTimeout(300);
+  for(const selector of ['.download-name','#viewToggle','#search'])assert.ok(await page.locator(selector).first().evaluate(e=>{const c=getComputedStyle(e).color.match(/\d+/g).map(Number);return (c[0]+c[1]+c[2])/3>150;}),selector+' dark text contrast');
   await page.screenshot({path:path.join(folder,'manager-item-dark.png')});
-  console.log('PASS manager themes and responsive view. Evidence:',folder);
- }finally{await context.close()}
+  assert.deepEqual(errors,[]);
+  console.log('PASS manager row actions, search/filters, view toggle, themes and responsive view. Evidence:',folder);
+ }finally{await context.close();await new Promise(r=>server.close(r));}
 })().catch(e=>{console.error(e);process.exitCode=1});
