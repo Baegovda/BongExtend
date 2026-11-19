@@ -25,19 +25,22 @@ const fs=require('node:fs'),os=require('node:os'),path=require('node:path'),asse
    await page.setViewportSize({width,height:590});
    await worker.evaluate(width=>chrome.storage.local.set({'core.popupSize':{width,height:590}}),width);
    await page.goto(`chrome-extension://${id}/popup.html`);await page.emulateMedia({colorScheme:'dark',reducedMotion:'reduce'});
-   await page.getByRole('tab',{name:'환율',exact:true}).waitFor();
+   // Since 1.2.153 the popup opens on mail (or downloads) and the mail screen shows icon-only tabs, so tabs are found by data-tab.
+   await page.locator('[data-tab="fx"]').waitFor();assert.equal(await page.locator('[data-tab="fx"] .nav-label').textContent(),'환율');
    let geometry;
    for(const tab of tabs){
     await page.locator(`[data-tab="${tab}"]`).click();await page.waitForTimeout(180);
     const current=await page.evaluate(()=>{
      const rect=e=>{const r=e.getBoundingClientRect();return [r.x,r.y,r.width,r.height].map(n=>Math.round(n*100)/100)};
-     return {bar:rect(document.querySelector('.tabs')),group:rect(document.querySelector('#tabGroup')),tools:rect(document.querySelector('.window-tools')),buttons:[...document.querySelectorAll('#tabGroup button')].map(e=>[e.dataset.tab,e.offsetWidth,e.offsetHeight,getComputedStyle(e).fontSize,getComputedStyle(e).fontWeight])};
+     return {bar:rect(document.querySelector('.tabs')),group:rect(document.querySelector('#tabGroup')),tools:rect(document.querySelector('.window-tools')),buttons:[...document.querySelectorAll('#tabGroup button')].map(e=>[e.dataset.tab,e.offsetWidth,e.offsetHeight,getComputedStyle(e).fontSize])};/* the selected tab is bolder by design, so weight is not part of the layout check */
     });
-    if(!geometry)geometry=current;else assert.deepEqual(current,geometry,`stable ${width}px header when selecting ${tab}`);
-    assert.equal(current.bar[3],38);
+    // BongHub layout: a full-height left category list. The mail screen keeps only the icons by design, so it is checked on its own.
+    assert.equal(current.bar[3],590,'left category list fills the window height');
+    if(tab==='gmail'){assert.equal(current.bar[2],60,'mail screen keeps an icon-only category list');continue;}
+    if(!geometry)geometry=current;else assert.deepEqual(current,geometry,`stable ${width}px category list when selecting ${tab}`);
    }
    await page.locator('[data-tab="fx"]').click();await page.locator('#fxResult').filter({hasText:'='}).waitFor();
-   assert.equal(await page.locator('[data-tab="fx"]').innerText(),'환율');
+   assert.equal(await page.locator('[data-tab="fx"]').evaluate(e=>e.classList.contains('active')),true,'FX tab is the selected tab');
    const fxGeometry=await page.locator('[data-tab="fx"]').evaluate(e=>({width:e.offsetWidth,height:e.offsetHeight,font:getComputedStyle(e).fontSize}));
    const peerGeometry=await page.locator('[data-tab="dark"]').evaluate(e=>({width:e.offsetWidth,height:e.offsetHeight,font:getComputedStyle(e).fontSize}));assert.deepEqual(fxGeometry,peerGeometry,'FX label uses the same plain tab shape as other two-character modules');
    await page.screenshot({path:path.join(folder,`fx-dark-${width}.png`),animations:'disabled'});await page.emulateMedia({colorScheme:'light'});await page.screenshot({path:path.join(folder,`fx-light-${width}.png`),animations:'disabled'});await page.emulateMedia({colorScheme:'dark'});
@@ -48,7 +51,7 @@ const fs=require('node:fs'),os=require('node:os'),path=require('node:path'),asse
     const r=row.getBoundingClientRect();const fields=[...row.querySelectorAll('.filename,.source,.meta>span,.meta>time,.row-actions')].filter(e=>getComputedStyle(e).display!=='none').map(e=>{const b=e.getBoundingClientRect();return {center:b.y+b.height/2,left:b.left,right:b.right}});
     return {height:r.height,fields,overflow:row.scrollWidth>row.clientWidth+1};
    }));
-   for(const row of rows){assert.ok(row.height<=46,`compact row ${width}: ${row.height}`);assert.equal(row.overflow,false);assert.ok(Math.max(...row.fields.map(f=>f.center))-Math.min(...row.fields.map(f=>f.center))<2,'metadata stays on one line');assert.ok(row.fields.every(f=>f.right<=width+1&&f.left>=0));}
+   for(const row of rows){assert.ok(row.height<=46,`compact row ${width}: ${row.height}`);assert.equal(row.overflow,false,`download row content must not be clipped at ${width}px`);assert.ok(Math.max(...row.fields.map(f=>f.center))-Math.min(...row.fields.map(f=>f.center))<2,'metadata stays on one line');assert.ok(row.fields.every(f=>f.right<=width+1&&f.left>=0));}
    await frame.locator('[data-id="3"] button').nth(1).focus();await page.waitForTimeout(1200);
    assert.equal(await frame.locator('[data-id="3"] button').nth(1).evaluate(e=>e===document.activeElement),true,'live progress retains keyboard focus');
    await page.screenshot({path:path.join(folder,`download-dark-${width}.png`),animations:'disabled'});

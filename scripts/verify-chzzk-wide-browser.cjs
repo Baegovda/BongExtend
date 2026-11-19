@@ -64,7 +64,7 @@ const assert = require('node:assert/strict');
       while (Date.now()<deadline) {const value=await read(); if (value===expected) return; await new Promise(resolve=>setTimeout(resolve,50));}
       console.error('Fixture DOM:', await page.evaluate(() => ({className:document.querySelector('main')?.className, label:document.querySelector('button')?.getAttribute('aria-label')})));
       console.error('Content messages:', JSON.stringify(await worker.evaluate(tabId => chrome.scripting.executeScript({target:{tabId},func:()=>({trace:window.__wideTrace, button:document.querySelector('button')?.outerHTML})}), tab.id)));
-      console.error('Window/session:', JSON.stringify(await worker.evaluate(async windowId => ({window:await chrome.windows.get(windowId), session:await chrome.storage.session.get('core.chzzkWideFullscreen')}), tab.windowId)));
+      console.error('Window/session:', JSON.stringify(await worker.evaluate(async windowId => ({window:await chrome.windows.get(windowId), session:await chrome.storage.local.get('core.chzzkWideFullscreen')}), tab.windowId)));
       throw Error(`Expected ${expected}, got ${await read()}`);
     };
     const windowState = expected => wait(async () => (await state()).state, expected);
@@ -74,7 +74,7 @@ const assert = require('node:assert/strict');
       const update = chrome.windows.update.bind(chrome.windows);
       chrome.windows.update = (id, value) => {
         if (value.state === 'fullscreen') {
-          chrome.windows.update = update;
+          chrome.windows.update = update; globalThis.__fixtureRejected = true;
           return Promise.reject(new Error('Fixture: transient fullscreen API rejection'));
         }
         return update(id, value);
@@ -82,8 +82,11 @@ const assert = require('node:assert/strict');
     });
     await toggle(); await windowState('fullscreen');
     const entryReplies = await worker.evaluate(tabId => chrome.scripting.executeScript({target:{tabId},func:()=>window.__wideTrace.filter(item=>item.message.wide).map(item=>item.reply)}), tab.id);
-    assert.equal(entryReplies[0].result[0].ok, false, 'First API rejection must reach the content script');
-    assert.equal(entryReplies[0].result[1].ok, true, 'Retry must enter actual Chrome fullscreen');
+    // Since 8aad4a4 (1.2.13x) the background's enterFullscreen retries a rejected/ignored request up to 6 times,
+    // so the transient rejection is absorbed there and the very first reply to the content script is already a success.
+    assert.equal(await worker.evaluate(() => globalThis.__fixtureRejected === true), true, 'The simulated API rejection must have happened');
+    assert.equal(entryReplies[0].result[0].ok, true, 'Background retry must enter actual Chrome fullscreen on the first request');
+    assert.equal(entryReplies[0].result[0].status, 'fullscreen');
     assert.equal(await page.evaluate(() => document.fullscreenElement === null), true, 'Must be browser F11 state, not element fullscreen');
     await page.screenshot({path:path.join(folder,'wide-fullscreen.png')});
     await toggle(); await windowState(initial.state);
@@ -94,17 +97,22 @@ const assert = require('node:assert/strict');
     await toggle(); await windowState('maximized');
     // Fullscreen that existed before wide mode must remain owned by the user.
     await worker.evaluate(windowId => chrome.windows.update(windowId, {state:'fullscreen'}), tab.windowId);
+    // Since 1.2.156 the content script trusts "wide turned off" only after FALSE_SETTLE_MS (500 ms) to ride out Chzzk re-renders,
+    // so a quicker off→on is one continuous wide session. Wait past it so each click is reported on its own.
+    const settle = () => page.waitForTimeout(800);
     await windowState('fullscreen'); await toggle();
-    await page.waitForTimeout(200); await toggle(); await page.waitForTimeout(200);
+    await settle(); await toggle(); await settle();
     assert.equal((await state()).state, 'fullscreen');
     await worker.evaluate(windowId => chrome.windows.update(windowId, {state:'normal'}), tab.windowId);
     await windowState('normal'); await toggle(); await windowState('fullscreen');
     // Simulate the user leaving F11 via the same Chrome window state API.
+    // Ownership lives in chrome.storage.local since 1.2.154 so it survives extension updates (cleared on browser start).
     await worker.evaluate(windowId => chrome.windows.update(windowId, {state:'normal'}), tab.windowId);
-    await wait(() => worker.evaluate(windowId => chrome.storage.session.get('core.chzzkWideFullscreen').then(data => data['core.chzzkWideFullscreen']?.[windowId]?.manualExit), tab.windowId), true);
+    await wait(() => worker.evaluate(windowId => chrome.storage.local.get('core.chzzkWideFullscreen').then(data => data['core.chzzkWideFullscreen']?.[windowId]?.manualExit), tab.windowId), true);
     await page.evaluate(() => window.dispatchEvent(new Event('focus')));
     await page.waitForTimeout(150); assert.equal((await state()).state, 'normal');
-    await toggle(); await toggle(); await windowState('fullscreen');
+    // Turning wide off and on again (slower than the 500 ms settle) clears the manual exit and re-enters fullscreen.
+    await toggle(); await settle(); await toggle(); await windowState('fullscreen');
     const other = await context.newPage();
     await windowState('normal'); await other.close();
     await windowState('fullscreen'); // Visibility change re-enters for the active wide Chzzk tab.
