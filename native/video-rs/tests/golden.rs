@@ -109,16 +109,22 @@ fn same_answers_as_the_python_helper() {
 #[test]
 fn bad_url_downloads_fail_the_same_way() {
     let home = fixture_home("bad-url");
-    let input = framed(&[br#"{"type":"download","url":"file:///C:/secret"}"#.to_vec(), br#"{"type":"download","url":"https://youtube.com/playlist?list=abc"}"#.to_vec()]);
-    // 두 요청 사이에 앞 다운로드가 끝나 있도록, 첫 요청만 따로 보내요.
-    let first = run(env!("CARGO_BIN_EXE_bongextend-video-host"), &[], &home, &framed(&[br#"{"type":"download","url":"file:///C:/secret"}"#.to_vec()]));
-    assert_eq!(first, vec![json!({"type": "error", "message": "http 또는 https 영상 페이지 주소를 입력해 주세요."})]);
+    // 받기는 따로 도는 작업이라, 답이 올 때까지 입력을 열어 두고 기다려요(빨리 닫으면 답 전에 끝날 수 있어요).
+    let cases = |program: &str, args: &[&str]| -> Vec<Vec<Value>> {
+        [br#"{"type":"download","url":"file:///C:/secret"}"#.to_vec(), br#"{"type":"download","url":"https://youtube.com/playlist?list=abc"}"#.to_vec()]
+            .into_iter()
+            .map(|message| conversation(program, args, &home, &home, &[(message, &finished)]))
+            .collect()
+    };
+    let rust = cases(env!("CARGO_BIN_EXE_bongextend-video-host"), &[]);
+    assert_eq!(rust, vec![
+        vec![json!({"type": "error", "message": "http 또는 https 영상 페이지 주소를 입력해 주세요."})],
+        vec![json!({"type": "error", "message": "올바른 YouTube 영상 주소가 아니에요."})],
+    ]);
     if let Some(py) = python() {
         let script = Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("video").join("host.py");
-        let old = run(&py, &["-u", script.to_str().unwrap()], &home, &framed(&[br#"{"type":"download","url":"file:///C:/secret"}"#.to_vec()]));
-        assert_eq!(first, old);
+        assert_eq!(rust, cases(&py, &["-u", script.to_str().unwrap()]));
     }
-    let _ = input;
     let _ = std::fs::remove_dir_all(&home);
 }
 

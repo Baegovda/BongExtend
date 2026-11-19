@@ -184,4 +184,8 @@ fn main() {
         }
     }
     stop_process(&state);
+    // 진행 중인 받기를 멈춘 뒤 마지막 답(오류·완료)까지 보내고 끝나요.
+    if let Some(worker) = worker {
+        let _ = worker.join();
+    }
 }
