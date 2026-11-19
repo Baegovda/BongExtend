@@ -29,6 +29,8 @@ export default defineConfig({
     imports: {
         parser: "oxc"
     },
+    // 측정 전용: BONG_NO_MINIFY=1 이면 함수 이름을 줄이지 않고 묶어요(CPU 프로파일에서 함수를 알아보려고). 배포 묶음은 그대로예요.
+    vite: () => (process.env.BONG_NO_MINIFY ? {build: {minify: false}} : {}),
     webExt: {
         startUrls: ["https://chzzk.naver.com", "https://gall.dcinside.com"]
     },

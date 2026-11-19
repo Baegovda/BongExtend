@@ -23,6 +23,16 @@ Rust 코드는 `native/core-wasm/src/extra.rs`(cargo 기능 `experiments`, 배�
 | 사진 원본 주소 `originalImageUrl`·`originalProductImage` | 3만 3천 건 다름 0 | 3.16 → 2.50µs / 1.93 → 2.23µs | JS 유지(누를 때 0.66µs 아끼려고 엔진 준비 +1.2ms) |
 | zip 풀기 `zip.ts` extractAll(1차) | 무작위·망가진 zip 1,800개 다름 0 | 189 → 46ms | Rust로 옮김(1.2.165~) |
 
+## 실행 프로파일 확인(안쪽 함수까지, 2026-11-20)
+
+표의 "잰 시간"·"하한 증명"은 밖으로 내보낸 함수만 잴 수 있어요. 그래서 안쪽 함수까지 빠짐없이 보려고 실제 확장을 띄우는 검증 스크립트 30개(번역·메일·네이버 메일·인증번호·치지직·다크 13종·다운로드·환율·팝업·업데이트·쇼핑·디시; 로컬·가짜 페이지만)를 CPU 프로파일러(0.1ms 간격)를 붙여 돌렸어요. 함수 이름을 보려고 측정 때만 `BONG_NO_MINIFY=1` 로 묶었어요(배포 묶음은 그대로).
+
+- 소스 전체 함수: 4,001개(안쪽 함수 2,622개). 브라우저 기능을 직접 쓰는 함수 1,316개, 안 쓰는 함수 2,685개(@babel/parser 로 셈).
+- 30개 장면에서 확장 코드가 쓴 시간 합계 1,255ms: 가져온 외부 코드(Checker Plus 메일 엔진 등) 413ms(33%), 브라우저 기능을 쓰는 함수 435ms(35%), 출처를 못 이은 묶음 코드(Vue·라이브러리 초기화 등) 250ms(20%), 브라우저 기능을 직접 안 쓰는 함수 156ms(12%, 81개).
+- 그 81개: 하한 증명으로 반드시 느림 26개(예: textLineMode 15.9ms, currencyName 13.1ms), 실제로는 화면 요소·스타일 객체를 받아 읽는 함수 35개(예: step 10.2ms, lineClampOf 8.5ms, stable 5.5ms), Intl 표기기 1개(moneyFormat), 나머지 19개는 하나씩 봤어요: availableCurrencyCodes(실제 입력 하한 88µs > JS 59µs), formatMoney(Intl), readableColor·textPaint·colorIo(이미 Rust 또는 그 다리), beginWiper·normalizeRect(화면 위치), syncRightClick·inject·flush·getStatus·disconnect·listener·set(크롬 기능·비동기 연결), normalizeTheme·normalizeHosts·publicHost(설정 읽을 때 한 번, 30개 장면 합쳐 0.4~1.6ms), 치지직 wide.js 시작 코드(정규식 만들기).
+- 결론: 실제 실행에서 시간을 쓴 우리 함수는 안쪽 함수까지 모두 위 판정 중 하나에 들어가고, 새로 옮길 후보는 나오지 않았어요. 순수 계산이 다 합쳐 30개 장면에 156ms(장면당 약 5ms)라서, 이를 전부 없애도 엔진이 없는 화면에서 엔진을 준비하는 비용(0.9ms)과 주고받는 비용을 넘기 어려워요.
+- 한계: 백그라운드 서비스 워커에는 이 방식으로 프로파일러를 붙이지 못했어요(서비스 워커의 무거운 계산인 인증번호·피드·프로필 사진은 이미 Rust). 30개 중 5개 스크립트(verify-modules-browser, verify-downloader-manager-browser, verify-ui-workflows, verify-fx-currencies-browser, verify-chzzk-wide-browser)는 예전 화면 이름·주소를 찾다가 중간에 끝나서(이번 변경과 무관, 배포 묶음으로도 같음) 그 앞부분까지만 잡혔어요.
+
 | 파일 | 줄 | 브라우저 기능 | 잰 시간 | Rust 하한 증명 | 판정 | 근거 |
 |---|---:|---:|---|---|---|---|
 | `src/@types/components.ts` | 68 | 0 | - | - | 자바스크립트 | 타입 선언만(실행 코드 없음) |
@@ -286,7 +296,8 @@ Rust 코드는 `native/core-wasm/src/extra.rs`(cargo 기능 `experiments`, 배�
 | `src/utils/user.ts` | 207 | 7 | 불러오면 바로 브라우저 기능을 씀 | - | 자바스크립트 | `getType` 0.03µs, 나머지 저장소 읽기 |
 | `src/utils/userDataInsert.ts` | 107 | 14 | - | - | 자바스크립트 | 닉네임 옆에 정보 끼워 넣기(DOM 14회) |
 
-합계: 파일 260개 중 Rust 를 쓰는 파일(옮긴 기능이 있거나 Rust 로 가는 다리) 10개, 자바스크립트로 둠 250개. 옮긴 기능은 8가지(zip 풀기, 설치 순서 정렬, 메일 인증번호, Gmail 피드, 프로필 사진 찾기, 다크 픽셀, 다크 색 대비, 영상 보조 프로그램)예요. 앞의 표가 파일마다 판정과 근거를 보여 줘요. 브라우저 밖 프로그램 중 영상 보조 프로그램(
-ative/video-rs)도 Rust로 옮겼어요. 가져온 외부 코드(public/ 의 Checker Plus 메일 엔진·DarkReader·Chrono 다운로더·Autolinker)는 우리 코드가 아니라서 판정에서 뺐어요.
+합계: 옮긴 기능은 8가지(zip 풀기, 설치 순서 정렬, 메일 인증번호, Gmail 피드, 프로필 사진 찾기, 다크 픽셀, 다크 색 대비, 영상 보조 프로그램)예요. 세는 단위가 달라요: 기능 8가지 중 7가지가 src 의 파일 7개(zip.ts, installPlan.ts, otp.js, atom.js, actions.js, contrast.js, icon-contrast.js)에 들어 있고, 여기에 Rust 로 가는 다리 파일 3개(core-wasm.js, dark-wasm.js, icon-pixels.js)를 더해 'Rust 를 쓰는 파일' 10개예요. 영상 보조 프로그램은 src 밖(`native/video-rs`)이에요. 나머지 250개 파일은 자바스크립트로 둬요(파일 260개).
+
+ 앞의 표가 파일마다 판정과 근거를 보여 줘요. 브라우저 밖 프로그램 중 영상 보조 프로그램(`native/video-rs`)도 Rust로 옮겼어요. 가져온 외부 코드(`public/` 의 Checker Plus 메일 엔진·DarkReader·Chrono 다운로더·Autolinker)는 우리 코드가 아니라서 판정에서 뺐어요.
 
 다시 판정하는 법: 새 파일이 생기거나 계산이 무거워지면 이 표에 한 줄을 더하고, 한 번 처리 시간이 Rust 다리 실비용(16~20µs)보다 확실히 길고 결과를 똑같이 만들 수 있으면 `native/core-wasm` 으로 옮겨 골든 테스트를 붙여요.
