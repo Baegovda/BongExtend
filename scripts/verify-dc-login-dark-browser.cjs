@@ -11,7 +11,10 @@ const fs=require('node:fs'),path=require('node:path'),os=require('node:os'),asse
  try{
   await context.route('**/*',route=>{
    const url=route.request().url();
-   if(url.startsWith('https://nstatic.dcinside.com/'))return route.fulfill({status:200,contentType:'text/css',body:css});
+   // The page's <link> gets the stylesheet, but a script fetch of it fails like the real cross-origin CSS does.
+   // (Since 75a6202 the dark content script first tries a direct fetch and only then the worker's CSS connection;
+   // fulfilling that fetch here would skip the path this test is about.)
+   if(url.startsWith('https://nstatic.dcinside.com/'))return route.request().resourceType()==='fetch'?route.abort('accessdenied'):route.fulfill({status:200,contentType:'text/css',body:css});
    if(url.startsWith('https://sign.dcinside.com/login'))return route.fulfill({status:200,contentType:'text/html',body:'<!doctype html><meta charset="utf-8"><link rel="stylesheet" href="https://nstatic.dcinside.com/dc/w/css/login.css"><header>dcinside 로그인</header><main><form class="login-box"><input class="login-input" placeholder="식별 코드"><input class="login-input" type="password" placeholder="비밀번호"><button class="login-btn" type="button">로그인</button><label><input type="checkbox"> 식별 코드 저장</label><div class="links">식별 코드 찾기 · 비밀번호 찾기 · 고정닉 신청</div></form></main><footer>회사소개 · 제휴안내 · 개인정보처리방침<br>Copyright © dcinside. All rights reserved.</footer>'});
    return route.abort();
   });
@@ -20,7 +23,8 @@ const fs=require('node:fs'),path=require('node:path'),os=require('node:os'),asse
   await worker.evaluate(()=>chrome.storage.local.set({'core.update:autoCheck':false,'core.modules':{dark:true,dc:false,gmail:false,trans:false,chzzk:false,fx:false,download:false},'core.darkMode':{enabledSites:['sign.dcinside.com'],followSystem:false}}));
   const page=await context.newPage();await page.goto('https://sign.dcinside.com/login');
   await page.waitForFunction(()=>document.documentElement.dataset.darkreaderScheme==='dark');
-  await page.waitForTimeout(600);
+  // Since 1.2.122 an early dark backdrop is held ~0.7 s after load, so wait for it to lift before reading the unthemed panel.
+  await page.waitForFunction(()=>Math.max(...getComputedStyle(document.querySelector('.login-box')).backgroundColor.match(/\d+/g).slice(0,3).map(Number))>=110,null,{timeout:10000}).catch(()=>{});
   const backgrounds=()=>page.evaluate(()=>Object.fromEntries(['body','.login-box','.login-input','footer'].map(s=>[s,getComputedStyle(document.querySelector(s)).backgroundColor])));
   const isDark=color=>Math.max(...color.match(/\d+/g).slice(0,3).map(Number))<110;
   assert.equal(isDark((await backgrounds())['.login-box']),false,'unreadable external CSS reproduces the white panel');
