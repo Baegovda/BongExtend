@@ -2743,6 +2743,22 @@ function Account() {
     async function getGmailATFromCookie(accountId) {
         return chrome.cookies.get({name: 'GMAIL_AT', url: `https://mail.google.com/mail/u/${accountId}`}).then(response => response?.value);
     }
+
+    // BongExtend: 쿠키가 없을 때 Gmail 화면 HTML 에서 작업 토큰을 찾아요. 지금 Gmail 은 GM_ACTION_TOKEN="null" 이 먼저 나오고
+    // 실제 값은 뒤에나 sdpc 안에 있어서, 쓸 수 있는 첫 값(길이 조건, "null" 제외)을 골라요.
+    async function getGmailATFromPage() {
+        const response = await fetchWrapper(that.getMailUrl());
+        if (!response.ok) return "";
+        const html = await response.text();
+        const usable = (value, min) => typeof value === "string" && value.length >= min && value !== "null" && value !== "undefined";
+        const firstUsable = (pattern, min) => {
+            for (const match of html.matchAll(pattern)) if (usable(match[1], min)) return match[1];
+            return "";
+        };
+        return firstUsable(/GM_ACTION_TOKEN\s*=\s*['"]([^'"]+)['"]/gi, 4)
+            || firstUsable(/\["sdpc"\s*,\s*"([^"]+)"\]/gi, 8)
+            || firstUsable(/"sdpc"\s*,\s*"([^"]+)"/gi, 8);
+    }
    
    // acts as a singleton so that it can handle multiple calls
    async function getGmailAT(force) {
@@ -2753,10 +2769,19 @@ function Account() {
                 if (!gmailAT || lastGmailATFetch.diffInMinutes() <= -5 || force) {
                     gmailAT = await getGmailATFromCookie(that.id);
                     if (!gmailAT) {
-                        //await reinitGmailSignInViaOffscreen(that.id);
-                        //gmailAT = await getGmailATFromCookie(that.id);
+                        // BongExtend: 이 계정의 Gmail 을 브라우저에서 최근에 열지 않았으면 GMAIL_AT 쿠키가 없어요.
+                        // Gmail 화면을 한 번 받아서 그 안의 작업 토큰을 쓰고(규칙은 src/modules/gmail/actions.js parseGmailTokens 와 같아요),
+                        // 그래도 없으면 화면을 받는 동안 생긴 쿠키를 다시 읽어요.
+                        try {
+                            gmailAT = await getGmailATFromPage();
+                        } catch (error) {
+                            console.warn("getGmailATFromPage error", error);
+                        }
                         if (!gmailAT) {
-                            throw Error("No gmail AT found");
+                            gmailAT = await getGmailATFromCookie(that.id);
+                        }
+                        if (!gmailAT) {
+                            throw Error("Gmail 작업 권한을 받지 못했어요. 이 계정의 Gmail 을 한 번 열었다가 다시 시도해 주세요.");
                         }
                     }
                     lastGmailATFetch = new Date();
