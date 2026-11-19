@@ -52,6 +52,15 @@ const {chromium}=require('playwright');const fs=require('node:fs'),os=require('n
   await frame.locator('#bongextendGmailEmpty').waitFor({state:'hidden'});
   const together=await inbox.evaluate(()=>{const a=document.getElementById('fixtureGmail'),b=document.getElementById('bongextendNaverAccount');return {shared:a.parentElement===b.parentElement,order:Boolean(a.compareDocumentPosition(b)&Node.DOCUMENT_POSITION_FOLLOWING),naverIsGmail:b.matches('.account')};});
   assert.deepEqual(together,{shared:true,order:true,naverIsGmail:false});
+  // 왼쪽 계정 아이콘 줄에도 네이버 메일 아이콘과 미읽음 숫자가 보여서, 툴바 숫자(Gmail + 네이버)와 합이 맞아요.
+  await inbox.evaluate(()=>{const rail=document.getElementById('accountAvatars');const avatar=document.createElement('div');avatar.className='accountAvatar';avatar.id='fixtureGmailAvatar';avatar._account={email:'fixture@gmail.com'};avatar.innerHTML='<img class="accountPhoto"><div class="accountAvatarUnreadCount">1</div>';rail.append(avatar);});
+  await inbox.waitForFunction(()=>{const n=document.getElementById('bongextendNaverAvatar');return n&&n.previousElementSibling?.id==='fixtureGmailAvatar';});
+  const naverAvatar=await inbox.evaluate(()=>{const n=document.getElementById('bongextendNaverAvatar');return {count:n.querySelector('.accountAvatarUnreadCount').textContent,shown:!n.querySelector('.accountAvatarUnreadCount').hidden,isGmail:n.matches('.accountAvatar'),label:n.getAttribute('aria-label')};});
+  assert.deepEqual(naverAvatar,{count:'3',shown:true,isGmail:false,label:'fixture-user@naver.com · 미읽음 3통'});
+  await inbox.evaluate(()=>document.getElementById('accountAvatars').classList.add('visible'));await page.waitForTimeout(300);await page.screenshot({path:path.join(folder,'naver-avatar-rail.png'),animations:'disabled'});
+  // 메일 엔진이 아이콘 줄을 비우고 다시 그려도 다시 들어와요.
+  await inbox.evaluate(()=>{for(const el of [...document.getElementById('accountAvatars').children])el.remove();});
+  await inbox.waitForFunction(()=>Boolean(document.getElementById('bongextendNaverAvatar')));
   await frame.locator('#bongextendNaverAccount .be-account-order button').first().click();
   await page.waitForFunction(async()=>JSON.stringify((await chrome.storage.local.get('core.mailAccountOrder'))['core.mailAccountOrder'])===JSON.stringify(['naver:fixture-user@naver.com','gmail:fixture@gmail.com']));
   await inbox.waitForFunction(()=>document.getElementById('inbox').querySelector('.be-naver-account,.account').id==='bongextendNaverAccount');
@@ -79,7 +88,7 @@ const {chromium}=require('playwright');const fs=require('node:fs'),os=require('n
   assert.deepEqual(await inbox.evaluate(()=>__fixtureCalls.filter(call=>call.command==='accountAction')),[],'order buttons must not trigger native Gmail account actions');
   await page.screenshot({path:path.join(folder,'unified-mail-light.png'),animations:'disabled'});
   await page.emulateMedia({colorScheme:'dark'});
-  assert.equal(await inbox.evaluate(()=>getComputedStyle(document.documentElement).backgroundColor),'rgb(23, 24, 27)','dark mail canvas keeps an opaque charcoal base below its glass');
+  assert.equal(await inbox.evaluate(()=>getComputedStyle(document.documentElement).backgroundColor),'rgb(11, 13, 18)','dark mail canvas keeps an opaque BongHub base (#0B0D12) below its glass');
   await page.screenshot({path:path.join(folder,'naver-mail-dark.png'),animations:'disabled'});
   for(const width of [480,360]){
    await frame.locator('.be-naver-header').evaluate((header,width)=>header.style.maxWidth=width+'px',width);

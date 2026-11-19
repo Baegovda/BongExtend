@@ -480,3 +480,8 @@ html.bongextend-checkerplus-embedded .be-account-dragging > :is(.accountHeader,.
 }
 html.bongextend-checkerplus-embedded.be-account-drag-active :is(.account,.be-naver-account):not(.be-account-dragging) { pointer-events: none; }
 html.bongextend-checkerplus-embedded :is(.be-drop-before,.be-drop-after)::after { display: none; }
+
+/* 왼쪽 계정 아이콘 줄의 네이버 메일 아이콘(Gmail 아이콘과 같은 모양) */
+#accountAvatars .be-naver-avatar {position:relative;cursor:pointer;margin-bottom:1px;}
+#accountAvatars .be-naver-avatar:focus-visible {outline:2px solid var(--be-focus, #8FB2FF);outline-offset:2px;border-radius:50%;}
+#accountAvatars .be-naver-avatar .accountPhoto {background:#fff;object-fit:contain;padding:4px;box-sizing:border-box;}

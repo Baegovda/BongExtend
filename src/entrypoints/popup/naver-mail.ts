@@ -10,7 +10,10 @@ export function setupNaverMail(){
  const frame=$('checkerPlusMailFrame') as HTMLIFrameElement;
  const status=$('naverMailStatus'),id=$('naverMailId') as HTMLInputElement;
  const connect=$('naverMailConnect') as HTMLButtonElement,notify=$('naverMailNotify') as HTMLInputElement;
- let revision=0,observer:MutationObserver|undefined,section:HTMLElement|undefined,signature='';
+ let revision=0,observer:MutationObserver|undefined,railObserver:MutationObserver|undefined,section:HTMLElement|undefined,signature='';
+ // 왼쪽 계정 아이콘 줄의 네이버 메일 아이콘. 툴바 숫자에는 네이버 메일도 더해지는데 아이콘 줄에는 Gmail만 있어서 합이 안 맞아 보였어요.
+ // 메일 엔진은 '.accountAvatar' 칸마다 Gmail 계정 정보가 있다고 여겨서, 같은 모양이지만 다른 이름(be-naver-avatar)을 써요.
+ let avatarInfo:{show:boolean;id:string;unread:number}={show:false,id:'',unread:0};
  let reader:ReturnType<typeof createNaverReader>|undefined;
  let moveDocument:Document|undefined,moveListener:EventListener|undefined;
  const ORDER_KEY='core.mailAccountOrder';let accountOrder:string[]=[];
@@ -53,6 +56,32 @@ export function setupNaverMail(){
   if(!empty){empty=doc.createElement('section');empty.id='bongextendGmailEmpty';empty.className='be-mail-empty';const note=doc.createElement('p');note.textContent='연결된 Gmail 계정이 없어요.';empty.append(note,button(doc,'Gmail 로그인',()=>{void chrome.tabs.create({url:'https://mail.google.com/'});}));inbox.prepend(empty);}
   empty.hidden=Boolean(inbox.querySelector('.account'));
  };
+ const syncAvatar=(doc:Document)=>{
+  const rail=doc.getElementById('accountAvatars');if(!rail)return;
+  let avatar=doc.getElementById('bongextendNaverAvatar');
+  if(!avatarInfo.show){avatar?.remove();return;}
+  if(!avatar){
+   avatar=doc.createElement('div');avatar.id='bongextendNaverAvatar';avatar.className='be-naver-avatar';avatar.setAttribute('role','button');avatar.tabIndex=0;
+   const img=doc.createElement('img');img.className='accountPhoto';img.src=chrome.runtime.getURL(LOGO);img.alt='';
+   const count=doc.createElement('div');count.className='accountAvatarUnreadCount';
+   avatar.append(img,count);
+   const go=()=>{const target=doc.getElementById('bongextendNaverAccount');target?.scrollIntoView({behavior:'smooth',block:'start'});};
+   avatar.addEventListener('click',go);avatar.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();go();}});
+  }
+  avatar.title=`${avatarInfo.id}@naver.com`;avatar.setAttribute('aria-label',`${avatarInfo.id}@naver.com · 미읽음 ${avatarInfo.unread}통`);
+  const count=avatar.querySelector<HTMLElement>('.accountAvatarUnreadCount')!;
+  count.textContent=String(avatarInfo.unread);count.hidden=avatarInfo.unread<1;count.style.display=avatarInfo.unread<1?'none':'';
+  // 메일 목록의 계정 순서와 같은 자리에 둬요.
+  const inbox=doc.getElementById('inbox');
+  const rows=inbox?Array.from(inbox.children).filter(el=>el.matches('.account')||el.id==='bongextendNaverAccount'):[];
+  const at=rows.findIndex(el=>el.id==='bongextendNaverAccount');
+  const gmailAvatars=Array.from(rail.children).filter(el=>el.classList.contains('accountAvatar'));
+  const before=at>=0&&at<gmailAvatars.length?gmailAvatars[at]:null,last=gmailAvatars.at(-1);
+  // 이미 제자리면 건드리지 않아요(아이콘 줄 감시가 다시 불려도 끝없이 돌지 않게).
+  if(before){if(avatar.nextElementSibling!==before)rail.insertBefore(avatar,before);}
+  else if(last){if(last.nextElementSibling!==avatar)last.after(avatar);}
+  else if(avatar.parentElement!==rail)rail.append(avatar);
+ };
  const mount=()=>{
   const doc=frame.contentDocument,inbox=doc?.getElementById('inbox');
   if(!doc||!inbox)return;
@@ -66,6 +95,7 @@ export function setupNaverMail(){
   for(const extra of existing)if(extra!==section)extra.remove();
   if(section!.parentElement!==inbox)inbox.append(section!);
   orderAccounts(doc);
+  syncAvatar(doc);
  };
  const render=async()=>{
   const current=++revision;
@@ -76,6 +106,7 @@ export function setupNaverMail(){
   notify.checked=config?.notify!==false;$('naverMailDisconnect').hidden=!config?.enabled;
   const connected=config?.enabled && state?.id===config.id;
   status.textContent=!config?.enabled?'네이버 메일에 로그인한 뒤 아이디를 넣고 연결해 주세요.':!connected?'메일을 확인하고 있어요…':state!.error||`${config.id}@naver.com · 미읽음 ${state!.unread}통 · ${new Date(state!.checkedAt).toLocaleTimeString('ko-KR')} 확인`;
+  avatarInfo={show:Boolean(config?.enabled)&&(local['core.modules'] as {gmail?:boolean}|undefined)?.gmail!==false,id:String(config?.id||''),unread:connected?Math.max(0,Number(state!.unread)||0):0};
   mount();if(!section)return;
   section.hidden=(local['core.modules'] as {gmail?:boolean}|undefined)?.gmail===false;
   const next=JSON.stringify([config,connected?{id:state!.id,unread:state!.unread,error:state!.error,messages:state!.messages}:null]);if(next===signature)return;signature=next;
@@ -110,7 +141,7 @@ export function setupNaverMail(){
  };
  const loaded=()=>{
   if(moveListener)moveDocument?.removeEventListener('bongextend-mail-account-move',moveListener);
-  reader?.dispose();reader=undefined;observer?.disconnect();section=undefined;signature='';
+  reader?.dispose();reader=undefined;observer?.disconnect();railObserver?.disconnect();section=undefined;signature='';
   const doc=frame.contentDocument,inbox=doc?.getElementById('inbox');if(!inbox)return;
   reader=createNaverReader(doc!);
   moveDocument=doc!;moveListener=event=>{
@@ -124,7 +155,10 @@ export function setupNaverMail(){
    event.preventDefault();accountOrder=next.map(key);orderAccounts(doc!);
    void chrome.storage.local.set({[ORDER_KEY]:accountOrder}).catch(()=>{status.textContent='계정 순서를 저장하지 못했어요. 다시 이동해 주세요.';});
   };doc!.addEventListener('bongextend-mail-account-move',moveListener);
-  observer=new MutationObserver(()=>mount());observer.observe(inbox,{childList:true});void render();
+  observer=new MutationObserver(()=>mount());observer.observe(inbox,{childList:true});
+  // 메일 엔진이 아이콘 줄을 다시 그리면(계정 새로 고침 등) 네이버 아이콘을 다시 넣어요.
+  const rail=doc!.getElementById('accountAvatars');if(rail){railObserver=new MutationObserver(()=>syncAvatar(doc!));railObserver.observe(rail,{childList:true});}
+  void render();
  };
  frame.addEventListener('load',loaded);
  if(frame.contentDocument?.readyState==='complete')loaded();
