@@ -1,5 +1,6 @@
 // Conservative post-theme repair. No content/events/layout changes; owned inline
 // properties are restored only while the page has not replaced their values.
+import {prepareDarkWasm, darkWasm, disableDarkWasm} from './dark-wasm.js';
 export const parseColor = value => {
   const m = String(value).match(/^rgba?\(([^)]+)\)$/);
   if (!m) return null;
@@ -9,8 +10,13 @@ export const parseColor = value => {
 export const composite = (front, back) => [...front.slice(0, 3).map((v, i) => v * front[3] + back[i] * (1 - front[3])), 1];
 export const luminance = c => c.slice(0, 3).map(v => {v /= 255; return v <= .04045 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4;}).reduce((sum, v, i) => sum + v * [.2126, .7152, .0722][i], 0);
 export const contrastRatio = (a, b) => (Math.max(luminance(a), luminance(b)) + .05) / (Math.min(luminance(a), luminance(b)) + .05);
-export const readableColor = (foreground, background, target = 4.5) => {
+// 예전 자바스크립트 길. Rust(WebAssembly) 길과 결과가 같은지 test/contrast-wasm.test.js 가 비교해요.
+export const readableColorJs = (foreground, background, target = 4.5) => {
   return repairColor(foreground, color => contrastRatio(composite(color, background), background), target);
+};
+export const readableColor = (foreground, background, target = 4.5) => {
+  const fast = readableColorWasm(foreground, background, target);
+  return fast !== undefined ? fast : readableColorJs(foreground, background, target);
 };
 // Faint neutral/brown hairline (low alpha) that vanishes on a dark surface:
 // return a light translucent neutral with a visible edge, else null. Saturated
@@ -45,6 +51,71 @@ export const ringShadow = (shadow, back) => {
   });
   return changed ? next.join(',') : null;
 };
+// ---- 빠른 길: Rust(native/dark-pixels) → WebAssembly. 준비 전·실패·이상한 값이면 undefined(예전 길을 쓰라는 뜻) ----
+let colorView = null;
+const colorIo = ex => {
+  if (!colorView || colorView.buffer !== ex.memory.buffer) colorView = new Float64Array(ex.memory.buffer, ex.color_io_ptr(), 4 + 24 * 5);
+  return colorView;
+};
+const isNum = value => typeof value === 'number';
+const colorText = (next, alpha) => alpha < 1 ? `rgba(${next.join(', ')}, ${alpha})` : `rgb(${next.join(', ')})`;
+const fastResult = (ex, code, alpha) => {
+  if (code === 0) return null;
+  if (code !== 1) return undefined;
+  const io = colorIo(ex);
+  return colorText([io[0], io[1], io[2]], alpha);
+};
+/** readableColor 와 같은 결과(Rust). */
+export const readableColorWasm = (foreground, background, target = 4.5) => {
+  const ex = darkWasm();
+  if (!ex || !Array.isArray(foreground) || !Array.isArray(background) || !isNum(target)) return undefined;
+  const [r, g, b, a] = foreground, [br, bg, bb] = background;
+  if (![r, g, b, a, br, bg, bb].every(isNum)) return undefined;
+  try {
+    return fastResult(ex, ex.readable_rgb(r, g, b, a, br, bg, bb, 1, target), a);
+  } catch {
+    disableDarkWasm();
+    return undefined;
+  }
+};
+/** 글자 보정(textContext 의 겹친 면 기준)과 같은 결과(Rust). layers: [{color:[r,g,b,a], opacity}] 안쪽부터. */
+export const repairTextColorWasm = (foreground, layers, target = 4.5) => {
+  const ex = darkWasm();
+  if (!ex || !Array.isArray(foreground) || !Array.isArray(layers) || layers.length > 24 || !isNum(target)) return undefined;
+  const [r, g, b, a] = foreground;
+  if (![r, g, b, a].every(isNum)) return undefined;
+  try {
+    const io = colorIo(ex);
+    for (let i = 0; i < layers.length; i++) {
+      const {color, opacity} = layers[i];
+      if (!Array.isArray(color) || ![color[0], color[1], color[2], color[3], opacity].every(isNum)) return undefined;
+      io.set([color[0], color[1], color[2], color[3], opacity], 4 + i * 5);
+    }
+    return fastResult(ex, ex.repair_text_rgb(r, g, b, a, layers.length, target), a);
+  } catch {
+    disableDarkWasm();
+    return undefined;
+  }
+};
+export const prepareContrastWasm = prepareDarkWasm;
+
+// 글자 뒤에 겹친 면(안쪽부터)을 차례로 합성해 종이색과 대비 함수를 만들어요.
+const over = (front, back) => {
+  const a = front[3] + back[3] * (1 - front[3]);
+  return [...front.slice(0,3).map((v,i) => a ? (v * front[3] + back[i] * back[3] * (1-front[3])) / a : 0), a];
+};
+export const textPaint = layers => {
+  const render = foreground => {
+    let color = foreground;
+    for (const layer of layers) {color = over(color, layer.color); color[3] *= layer.opacity;}
+    return over(color, [255,255,255,1]);
+  };
+  const paper = render([0,0,0,0]);
+  return {paper, layers, ratio: fg => contrastRatio(render(fg), paper)};
+};
+/** 예전 자바스크립트 글자 보정 길(비교 시험용으로도 써요). */
+export const repairTextColorJs = (foreground, layers, target = 4.5) => repairColor(foreground, textPaint(layers).ratio, target);
+
 const repairColor = (foreground, ratio, target) => {
   if (ratio(foreground) >= target) return null;
   // Preserve hue by moving toward white; never recolor saturated semantic colors.
@@ -131,17 +202,7 @@ export function createContrastController(doc = document, {inspectImage, inspectP
       const color = parseColor(s.backgroundColor); if (!color) return null;
       layers.push({color, opacity});
     }
-    const over = (front, back) => {
-      const a = front[3] + back[3] * (1 - front[3]);
-      return [...front.slice(0,3).map((v,i) => a ? (v * front[3] + back[i] * back[3] * (1-front[3])) / a : 0), a];
-    };
-    const render = foreground => {
-      let color = foreground;
-      for (const layer of layers) {color = over(color, layer.color); color[3] *= layer.opacity;}
-      return over(color, [255,255,255,1]);
-    };
-    const paper = render([0,0,0,0]);
-    return {paper, ratio: fg => contrastRatio(render(fg), paper)};
+    return textPaint(layers);
   };
   const inspect = el => {
     restore(el);
@@ -171,7 +232,8 @@ export function createContrastController(doc = document, {inspectImage, inspectP
     if (text && foreground) {
       const context = textContext(el);
       if (context && luminance(context.paper) <= .25) {
-        const color = repairColor(foreground, context.ratio, 4.5);
+        const fast = repairTextColorWasm(foreground, context.layers, 4.5);
+        const color = fast !== undefined ? fast : repairColor(foreground, context.ratio, 4.5);
         if (color) write(el, 'color', color);
       }
     }
@@ -356,6 +418,7 @@ export function createContrastController(doc = document, {inspectImage, inspectP
     start() {
       if (active) return;
       active = true;
+      void prepareDarkWasm();
       observer.observe(doc, {subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['style','class','src','srcset','sizes','fill','stroke','hidden','disabled','aria-disabled','aria-hidden','aria-selected','aria-current','role','data-darkreader-scheme']});
       win.addEventListener('scroll', update, {passive: true, capture: true}); win.addEventListener('resize', update); update();
       doc.addEventListener('transitionend', settledEffect); doc.addEventListener('animationend', settledEffect);

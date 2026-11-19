@@ -13,7 +13,7 @@ const fs=require('node:fs'),os=require('node:os'),path=require('node:path'),asse
     await page.screenshot({path:path.join(folder,'public-before.png')});
     await page.addScriptTag({content:fs.readFileSync('node_modules/darkreader/darkreader.js','utf8')});
     await page.evaluate(fixes=>DarkReader.enable({},fixes),fixes);await page.waitForTimeout(1500);
-    await page.addScriptTag({content:fs.readFileSync('src/modules/dark/contrast.js','utf8').replace(/export /g,'')+';window.contrast=createContrastController(document);contrast.start();'});
+    await page.addScriptTag({content:require('./inline-dark.cjs').contrastSource()+';window.contrast=createContrastController(document);contrast.start();'});
     await page.waitForTimeout(2000);
     const publicSample=await page.evaluate(async()=>{
      const els=[document.body,...document.querySelectorAll('[data-bong-contrast-owned]')].filter(el=>{const r=el.getBoundingClientRect();return r.width>=200&&r.height>=50&&r.top<innerHeight}).slice(0,12);const colors=els.map(()=>new Set());const before={...contrast.stats};const start=performance.now();
@@ -29,7 +29,7 @@ const fs=require('node:fs'),os=require('node:os'),path=require('node:path'),asse
   await page.addScriptTag({content:fs.readFileSync('node_modules/darkreader/darkreader.js','utf8')});
   await page.evaluate(fixes=>DarkReader.enable({},fixes),fixes);
   await page.waitForTimeout(600);
-  await page.addScriptTag({content:fs.readFileSync('src/modules/dark/contrast.js','utf8').replace(/export /g,'')+';window.contrast=createContrastController(document);contrast.start();'});
+  await page.addScriptTag({content:require('./inline-dark.cjs').contrastSource()+';window.contrast=createContrastController(document);contrast.start();'});
   const sample=()=>page.evaluate(async()=>{
    const colors=new Set();let mutations=0;const mo=new MutationObserver(ms=>mutations+=ms.length);mo.observe(document.body,{subtree:true,attributes:true,attributeFilter:['style']});
    const start=performance.now();await new Promise(resolve=>{const tick=()=>{colors.add(getComputedStyle(document.querySelector('#card')).backgroundColor);if(performance.now()-start>2500)return resolve();requestAnimationFrame(tick)};tick()});mo.disconnect();return {colors:[...colors],mutations,stats:{...contrast.stats}};

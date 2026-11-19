@@ -7,7 +7,7 @@ const fs=require('node:fs'),path=require('node:path'),os=require('node:os'),asse
  try{
   const page=await browser.newPage({viewport:{width:1400,height:950}});
   await page.goto('https://www.naver.com/',{waitUntil:'domcontentloaded'});await page.waitForTimeout(2500);
-  const helpers=fs.readFileSync('src/modules/dark/contrast.js','utf8').replace(/export /g,'')+'\n'+fs.readFileSync('src/modules/dark/icon-contrast.js','utf8').replace(/^import[^\n]+\n/,'').replace(/export /g,'');
+  const helpers=require('./inline-dark.cjs').contrastSource()+'\n'+fs.readFileSync('src/modules/dark/icon-contrast.js','utf8').replace(/^import[^\n]*\n/gm,'').replace(/export /g,'');
   await page.addScriptTag({content:fs.readFileSync('node_modules/darkreader/darkreader.js','utf8')});
   await page.exposeFunction('publicThemeResource',async url=>{
    if(!/(^|\.)(pstatic\.net|naver\.com)$/.test(new URL(url).hostname))throw Error('Unapproved public resource');

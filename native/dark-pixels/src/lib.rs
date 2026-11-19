@@ -131,9 +131,179 @@ pub fn repair(t: &Table, data: &mut [u8], width: u32, height: u32, lb: f64, limi
     changed >= 8
 }
 
+// ---- 글자·아이콘 색 대비 (src/modules/dark/contrast.js 의 readableColor / 글자 보정과 같아요) ----
+//
+// 여기서는 색 값이 소수일 수 있어서(겹친 반투명 면) 밝기 표를 못 써요. 결과를 자바스크립트와 똑같이 맞추려고
+// 거듭제곱만 자바스크립트(`a ** b`)에게 맡기고, 나머지 계산은 JS와 같은 순서로 해요.
+
+#[cfg(target_arch = "wasm32")]
+#[link(wasm_import_module = "env")]
+extern "C" {
+    fn pow(a: f64, b: f64) -> f64;
+}
+
+#[cfg(target_arch = "wasm32")]
+#[inline]
+fn js_pow(a: f64, b: f64) -> f64 {
+    // 자바스크립트의 순수한 계산 함수예요. 부작용이 없어요.
+    unsafe { pow(a, b) }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+#[inline]
+fn js_pow(a: f64, b: f64) -> f64 {
+    a.powf(b)
+}
+
+/// JS: v /= 255; v <= .04045 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4
+#[inline]
+fn channel(v: f64) -> f64 {
+    let v = v / 255.0;
+    if v <= 0.04045 { v / 12.92 } else { js_pow((v + 0.055) / 1.055, 2.4) }
+}
+
+/// JS luminance(c): 소수 색도 받아요. 더하는 순서도 같아요.
+#[inline]
+fn lum(c: &[f64; 4]) -> f64 {
+    let mut sum = 0.0f64;
+    sum += channel(c[0]) * W[0];
+    sum += channel(c[1]) * W[1];
+    sum += channel(c[2]) * W[2];
+    sum
+}
+
+/// JS composite(front, back): 결과 투명도는 언제나 1이에요.
+#[inline]
+fn composite(front: &[f64; 4], back: &[f64; 4]) -> [f64; 4] {
+    let a = front[3];
+    [front[0] * a + back[0] * (1.0 - a), front[1] * a + back[1] * (1.0 - a), front[2] * a + back[2] * (1.0 - a), 1.0]
+}
+
+/// JS textContext 안의 over(front, back).
+#[inline]
+fn over(front: &[f64; 4], back: &[f64; 4]) -> [f64; 4] {
+    let a = front[3] + back[3] * (1.0 - front[3]);
+    let mut out = [0.0, 0.0, 0.0, a];
+    // JS: a ? ... : 0  (0과 NaN은 거짓)
+    if a != 0.0 && !a.is_nan() {
+        for i in 0..3 {
+            out[i] = (front[i] * front[3] + back[i] * back[3] * (1.0 - front[3])) / a;
+        }
+    }
+    out
+}
+
+/// 글자 뒤에 겹친 면(안쪽부터 바깥쪽 순서) 하나: 색과 투명도.
+pub struct Layer {
+    pub color: [f64; 4],
+    pub opacity: f64,
+}
+
+/// JS textContext 의 render(foreground).
+fn render(fg: &[f64; 4], layers: &[Layer]) -> [f64; 4] {
+    let mut color = *fg;
+    for layer in layers {
+        color = over(&color, &layer.color);
+        color[3] *= layer.opacity;
+    }
+    over(&color, &[255.0, 255.0, 255.0, 1.0])
+}
+
+/// JS repairColor(foreground, ratio, target). ratio 는 대비를 재는 함수예요.
+/// 바꿀 색(정수 RGB, 소수일 수도 있는 JS 값 그대로)을 돌려주고, 바꿀 게 없으면 None.
+pub fn repair_color(fg: &[f64; 4], target: f64, ratio: &mut dyn FnMut(&[f64; 4]) -> f64) -> Option<[f64; 3]> {
+    if ratio(fg) >= target {
+        return None;
+    }
+    let max = fg[0].max(fg[1]).max(fg[2]);
+    let min = fg[0].min(fg[1]).min(fg[2]);
+    if max - min > 70.0 {
+        return None;
+    }
+    let mut amount = 0.05f64;
+    while amount <= 1.01 {
+        let k = if amount < 1.0 { amount } else { 1.0 };
+        let next = [
+            js_round(fg[0] + (255.0 - fg[0]) * k),
+            js_round(fg[1] + (255.0 - fg[1]) * k),
+            js_round(fg[2] + (255.0 - fg[2]) * k),
+        ];
+        if ratio(&[next[0], next[1], next[2], fg[3]]) >= target {
+            return Some(next);
+        }
+        amount += 0.05;
+    }
+    None
+}
+
+/// JS readableColor(foreground, background, target).
+pub fn readable_color(fg: &[f64; 4], bg: &[f64; 4], target: f64) -> Option<[f64; 3]> {
+    let lb = lum(bg);
+    repair_color(fg, target, &mut |c| contrast(lum(&composite(c, bg)), lb))
+}
+
+/// JS 글자 보정: repairColor(foreground, textContext(el).ratio, target).
+pub fn repair_text(fg: &[f64; 4], layers: &[Layer], target: f64) -> Option<[f64; 3]> {
+    let paper = lum(&render(&[0.0, 0.0, 0.0, 0.0], layers));
+    repair_color(fg, target, &mut |c| contrast(lum(&render(c, layers)), paper))
+}
+
 // ---- WebAssembly 경계(C ABI): 포인터·길이·숫자만 주고받아요 ----
 
 static mut TABLE: Table = Table([0.0; 256]);
+
+/// 색 계산 입출력 칸: 0..3 = 결과 RGB, 4.. = 겹친 면(면 하나에 5칸: r, g, b, a, 투명도).
+pub const MAX_LAYERS: usize = 24;
+static mut COLOR_IO: [f64; 4 + MAX_LAYERS * 5] = [0.0; 4 + MAX_LAYERS * 5];
+
+#[no_mangle]
+pub extern "C" fn color_io_ptr() -> *mut f64 {
+    core::ptr::addr_of_mut!(COLOR_IO) as *mut f64
+}
+
+#[inline]
+fn finite(values: &[f64]) -> bool {
+    values.iter().all(|v| v.is_finite())
+}
+
+fn write_result(result: Option<[f64; 3]>) -> i32 {
+    match result {
+        Some(next) => {
+            let io = unsafe { &mut *core::ptr::addr_of_mut!(COLOR_IO) };
+            io[..3].copy_from_slice(&next);
+            1
+        }
+        None => 0,
+    }
+}
+
+/// readableColor. 1 = 바꿈(결과는 color_io 0..3), 0 = 그대로, -1 = 이상한 값이라 자바스크립트가 직접 계산.
+#[no_mangle]
+pub extern "C" fn readable_rgb(fr: f64, fg: f64, fb: f64, fa: f64, br: f64, bgg: f64, bb: f64, ba: f64, target: f64) -> i32 {
+    if !finite(&[fr, fg, fb, fa, br, bgg, bb, ba, target]) {
+        return -1;
+    }
+    write_result(readable_color(&[fr, fg, fb, fa], &[br, bgg, bb, ba], target))
+}
+
+/// 글자 보정. 겹친 면 count 개를 color_io 4.. 에 미리 써 둬요. 반환값은 readable_rgb 와 같아요.
+#[no_mangle]
+pub extern "C" fn repair_text_rgb(fr: f64, fg: f64, fb: f64, fa: f64, count: u32, target: f64) -> i32 {
+    let count = count as usize;
+    if count > MAX_LAYERS || !finite(&[fr, fg, fb, fa, target]) {
+        return -1;
+    }
+    let io = unsafe { &*core::ptr::addr_of!(COLOR_IO) };
+    let raw = &io[4..4 + count * 5];
+    if !finite(raw) {
+        return -1;
+    }
+    let mut layers: [Layer; MAX_LAYERS] = core::array::from_fn(|_| Layer { color: [0.0; 4], opacity: 0.0 });
+    for (i, chunk) in raw.chunks_exact(5).enumerate() {
+        layers[i] = Layer { color: [chunk[0], chunk[1], chunk[2], chunk[3]], opacity: chunk[4] };
+    }
+    write_result(repair_text(&[fr, fg, fb, fa], &layers[..count], target))
+}
 
 /// 자바스크립트가 채널 밝기 표 256칸을 써 넣을 곳.
 #[no_mangle]

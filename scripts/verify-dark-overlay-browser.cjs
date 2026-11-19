@@ -43,7 +43,7 @@ const { pathToFileURL } = require('node:url');
     await page.addScriptTag({ content: fs.readFileSync('node_modules/darkreader/darkreader.js', 'utf8') });
     const fixes = await import(pathToFileURL(path.resolve('src/modules/dark/site-fixes.js')).href);
     await page.evaluate(f => DarkReader.enable({}, f), fixes.withTranslationColors());
-    await page.addScriptTag({ content: fs.readFileSync('src/modules/dark/contrast.js', 'utf8').replace(/export /g, '') + ';window.contrast=createContrastController(document);contrast.start()' });
+    await page.addScriptTag({ content: require('./inline-dark.cjs').contrastSource() + ';window.contrast=createContrastController(document);contrast.start()' });
     await open(); await page.locator('#photo').evaluate(e => e.decode());
     await page.waitForTimeout(500);
     const on = await sample(); await page.screenshot({ path: path.join(folder, 'on.png') });

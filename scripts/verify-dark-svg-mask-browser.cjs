@@ -5,7 +5,7 @@ const {chromium}=require('playwright'),fs=require('node:fs'),assert=require('nod
  try{
   const page=await browser.newPage();await page.route('https://fixture.invalid/**',r=>r.fulfill({body:'',status:404}));
   await page.setContent('<body style="background:#181a1b"><button style="background:#181a1b;border:0"><span id="glyph" style="display:block;width:40px;height:40px;background-image:url(https://fixture.invalid/icon.svg)"></span></button></body>');
-  const helpers=fs.readFileSync('src/modules/dark/contrast.js','utf8').replace(/export /g,'')+'\n'+fs.readFileSync('src/modules/dark/icon-contrast.js','utf8').replace(/^import[^\n]+\n/,'').replace(/export /g,'');
+  const helpers=require('./inline-dark.cjs').contrastSource()+'\n'+fs.readFileSync('src/modules/dark/icon-contrast.js','utf8').replace(/^import[^\n]*\n/gm,'').replace(/export /g,'');
   await page.addScriptTag({content:helpers});
   const result=await page.evaluate(async()=>{
    const template='<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><defs><mask id="m" maskUnits="userSpaceOnUse"><rect width="40" height="40" fill="white"/><rect x="10" y="10" width="8" height="8" fill="black"/></mask><clipPath id="c"><rect x="2" y="2" width="28" height="28" fill="black"/></clipPath></defs><path fill="black" mask="url(#m)" clip-path="url(#c)" d="M4 4h24v24H4z"/><rect x="30" y="4" width="6" height="8" fill="#4492cf"/></svg>';

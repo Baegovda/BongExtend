@@ -3,7 +3,7 @@ const {chromium}=require('playwright');
 const fs=require('node:fs'),os=require('node:os'),path=require('node:path'),assert=require('node:assert/strict');
 (async()=>{
  const folder=fs.mkdtempSync(path.join(os.tmpdir(),'be-contrast-'));
- const source=fs.readFileSync('src/modules/dark/contrast.js','utf8').replace(/export /g,'');
+ const source=require('./inline-dark.cjs').contrastSource();
  const browser=await chromium.launch({channel:'chrome',headless:true});
  const page=await browser.newPage({viewport:{width:1400,height:1000}});
  const install=async()=>page.addScriptTag({content:source+';window.contrast=createContrastController(document);window.contrast.start();'});
@@ -12,6 +12,7 @@ const fs=require('node:fs'),os=require('node:os'),path=require('node:path'),asse
   await page.evaluate(()=>document.body.insertAdjacentHTML('beforeend',`<section style="opacity:.72;background:rgba(255,255,255,.04)"><p id="stableText" style="color:rgba(75,75,75,.85);transition:color .2s">안정된 반투명 미리보기</p></section><div role="tablist"><button id="selectedTab" role="tab" aria-selected="true" style="background:#202324;color:#444">선택 탭</button><button id="otherTab" role="tab" aria-selected="false" style="background:#202324;color:#444">다른 탭</button></div><style>@keyframes fadeText{from{opacity:.6}to{opacity:.9}}</style><p id="animatingText" style="animation:fadeText 1s infinite;color:#444">의도적 페이드</p>`));
   await page.locator('#card').evaluate(el=>el.style.borderRadius='12px');
   await install();await page.waitForTimeout(700);
+  assert.equal(await page.evaluate(()=>globalThis.__bongIconPixelsEngine),'wasm','Rust(WebAssembly) colour engine must run in Chrome');
   await page.evaluate(()=>{
    const group=document.querySelector('[role="tablist"]');group.id='tabStrip';group.style.cssText='background:rgb(24,26,27);width:400px;height:44px;padding:8px';
    const nav=document.createElement('nav');nav.id='transparentNav';nav.innerHTML='<a href="#">투명 탐색 1</a> <a href="#">투명 탐색 2</a>';document.body.append(nav);

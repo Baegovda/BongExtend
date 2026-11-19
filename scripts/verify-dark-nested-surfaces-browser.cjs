@@ -11,7 +11,7 @@ const assert=require('node:assert/strict');
   await page.evaluate(f=>DarkReader.enable({},f),fixes.withTranslationColors());await page.waitForTimeout(250);
   const sample=()=>page.locator('.box').evaluateAll(es=>es.map(e=>({id:e.id,border:getComputedStyle(e).borderTopColor,bg:getComputedStyle(e).backgroundColor,outline:getComputedStyle(e).outline,owned:e.getAttribute('data-bong-contrast-owned')})));
   const baseline=await sample();await page.screenshot({path:path.join(folder,'baseline.png')});
-  await page.addScriptTag({content:fs.readFileSync('src/modules/dark/contrast.js','utf8').replace(/export /g,'')+';window.contrast=createContrastController(document);contrast.start()'});await page.waitForTimeout(350);
+  await page.addScriptTag({content:require('./inline-dark.cjs').contrastSource()+';window.contrast=createContrastController(document);contrast.start()'});await page.waitForTimeout(350);
   const helper=await sample();await page.screenshot({path:path.join(folder,'helper.png')});await page.evaluate(()=>contrast.stop());
   const stopped=await sample();
   fs.writeFileSync(path.join(folder,'results.json'),JSON.stringify({baseline,helper,stopped},null,2));

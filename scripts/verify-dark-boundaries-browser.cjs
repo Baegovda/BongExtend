@@ -17,7 +17,7 @@ const {chromium}=require('playwright'),fs=require('node:fs'),path=require('node:
   const baseline=await read();console.log('BASELINE',baseline);await page.screenshot({path:path.join(folder,'base-dark.png')});
   const guards=()=>page.locator('#brand,#selected,#disabled,#hidden,#photo').evaluateAll(es=>es.map(e=>({id:e.id,border:getComputedStyle(e).borderBottomColor,outline:getComputedStyle(e).outline,display:getComputedStyle(e).display,src:e.getAttribute('src'),filter:getComputedStyle(e).filter})));
   const protectedBefore=await guards();
-  const helpers=fs.readFileSync('src/modules/dark/contrast.js','utf8').replace(/export /g,'')+'\n'+fs.readFileSync('src/modules/dark/icon-contrast.js','utf8').replace(/^import[^\n]+\n/,'').replace(/export /g,'');
+  const helpers=require('./inline-dark.cjs').contrastSource()+'\n'+fs.readFileSync('src/modules/dark/icon-contrast.js','utf8').replace(/^import[^\n]*\n/gm,'').replace(/export /g,'');
   await page.addScriptTag({content:helpers+';window.icons=createIconContrastController(document,()=>contrast.update());window.contrast=createContrastController(document,{inspectImage:icons.inspect});icons.start();contrast.start();'});await page.waitForTimeout(500);
   await page.waitForFunction(()=>document.querySelector('#dataGlyph').hasAttribute('data-bong-icon-owned'));
   assert.equal(await page.locator('#alpha').evaluate(e=>getComputedStyle(e.parentElement).opacity),'0.72');

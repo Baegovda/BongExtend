@@ -10,7 +10,7 @@ const {chromium}=require('playwright'),fs=require('node:fs'),path=require('node:
   const ui=await page.locator('#ui').evaluate(e=>e.style.cssText),editor=await page.locator('#editor').evaluate(e=>e.style.cssText),image=await page.locator('#art').getAttribute('src');
   await page.screenshot({path:path.join(folder,'before.png')});
   await page.addScriptTag({content:fs.readFileSync('node_modules/darkreader/darkreader.js','utf8')});
-  const helpers=fs.readFileSync('src/modules/dark/contrast.js','utf8').replace(/export /g,'')+'\n'+fs.readFileSync('src/modules/dark/mail-theme.js','utf8').replace(/^import[^\n]+\n/,'').replace(/export /g,'');
+  const helpers=require('./inline-dark.cjs').contrastSource()+'\n'+fs.readFileSync('src/modules/dark/mail-theme.js','utf8').replace(/^import[^\n]*\n/gm,'').replace(/export /g,'');
   const settings=await import(require('node:url').pathToFileURL(path.resolve('src/modules/dark/settings.js')).href);
   await page.addScriptTag({content:helpers});
   await page.evaluate(theme=>{

@@ -38,7 +38,7 @@ const { pathToFileURL } = require('node:url');
         inline:e.getAttribute('style'), marker:e.getAttribute('data-bong-pseudo-owned') }];
     })));
     const baseline = await read(); await page.screenshot({ path:path.join(folder,'baseline.png') });
-    await page.addScriptTag({ content: fs.readFileSync('src/modules/dark/contrast.js','utf8').replace(/export /g,'') + '\n' + fs.readFileSync('src/modules/dark/pseudo-contrast.js','utf8').replace(/^import[^\n]+\n/,'').replace(/export /g,'') + ';window.pseudo=createPseudoContrastController(document);pseudo.start();' });
+    await page.addScriptTag({ content: require('./inline-dark.cjs').contrastSource() + '\n' + fs.readFileSync('src/modules/dark/pseudo-contrast.js','utf8').replace(/^import[^\n]*\n/gm,'').replace(/export /g,'') + ';window.pseudo=createPseudoContrastController(document);pseudo.start();' });
     const inspectAll = () => page.evaluate(() => {
       for (const e of document.querySelectorAll('button[id],#span')) {
         let bg = [24,26,27,1], layers=[];
