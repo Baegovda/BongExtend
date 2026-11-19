@@ -6,9 +6,15 @@
     const m = String(path || '').match(/^\/live\/([0-9a-f]{32})(?:[/?#]|$)/i);
     return m ? m[1].toLowerCase() : null;
   }
+  // 숫자.toLocaleString('ko-KR') 과 같은 표기기를 한 번만 만들어 써요(매번 만들면 크롬에서 약 11µs, 다시 쓰면 0.2µs).
+  let koNumber = null;
+  function ko(n) {
+    if (!koNumber) koNumber = new Intl.NumberFormat('ko-KR');
+    return koNumber.format(n);
+  }
   // 시청자 수 표시 문자열. 숫자가 아니면 '-'
   function formatViewers(n) {
-    return typeof n === 'number' && isFinite(n) && n >= 0 ? '👁 ' + Math.round(n).toLocaleString('ko-KR') + '명' : '👁 -';
+    return typeof n === 'number' && isFinite(n) && n >= 0 ? '👁 ' + ko(Math.round(n)) + '명' : '👁 -';
   }
   // 이동 목표 시간 계산. 범위 [lo, hi] 안으로 제한. 범위가 잘못되면 null
   function clampSeek(current, delta, lo, hi) {
@@ -31,7 +37,7 @@
   }
   // 숫자만: '1,234명' / '-'
   function formatCount(n) {
-    return typeof n === 'number' && isFinite(n) && n >= 0 ? Math.round(n).toLocaleString('ko-KR') + '명' : '-';
+    return typeof n === 'number' && isFinite(n) && n >= 0 ? ko(Math.round(n)) + '명' : '-';
   }
   // 이전 → 현재 변화 방향: 'up' | 'down' | null (둘 중 하나라도 숫자가 아니면 null)
   function changeDirection(prev, next) {

@@ -2,8 +2,10 @@
 //! 요청: {"f": 함수 이름, "a": [인자…]} (JSON) → 답: {"v": 결과} 또는 {"x": "예전 길로"}.
 //! "x" 는 자바스크립트 규칙과 똑같이 만들 수 없는 드문 입력이라는 뜻이고, 그때는 예전 자바스크립트가 처리해요.
 pub mod atom;
+pub mod extra;
 pub mod js;
 pub mod otp;
+pub mod profile;
 pub mod zip;
 
 use js::Fallback;
@@ -59,6 +61,58 @@ pub fn dispatch_text(name: &str, texts: &[&str]) -> Result<Value, Fallback> {
     match name {
         "gmail.extractOtp" => otp::extract(text(0), text(1)).map(|code| json!(code)),
         "gmail.parseAtom" => atom::parse_atom(text(0)),
+        // actions.js profileFromHtml(html, knownEmail)
+        "gmail.profile" => profile::profile(text(0), text(1)).map(|(photo, email)| json!({"photo": photo, "email": email})),
+        // 이식 실험(extra.rs, cargo 기능 experiments 일 때만 들어가요). 숫자는 JS String(x) 글자 그대로(−0 은 "-0").
+        #[cfg(feature = "experiments")]
+        "num.ko" => {
+            let min: usize = text(1).parse().map_err(|_| Fallback("digits"))?;
+            let max: usize = text(2).parse().map_err(|_| Fallback("digits"))?;
+            extra::ko_number(text(0), min, max).map(|s| json!(s))
+        }
+        #[cfg(feature = "experiments")]
+        "trans.target" => extra::target_language(text(0), text(1)).map(|b| json!(b)),
+        #[cfg(feature = "experiments")]
+        "image.original" => extra::original_image_url(text(0)).map(|s| json!(s)),
+        #[cfg(feature = "experiments")]
+        "shop.originalImage" => extra::original_product_image(text(0)).map(|s| json!(s)),
+        #[cfg(feature = "experiments")]
+        "dl.batch" => {
+            let limit: usize = text(1).parse().map_err(|_| Fallback("limit"))?;
+            extra::batch_urls(text(0), limit).map(|v| json!(v))
+        }
+        // 설치 순서 정렬(installPlan.ts orderFiles). 줄마다 "순위\t열쇠", text(1) = 줄 수
+        "update.order" => {
+            let n: usize = text(1).parse().map_err(|_| Fallback("count"))?;
+            let mut items = Vec::with_capacity(n);
+            for line in text(0).split('\n') {
+                let (rank, key) = line.split_once('\t').ok_or(Fallback("line"))?;
+                items.push((rank.parse::<i64>().map_err(|_| Fallback("rank"))?, key));
+            }
+            if items.len() != n {
+                return Err(Fallback("count"));
+            }
+            extra::order_keys(&items).map(|v| json!(v))
+        }
+        // 줄마다 "top\theight\tid", text(1) = "up"|"down", text(2) = 줄 수
+        #[cfg(feature = "experiments")]
+        "trans.wiper" => {
+            let n: usize = text(2).parse().map_err(|_| Fallback("count"))?;
+            let mut boxes = Vec::with_capacity(n);
+            for line in text(0).split('\n') {
+                let mut parts = line.splitn(3, '\t');
+                let top: f64 = parts.next().unwrap_or("").parse().map_err(|_| Fallback("top"))?;
+                let height: f64 = parts.next().unwrap_or("").parse().map_err(|_| Fallback("height"))?;
+                let id = parts.next().ok_or(Fallback("id"))?;
+                boxes.push(extra::WiperBox { id, top, height });
+            }
+            if boxes.len() != n {
+                return Err(Fallback("count"));
+            }
+            let (from, to, span, amin, amax, ls, le, order) = extra::wiper_order(&boxes, text(1) == "up")?;
+            let order: Vec<Value> = order.into_iter().map(|(i, at, band, top, height)| json!([i, at, band, top, height])).collect();
+            Ok(json!([from, to, span, amin, amax, ls, le, order]))
+        }
         _ => Err(Fallback("unknown function")),
     }
 }

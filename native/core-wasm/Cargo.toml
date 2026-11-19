@@ -14,6 +14,12 @@ path = "src/lib.rs"
 serde_json = { version = "1", features = ["preserve_order"] }
 memchr = "2"
 miniz_oxide = "0.8"
+unicode-script = { version = "0.5.9", optional = true }
+url = { version = "2.5.8", optional = true }
+
+[features]
+# 이식 실험(extra.rs): 배포 엔진에는 넣지 않아요. 시험: cargo test --features experiments
+experiments = ["dep:url", "dep:unicode-script"]
 
 [profile.release]
 opt-level = 3

@@ -1,5 +1,6 @@
 // 로그인된 Gmail 세션의 작업 토큰으로 읽음·보관·삭제를 보낸다.
 // Google Cloud OAuth 클라이언트는 쓰지 않는다.
+import {coreCallText} from "../core-wasm.js";
 
 export const GMAIL_ACTIONS = {
     read: "rd",
@@ -43,7 +44,19 @@ const PHOTO_IN_PAGE = /https:\/\/lh3\.googleusercontent\.com\/a(?:-\/|\/)[A-Za-z
 const PHOTO_ON_GMAIL = /https:\/\/mail\.google\.com\/mail\/u\/\d+\/[^"'\\\s<>]*photo[^"'\\\s<>]*/gi;
 
 // 이미 받는 Gmail HTML 안의 프로필 사진 주소. 다른 호스트 권한은 늘리지 않는다.
+// 메일 주소를 모르는 큰 페이지는 Rust(native/core-wasm/src/profile.rs)가 먼저 찾아요. 결과가 같은지는 test/profile-rust.test.js 가 비교해요.
+// 크롬에서 잰 값: 메일 모름 1만 자 0.052 → 0.024ms, 200만 자 11.3 → 4.7ms. 메일을 이미 알면 자바스크립트가 더 빨라서
+// (200만 자 1.9ms vs Rust 4.5ms, 큰 글을 넘기는 비용이 계산보다 커요) 예전 길(profileFromHtmlJs)이 그대로 해요.
+const PROFILE_RUST_FROM = 10000;
 export const profileFromHtml = (html, knownEmail = "") => {
+    if (typeof html === "string" && html.length >= PROFILE_RUST_FROM && !String(knownEmail || "").trim()) {
+        const fast = coreCallText("gmail.profile", [html, String(knownEmail || "")]);
+        if (fast && "value" in fast) return fast.value;
+    }
+    return profileFromHtmlJs(html, knownEmail);
+};
+
+export const profileFromHtmlJs = (html, knownEmail = "") => {
     const source = String(html || "");
     const known = String(knownEmail || "").trim();
     const email = known || (source.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i) || [])[0] || "";

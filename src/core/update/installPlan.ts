@@ -5,6 +5,7 @@
 // 2) 나머지 파일
 // 3) manifest.json 하나만, 맨 마지막
 import {compareVersions} from "@/core/semver";
+import {coreCallText, coreWasmState} from "@/modules/core-wasm.js";
 import {fileKey, type PendingDecision, type PendingUpdate, type ZipFile} from "@/core/update/types";
 
 export type WriteProgress = {
@@ -199,7 +200,28 @@ export const missingReachable = (files: ZipFile[], entryHtml: string[]): string[
 export const collectPriorityKeys = (files: ZipFile[]): Set<string> =>
     collectReachable(files, ["update.html"]);
 
+// 정렬은 Rust(native/core-wasm/src/extra.rs order_keys)가 먼저 해요. localeCompare 의 ICU 기본 규칙을 출력 가능한 ASCII 에
+// 한해 그대로 옮겼고(문장부호 → 숫자 → 글자, 대소문자는 마지막에 소문자 먼저), 다른 글자가 든 이름은 예전 길로 가요.
+// 결과가 같은지는 installPlan-rust.test.ts 가 비교해요. 업데이트 화면은 zip 풀기로 엔진을 이미 준비해 둬서 준비 비용이 없어요.
+const ORDER_RUST_FROM = 64;
 export const orderFiles = (files: ZipFile[], priority = collectPriorityKeys(files)): ZipFile[] => {
+    const rank = (key: string): number => {
+        if (key === "manifest.json") return 2;
+        if (priority.has(key)) return 0;
+        return 1;
+    };
+    if (files.length >= ORDER_RUST_FROM && coreWasmState() === "wasm") {
+        const lines = files.map((file) => {
+            const key = fileKey(file);
+            return `${rank(key)}\t${key}`;
+        });
+        const fast = coreCallText("update.order", [lines.join("\n"), String(files.length)]);
+        if (fast && "value" in fast) return (fast.value as number[]).map((index) => files[index]!);
+    }
+    return orderFilesJs(files, priority);
+};
+
+export const orderFilesJs = (files: ZipFile[], priority = collectPriorityKeys(files)): ZipFile[] => {
     const rank = (file: ZipFile): number => {
         const key = fileKey(file);
         if (key === "manifest.json") return 2;
