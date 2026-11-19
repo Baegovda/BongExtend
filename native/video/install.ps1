@@ -26,11 +26,22 @@ function Get-Asset($repo,$name) {
  $asset=$release.assets | Where-Object name -eq $name | Select-Object -First 1
  if (!$asset -or $asset.digest -notmatch '^sha256:([a-f0-9]{64})$') {throw "Missing published SHA256: $name"}
  $hash=$Matches[1];$path=Join-Path $dest $name
- if (!(Test-Path -LiteralPath $path) -or (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLower() -ne $hash) {
-  Write-Host "Downloading $name...";Invoke-WebRequest -Uri $asset.browser_download_url -OutFile $path -UseBasicParsing
+ if ((Test-Path -LiteralPath $path) -and (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLower() -eq $hash) { return $path }
+ # 다른 이름(.part)으로 받아서 지문이 맞을 때만 제 이름으로 바꿔요. 받다가 끊겨도 쓰던 파일은 그대로 남고, 덜 받은 파일은 지워요(최대 3번 다시 받아요).
+ $part="$path.part"
+ for ($try=1; $try -le 3; $try++) {
+  try {
+   Write-Host "Downloading $name... ($try/3)"
+   Invoke-WebRequest -Uri $asset.browser_download_url -OutFile $part -UseBasicParsing
+   if ((Get-FileHash -LiteralPath $part -Algorithm SHA256).Hash.ToLower() -ne $hash) {throw "SHA256 mismatch: $name"}
+   Move-Item -LiteralPath $part -Destination $path -Force
+   return $path
+  } catch {
+   Remove-Item -LiteralPath $part -Force -ErrorAction SilentlyContinue
+   if ($try -eq 3) {throw}
+   Start-Sleep -Seconds (3*$try)
+  }
  }
- if ((Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLower() -ne $hash) {throw "SHA256 mismatch: $name"}
- return $path
 }
 Get-Asset 'yt-dlp/yt-dlp' 'yt-dlp.exe' | Out-Null
 if (!(Test-Path -LiteralPath (Join-Path $dest 'ffmpeg.exe'))) {
@@ -40,7 +51,14 @@ if (!(Test-Path -LiteralPath (Join-Path $dest 'ffmpeg.exe'))) {
 }
 $node=Get-Command node -ErrorAction SilentlyContinue
 if ($node) {$runtime='node:'+$node.Source} else {
- $zip=Get-Asset 'denoland/deno' 'deno-x86_64-pc-windows-msvc.zip';Expand-Archive -LiteralPath $zip -DestinationPath $dest -Force;$runtime='deno:'+(Join-Path $dest 'deno.exe')
+ if (!(Test-Path -LiteralPath (Join-Path $dest 'deno.exe'))) { $zip=Get-Asset 'denoland/deno' 'deno-x86_64-pc-windows-msvc.zip';Expand-Archive -LiteralPath $zip -DestinationPath $dest -Force }
+ $runtime='deno:'+(Join-Path $dest 'deno.exe')
+}
+# 필요한 실행 파일을 꺼낸 뒤에는 받은 압축 파일과 푼 폴더(FFmpeg 약 700MB)를 지워요. 예전 설치에서 남은 것도 함께 정리해요.
+foreach ($leftover in @('ffmpeg-master-latest-win64-gpl.zip','ffmpeg-package','deno-x86_64-pc-windows-msvc.zip')) {
+ $path=Join-Path $dest $leftover
+ $needed=if ($leftover -like 'deno*') {'deno.exe'} else {'ffmpeg.exe'}
+ if ((Test-Path -LiteralPath $path) -and (Test-Path -LiteralPath (Join-Path $dest $needed))) { Remove-Item -LiteralPath $path -Recurse -Force -ErrorAction SilentlyContinue }
 }
 @{runtime=$runtime} | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $dest 'config.json') -Encoding UTF8
 $manifest=Join-Path $dest 'com.bongextend.video.json'
