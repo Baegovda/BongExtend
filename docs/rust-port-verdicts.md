@@ -29,6 +29,7 @@ Rust 코드는 `native/core-wasm/src/extra.rs`(cargo 기능 `experiments`, 배�
 
 - 최종(30개 장면, 프로파일 154개 = 페이지 87 + 서비스 워커 67): 확장 코드 시간 3,890ms = 가져온 외부 코드 1,902ms(49%), 브라우저 기능 1,016ms(26%), 출처를 못 이은 묶음 초기화 590ms(15%), 브라우저 기능을 직접 안 쓰는 함수 381ms(10%, 131개). 서비스 워커 안 확장 코드 1,213ms 는 대부분 외부 메일 엔진(크롬 번역 문구 API chrome.i18n, Intl 날짜, WebCrypto, 큰 스크립트 첫 실행)이에요.
 - 131개: 하한 증명 42개, 화면 요소·스타일 객체 42개, Intl 2개(moneyFormat, formatDate), 나머지 47개는 하나씩 확인(네트워크·크롬·파일 시스템·IndexedDB·WebCrypto 연결, 또는 실제 입력 하한이 더 큼: normalizeVersion 0.07µs < 1.31µs, parseScan 0.49µs < 33µs, normalizeDarkSettings 0.07µs < 9µs 등). 그중 업데이트 화면의 `collectReachable` 만 엔진이 이미 있는 화면이고 하한(0.053ms)이 JS(0.31ms)보다 작아서 실제로 Rust 로 옮겼어요(위 installPlan.ts 줄).
+- 화면 요소·스타일 객체를 받는 함수도 하한을 쟀어요(크롬 157, 실제 getComputedStyle 객체): Rust 로 옮기면 자바스크립트가 같은 스타일 값을 먼저 읽어 넘겨야 해서, 그 "읽어서 넘기기만"이 하한이에요. textLineMode(lineClampOf·overflowClips·pixelLength 포함) JS 1.09µs < 하한 6.44µs, stable(hairline-contrast) 1.21µs < 6.49µs, isInlineBox 0.09µs < 2.50µs → 모두 반드시 느림. 나머지 화면 함수(step·setProgress·refreshJobs 등)는 스타일·위치를 읽을 뿐 아니라 화면에 직접 써서(DOM 쓰기) Rust 쪽에서 할 수 있는 일이 없어요.
 
 아래는 1차(서비스 워커 없이) 기록이에요.
 
