@@ -1,8 +1,9 @@
 // Public anonymous page, temporary extension/profile. Never personal Chrome.
+const {makeTempDir}=require('./temp-dir.cjs');
 const {chromium}=require('playwright');
 const fs=require('node:fs'),path=require('node:path'),os=require('node:os');
 (async()=>{
- const folder=fs.mkdtempSync(path.join(os.tmpdir(),'be-malltail-product-')),extension=path.join(folder,'extension');
+ const folder=makeTempDir('be-malltail-product-'),extension=path.join(folder,'extension');
  fs.cpSync(process.env.BONG_DARK_FIXTURE_EXTENSION||'.output/chrome-mv3',extension,{recursive:true});
  const manifestFile=path.join(extension,'manifest.json'),manifest=JSON.parse(fs.readFileSync(manifestFile));manifest.host_permissions.push('https://*.malltail.com/*');fs.writeFileSync(manifestFile,JSON.stringify(manifest));
  // Stage latest source into the disposable package without rebuilding the app.
@@ -35,6 +36,6 @@ const fs=require('node:fs'),path=require('node:path'),os=require('node:os');
   console.log('PASS latest controller -> direct-CORS-failure -> actual permission-checked relay -> repaired vector (temporary dark glyph backdrop).');
   await worker.evaluate(async()=>{const tab=(await chrome.tabs.query({url:'https://post.malltail.com/*'}))[0];await chrome.scripting.executeScript({target:{tabId:tab.id},func:()=>{sourceTestIcons.stop();const glyph=document.querySelector('.malltail-logo');glyph.style.backgroundColor=glyphBackground;}})});
   require('node:assert/strict').equal(await page.locator('.malltail-logo[data-bong-icon-owned]').count(),0);
-  await worker.evaluate(()=>chrome.storage.local.set({'core.darkMode':{enabledSites:[],followSystem:false}}));await page.waitForTimeout(1000);await snapshot('off');console.log('Evidence:',folder);
+  await worker.evaluate(()=>chrome.storage.local.set({'core.darkMode':{enabledSites:[],followSystem:false}}));await page.waitForTimeout(1000);await snapshot('off');
  }finally{await context.close()}
 })().catch(e=>{console.error(e);process.exitCode=1});

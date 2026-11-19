@@ -1,9 +1,10 @@
 // Actual packaged download manager (downloads.html, BongExtend's own engine since 1.2.94) in a disposable Chrome profile.
 // The only download is a tiny file from a local test server; no personal downloads, accounts or network services.
+const {makeTempDir}=require('./temp-dir.cjs');
 const {chromium}=require('playwright');
 const fs=require('node:fs'),path=require('node:path'),os=require('node:os'),http=require('node:http'),assert=require('node:assert/strict');
 (async()=>{
- const folder=fs.mkdtempSync(path.join(os.tmpdir(),'be-manager-')),ext=path.join(folder,'extension');fs.cpSync('.output/chrome-mv3',ext,{recursive:true});
+ const folder=makeTempDir('be-manager-'),ext=path.join(folder,'extension');fs.cpSync('.output/chrome-mv3',ext,{recursive:true});
  const server=http.createServer((req,res)=>{res.writeHead(200,{'Content-Type':'application/octet-stream','Content-Disposition':'attachment; filename="bongextend-ui-fixture.bin"'});res.end('local fixture');});
  await new Promise(r=>server.listen(0,'127.0.0.1',r));const url=`http://127.0.0.1:${server.address().port}/bongextend-ui-fixture.bin`;
  const context=await chromium.launchPersistentContext(path.join(folder,'profile'),{channel:'chrome',headless:true,viewport:{width:734,height:500},ignoreDefaultArgs:['--disable-extensions'],args:['--enable-unsafe-extension-debugging']});
@@ -25,7 +26,7 @@ const fs=require('node:fs'),path=require('node:path'),os=require('node:os'),http
   await page.emulateMedia({colorScheme:'light'});await page.waitForTimeout(200);assert.ok(await brightness('body')>180,'light page background');await page.screenshot({path:path.join(folder,'manager-light.png')});
   await page.setViewportSize({width:440,height:620});await page.waitForTimeout(250);await page.screenshot({path:path.join(folder,'manager-narrow.png')});
   await checkNoScroll();await checkControls();
-  console.log('PASS empty themes, 734/440 control bounds and accessible names. Evidence:',folder);
+  console.log('PASS empty themes, 734/440 control bounds and accessible names.');
 
   const downloadId=await page.evaluate(url=>chrome.downloads.download({url}),url);
   await page.waitForFunction(id=>chrome.downloads.search({id}).then(([d])=>d?.state==='complete'),downloadId);
@@ -48,6 +49,6 @@ const fs=require('node:fs'),path=require('node:path'),os=require('node:os'),http
   for(const selector of ['.download-name','#viewToggle','#search'])assert.ok(await page.locator(selector).first().evaluate(e=>{const c=getComputedStyle(e).color.match(/\d+/g).map(Number);return (c[0]+c[1]+c[2])/3>150;}),selector+' dark text contrast');
   await page.screenshot({path:path.join(folder,'manager-item-dark.png')});
   assert.deepEqual(errors,[]);
-  console.log('PASS manager row actions, search/filters, view toggle, themes and responsive view. Evidence:',folder);
+  console.log('PASS manager row actions, search/filters, view toggle, themes and responsive view.');
  }finally{await context.close();await new Promise(r=>server.close(r));}
 })().catch(e=>{console.error(e);process.exitCode=1});

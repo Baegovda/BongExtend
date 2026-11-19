@@ -1,8 +1,9 @@
 // Disposable Chrome profile, synthetic mail only; no personal mailbox or API key is used.
+const {makeTempDir}=require('./temp-dir.cjs');
 const {chromium}=require(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const fs=require('node:fs'), path=require('node:path'), os=require('node:os'), http=require('node:http'), assert=require('node:assert/strict');
 (async()=>{
-  const temp=fs.mkdtempSync(path.join(os.tmpdir(),'be-reader-')), ext=path.join(temp,'extension');
+  const temp=makeTempDir('be-reader-'), ext=path.join(temp,'extension');
   fs.cpSync('.output/chrome-mv3',ext,{recursive:true});
   const manifestPath=path.join(ext,'manifest.json'), manifest=JSON.parse(fs.readFileSync(manifestPath));
   manifest.host_permissions.push('http://reader.test/*');
@@ -199,6 +200,5 @@ const fs=require('node:fs'), path=require('node:path'), os=require('node:os'), h
     await frame.waitForFunction(()=>!document.getElementById('openEmailSection').classList.contains('active'));assert.equal(page.url(),popupBeforeBack);
     console.log('PASS Gmail auxiliary/history back stays in popup and keeps the existing reply draft');
     assert.deepEqual(errors,[]); assert.deepEqual(await worker.evaluate(()=>__testErrors),[]);
-    console.log('screenshots',temp);
   } finally {await context.close();server.closeAllConnections();await new Promise(resolve=>server.close(resolve));}
 })().catch(error=>{console.error(error);process.exitCode=1;});

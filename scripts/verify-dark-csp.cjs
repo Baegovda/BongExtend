@@ -1,9 +1,10 @@
 // Uses a separate headless Chrome profile and a local strict-CSP fixture, never the user's profile.
+const {makeTempDir}=require('./temp-dir.cjs');
 const {chromium} = require('playwright');
 const fs = require('node:fs'), path = require('node:path'), os = require('node:os');
 const http = require('node:http'), assert = require('node:assert/strict');
 (async () => {
-    const folder = fs.mkdtempSync(path.join(os.tmpdir(), 'be-dark-csp-'));
+    const folder = makeTempDir('be-dark-csp-');
     const extension = path.join(folder, 'extension');
     fs.cpSync('.output/chrome-mv3', extension, {recursive: true});
     const manifestPath = path.join(extension, 'manifest.json');
@@ -70,6 +71,6 @@ const http = require('node:http'), assert = require('node:assert/strict');
         await page.waitForFunction(() => document.querySelector('.darkreader--sync') && document.documentElement.hasAttribute('data-bong-dark-proxy'));
         for (const item of page.frames()) assert.deepEqual(await item.evaluate(() => window.__scriptViolations), []);
         assert.deepEqual(scriptErrors, []);
-        console.log('PASS strict CSP: no inline script violations; live CSSOM, existing tabs, reload, iframe and system-theme lifecycle;', folder);
+        console.log('PASS strict CSP: no inline script violations; live CSSOM, existing tabs, reload, iframe and system-theme lifecycle');
     } finally {await context.close(); await new Promise(resolve => server.close(resolve));}
 })().catch(error => {console.error(error);process.exitCode=1;});

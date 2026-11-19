@@ -1,7 +1,8 @@
 // Test the actual nested frames inside the BongExtend shell, not just standalone engine pages.
+const {makeTempDir}=require('./temp-dir.cjs');
 const {chromium}=require('playwright'),fs=require('node:fs'),os=require('node:os'),path=require('node:path'),assert=require('node:assert/strict');
 (async()=>{
- const temp=fs.mkdtempSync(path.join(os.tmpdir(),'be-downloader-shell-')),ext=path.join(temp,'extension');fs.cpSync('.output/chrome-mv3',ext,{recursive:true});
+ const temp=makeTempDir('be-downloader-shell-'),ext=path.join(temp,'extension');fs.cpSync('.output/chrome-mv3',ext,{recursive:true});
  const ctx=await chromium.launchPersistentContext(path.join(temp,'profile'),{executablePath:process.env.CHROME_PATH||'C:/Program Files/Google/Chrome/Application/chrome.exe',headless:true,ignoreDefaultArgs:['--disable-extensions'],args:['--enable-unsafe-extension-debugging'],viewport:{width:1000,height:760}});
  try{
   const cdp=await ctx.browser().newBrowserCDPSession(),{id}=await cdp.send('Extensions.loadUnpacked',{path:ext});
@@ -33,6 +34,6 @@ const {chromium}=require('playwright'),fs=require('node:fs'),os=require('node:os
   await page.waitForFunction(()=>{const doc=document.querySelector('#chronoPopupFrame').contentDocument;return getComputedStyle(doc.querySelector('.mainview > .selected')).opacity==='1';});
   assert.notEqual(await frame.locator('.mainview section:visible').first().evaluate(e=>getComputedStyle(e).color),'rgb(0, 0, 0)','settings sections stay readable in dark mode');
   await page.screenshot({path:path.join(temp,'settings-dark.png')});
-  assert.deepEqual(errors,[]);console.log('PASS recent list, settings controls, manager and return navigation inside the downloader tab');console.log('screenshots',temp);
+  assert.deepEqual(errors,[]);console.log('PASS recent list, settings controls, manager and return navigation inside the downloader tab');
  }finally{await ctx.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});

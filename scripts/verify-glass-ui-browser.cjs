@@ -1,8 +1,9 @@
 // Representative extension UI states, disposable Chrome profile only.
+const {makeTempDir}=require('./temp-dir.cjs');
 const {chromium}=require('playwright');
 const fs=require('node:fs'),os=require('node:os'),path=require('node:path'),assert=require('node:assert/strict');
 (async()=>{
- const folder=fs.mkdtempSync(path.join(os.tmpdir(),'be-glass-ui-')),ext=path.join(folder,'extension');fs.cpSync('.output/chrome-mv3',ext,{recursive:true});
+ const folder=makeTempDir('be-glass-ui-'),ext=path.join(folder,'extension');fs.cpSync('.output/chrome-mv3',ext,{recursive:true});
  const ctx=await chromium.launchPersistentContext(path.join(folder,'profile'),{channel:'chrome',headless:true,viewport:{width:800,height:620},ignoreDefaultArgs:['--disable-extensions'],args:['--enable-unsafe-extension-debugging']});
  try{
   const {id}=await(await ctx.browser().newBrowserCDPSession()).send('Extensions.loadUnpacked',{path:ext});
@@ -28,6 +29,6 @@ const fs=require('node:fs'),os=require('node:os'),path=require('node:path'),asse
    const overflow=await p.evaluate(()=>({client:document.documentElement.clientWidth,scroll:document.documentElement.scrollWidth}));assert.ok(overflow.scroll<=overflow.client+1,route+' '+width+' horizontal overflow '+JSON.stringify(overflow));
    await p.screenshot({path:path.join(folder,`${route.replaceAll('/','_')}-${width}.png`)});await p.close();
   }
-  assert.deepEqual(errors,[]);console.log('PASS glass UI themes, module navigation and compact layouts. Evidence:',folder);
+  assert.deepEqual(errors,[]);console.log('PASS glass UI themes, module navigation and compact layouts.');
  }finally{await ctx.close()}
 })().catch(e=>{console.error(e);process.exitCode=1});

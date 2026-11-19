@@ -1,7 +1,8 @@
 // Disposable Chrome, synthetic mail objects; never marks a real mailbox message.
+const {makeTempDir}=require('./temp-dir.cjs');
 const {chromium}=require('playwright'),fs=require('node:fs'),os=require('node:os'),path=require('node:path'),assert=require('node:assert/strict');
 (async()=>{
- const folder=fs.mkdtempSync(path.join(os.tmpdir(),'be-otp-paste-')),extension=path.join(folder,'extension');fs.cpSync('.output/chrome-mv3',extension,{recursive:true});
+ const folder=makeTempDir('be-otp-paste-'),extension=path.join(folder,'extension');fs.cpSync('.output/chrome-mv3',extension,{recursive:true});
  const mp=path.join(extension,'manifest.json'),m=JSON.parse(fs.readFileSync(mp));m.host_permissions.push('https://*.bongextend.example.com/*');fs.writeFileSync(mp,JSON.stringify(m));
  const context=await chromium.launchPersistentContext(path.join(folder,'profile'),{executablePath:'C:/Program Files/Google/Chrome/Application/chrome.exe',headless:true,ignoreDefaultArgs:['--disable-extensions'],args:['--enable-unsafe-extension-debugging'],viewport:{width:1000,height:700}});context.setDefaultTimeout(12000);
  try{
@@ -24,6 +25,6 @@ const {chromium}=require('playwright'),fs=require('node:fs'),os=require('node:os
   await context.grantPermissions(['clipboard-read','clipboard-write'],{origin:'https://otp.bongextend.example.com'});await page.evaluate(()=>navigator.clipboard.writeText('999999'));await paste();assert.deepEqual(await marks(),['first'],'different code stays unread');
   await page.evaluate(()=>navigator.clipboard.writeText('654321'));await paste();await worker.evaluate(async()=>{for(let i=0;i<100;i++){if(__otpMarks.length===2)return;await new Promise(r=>setTimeout(r,20))}throw Error('matching paste missing')});assert.deepEqual(await marks(),['first','second']);
   await copy('third','778899');await worker.evaluate(()=>chrome.storage.local.set({'core.mailOtpEnabled':false}));await paste();assert.deepEqual(await marks(),['first','second'],'disabled OTP cannot mark mail');
-  await page.screenshot({path:path.join(folder,'paste.png')});console.log('PASS real clipboard/native paste -> original synthetic mail, copy-only/synthetic/prevented/wrong/duplicate/OFF:',folder);
+  await page.screenshot({path:path.join(folder,'paste.png')});console.log('PASS real clipboard/native paste -> original synthetic mail, copy-only/synthetic/prevented/wrong/duplicate/OFF');
  }finally{await context.close()}
 })().catch(e=>{console.error(e);process.exitCode=1});

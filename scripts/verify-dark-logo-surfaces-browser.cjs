@@ -1,7 +1,8 @@
 // Disposable local Chrome fixture; no account, checkout or protected site access.
+const {makeTempDir}=require('./temp-dir.cjs');
 const {chromium}=require('playwright'),fs=require('node:fs'),path=require('node:path'),os=require('node:os'),assert=require('node:assert/strict');
 (async()=>{
- const folder=fs.mkdtempSync(path.join(os.tmpdir(),'be-logo-surfaces-')),browser=await chromium.launch({channel:'chrome',headless:true});
+ const folder=makeTempDir('be-logo-surfaces-'),browser=await chromium.launch({channel:'chrome',headless:true});
  try{
   const page=await browser.newPage({viewport:{width:1000,height:760}});
   const svg='<svg xmlns="http://www.w3.org/2000/svg" width="90" height="24"><path fill="#111" d="M3 4h5v16H3zM8 4h12v4H8zM16 8h4v7h-4zM8 12h9v4H8zM27 4h4v16h-4zM31 4h14v4H31zM40 8h5v12h-5zM31 12h9v4h-9z"/><path fill="#00c76a" d="M60 4h5v16h-5zM65 9h8v5h-8zM73 4h5v16h-5z"/></svg>';
@@ -30,6 +31,6 @@ const {chromium}=require('playwright'),fs=require('node:fs'),path=require('node:
   assert.equal(await page.locator('#control').evaluate(e=>getComputedStyle(e).content),'normal','new opaque source restores original rendering');
   await page.evaluate(()=>{icons.stop();contrast.stop()});const off=await sample();
   assert.equal(await page.locator('#logo').evaluate(e=>e.style.content),'none','author replacement kept');for(const id of ['canvas','low','clear','brand','overlay','disabled','photo'])assert.deepEqual(off[id],before[id],id+' restored');
-  fs.writeFileSync(path.join(folder,'results.json'),JSON.stringify({before,after,pixels,off},null,2));console.log('PASS logo colors/alpha/geometry, neutral canvases/card fill, author updates/OFF/stability:',folder);
+  fs.writeFileSync(path.join(folder,'results.json'),JSON.stringify({before,after,pixels,off},null,2));console.log('PASS logo colors/alpha/geometry, neutral canvases/card fill, author updates/OFF/stability');
  }finally{await browser.close()}
 })().catch(e=>{console.error(e);process.exitCode=1});

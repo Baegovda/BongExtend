@@ -1,7 +1,8 @@
 // Actual package, disposable profile, synthetic HTTPS page. No real checkout.
+const {makeTempDir}=require('./temp-dir.cjs');
 const {chromium}=require('playwright'),fs=require('node:fs'),os=require('node:os'),path=require('node:path'),assert=require('node:assert/strict');
 (async()=>{
- const folder=fs.mkdtempSync(path.join(os.tmpdir(),'be-dark-controls-')),extension=path.join(folder,'extension');fs.cpSync('.output/chrome-mv3',extension,{recursive:true});
+ const folder=makeTempDir('be-dark-controls-'),extension=path.join(folder,'extension');fs.cpSync('.output/chrome-mv3',extension,{recursive:true});
  const mp=path.join(extension,'manifest.json'),manifest=JSON.parse(fs.readFileSync(mp));manifest.host_permissions.push('https://*.bongextend.example.com/*');fs.writeFileSync(mp,JSON.stringify(manifest));
  const context=await chromium.launchPersistentContext(path.join(folder,'profile'),{channel:'chrome',headless:true,ignoreDefaultArgs:['--disable-extensions'],args:['--enable-unsafe-extension-debugging'],viewport:{width:1000,height:760}});context.setDefaultTimeout(15000);
  try{
@@ -20,6 +21,6 @@ const {chromium}=require('playwright'),fs=require('node:fs'),os=require('node:os
   await worker.evaluate(()=>chrome.storage.local.set({'core.darkMode':{enabledSites:[],followSystem:false}}));await page.locator('html[data-darkreader-scheme]').waitFor({state:'detached'});await page.waitForTimeout(200);
   const off=await page.evaluate(()=>({content:getComputedStyle(document.querySelector('#logo')).content,src:document.querySelector('#logo').src,pseudo:getComputedStyle(document.querySelector('#plus'),'::before').backgroundColor,owned:document.querySelectorAll('[data-bong-pseudo-owned],[data-bong-icon-owned],.bong-pseudo-contrast').length}));
   assert.equal(off.content,'normal');assert.equal(off.src,logo);assert.equal(off.owned,0);await page.screenshot({path:path.join(folder,'off.png')});
-  fs.writeFileSync(path.join(folder,'results.json'),JSON.stringify({on,off,steady},null,2));console.log('PASS actual package pseudo/IMG logo/disabled/brand/geometry/OFF/stability:',folder);
+  fs.writeFileSync(path.join(folder,'results.json'),JSON.stringify({on,off,steady},null,2));console.log('PASS actual package pseudo/IMG logo/disabled/brand/geometry/OFF/stability');
  }finally{await context.close()}
 })().catch(error=>{console.error(error);process.exitCode=1});

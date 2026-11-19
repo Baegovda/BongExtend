@@ -1,4 +1,5 @@
 // Synthetic inbox only. No Gmail session or paid API access.
+const {makeTempDir}=require('./temp-dir.cjs');
 const { chromium } = require('playwright');
 const fs = require('node:fs');
 const os = require('node:os');
@@ -37,9 +38,9 @@ const assert = require('node:assert/strict');
         overlays:document.querySelectorAll('.pt-page-translator-sweep').length,
         draft:document.querySelector('input').value, code:document.querySelector('code').textContent };
     });
-    const folder = fs.mkdtempSync(path.join(os.tmpdir(), 'be-gmail-translation-'));
+    const folder = makeTempDir('be-gmail-translation-');
     await page.screenshot({ path:path.join(folder,'translated.png') });
-    console.log(JSON.stringify({ ...result, screenshot:path.join(folder,'translated.png') },null,2));
+    console.log(JSON.stringify(result,null,2));
     assert.ok(result.sent.includes(result.source));
     assert.equal(result.translated.text,result.target);
     assert.equal(result.translated.title,result.target);

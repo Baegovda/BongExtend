@@ -1,7 +1,8 @@
 // Synthetic mail DOM only. Uses the same upstream named color exports as product integration.
+const {makeTempDir}=require('./temp-dir.cjs');
 const {chromium}=require('playwright'),fs=require('node:fs'),path=require('node:path'),os=require('node:os'),assert=require('node:assert/strict');
 (async()=>{
- const folder=fs.mkdtempSync(path.join(os.tmpdir(),'be-mail-theme-')),browser=await chromium.launch({channel:'chrome',headless:true});
+ const folder=makeTempDir('be-mail-theme-'),browser=await chromium.launch({channel:'chrome',headless:true});
  try{
   const page=await browser.newPage({viewport:{width:1100,height:900}});
   await page.setContent(`<body style="background:#303236"><aside id="ui" style="color:#dedede">앱 UI는 그대로</aside><main id="mail" style="max-width:760px;padding:24px;background:white;color:#222;font:16px Arial"><h1>합성 메일 본문</h1><table bgcolor="#ffffff" style="border:1px solid #bbb;width:100%"><tr><td style="padding:20px;background:linear-gradient(90deg,rgb(240,240,255),rgb(255,255,255))"><font color="#333333">원래 HTML 색상과 카드</font><p><a href="#" style="color:#1762aa">의미 있는 링크</a></p><a style="display:inline-block;padding:12px;background:#1976d2;color:white">파란 동작 버튼</a></td></tr></table><div id="darkCard" style="background:#222;color:#ddd;padding:20px">원래 어두운 카드</div><div contenteditable="true" id="editor" style="color:#222;background:#eee">편집 중인 답장 유지</div><span hidden id="hidden">숨김</span><button disabled id="disabled">비활성</button><img id="art" width="80" height="60" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='60'%3E%3Crect width='80' height='60' fill='orange'/%3E%3Ccircle cx='40' cy='30' r='20' fill='blue'/%3E%3C/svg%3E"></main></body>`);
@@ -39,6 +40,6 @@ const {chromium}=require('playwright'),fs=require('node:fs'),path=require('node:
   assert.notEqual(await page.locator('#mail').evaluate(e=>e.style.backgroundColor),'white');
   await page.evaluate(()=>document.querySelector('#mail').insertAdjacentHTML('beforeend','<section>'+Array.from({length:10000},()=>'<p style="background:white;color:#111">Late huge body</p>').join('')+'</section>'));await page.waitForTimeout(2500);
   assert.equal(await page.evaluate(()=>mailTheme.stats.limitHit),true);assert.equal(await page.locator('#mail').evaluate(e=>e.style.backgroundColor),'white');assert.equal(await page.locator('#mail p').first().evaluate(e=>e.style.color),'rgb(17, 17, 17)');
-  console.log('PASS actual upstream mail-scope theme and whole-original large-mail fallback',stats,folder);
+  console.log('PASS actual upstream mail-scope theme and whole-original large-mail fallback',stats);
  }finally{await browser.close()}
 })().catch(e=>{console.error(e);process.exitCode=1});

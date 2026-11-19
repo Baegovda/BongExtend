@@ -89,6 +89,7 @@ BongExtend는 치지직, Gemini 번역, 디시인사이드(green1052/DCRefresher
   - `test:types`: `tsc --noEmit -p tsconfig.json`
 - `bun run build` → `.output/chrome-mv3/`. `bun run build:firefox`는 로컬용이에요.
 - `bun run zip` → `.output/bongextend-X.Y.Z-chrome.zip`. 확인은 `bun run verify`예요. 버전을 안 적으면 `package.json`을 쓰고, 크롬 zip만 봐요. `bun scripts/verify-release-zip.ts X.Y.Z`와 같아요.
+- 브라우저 확인 스크립트(`scripts/verify-*.cjs`, `scripts/preview-*.cjs`)의 임시 폴더는 `fs.mkdtempSync` 대신 `scripts/temp-dir.cjs`의 `makeTempDir('be-…-')`로 만들어요. 성공(종료 코드 0)하면 끝날 때 지우고, 실패·`--keep`·`BE_KEEP_TEMP=1`이면 남기고 `Evidence: 경로`를 찍어요. 남은 폴더가 하루 수 GB씩 쌓여 Windows Defender가 PC를 느리게 했어요.
 - `bun run zip:firefox`는 로컬용이에요. 릴리스 워크플로는 쓰지 않아요.
 
 ## 릴리스

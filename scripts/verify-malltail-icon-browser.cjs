@@ -1,9 +1,10 @@
 // Anonymous public source-helper test. Resource bridge simulates the proposed
 // permission-checked extension relay; it is NOT proof of product integration.
+const {makeTempDir}=require('./temp-dir.cjs');
 const {chromium}=require('playwright');
 const fs=require('node:fs'),path=require('node:path'),os=require('node:os'),assert=require('node:assert/strict');
 (async()=>{
- const folder=fs.mkdtempSync(path.join(os.tmpdir(),'be-malltail-icons-'));
+ const folder=makeTempDir('be-malltail-icons-');
  const browser=await chromium.launch({channel:'chrome',headless:true});
  try{
   const page=await browser.newPage({viewport:{width:1500,height:1600}});
@@ -39,7 +40,7 @@ const fs=require('node:fs'),path=require('node:path'),os=require('node:os'),asse
   assert.equal(photo.url,original.url);assert.equal(photo.natural,original.natural);assert.equal(photo.filter,'none');assert.equal(photo.opacity,'1');
   await page.screenshot({path:path.join(folder,'source-helpers-dark.png')});
   await page.evaluate(()=>{icons.stop();contrast.stop();DarkReader.disable()});assert.equal(await page.locator('[data-bong-icon-owned]').count(),0);
-  await page.screenshot({path:path.join(folder,'off.png')});console.log('PASS public SVG source helper:',{repaired,pixels,photo},folder);
+  await page.screenshot({path:path.join(folder,'off.png')});console.log('PASS public SVG source helper',{repaired,pixels,photo});
   await page.evaluate(async()=>{
    document.body.style.backgroundColor='#181a1b';
    for(const content of ['<script>alert(1)</script>','<image href="https://example.com/photo.png"/>','<style>path{fill:black}</style>','<path fill="url(https://example.com/a.svg#p)"/>']){

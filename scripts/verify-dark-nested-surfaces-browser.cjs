@@ -1,8 +1,9 @@
 // Local diagnostics only; not a Smartstore DOM reproduction or shopping action.
+const {makeTempDir}=require('./temp-dir.cjs');
 const {chromium}=require('playwright'),fs=require('node:fs'),path=require('node:path'),os=require('node:os');
 const assert=require('node:assert/strict');
 (async()=>{
- const folder=fs.mkdtempSync(path.join(os.tmpdir(),'be-nested-surfaces-')),browser=await chromium.launch({channel:'chrome',headless:true});
+ const folder=makeTempDir('be-nested-surfaces-'),browser=await chromium.launch({channel:'chrome',headless:true});
  try{
   const page=await browser.newPage({viewport:{width:1000,height:700}});
   await page.setContent(`<body style="font:16px Arial;background:white;color:#222"><style>.box{background:white;border:1px solid #ddd;padding:12px;margin:8px}.rounded{border-radius:8px}#divider{border:0;border-bottom:1px solid #ddd}#low{border-color:white}#clear{border-color:#333}</style><section id="frame" class="box"><h2>로컬 중첩 면 진단</h2><div id="flat" class="box">가격/안내<div id="nested" class="box">옵션 영역</div></div><div id="divider" class="box">한쪽 구분선</div><div id="low" class="box rounded">낮은 대비의 라운드 카드</div><div id="clear" class="box rounded">이미 보이는 경계의 라운드 카드</div></section>`);
@@ -22,6 +23,6 @@ const assert=require('node:assert/strict');
   await page.evaluate(()=>DarkReader.disable());await page.waitForTimeout(100);
   assert.equal(await page.locator('#low').evaluate(e=>getComputedStyle(e).backgroundColor),'rgb(255, 255, 255)');
   assert.equal(await page.locator('[data-bong-contrast-owned]').count(),0);
-  console.log(JSON.stringify({result:'PASS',preserved:5,strengthened:1,stopAndOffRestored:true,folder}));
+  console.log(JSON.stringify({result:'PASS',preserved:5,strengthened:1,stopAndOffRestored:true}));
  }finally{await browser.close()}
 })().catch(e=>{console.error(e);process.exitCode=1});

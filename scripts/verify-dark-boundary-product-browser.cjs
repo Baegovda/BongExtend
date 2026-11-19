@@ -1,7 +1,8 @@
 // Actual packaged content scripts on a disposable HTTPS fixture, no personal account/profile.
+const {makeTempDir}=require('./temp-dir.cjs');
 const {chromium}=require('playwright'),fs=require('node:fs'),os=require('node:os'),path=require('node:path'),assert=require('node:assert/strict');
 (async()=>{
- const folder=fs.mkdtempSync(path.join(os.tmpdir(),'be-boundary-product-')),extension=path.join(folder,'extension');fs.cpSync('.output/chrome-mv3',extension,{recursive:true});
+ const folder=makeTempDir('be-boundary-product-'),extension=path.join(folder,'extension');fs.cpSync('.output/chrome-mv3',extension,{recursive:true});
  const mp=path.join(extension,'manifest.json'),manifest=JSON.parse(fs.readFileSync(mp));manifest.host_permissions.push('https://*.bongextend.example.com/*');fs.writeFileSync(mp,JSON.stringify(manifest));
  const context=await chromium.launchPersistentContext(path.join(folder,'profile'),{channel:'chrome',headless:true,ignoreDefaultArgs:['--disable-extensions'],args:['--enable-unsafe-extension-debugging'],viewport:{width:900,height:700}});context.setDefaultTimeout(15000);
  try{
@@ -19,6 +20,6 @@ const {chromium}=require('playwright'),fs=require('node:fs'),os=require('node:os
   await page.locator('#border').evaluate(el=>el.style.borderBottomColor='rgb(220, 25, 35)');await page.waitForTimeout(400);const semantic=await page.locator('#border').evaluate(el=>getComputedStyle(el).borderBottomColor.match(/[\d.]+/g).map(Number));assert.ok(semantic[0]>semantic[1]+50,'new author semantic border is retained');
   await worker.evaluate(()=>chrome.storage.local.set({'core.darkMode':{enabledSites:[],followSystem:false}}));await page.locator('html[data-darkreader-scheme]').waitFor({state:'detached'});await page.waitForTimeout(200);
   assert.equal(await page.locator('#border').evaluate(e=>getComputedStyle(e).borderBottomColor),'rgb(220, 25, 35)');assert.match(await page.locator('#shadow').evaluate(e=>getComputedStyle(e).boxShadow),/rgb\(255, 255, 255\)/);assert.equal(await page.locator('[data-bong-contrast-owned]').count(),0);
-  console.log('PASS packaged neutral borders/shadows, owned repair, no feedback, focus/hidden/disabled, author semantic update and OFF restore',JSON.stringify(boundary),folder);
+  console.log('PASS packaged neutral borders/shadows, owned repair, no feedback, focus/hidden/disabled, author semantic update and OFF restore',JSON.stringify(boundary));
  }finally{await context.close()}
 })().catch(error=>{console.error(error);process.exitCode=1});

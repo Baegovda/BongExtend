@@ -1,11 +1,12 @@
 // Screenshot-derived shopping layout, not a capture or test of the blocked Taobao site.
+const {makeTempDir}=require('./temp-dir.cjs');
 const {chromium}=require('playwright'),fs=require('node:fs'),os=require('node:os'),path=require('node:path'),assert=require('node:assert/strict');
 const {pathToFileURL}=require('node:url');
 const {execFileSync}=require('node:child_process');
 (async()=>{
  const {withTranslationColors}=await import(pathToFileURL(path.resolve('src/modules/dark/site-fixes.js')));
  const browser=await chromium.launch({executablePath:process.env.CHROME_PATH || 'C:/Program Files/Google/Chrome/Application/chrome.exe',headless:true});
- const folder=fs.mkdtempSync(path.join(os.tmpdir(),'be-shopping-prism-'));
+ const folder=makeTempDir('be-shopping-prism-');
  try{
   for(const dark of [false,true]){
    const page=await browser.newPage({viewport:{width:1100,height:850}}),errors=[];page.on('pageerror',e=>errors.push(e.message));
@@ -69,6 +70,5 @@ print(json.dumps({'pastel':pastel,'glyphPixels':total,'changedAhead':changed,'ah
    assert.ok(pixels.changedAhead/Math.max(1,pixels.aheadPixels)<.015,'the area ahead of the beam must still show the original');
    console.log('PASS',dark?'dark':'light',JSON.stringify(pixels));await page.close();
   }
-  console.log('screenshots',folder);
  }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});

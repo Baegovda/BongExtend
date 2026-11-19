@@ -1,8 +1,9 @@
 // Disposable browser only. Helper is injected as a packaged test file; no personal profile.
+const {makeTempDir}=require('./temp-dir.cjs');
 const {chromium}=require('playwright');
 const fs=require('node:fs'),os=require('node:os'),path=require('node:path'),assert=require('node:assert/strict');
 (async()=>{
- const folder=fs.mkdtempSync(path.join(os.tmpdir(),'be-contrast-'));
+ const folder=makeTempDir('be-contrast-');
  const source=require('./inline-dark.cjs').contrastSource();
  const browser=await chromium.launch({channel:'chrome',headless:true});
  const page=await browser.newPage({viewport:{width:1400,height:1000}});
@@ -75,7 +76,7 @@ const fs=require('node:fs'),os=require('node:os'),path=require('node:path'),asse
   assert.equal(await layer.frames()[1].locator('h1').textContent(),'FRAME CONTENT');
   await layer.evaluate(()=>{for(const e of [document.documentElement,document.body])e.style.setProperty('background-color','transparent','important')});
   await layer.waitForTimeout(250);await layer.screenshot({path:path.join(folder,'layer-transparent-restored.png')});
-  await layer.close();console.log('Paint-order diagnostic screenshots:',folder);
+  await layer.close();
   if(process.argv.includes('--synthetic-only'))return;
   // Public page checks use Dark Reader API plus the same helper, not a signed-in session.
   const darkreader=fs.readFileSync('node_modules/darkreader/darkreader.js','utf8');
@@ -106,6 +107,5 @@ const fs=require('node:fs'),os=require('node:os'),path=require('node:path'),asse
    console.log(url,await page.evaluate(()=>contrast.stats));
    await page.screenshot({path:path.join(folder,url.includes('naver')?'naver-dark.png':'codex-resets-dark.png')});
   }
-  console.log('Evidence:',folder);
  }finally{await browser.close()}
 })().catch(e=>{console.error(e);process.exitCode=1});

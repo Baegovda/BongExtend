@@ -1,8 +1,9 @@
 // Screenshot-derived DC login fixture, not a live login/account test. Disposable Chrome only.
+const {makeTempDir}=require('./temp-dir.cjs');
 const {chromium}=require('playwright');
 const fs=require('node:fs'),path=require('node:path'),os=require('node:os'),assert=require('node:assert/strict');
 (async()=>{
- const folder=fs.mkdtempSync(path.join(os.tmpdir(),'be-dc-login-dark-')),extension=path.join(folder,'extension');
+ const folder=makeTempDir('be-dc-login-dark-'),extension=path.join(folder,'extension');
  fs.cpSync('.output/chrome-mv3',extension,{recursive:true});
  const css='body{margin:0;background:#fff;color:#222;font:16px Arial}header{background:#293875;color:white;text-align:center;padding:26px}main{min-height:500px;display:grid;place-items:center}.login-box{width:520px;padding:40px;background:#fff;border:1px solid #3b4890}.login-input{display:block;box-sizing:border-box;width:100%;padding:15px;margin-bottom:8px;background:#f3f3f3;color:#333;border:0}.login-btn{width:100%;background:#3b4890;color:white;border:0;padding:15px}label{display:block;margin:16px 0;color:#555}.links{color:#333;text-align:center}footer{padding:34px;text-align:center;background:white;color:#555;border-top:1px solid #eee}';
  const workerPath=path.join(extension,'background.js');
@@ -44,6 +45,5 @@ const fs=require('node:fs'),path=require('node:path'),os=require('node:os'),asse
   await page.waitForFunction(()=>!document.querySelector('.darkreader'));
   assert.equal(isDark((await backgrounds())['.login-box']),false);
   console.log('PASS cross-origin CSS failure reproduced; dark login panel, inputs, footer, readable text, dynamic notice and disable restore');
-  console.log('screenshots',folder);
  }finally{await context.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});

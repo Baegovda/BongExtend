@@ -1,7 +1,8 @@
 // Disposable Chrome profile and fake Naver mail responses. No real account is accessed.
+const {makeTempDir}=require('./temp-dir.cjs');
 const {chromium}=require('playwright');const fs=require('node:fs'),os=require('node:os'),path=require('node:path'),assert=require('node:assert/strict');
 (async()=>{
- const folder=fs.mkdtempSync(path.join(os.tmpdir(),'be-naver-mail-')),extension=path.join(folder,'extension');
+ const folder=makeTempDir('be-naver-mail-'),extension=path.join(folder,'extension');
  fs.cpSync(process.env.MAIL_EXTENSION_SOURCE||'.output/chrome-mv3',extension,{recursive:true});const mp=path.join(extension,'manifest.json'),manifest=JSON.parse(fs.readFileSync(mp));
  manifest.host_permissions.push('https://mail.naver.com/*');fs.writeFileSync(mp,JSON.stringify(manifest));
  const context=await chromium.launchPersistentContext(path.join(folder,'profile'),{executablePath:'C:/Program Files/Google/Chrome/Application/chrome.exe',headless:true,viewport:{width:780,height:590},ignoreDefaultArgs:['--disable-extensions'],args:['--enable-unsafe-extension-debugging']});
@@ -96,7 +97,7 @@ const {chromium}=require('playwright');const fs=require('node:fs'),os=require('n
    await frame.locator('.be-naver-header').screenshot({path:path.join(folder,'naver-header-'+width+'.png')});
   }
   await frame.locator('.be-naver-header').evaluate(header=>header.style.removeProperty('max-width'));
-  if(process.argv.includes('--header-only')){console.log('PASS unified account icon actions, equal header/order dimensions, native IDs, drag persistence, 360/480px fit;',folder);return;}
+  if(process.argv.includes('--header-only')){console.log('PASS unified account icon actions, equal header/order dimensions, native IDs, drag persistence, 360/480px fit');return;}
   // A timestamp-only poll must preserve the exact row and its keyboard focus.
   await frame.locator('#naverMailList button').first().focus();
   await inbox.evaluate(()=>{window.__naverFirst=document.querySelector('#naverMailList button');});
@@ -123,7 +124,7 @@ const {chromium}=require('playwright');const fs=require('node:fs'),os=require('n
   assert.notEqual(await body.locator('html').evaluate(e=>getComputedStyle(e).scrollbarColor),'auto');
   assert.notEqual(await frame.locator('#beNaverBody').evaluate(e=>getComputedStyle(e).borderTopColor),'rgb(255, 255, 255)');
   await page.screenshot({path:path.join(folder,'naver-reader-body-dark.png'),animations:'disabled'});
-  if(process.argv.includes('--reader-only')){console.log('PASS focused Naver dark scrollbar/border:',folder);return;}
+  if(process.argv.includes('--reader-only')){console.log('PASS focused Naver dark scrollbar/border');return;}
   await page.screenshot({path:path.join(folder,'naver-reader-body-dark.png'),animations:'disabled'});
   await page.evaluate(()=>{window.__wheelTrace=[];const doc=document.querySelector('#checkerPlusMailFrame').contentDocument.querySelector('#beNaverBody').contentDocument;doc.addEventListener('wheel',event=>window.__wheelTrace.push({delta:event.deltaY,ctrl:event.ctrlKey,prevented:event.defaultPrevented}),{passive:false});});
   const bodyBox=await frame.locator('#beNaverBody').boundingBox();await page.mouse.move(bodyBox.x+80,bodyBox.y+60);await page.keyboard.down('Control');await page.mouse.wheel(0,-120);await page.keyboard.up('Control');
@@ -171,6 +172,6 @@ const {chromium}=require('playwright');const fs=require('node:fs'),os=require('n
   const requests=await worker.evaluate(()=>globalThis.__mailRequests);assert.ok(requests.length>=2);assert.ok(requests.every(r=>r.url==='https://mail.naver.com/json/list'&&r.body.includes('isUnread=true')));
   // Checker Plus may report missing Google sessions in this deliberately logged-out fixture.
   assert.deepEqual(errors.filter(e=>/naver-mail|naverMail/.test(e)),[]);
-  console.log('PASS fixture: connect/list, real account drag storage/reload, unified accounts/N logo, in-app scriptless Naver reader, colors/zoom/error/retry/close race, module off/on, expired login and disconnect;',folder);
+  console.log('PASS fixture: connect/list, real account drag storage/reload, unified accounts/N logo, in-app scriptless Naver reader, colors/zoom/error/retry/close race, module off/on, expired login and disconnect');
  }finally{await context.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});

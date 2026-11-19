@@ -1,10 +1,11 @@
 // Real extension/window APIs in an isolated headless Chrome profile, with a local Chzzk DOM fixture.
 // Never attaches to, focuses, resizes or drives the user's Chrome windows.
+const {makeTempDir}=require('./temp-dir.cjs');
 const {chromium} = require('playwright');
 const fs = require('node:fs'), path = require('node:path'), os = require('node:os');
 const assert = require('node:assert/strict');
 (async () => {
-  const folder = fs.mkdtempSync(path.join(os.tmpdir(), 'be-chzzk-wide-'));
+  const folder = makeTempDir('be-chzzk-wide-');
   // Reuse the integration build without mutating it while other teams are working.
   const extensionPath = path.join(folder, 'extension');
   fs.cpSync(path.resolve('.output/chrome-mv3'), extensionPath, {recursive:true});
@@ -123,6 +124,6 @@ const assert = require('node:assert/strict');
     await wait(() => page.locator('#wideFullscreen').isChecked(), true);
     assert.equal(await page.locator('#verticalTabsSetup').count(), 0);
     await page.screenshot({path:path.join(folder,'wide-setting.png')});
-    console.log('PASS real Chrome window API: one simulated API rejection then automatic retry, browser fullscreen, normal bounds/maximized restoration, existing fullscreen, manual exit, tab switch/navigation and settings;', folder);
+    console.log('PASS real Chrome window API: one simulated API rejection then automatic retry, browser fullscreen, normal bounds/maximized restoration, existing fullscreen, manual exit, tab switch/navigation and settings');
   } finally {await context.close();}
 })().catch(error => {console.error(error);process.exitCode=1;});

@@ -1,7 +1,8 @@
 // Synthetic inline card boundaries, using real Dark Reader plus common helper.
+const {makeTempDir}=require('./temp-dir.cjs');
 const {chromium}=require('playwright'),fs=require('node:fs'),path=require('node:path'),os=require('node:os'),assert=require('node:assert/strict');
 (async()=>{
- const folder=fs.mkdtempSync(path.join(os.tmpdir(),'be-dark-boundaries-')),browser=await chromium.launch({channel:'chrome',headless:true});
+ const folder=makeTempDir('be-dark-boundaries-'),browser=await chromium.launch({channel:'chrome',headless:true});
  try{
   const page=await browser.newPage({viewport:{width:1000,height:700}});
   await page.setContent('<body style="background:white;color:#222;font:18px Arial"><h1>합성 구매내역 경계</h1><div id="card" style="width:600px;border:1px solid #888;background:white"><div id="row1" style="padding:24px;border-bottom:3px solid white;background:white">첫 번째 구매</div><div id="row2" style="padding:24px;box-shadow:0 -3px 0 white;background:white">두 번째 구매</div></div></body>');
@@ -32,7 +33,7 @@ const {chromium}=require('playwright'),fs=require('node:fs'),path=require('node:
   const repaired=await read();console.log('HELPER',repaired);assert.equal(repaired[0].border,baseline[0].border);assert.equal(repaired[1].shadow,baseline[1].shadow);await page.screenshot({path:path.join(folder,'helper-dark.png')});
   assert.deepEqual(await guards(),protectedBefore);
   const passes=await page.evaluate(()=>contrast.stats.passes);await page.waitForTimeout(700);assert.equal(await page.evaluate(()=>contrast.stats.passes),passes,'no inline observer feedback loop');
-  await page.evaluate(()=>{icons.stop();contrast.stop()});await page.waitForTimeout(200);const stopped=await read();assert.equal(stopped[0].border,baseline[0].border);assert.equal(stopped[1].shadow,baseline[1].shadow);assert.equal(await page.locator('[data-bong-icon-owned],[data-bong-svgicon]').count(),0);console.log('STOP',stopped);console.log(folder);
+  await page.evaluate(()=>{icons.stop();contrast.stop()});await page.waitForTimeout(200);const stopped=await read();assert.equal(stopped[0].border,baseline[0].border);assert.equal(stopped[1].shadow,baseline[1].shadow);assert.equal(await page.locator('[data-bong-icon-owned],[data-bong-svgicon]').count(),0);console.log('STOP',stopped);
   await page.evaluate(()=>DarkReader.disable());await page.waitForTimeout(100);assert.equal((await read())[0].border,'rgb(255, 255, 255)');
  }finally{await browser.close()}
 })().catch(e=>{console.error(e);process.exitCode=1});

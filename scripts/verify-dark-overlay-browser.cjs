@@ -1,4 +1,5 @@
 // Bounded synthetic diagnostics, NOT a Smartstore reproduction or cart action.
+const {makeTempDir}=require('./temp-dir.cjs');
 const { chromium } = require('playwright');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -7,7 +8,7 @@ const path = require('node:path');
 const { pathToFileURL } = require('node:url');
 
 (async () => {
-  const folder = fs.mkdtempSync(path.join(os.tmpdir(), 'be-dark-overlay-'));
+  const folder = makeTempDir('be-dark-overlay-');
   const browser = await chromium.launch({ channel: 'chrome', headless: true });
   try {
     const page = await browser.newPage({ viewport: { width: 1100, height: 760 } });
@@ -59,6 +60,6 @@ const { pathToFileURL } = require('node:url');
       assert.equal(state.shade.background, before.shade.background, 'backdrop alpha preserved');
     }
     assert.deepEqual(off, before, 'OFF restores original styles');
-    console.log(JSON.stringify({ result: 'PASS', folder, onText: on.name.color, backdrop: on.shade.background, imagePreserved: true }));
+    console.log(JSON.stringify({ result: 'PASS', onText: on.name.color, backdrop: on.shade.background, imagePreserved: true }));
   } finally { await browser.close(); }
 })().catch(e => { console.error(e); process.exitCode = 1; });

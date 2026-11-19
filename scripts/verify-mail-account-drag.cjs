@@ -1,7 +1,8 @@
 // Synthetic account headers only. The parent protocol adapter is a fixture, not a Gmail login.
+const {makeTempDir}=require('./temp-dir.cjs');
 const {chromium}=require('playwright'),fs=require('node:fs'),os=require('node:os'),path=require('node:path'),assert=require('node:assert/strict');
 (async()=>{
- const folder=fs.mkdtempSync(path.join(os.tmpdir(),'be-mail-drag-'));
+ const folder=makeTempDir('be-mail-drag-');
  const browser=await chromium.launch({executablePath:'C:/Program Files/Google/Chrome/Application/chrome.exe',headless:true});
  try{
   const page=await browser.newPage({viewport:{width:600,height:500}}),errors=[];page.on('pageerror',error=>errors.push(error.message));
@@ -60,6 +61,6 @@ const {chromium}=require('playwright'),fs=require('node:fs'),os=require('node:os
   assert.equal(moved.sourceKey,'naver:fixture@naver.com');assert.equal(moved.targetKey,'gmail:'+(await page.evaluate(id=>document.getElementById(id).getAttribute('email'),targetId)));assert.equal(moved.placement,'after');
   assert.equal(await page.evaluate(()=>[...document.querySelectorAll('#inbox > section')].some(row=>row.style.transform||row.style.transition)),false,'no inline motion styles left behind');
   for(const scheme of ['light','dark']){await page.emulateMedia({colorScheme:scheme});await page.screenshot({path:path.join(folder,scheme+'.png')});}
-  assert.deepEqual(errors,[]);console.log('PASS pointer reorder/protocol, native ID, Escape, rejected/outside drop, keyboard, cancel, no mail actions;',folder);
+  assert.deepEqual(errors,[]);console.log('PASS pointer reorder/protocol, native ID, Escape, rejected/outside drop, keyboard, cancel, no mail actions');
  }finally{await browser.close();}
 })().catch(error=>{console.error(error);process.exitCode=1;});

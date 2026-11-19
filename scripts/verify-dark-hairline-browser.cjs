@@ -1,5 +1,6 @@
 // Disposable Chrome profile; public pages only. No personal browser/account access.
 // Checks the generic faint-hairline repair on Naver home + other sites, and exact restore on disable.
+const {makeTempDir}=require('./temp-dir.cjs');
 const {chromium}=require('playwright');
 const assert=require('node:assert/strict');
 const fs=require('node:fs'),os=require('node:os'),path=require('node:path');
@@ -20,7 +21,7 @@ const FIXTURE_CSS='#fxw .b{border:1px solid rgba(140,130,115,0.08);padding:6px;d
  '#fxw .red{border:1px solid rgba(200,30,30,0.1);display:inline-block;color:#ddd}'+
  '#fxw .vis{border:1px solid rgba(255,255,255,0.3);display:inline-block;color:#ddd}';
 (async()=>{
- const folder=fs.mkdtempSync(path.join(os.tmpdir(),'be-hairline-'));
+ const folder=makeTempDir('be-hairline-');
  const extension=path.join(folder,'extension');fs.cpSync('.output/chrome-mv3',extension,{recursive:true});
  const manifestPath=path.join(extension,'manifest.json'),manifest=JSON.parse(fs.readFileSync(manifestPath));
  manifest.host_permissions.push('https://*.naver.com/*','https://*.pstatic.net/*','https://*.coupang.com/*','https://*.coupangcdn.com/*','https://*.wikipedia.org/*');fs.writeFileSync(manifestPath,JSON.stringify(manifest));
@@ -78,6 +79,6 @@ const FIXTURE_CSS='#fxw .b{border:1px solid rgba(140,130,115,0.08);padding:6px;d
    await setSites(SITES.map(s=>s.site));
    await page.close();
   }
-  console.log(summary.join('\n'));console.log('Evidence:',folder);
+  console.log(summary.join('\n'));
  }finally{await context.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});
