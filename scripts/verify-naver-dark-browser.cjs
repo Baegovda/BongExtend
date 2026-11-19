@@ -1,9 +1,10 @@
 // Disposable Chrome profile; public Naver homepage only. No personal browser/account access.
+const {makeTempDir}=require('./temp-dir.cjs');
 const {chromium}=require('playwright');
 const assert=require('node:assert/strict');
 const fs=require('node:fs'),os=require('node:os'),path=require('node:path');
 (async()=>{
- const folder=fs.mkdtempSync(path.join(os.tmpdir(),'be-naver-dark-'));
+ const folder=makeTempDir('be-naver-dark-');
  const extension=path.join(folder,'extension');fs.cpSync('.output/chrome-mv3',extension,{recursive:true});
  const manifestPath=path.join(extension,'manifest.json'),manifest=JSON.parse(fs.readFileSync(manifestPath));
  manifest.host_permissions.push('https://*.naver.com/*','https://*.pstatic.net/*');fs.writeFileSync(manifestPath,JSON.stringify(manifest));
@@ -52,6 +53,6 @@ const fs=require('node:fs'),os=require('node:os'),path=require('node:path');
   assert.equal(denied[0].result,false);
   console.log('PASS Naver contrast: toolbar sprites and account helper/logout text brightened; disable restores original icon filter.');
   console.log('PASS public Naver: live external CSS, dark body/account, disable/enable, reload, unrelated response isolation, disallowed URL rejection. No logged-in account tested.');
-  await page.screenshot({path:path.join(folder,'naver-dark.png')});console.log('Evidence:',folder);
+  await page.screenshot({path:path.join(folder,'naver-dark.png')});
  }finally{await context.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});

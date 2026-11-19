@@ -1,8 +1,9 @@
 // Synthetic note host only: no login, messages, cookies or personal browser access.
+const {makeTempDir}=require('./temp-dir.cjs');
 const {chromium}=require('playwright');
 const fs=require('node:fs'),os=require('node:os'),path=require('node:path'),assert=require('node:assert/strict');
 (async()=>{
- const folder=fs.mkdtempSync(path.join(os.tmpdir(),'be-note-dark-'));
+ const folder=makeTempDir('be-note-dark-');
  const extension=path.join(folder,'extension');fs.cpSync('.output/chrome-mv3',extension,{recursive:true});
  const file=path.join(extension,'manifest.json'),manifest=JSON.parse(fs.readFileSync(file));
  manifest.host_permissions.push('https://*.note.naver.com/*','https://*.pstatic.net/*');fs.writeFileSync(file,JSON.stringify(manifest));
@@ -35,7 +36,7 @@ const fs=require('node:fs'),os=require('node:os'),path=require('node:path'),asse
   const states=[];
   for(const frame of page.frames())states.push(await frame.evaluate(()=>({url:location.href,hostname:location.hostname,dark:document.documentElement.dataset.darkreaderScheme==='dark',fallback:document.querySelector('.darkreader--fallback')?.textContent,body:getComputedStyle(document.body).backgroundColor,text:getComputedStyle(document.body).color,hidden:document.querySelector('[hidden]')?getComputedStyle(document.querySelector('[hidden]')).display:null})));
   console.log(JSON.stringify(states,null,2));
-  await page.screenshot({path:path.join(folder,'note-synthetic-dark.png')});console.log('Evidence:',folder);
+  await page.screenshot({path:path.join(folder,'note-synthetic-dark.png')});
   assert.equal(states[0].dark,true);assert.equal(states[0].hidden,'none');
   assert.equal(states.find(s=>s.url.endsWith('/frame')).dark,true);
   // Regression for inherited-origin frames; real signed-in note DOM is not inspected.

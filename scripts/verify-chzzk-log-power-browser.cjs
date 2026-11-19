@@ -1,9 +1,10 @@
 // Disposable headless Chrome + synthetic Chzzk page. Never uses the user's profile or real rewards.
+const {makeTempDir}=require('./temp-dir.cjs');
 const {chromium} = require('playwright');
 const fs = require('node:fs'), path = require('node:path'), os = require('node:os');
 const assert = require('node:assert/strict');
 (async () => {
-  const folder = fs.mkdtempSync(path.join(os.tmpdir(), 'be-log-power-'));
+  const folder = makeTempDir('be-log-power-');
   const context = await chromium.launchPersistentContext(path.join(folder, 'profile'), {
     executablePath: 'C:/Program Files/Google/Chrome/Application/chrome.exe', headless:true,
     viewport:{width:780,height:590}, ignoreDefaultArgs:['--disable-extensions'],
@@ -76,6 +77,6 @@ const assert = require('node:assert/strict');
     assert.equal(await worker.evaluate(async () => (await chrome.storage.sync.get('chzzk.autoLogPower'))['chzzk.autoLogPower']),false);
     await page.screenshot({path:path.join(folder,'log-power-setting.png'),fullPage:true});
     assert.deepEqual(errors,[]);
-    console.log('PASS registered extension: delayed/repeated reward, reused node, disabled button, setting/module toggle, SPA navigation, text fallback, non-reward exclusion and settings persistence;', folder);
+    console.log('PASS registered extension: delayed/repeated reward, reused node, disabled button, setting/module toggle, SPA navigation, text fallback, non-reward exclusion and settings persistence');
   } finally {await context.close();}
 })().catch(error => {console.error(error);process.exitCode=1;});

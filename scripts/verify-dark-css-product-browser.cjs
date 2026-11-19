@@ -1,7 +1,8 @@
 // Real packaged CSS relay, synthetic HTTPS resources and a disposable Chrome profile.
+const {makeTempDir}=require('./temp-dir.cjs');
 const {chromium}=require('playwright'),fs=require('node:fs'),os=require('node:os'),path=require('node:path'),assert=require('node:assert/strict');
 (async()=>{
- const folder=fs.mkdtempSync(path.join(os.tmpdir(),'be-css-product-')),extension=path.join(folder,'extension');fs.cpSync('.output/chrome-mv3',extension,{recursive:true});
+ const folder=makeTempDir('be-css-product-'),extension=path.join(folder,'extension');fs.cpSync('.output/chrome-mv3',extension,{recursive:true});
  const globalStyleAccess=process.argv.includes('--global-style-access');
  const file=path.join(extension,'manifest.json'),manifest=JSON.parse(fs.readFileSync(file));manifest.host_permissions.push(globalStyleAccess?'https://*/*':'https://*.bongextend.example.com/*');if(process.argv.includes('--public'))manifest.host_permissions.push('https://*.musinsa.com/*','https://static.msscdn.net/*');fs.writeFileSync(file,JSON.stringify(manifest));
  const context=await chromium.launchPersistentContext(path.join(folder,'profile'),{channel:'chrome',headless:true,ignoreDefaultArgs:['--disable-extensions'],args:['--enable-unsafe-extension-debugging'],viewport:{width:1400,height:1300}});context.setDefaultTimeout(15000);
@@ -51,6 +52,6 @@ const {chromium}=require('playwright'),fs=require('node:fs'),os=require('node:os
    await publicPage.evaluate(()=>scrollTo(0,900));await publicPage.waitForTimeout(400);const lower=await publicPage.locator('section,article,div').evaluateAll(es=>es.filter(e=>{const r=e.getBoundingClientRect();return r.width>500&&r.height>80&&r.top<innerHeight&&r.bottom>0}).slice(0,30).map(e=>({bg:getComputedStyle(e).backgroundColor,image:getComputedStyle(e).backgroundImage})));await publicPage.screenshot({path:path.join(folder,'public-musinsa-lower-dark.png')});assert.ok(lower.length);assert.ok(lower.every(s=>s.bg!=='rgb(255, 255, 255)'||s.image!=='none'),'lower section surfaces must be themed while image backgrounds remain intact');
    console.log('Public packaged Musinsa',JSON.stringify({surfaces,lower,matchedPhotos:matched}));
   }
-  console.log('PASS packaged CSS relay, denied origins/private/non-CSS/sender/OFF, bounded concurrency, text+surface and permission denial UI',folder);
+  console.log('PASS packaged CSS relay, denied origins/private/non-CSS/sender/OFF, bounded concurrency, text+surface and permission denial UI');
  }finally{await context.close()}
 })().catch(error=>{console.error(error);process.exitCode=1});

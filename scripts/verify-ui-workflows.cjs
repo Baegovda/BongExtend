@@ -1,8 +1,9 @@
 // Product UI in a disposable Chrome profile. Download rows are synthetic; no files/accounts/API calls.
+const {makeTempDir}=require('./temp-dir.cjs');
 const {chromium}=require('playwright');
 const fs=require('node:fs'),os=require('node:os'),path=require('node:path'),assert=require('node:assert/strict');
 (async()=>{
- const folder=fs.mkdtempSync(path.join(os.tmpdir(),'be-ui-flow-')),ext=path.join(folder,'extension');fs.cpSync('.output/chrome-mv3',ext,{recursive:true});
+ const folder=makeTempDir('be-ui-flow-'),ext=path.join(folder,'extension');fs.cpSync('.output/chrome-mv3',ext,{recursive:true});
  const ctx=await chromium.launchPersistentContext(path.join(folder,'profile'),{channel:'chrome',headless:true,ignoreDefaultArgs:['--disable-extensions'],args:['--enable-unsafe-extension-debugging'],viewport:{width:780,height:590}});
  try{
   const {id}=await(await ctx.browser().newBrowserCDPSession()).send('Extensions.loadUnpacked',{path:ext});
@@ -54,7 +55,7 @@ const fs=require('node:fs'),os=require('node:os'),path=require('node:path'),asse
    await page.screenshot({path:path.join(folder,`download-dark-${width}.png`),animations:'disabled'});
    await page.emulateMedia({colorScheme:'light'});await page.screenshot({path:path.join(folder,`download-light-${width}.png`),animations:'disabled'});
   }
-  if(process.argv.includes('--tabs-only')){console.log('PASS uniform plain FX tab, converter retained, stable header through module selection at780/600/520px;',folder);return;}
+  if(process.argv.includes('--tabs-only')){console.log('PASS uniform plain FX tab, converter retained, stable header through module selection at780/600/520px');return;}
   await worker.evaluate(()=>chrome.storage.local.set({'core.modules':{fx:false}}));
   await page.locator('[data-tab="fx"]').click();await page.locator('#moduleStateNotice').waitFor({state:'visible'});
   await page.locator('#moduleEnableCurrent').click();await page.locator('#moduleStateNotice').waitFor({state:'hidden'});
@@ -73,6 +74,6 @@ const fs=require('node:fs'),os=require('node:os'),path=require('node:path'),asse
   await target.goto('https://workflow.example/changed');await options.getByRole('button',{name:'탭 목록 새로고침'}).click();
   assert.match(await options.locator('#rightLabel').innerText(),/workflow.example/);
   for(const pane of ['download','dark']){await options.locator(`[data-pane="${pane}"]`).click();await options.frameLocator('#settingsStage iframe').locator(pane==='download'?'#chronoPopupFrame':'#darkStatus').waitFor({state:'visible'});}
-  assert.deepEqual(errors,[]);console.log('PASS consistent header, compact download rows/focus, module state, progressive settings and website chooser. Evidence:',folder);
+  assert.deepEqual(errors,[]);console.log('PASS consistent header, compact download rows/focus, module state, progressive settings and website chooser.');
  }finally{await ctx.close();}
 })().catch(e=>{console.error(e);process.exitCode=1});

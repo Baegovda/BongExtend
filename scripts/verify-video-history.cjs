@@ -1,6 +1,7 @@
+const {makeTempDir}=require('./temp-dir.cjs');
 const {chromium}=require('playwright'),fs=require('fs'),path=require('path'),os=require('os'),assert=require('assert/strict');
 (async()=>{
- const tmp=fs.mkdtempSync(path.join(os.tmpdir(),'be-video-history-')),ext=path.join(tmp,'extension');fs.cpSync('.output/chrome-mv3',ext,{recursive:true});
+ const tmp=makeTempDir('be-video-history-'),ext=path.join(tmp,'extension');fs.cpSync('.output/chrome-mv3',ext,{recursive:true});
  const ctx=await chromium.launchPersistentContext(path.join(tmp,'profile'),{executablePath:process.env.CHROME_PATH||'C:/Program Files/Google/Chrome/Application/chrome.exe',headless:true,ignoreDefaultArgs:['--disable-extensions'],args:['--enable-unsafe-extension-debugging'],viewport:{width:1000,height:760}});
  try{
   await ctx.route('https://jasonsavard.com/**',r=>r.fulfill({contentType:'text/html',body:'Install fixture'}));
@@ -47,6 +48,6 @@ const {chromium}=require('playwright'),fs=require('fs'),path=require('path'),os=
   await page.evaluate(()=>window.completeDownloadSearch([{id:123,state:'complete'}]));
   await page.waitForFunction(()=>document.querySelector('#downloadBadge').hidden);
   assert.equal(await page.locator('#downloadBadge').textContent(),'','late results must not restore an already acknowledged badge');
-  assert.deepEqual(errors,[]);console.log('PASS native history, unread badge, progress, copy path, usable frame height and tab reuse; screenshots:',tmp);
+  assert.deepEqual(errors,[]);console.log('PASS native history, unread badge, progress, copy path, usable frame height and tab reuse');
  }finally{await ctx.close();}
 })().catch(e=>{console.error(e);process.exitCode=1});

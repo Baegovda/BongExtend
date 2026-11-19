@@ -1,7 +1,8 @@
 // Disposable Chrome profile and synthetic rates; does not access the user's browser.
+const {makeTempDir}=require('./temp-dir.cjs');
 const {chromium}=require('playwright'),fs=require('node:fs'),os=require('node:os'),path=require('node:path'),assert=require('node:assert/strict');
 (async()=>{
- const folder=fs.mkdtempSync(path.join(os.tmpdir(),'be-all-fx-')),extension=path.join(folder,'extension');
+ const folder=makeTempDir('be-all-fx-'),extension=path.join(folder,'extension');
  fs.cpSync('.output/chrome-mv3',extension,{recursive:true});
  const fixture={date:'2026-11-09',krw:{krw:1,usd:0.0007,eur:0.0006,jpy:0.11,cny:0.005,gbp:0.0005,btc:0.00000001,eth:0.0000002,nzd:0.001,aed:0.002,sol:0.000003}};
  const mock=`const realFetch=fetch;globalThis.fetch=(url,options)=>String(url).includes('currency-api.pages.dev')?Promise.resolve(new Response(JSON.stringify(${JSON.stringify(fixture)}))):String(url).includes('scanner.tradingview.com')?Promise.reject(Error('fixture')):realFetch(url,options);`;
@@ -37,7 +38,7 @@ const {chromium}=require('playwright'),fs=require('node:fs'),os=require('node:os
   assert.equal(await page.locator('#fxMore [data-code]').count(),Object.keys(catalog).length);
   await page.locator('#fxMore [data-code]').last().scrollIntoViewIfNeeded();
   console.log('PASS complete catalog renders and scrolls:',Object.keys(catalog).length);
-  console.log('PASS all-currency fixture: Korean/English/code search, multi-select, all/none, persistence, preserved favorites, card conversion, scrolling and dark UI;',folder);
+  console.log('PASS all-currency fixture: Korean/English/code search, multi-select, all/none, persistence, preserved favorites, card conversion, scrolling and dark UI');
   // Headless Chrome has no action toolbar; attached sizing is verified on the popup document by the reader fixture.
  }finally{await context.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});

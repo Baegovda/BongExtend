@@ -1,9 +1,10 @@
 // Disposable profile and origin-private test folder only. Never writes a real install.
+const {makeTempDir}=require('./temp-dir.cjs');
 const {chromium}=require('playwright');
 const fs=require('node:fs'),os=require('node:os'),path=require('node:path'),assert=require('node:assert/strict');
 const {execFileSync}=require('node:child_process');
 (async()=>{
-  const temp=fs.mkdtempSync(path.join(os.tmpdir(),'be-autoupdate-')),ext=path.join(temp,'extension'),zipPath=path.join(temp,'fixture.zip');
+  const temp=makeTempDir('be-autoupdate-'),ext=path.join(temp,'extension'),zipPath=path.join(temp,'fixture.zip');
   fs.cpSync('.output/chrome-mv3',ext,{recursive:true});
   execFileSync('python',['-c',`import zipfile,sys,json
 with zipfile.ZipFile(sys.argv[1],'w') as z:
@@ -75,6 +76,5 @@ with zipfile.ZipFile(sys.argv[1],'w') as z:
       return (await (await dir.getFileHandle('resumed.txt')).getFile()).text();
     }),'resumed');
     console.log('PASS interrupted package automatically resumes from saved files');
-    console.log('screenshots',temp);
   }finally{await context.close();}
 })().catch(error=>{console.error(error);process.exitCode=1;});

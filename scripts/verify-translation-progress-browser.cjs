@@ -1,10 +1,11 @@
 // Disposable Chrome + screenshot-derived chat fixture. No live Taobao or paid Gemini requests.
+const {makeTempDir}=require('./temp-dir.cjs');
 const { chromium } = require('playwright');
 const fs = require('node:fs'), os = require('node:os'), path = require('node:path');
 const http = require('node:http'), assert = require('node:assert/strict');
 
 (async () => {
-  const folder = fs.mkdtempSync(path.join(os.tmpdir(), 'be-translation-progress-'));
+  const folder = makeTempDir('be-translation-progress-');
   const extension = path.join(folder, 'extension');
   fs.cpSync('.output/chrome-mv3', extension, { recursive: true });
   const manifestPath = path.join(extension, 'manifest.json');
@@ -123,6 +124,5 @@ const http = require('node:http'), assert = require('node:assert/strict');
     },moving.slice(0,4));
     await preview.screenshot({path:path.join(folder,'toolbar-frames.png')});
     console.log('PASS real action API frames, completion, cached chat redraw, subframe disconnect and error');
-    console.log('screenshots',folder);
   } finally { await context.close(); await new Promise(resolve=>server.close(resolve)); }
 })().catch(error=>{console.error(error);process.exitCode=1;});

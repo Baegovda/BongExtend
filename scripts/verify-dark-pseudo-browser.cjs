@@ -1,10 +1,11 @@
 // Synthetic CSS glyph checks in disposable Chrome; no shopping/site requests.
+const {makeTempDir}=require('./temp-dir.cjs');
 const { chromium } = require('playwright');
 const fs = require('node:fs'), path = require('node:path'), os = require('node:os');
 const assert = require('node:assert/strict');
 const { pathToFileURL } = require('node:url');
 (async () => {
-  const folder = fs.mkdtempSync(path.join(os.tmpdir(), 'be-dark-pseudo-'));
+  const folder = makeTempDir('be-dark-pseudo-');
   const browser = await chromium.launch({ channel: 'chrome', headless: true });
   try {
     const page = await browser.newPage({ viewport: { width: 1200, height: 900 } });
@@ -84,6 +85,6 @@ const { pathToFileURL } = require('node:url');
     await page.evaluate(()=>DarkReader.disable());await page.waitForTimeout(100);
     assert.equal(await page.locator('#plus').evaluate(e=>getComputedStyle(e,'::before').backgroundColor),'rgba(0, 0, 0, 0.85)');
     fs.writeFileSync(path.join(folder,'results.json'),JSON.stringify({baseline,on,stopped,stats},null,2));
-    console.log(JSON.stringify({result:'PASS',folder,stats}));
+    console.log(JSON.stringify({result:'PASS',stats}));
   } finally {await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1});

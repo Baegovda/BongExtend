@@ -1,10 +1,11 @@
 // Product content script in disposable Chrome. No live account or shopping requests.
+const {makeTempDir}=require('./temp-dir.cjs');
 const {chromium}=require('playwright'),fs=require('node:fs'),os=require('node:os'),path=require('node:path'),assert=require('node:assert/strict');
 (async()=>{
- const folder=fs.mkdtempSync(path.join(os.tmpdir(),'be-photo-product-')),extension=path.join(folder,'extension');fs.cpSync('.output/chrome-mv3',extension,{recursive:true});
+ const folder=makeTempDir('be-photo-product-'),extension=path.join(folder,'extension');fs.cpSync('.output/chrome-mv3',extension,{recursive:true});
  const manifestPath=path.join(extension,'manifest.json'),manifest=JSON.parse(fs.readFileSync(manifestPath));manifest.host_permissions.push('https://*.bongextend.example.com/*');if(process.argv.includes('--public'))manifest.host_permissions.push('https://*.musinsa.com/*','https://static.msscdn.net/*');fs.writeFileSync(manifestPath,JSON.stringify(manifest));
  const context=await chromium.launchPersistentContext(path.join(folder,'profile'),{executablePath:'C:/Program Files/Google/Chrome/Application/chrome.exe',headless:true,ignoreDefaultArgs:['--disable-extensions'],args:['--enable-unsafe-extension-debugging'],viewport:{width:1100,height:800}});
- context.setDefaultTimeout(12000); console.log(folder);
+ context.setDefaultTimeout(12000);
  try{
   await(await context.browser().newBrowserCDPSession()).send('Extensions.loadUnpacked',{path:extension});const worker=context.serviceWorkers()[0]||await context.waitForEvent('serviceworker');
   await worker.evaluate(()=>chrome.storage.local.set({'core.update:autoCheck':false,'core.modules':{gmail:false,chzzk:false,trans:false,dc:false,dark:true},'core.darkMode':{enabledSites:[],followSystem:false}}));
@@ -23,7 +24,7 @@ const {chromium}=require('playwright'),fs=require('node:fs'),os=require('node:os
   await page.evaluate(()=>{const e=document.querySelector('#main');e.style.setProperty('mix-blend-mode','screen','important')});await page.waitForTimeout(150);assert.equal(await page.locator('#main').evaluate(e=>getComputedStyle(e).mixBlendMode),'screen','author replacement preserved');
   await worker.evaluate(()=>chrome.storage.local.set({'core.darkMode':{enabledSites:[],followSystem:false}}));await page.locator('html[data-darkreader-scheme]').waitFor({state:'detached'});await page.waitForTimeout(150);
   const off=await sample();assert.equal(off.find(x=>x.id==='main').blend,'screen');assert.equal(off.find(x=>x.id==='thumb').blend,'multiply');
-  fs.writeFileSync(path.join(folder,'results.json'),JSON.stringify({before,after,off},null,2));console.log('PASS packaged photo pixels, thumbnail, original/filter/alpha/geometry, author updates and OFF:',folder);
+  fs.writeFileSync(path.join(folder,'results.json'),JSON.stringify({before,after,off},null,2));console.log('PASS packaged photo pixels, thumbnail, original/filter/alpha/geometry, author updates and OFF');
   if(process.argv.includes('--public')){
    const live=await context.newPage(),response=await live.goto('https://www.musinsa.com/products/4677950',{waitUntil:'domcontentloaded',timeout:30000});assert.equal(response.status(),200,'public access barrier: do not retry');await live.waitForTimeout(2000);
    const collect=()=>live.locator('img').evaluateAll(es=>es.filter(e=>e.complete&&e.naturalWidth>=128&&e.width>=40).map(e=>({src:e.currentSrc,blend:getComputedStyle(e).mixBlendMode,filter:getComputedStyle(e).filter,width:e.width,height:e.height})));
@@ -31,7 +32,7 @@ const {chromium}=require('playwright'),fs=require('node:fs'),os=require('node:os
    await worker.evaluate(()=>chrome.storage.local.set({'core.darkMode':{enabledSites:['musinsa.com'],followSystem:false}}));await live.locator('html[data-darkreader-scheme="dark"]').waitFor();await live.waitForFunction(()=>[...document.images].filter(e=>e.style.mixBlendMode==='normal').length>=2,null,{timeout:12000});await live.waitForTimeout(1200);
    const themed=await collect();let fixed=0;for(const b of initial.filter(e=>e.blend==='multiply')){const a=themed.find(e=>e.src===b.src);if(a&&a.blend==='normal'){fixed++;for(const key of ['src','filter','width','height'])assert.equal(a[key],b[key])}}assert.ok(fixed>=2);await live.screenshot({path:path.join(folder,'public-dark.png')});
    await worker.evaluate(()=>chrome.storage.local.set({'core.darkMode':{enabledSites:[],followSystem:false}}));await live.locator('html[data-darkreader-scheme]').waitFor({state:'detached'});const restored=await collect();for(const b of initial.filter(e=>e.blend==='multiply')){const a=restored.find(e=>e.src===b.src);if(a)assert.equal(a.blend,'multiply')}
-   fs.writeFileSync(path.join(folder,'public-results.json'),JSON.stringify({initial,themed,restored,fixed},null,2));console.log('PASS public product packaged representative/thumbnail photos and OFF',fixed,folder);
+   fs.writeFileSync(path.join(folder,'public-results.json'),JSON.stringify({initial,themed,restored,fixed},null,2));console.log('PASS public product packaged representative/thumbnail photos and OFF',fixed);
   }
  }finally{await context.close()}
 })().catch(e=>{console.error(e);process.exitCode=1});

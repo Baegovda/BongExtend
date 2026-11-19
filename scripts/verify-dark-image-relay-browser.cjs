@@ -1,7 +1,8 @@
 // Actual packaged content script -> permission-checked worker -> SVG repair. Synthetic HTTPS sites only.
+const {makeTempDir}=require('./temp-dir.cjs');
 const {chromium}=require('playwright');const fs=require('node:fs'),os=require('node:os'),path=require('node:path'),assert=require('node:assert/strict');
 (async()=>{
- const folder=fs.mkdtempSync(path.join(os.tmpdir(),'be-image-relay-')),ext=path.join(folder,'extension');fs.cpSync('.output/chrome-mv3',ext,{recursive:true});
+ const folder=makeTempDir('be-image-relay-'),ext=path.join(folder,'extension');fs.cpSync('.output/chrome-mv3',ext,{recursive:true});
  const file=path.join(ext,'manifest.json'),manifest=JSON.parse(fs.readFileSync(file));manifest.host_permissions.push('https://*.bongextend.example.com/*');fs.writeFileSync(file,JSON.stringify(manifest));
  const ctx=await chromium.launchPersistentContext(path.join(folder,'profile'),{channel:'chrome',headless:true,ignoreDefaultArgs:['--disable-extensions'],args:['--enable-unsafe-extension-debugging'],viewport:{width:800,height:550}});
  try{
@@ -26,6 +27,6 @@ const {chromium}=require('playwright');const fs=require('node:fs'),os=require('n
   await worker.evaluate(()=>chrome.storage.local.set({'core.darkMode':{enabledSites:[],followSystem:false}}));
   await page.waitForFunction(()=>!document.querySelector('[data-bong-icon-owned]'));assert.equal((await ask('https://cdn.bongextend.example.com/icon.svg')).ok,false,'disabled site cannot relay');
   assert.equal(await page.locator('#logo').evaluate(e=>e.style.backgroundImage),'');await page.screenshot({path:path.join(folder,'off.png')});
-  console.log('PASS packaged SVG repair/relay, brand+alpha/photo preservation, permission denial and OFF restoration.',{result,imageRequests,folder});
+  console.log('PASS packaged SVG repair/relay, brand+alpha/photo preservation, permission denial and OFF restoration.',{result,imageRequests});
  }finally{await ctx.close();}
 })().catch(error=>{console.error(error);process.exitCode=1});

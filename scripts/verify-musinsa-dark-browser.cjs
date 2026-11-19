@@ -1,7 +1,8 @@
 // Public anonymous page; API source diagnosis, not a claim of product integration.
+const {makeTempDir}=require('./temp-dir.cjs');
 const {chromium}=require('playwright'),fs=require('node:fs'),path=require('node:path'),os=require('node:os'),assert=require('node:assert/strict');
 (async()=>{
- const folder=fs.mkdtempSync(path.join(os.tmpdir(),'be-musinsa-css-')),browser=await chromium.launch({channel:'chrome',headless:true});
+ const folder=makeTempDir('be-musinsa-css-'),browser=await chromium.launch({channel:'chrome',headless:true});
  try{
   const page=await browser.newPage({viewport:{width:1450,height:1500}});
   await page.goto('https://www.musinsa.com/brand/musinsastandard?gf=A',{waitUntil:'domcontentloaded'});await page.waitForTimeout(3000);
@@ -17,6 +18,6 @@ const {chromium}=require('playwright'),fs=require('node:fs'),path=require('node:
   await page.evaluate(f=>{DarkReader.disable();DarkReader.setFetchMethod(async url=>new Response(await publicCss(url),{headers:{'content-type':'text/css'}}));DarkReader.enable({},f)},fixes.withTranslationColors());await page.waitForTimeout(4000);
   const relayed=await sample();console.log('DIAGNOSTIC RELAY',relayed);assert.ok(direct.some(r=>r.bg==='rgb(255, 255, 255)'));assert.ok(relayed.every(r=>r.bg!=='rgb(255, 255, 255)'));
   const currentPhotos=await photos();for(const image of originalPhotos){const same=currentPhotos.find(i=>i.src===image.src);if(same)assert.equal(same.filter,image.filter)}
-  await page.screenshot({path:path.join(folder,'relay-dark.png')});await page.evaluate(()=>DarkReader.disable());await page.waitForTimeout(200);console.log('OFF',await sample());await page.screenshot({path:path.join(folder,'off.png')});console.log('PASS mixed-CORS CSS diagnosis and photos preserved',folder);
+  await page.screenshot({path:path.join(folder,'relay-dark.png')});await page.evaluate(()=>DarkReader.disable());await page.waitForTimeout(200);console.log('OFF',await sample());await page.screenshot({path:path.join(folder,'off.png')});console.log('PASS mixed-CORS CSS diagnosis and photos preserved');
  }finally{await browser.close()}
 })().catch(e=>{console.error(e);process.exitCode=1});

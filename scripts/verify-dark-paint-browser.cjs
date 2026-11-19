@@ -1,8 +1,9 @@
 // Disposable synthetic paint-order tests. No account or personal browser access.
+const {makeTempDir}=require('./temp-dir.cjs');
 const {chromium}=require('playwright');
 const fs=require('node:fs'),path=require('node:path'),os=require('node:os'),assert=require('node:assert/strict');
 (async()=>{
- const folder=fs.mkdtempSync(path.join(os.tmpdir(),'be-paint-guard-'));
+ const folder=makeTempDir('be-paint-guard-');
  const source=fs.readFileSync('src/modules/dark/paint-guard.js','utf8').replace(/export /g,'');
  const dr=fs.readFileSync('node_modules/darkreader/darkreader.js','utf8');
  const browser=await chromium.launch({channel:'chrome',headless:true});
@@ -69,6 +70,6 @@ const fs=require('node:fs'),path=require('node:path'),os=require('node:os'),asse
   assert.equal(await page.locator('html').evaluate(e=>e.style.backgroundColor),'');await stop();
   await setup(markup());await page.locator('iframe').evaluate(e=>e.hidden=true);await enable();await page.evaluate(()=>guard.start());await page.waitForTimeout(150);
   assert.equal(await page.locator('html').evaluate(e=>e.style.backgroundColor),'');assert.equal(await page.locator('iframe').evaluate(e=>getComputedStyle(e).display),'none');await stop();
-  console.log('PASS paint guard: parent/child dark pixels, OFF restore, site inline replacement, opaque roots, no frame, overlay and hidden frame protections.',folder);
+  console.log('PASS paint guard: parent/child dark pixels, OFF restore, site inline replacement, opaque roots, no frame, overlay and hidden frame protections.');
  }finally{await browser.close()}
 })().catch(e=>{console.error(e);process.exitCode=1});

@@ -1,9 +1,10 @@
 // Uses a fresh disposable profile and local files only. No personal Chrome data is loaded.
 // MINIMAL_PERMISSIONS=1 skips the optional page scanner, retaining the shipped permissions.
+const {makeTempDir}=require('./temp-dir.cjs');
 const {chromium}=require(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const fs=require('fs'),path=require('path'),http=require('http'),assert=require('assert/strict');
 (async()=>{
-const temp=fs.mkdtempSync(path.join(process.env.TEMP,'be-download-test-'));const ext=path.join(temp,'extension');fs.cpSync('.output/chrome-mv3',ext,{recursive:true});
+const temp=makeTempDir('be-download-test-');const ext=path.join(temp,'extension');fs.cpSync('.output/chrome-mv3',ext,{recursive:true});
 const bp=path.join(ext,'background.js');fs.writeFileSync(bp,`globalThis.__testErrors=[];self.addEventListener('error',e=>__testErrors.push(e.error?.stack||e.message));self.addEventListener('unhandledrejection',e=>__testErrors.push(e.reason?.stack||String(e.reason)));`+fs.readFileSync(bp,'utf8'));
 const m=JSON.parse(fs.readFileSync(path.join(ext,'manifest.json')));if (!process.env.MINIMAL_PERMISSIONS) { m.permissions=[...new Set([...m.permissions,...m.optional_permissions])];m.optional_permissions=[];m.host_permissions=[...new Set([...m.host_permissions,'http://*/*','https://*/*'])];m.optional_host_permissions=[];fs.writeFileSync(path.join(ext,'manifest.json'),JSON.stringify(m)); }
 const payload=Buffer.alloc(2*1024*1024);for(let i=0;i<payload.length;i++)payload[i]=i%251;
@@ -48,7 +49,7 @@ assert.equal(await settings.locator('#mailSettingsDialog').evaluate(d=>d.open),t
 await settings.locator('[name=desktopNotification]').uncheck();await settings.locator('#mailSettingsSave').click();await settings.getByText('설정을 저장했어요.',{exact:true}).waitFor();
 const saved=await settings.evaluate(()=>chrome.runtime.sendMessage({command:'BongExtendMailOptions'}));assert.equal(saved.values.desktopNotification,false);console.log('PASS native mail settings save without OAuth');
 await settings.screenshot({path:path.join(temp,'mail-settings.png')});
-assert.deepEqual(errors,[]); assert.deepEqual(await w.evaluate(()=>__testErrors),[]); console.log('PASS no final page or worker exceptions'); console.log('temp',temp);
+assert.deepEqual(errors,[]); assert.deepEqual(await w.evaluate(()=>__testErrors),[]); console.log('PASS no final page or worker exceptions');
 
 }finally{await context.close();server.closeAllConnections();await new Promise(r=>server.close(r));}
 })().catch(async e=>{console.error(e);if(global.ctx)await global.ctx.close();process.exitCode=1});

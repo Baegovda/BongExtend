@@ -1,8 +1,9 @@
 // Anonymous public page / disposable profile; no account data or external AI.
+const {makeTempDir}=require('./temp-dir.cjs');
 const {chromium}=require('playwright');
 const fs=require('node:fs'),path=require('node:path'),os=require('node:os'),assert=require('node:assert/strict');
 (async()=>{
- const folder=fs.mkdtempSync(path.join(os.tmpdir(),'be-dark-icons-'));
+ const folder=makeTempDir('be-dark-icons-');
  const browser=await chromium.launch({channel:'chrome',headless:true});
  try{
   const page=await browser.newPage({viewport:{width:1400,height:950}});
@@ -31,6 +32,6 @@ const fs=require('node:fs'),path=require('node:path'),os=require('node:os'),asse
   await page.screenshot({path:path.join(folder,'naver-ai-dark.png')});
   await page.evaluate(()=>{icons.stop();contrast.stop();DarkReader.disable()});
   assert.equal(await page.locator('[data-bong-icon-owned]').count(),0);
-  console.log('PASS public AI bitmap:',result,'passes at snapshot:',passes,'Evidence:',folder);
+  console.log('PASS public AI bitmap:',result,'passes at snapshot:',passes);
  }finally{await browser.close()}
 })().catch(e=>{console.error(e);process.exitCode=1});

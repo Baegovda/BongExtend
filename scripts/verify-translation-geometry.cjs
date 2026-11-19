@@ -1,4 +1,5 @@
 // Real Chrome layout with deterministic local translations; no private pages or API key.
+const {makeTempDir}=require('./temp-dir.cjs');
 const {chromium}=require(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const fs=require('node:fs'),os=require('node:os'),path=require('node:path'),assert=require('node:assert/strict');
 (async()=>{
@@ -58,7 +59,7 @@ const fs=require('node:fs'),os=require('node:os'),path=require('node:path'),asse
       };
       return {during,overlays:boxes.length};
     });
-    const folder=fs.mkdtempSync(path.join(os.tmpdir(),'be-geometry-'));
+    const folder=makeTempDir('be-geometry-');
     await page.screenshot({path:path.join(folder,'during.png')});
     const {after,shifts,shift}=await page.evaluate(()=>geometryFinish());
     await page.screenshot({path:path.join(folder,'after.png')});
@@ -76,7 +77,7 @@ const fs=require('node:fs'),os=require('node:os'),path=require('node:path'),asse
       if(!row.translated)mismatch.push(`${id}: translation space is not reserved`);
     }
     if(shifts.some(error=>error>1))mismatch.push('a late layout shift detached the overlay');
-    console.log(JSON.stringify({mismatch,overlays:result.overlays,errors,screenshots:folder},null,2));
+    console.log(JSON.stringify({mismatch,overlays:result.overlays,errors},null,2));
     if(!process.env.BASELINE){assert.ok(result.overlays>=3);assert.deepEqual(mismatch,[]);assert.deepEqual(errors,[]);}
   }finally{await browser.close();}
 })().catch(error=>{console.error(error);process.exitCode=1;});

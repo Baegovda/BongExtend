@@ -1,8 +1,9 @@
 // Disposable profile. Synthetic artwork regression plus the reported public event.
+const {makeTempDir}=require('./temp-dir.cjs');
 const {chromium}=require('playwright');
 const fs=require('node:fs'),os=require('node:os'),path=require('node:path'),assert=require('node:assert/strict');
 (async()=>{
- const folder=fs.mkdtempSync(path.join(os.tmpdir(),'be-dark-artwork-'));
+ const folder=makeTempDir('be-dark-artwork-');
  const browser=await chromium.launch({channel:'chrome',headless:true});
  try{
   const page=await browser.newPage({viewport:{width:1600,height:1000}});
@@ -42,6 +43,6 @@ const fs=require('node:fs'),os=require('node:os'),path=require('node:path'),asse
   const changed=await page.evaluate(()=>artworkBefore.filter(r=>r.element.isConnected&&(getComputedStyle(r.element).backgroundImage!==r.image||getComputedStyle(r.element).filter!==r.filter)).map(r=>({class:r.element.className,before:r.image.slice(0,180),after:getComputedStyle(r.element).backgroundImage.slice(0,180)})));
   assert.deepEqual(changed,[],'large artwork URLs and filters must remain original');
   await page.screenshot({path:path.join(folder,'event-dark-preserved.png')});
-  console.log('PASS public event artwork preserved:',count,'Evidence:',folder);
+  console.log('PASS public event artwork preserved:',count);
  }finally{await browser.close()}
 })().catch(e=>{console.error(e);process.exitCode=1});

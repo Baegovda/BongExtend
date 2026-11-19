@@ -1,8 +1,9 @@
 // Disposable Chrome; synthetic DOM + upstream engine. Never accesses a personal profile.
+const {makeTempDir}=require('./temp-dir.cjs');
 const {chromium}=require('playwright');
 const fs=require('node:fs'),os=require('node:os'),path=require('node:path'),assert=require('node:assert/strict');
 (async()=>{
- const folder=fs.mkdtempSync(path.join(os.tmpdir(),'be-dark-stability-'));
+ const folder=makeTempDir('be-dark-stability-');
  const fixes=(await import(require('node:url').pathToFileURL(path.resolve('src/modules/dark/site-fixes.js')).href)).withTranslationColors();
  const browser=await chromium.launch({channel:'chrome',headless:true});
  try {
@@ -35,7 +36,7 @@ const fs=require('node:fs'),os=require('node:os'),path=require('node:path'),asse
    const start=performance.now();await new Promise(resolve=>{const tick=()=>{colors.add(getComputedStyle(document.querySelector('#card')).backgroundColor);if(performance.now()-start>2500)return resolve();requestAnimationFrame(tick)};tick()});mo.disconnect();return {colors:[...colors],mutations,stats:{...contrast.stats}};
   });
   const initial=await sample();await page.screenshot({path:path.join(folder,'dark.png')});
-  const stable=await sample();console.log('Samples',JSON.stringify({initial,stable,folder}));
+  const stable=await sample();console.log('Samples',JSON.stringify({initial,stable}));
   assert.ok(stable.colors.length<=1,'settled card background must stop changing');
   assert.ok(stable.mutations<5,'own inline repair must settle with upstream inline processing');
   assert.ok(stable.stats.passes-initial.stats.passes<5,'idle repair passes must settle');
@@ -64,7 +65,7 @@ const fs=require('node:fs'),os=require('node:os'),path=require('node:path'),asse
    const result=await page.evaluate(async()=>{const el=document.querySelector('#card'),colors=new Set();let mutations=0;const mo=new MutationObserver(ms=>mutations+=ms.length);mo.observe(el,{subtree:true,attributes:true,attributeFilter:['style']});const start=performance.now();await new Promise(resolve=>{const tick=()=>{colors.add(getComputedStyle(el).backgroundColor);if(performance.now()-start>2500)return resolve();requestAnimationFrame(tick)};tick()});mo.disconnect();return {colors:[...colors],mutations}});
    assert.equal(result.colors.length,1);assert.equal(result.mutations,0);await page.screenshot({path:path.join(folder,'packaged-dark.png')});
    await worker.evaluate(()=>chrome.storage.local.set({'core.darkMode':{enabledSites:[],followSystem:false}}));await page.locator('html[data-darkreader-scheme]').waitFor({state:'detached'});await page.waitForTimeout(200);assert.equal(await page.locator('#card').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(255, 255, 255)');
-   console.log('PASS actual packaged content/worker stability and OFF restore',JSON.stringify(result),folder);
+   console.log('PASS actual packaged content/worker stability and OFF restore',JSON.stringify(result));
   }finally{await context.close()}
  }
 })().catch(error=>{console.error(error);process.exitCode=1});

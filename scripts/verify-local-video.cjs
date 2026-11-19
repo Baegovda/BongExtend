@@ -1,6 +1,7 @@
+const {makeTempDir}=require('./temp-dir.cjs');
 const {chromium}=require('playwright'),fs=require('fs'),path=require('path'),os=require('os'),assert=require('assert/strict');
 (async()=>{
- const tmp=fs.mkdtempSync(path.join(os.tmpdir(),'be-native-video-')),ext=path.join(tmp,'extension');fs.cpSync('.output/chrome-mv3',ext,{recursive:true});
+ const tmp=makeTempDir('be-native-video-'),ext=path.join(tmp,'extension');fs.cpSync('.output/chrome-mv3',ext,{recursive:true});
  const extensionManifest=path.join(ext,'manifest.json'),config=JSON.parse(fs.readFileSync(extensionManifest));config.host_permissions.push('https://video.example.test/*');fs.writeFileSync(extensionManifest,JSON.stringify(config));
  const manifest=path.join(process.env.LOCALAPPDATA,'BongExtend/video-helper/com.bongextend.video.json'),saved=fs.readFileSync(manifest);
  const ctx=await chromium.launchPersistentContext(path.join(tmp,'profile'),{executablePath:process.env.CHROME_PATH||'C:/Program Files/Google/Chrome/Application/chrome.exe',headless:true,ignoreDefaultArgs:['--disable-extensions'],args:['--enable-unsafe-extension-debugging'],viewport:{width:1100,height:800}});
@@ -29,7 +30,7 @@ const {chromium}=require('playwright'),fs=require('fs'),path=require('path'),os=
   const historyUntil=Date.now()+3000;let history=[];
   while(Date.now()<historyUntil){history=await page.evaluate(async()=> (await chrome.storage.local.get('core.video:history'))['core.video:history'] || []);if(history.some(row=>row.filename===result.filename))break;await new Promise(resolve=>setTimeout(resolve,50));}
   assert.ok(history.some(row=>row.filename===result.filename),'actual native completion must be saved in downloader history');
-  await page.screenshot({path:path.join(tmp,'downloaded.png')});console.log('screenshots',tmp);
+  await page.screenshot({path:path.join(tmp,'downloaded.png')});
   await page.emulateMedia({colorScheme:'dark'});await page.setViewportSize({width:360,height:760});
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'narrow screen has no horizontal clipping');
   await page.screenshot({path:path.join(tmp,'downloaded-dark-narrow.png')});

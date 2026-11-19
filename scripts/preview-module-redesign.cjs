@@ -1,7 +1,8 @@
 // Local fixture renderer only: no user profile, live website, clipboard, or OS input.
+const {makeTempDir}=require('./temp-dir.cjs');
 const {chromium}=require('playwright'),fs=require('fs'),path=require('path'),os=require('os');
 (async()=>{
- const folder=fs.mkdtempSync(path.join(os.tmpdir(),'be-module-preview-'));
+ const folder=makeTempDir('be-module-preview-',{keep:true});
  const browser=await chromium.launch({headless:true,executablePath:'C:/Program Files/Google/Chrome/Application/chrome.exe'});
  try{
   const page=await browser.newPage({viewport:{width:580,height:730}});
@@ -20,6 +21,5 @@ const {chromium}=require('playwright'),fs=require('fs'),path=require('path'),os=
   await page.screenshot({path:path.join(folder,'downloader-light.png')});await page.emulateMedia({colorScheme:'dark'});await page.screenshot({path:path.join(folder,'downloader-dark.png')});
   await page.setViewportSize({width:1000,height:650});await page.setContent('<body style="margin:0;background:#e8eef6;font:20px system-ui"><div style="padding:48px">로컬 웹페이지 미리보기</div></body>');
   const {renderCopiedOtpToast}=await import('../src/modules/gmail/otp-toast.js');await page.evaluate(renderCopiedOtpToast,'001234');await page.waitForTimeout(350);await page.screenshot({path:path.join(folder,'otp-overlay.png')});
-  console.log(folder);
  }finally{await browser.close();}
 })().catch(error=>{console.error(error);process.exitCode=1});
