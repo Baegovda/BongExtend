@@ -78,7 +78,8 @@ function retryAfterMs(response) {
   if (!header) return null;
   const seconds = Number(header);
   if (Number.isFinite(seconds)) return Math.max(0, seconds * 1000);
-  const when = Date.parse(header);
+  // Date.parse 는 배경의 메일 엔진(public/js/common.js)이 바꿔 놔서 new Date(…).getTime() 으로 읽어요(결과는 같아요).
+  const when = new Date(String(header)).getTime();
   if (Number.isFinite(when)) return Math.max(0, when - Date.now());
   return null;
 }

@@ -27,7 +27,8 @@ export function makeWindow({id, label, usedPercent, resetsAt}) {
 
 const isoMs = (value) => {
     if (typeof value !== "string") return null;
-    const time = Date.parse(value);
+    // 배경에 함께 도는 메일 엔진(public/js/common.js)이 Date.parse 를 바꿔 놔서 new Date(…).getTime() 으로 읽어요(결과는 같아요).
+    const time = new Date(value).getTime();
     return Number.isFinite(time) ? time : null;
 };
 

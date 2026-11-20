@@ -28,6 +28,8 @@ const labels: Record<number, string> = {};
 let lastSignature = "";
 let timer = 0;
 let running = false;
+// 메일 감시 설정을 한 번이라도 받았는지(다운로드 소리 전용으로 열린 문서를 메일 감시가 이어서 쓰는지).
+let adopted = false;
 
 const feedUrl = (index: number) => `https://mail.google.com/mail/u/${index}/feed/atom`;
 
@@ -157,6 +159,7 @@ const playSound = (name: string, volume: number) => {
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     if (message?.type === "gmail-watch-config") {
+        adopted = true;
         Object.assign(state, message.config || {});
         void tick();
         return;
@@ -183,5 +186,31 @@ window.addEventListener("offline", () => schedule(nextWaitMs({
     intervalMs: state.intervalMs
 })));
 
-chrome.runtime.sendMessage({type: "gmail-watch-ready"});
-void tick();
+// 다운로드 완료 소리만 내려고 열린 문서(offscreen.html?sound=…): 소리를 먼저 내고, 끝난 뒤에 메일 모듈에 알려요.
+// 메일 감시가 켜져 있으면 설정을 받아 감시를 시작하고, 꺼져 있으면 메일 모듈이 이 문서를 닫아요.
+const soundParams = new URLSearchParams(location.search);
+if (soundParams.has("sound")) {
+    let told = false;
+    const tellReady = () => {
+        if (told) return;
+        told = true;
+        chrome.runtime.sendMessage({type: "gmail-watch-ready"}).catch(() => {});
+        // 메일 감시가 이 문서를 맡지 않으면(설정을 안 보내면) 배경에 닫아 달라고 해요.
+        setTimeout(() => {
+            if (!adopted) chrome.runtime.sendMessage({type: "download-sound-done"}).catch(() => {});
+        }, 1500);
+    };
+    try {
+        const audio = new Audio(chrome.runtime.getURL(soundFile(String(soundParams.get("sound") || "pop"))));
+        audio.volume = Math.min(1, Math.max(0, Number(soundParams.get("volume")) || 0));
+        audio.addEventListener("ended", tellReady);
+        audio.addEventListener("error", tellReady);
+        void audio.play().catch(tellReady);
+    } catch {
+        tellReady();
+    }
+    setTimeout(tellReady, 4000);
+} else {
+    chrome.runtime.sendMessage({type: "gmail-watch-ready"});
+    void tick();
+}

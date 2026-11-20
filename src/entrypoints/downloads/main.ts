@@ -287,6 +287,7 @@ const loadSettings = async () => {
     settings = normalizeDownloadSettings(stored[DOWNLOAD_SETTINGS_KEY]) as Settings;
     $<HTMLInputElement>("replaceChromeUi").checked = settings.replaceChromeUi;
     $<HTMLInputElement>("notifications").checked = settings.notifications;
+    $<HTMLInputElement>("completeSound").checked = settings.completeSound;
     $<HTMLInputElement>("filenameMask").value = settings.filenameMask;
     $<HTMLInputElement>("folder").value = settings.folder;
     $<HTMLInputElement>("routeByType").checked = settings.routeByType;
@@ -327,6 +328,7 @@ $<HTMLButtonElement>("viewToggle").addEventListener("click", () => {
 });
 $<HTMLInputElement>("replaceChromeUi").addEventListener("change", (event) => void saveSettings({replaceChromeUi: (event.currentTarget as HTMLInputElement).checked}));
 $<HTMLInputElement>("notifications").addEventListener("change", (event) => void saveSettings({notifications: (event.currentTarget as HTMLInputElement).checked}));
+$<HTMLInputElement>("completeSound").addEventListener("change", (event) => void saveSettings({completeSound: (event.currentTarget as HTMLInputElement).checked}));
 $<HTMLInputElement>("filenameMask").addEventListener("change", (event) => void saveSettings({filenameMask: (event.currentTarget as HTMLInputElement).value}));
 $<HTMLInputElement>("folder").addEventListener("change", (event) => void saveSettings({folder: (event.currentTarget as HTMLInputElement).value}));
 $<HTMLInputElement>("routeByType").addEventListener("change", (event) => void saveSettings({routeByType: (event.currentTarget as HTMLInputElement).checked}));

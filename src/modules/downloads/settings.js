@@ -25,6 +25,8 @@ export const normalizeDownloadSettings = (value) => {
     // 기본으로 Chrome 자체 다운로드 알림(말풍선·아이콘)은 숨기고 BongExtend가 보여줘요.
     replaceChromeUi: source.replaceChromeUi !== false,
     notifications: source.notifications !== false,
+    // 다 받으면 BongExtend가 직접 짧은 소리를 내요(윈도우 알림이 방해 금지 등으로 안 보여도 들려요).
+    completeSound: source.completeSound !== false,
     listView: source.listView !== false,
     filenameMask: String(source.filenameMask || "").replace(/[\r\n]/g, "").slice(0, 120),
     folder,

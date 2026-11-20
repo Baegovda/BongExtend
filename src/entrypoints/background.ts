@@ -49,11 +49,15 @@ import "../../public/download-danger.js";
 // @ts-ignore plain JS image search engines
 import {DEFAULT_ENGINES, buildEngineUrl} from "@/modules/image/toolbar.js";
 // @ts-ignore plain JS shopping price tracker worker
-import {startShopBackground, takeQuietShopDownload} from "@/modules/shop/background.js";
+import {isQuietShopDownload, startShopBackground, takeQuietShopDownload} from "@/modules/shop/background.js";
 // @ts-ignore plain JS
 import {startYoutubeHold} from "@/modules/youtube/background.js";
 // @ts-ignore plain JS
 import {startDownloadSpinner} from "@/modules/downloads/toolbar-spinner.js";
+// @ts-ignore plain JS (browser code): download complete notice + sound, catches missed complete events
+import {createCompleteNotifier} from "@/modules/downloads/complete-notice.js";
+// @ts-ignore 순수 JS
+import {soundFile} from "@/modules/gmail/sound.js";
 // @ts-ignore 순수 JS
 import {startRightClickBackground} from "@/modules/rightclick/background.js";
 // @ts-ignore settings are plain JS shared with the dark-mode popup and content script
@@ -71,6 +75,30 @@ import {createOtpPasteTracker} from "@/modules/gmail/otp-paste.js";
 import {startOtpPasteBridge} from "@/modules/gmail/otp-paste-bridge.js";
 // @ts-ignore pure JS, memory-only auto read for AliExpress mail
 import {createMailAutoRead} from "@/modules/gmail/auto-read.js";
+
+// 다운로드 완료 소리: 이미 열린 오프스크린 문서에서 재생해요(확장은 오프스크린 문서를 하나만 가질 수 있어요).
+// 메일 감시 문서(offscreen.html)와 메일 엔진 문서(off_screen.html) 둘 다 소리를 낼 줄 알아요.
+// 문서가 없으면 소리 전용으로 잠깐 열어요. 메일 감시가 꺼져 있으면 메일 모듈이 소리가 끝난 뒤 닫아요.
+const playDownloadSound = async (sound: {name: string; volume: number}) => {
+    const contexts = await chrome.runtime.getContexts?.({contextTypes: [chrome.runtime.ContextType.OFFSCREEN_DOCUMENT]}).catch(() => []);
+    if (contexts?.some((context) => /\/off_screen\.html(?:[?#]|$)/.test(context.documentUrl || ""))) {
+        // 메일 엔진 문서는 소리가 끝난 뒤에 답해요. 알림을 늦추지 않게 받는 쪽이 있는지만 잠깐 봐요.
+        const sent = chrome.runtime.sendMessage({target: "offscreen", type: "play-sound", data: {src: chrome.runtime.getURL(soundFile(sound.name)), volume: sound.volume}}).then(() => true, () => false);
+        return Promise.race([sent, new Promise<boolean>((resolve) => setTimeout(() => resolve(true), 400))]);
+    }
+    if (!contexts?.length) {
+        try {
+            await chrome.offscreen.createDocument({
+                url: chrome.runtime.getURL(`offscreen.html?sound=${encodeURIComponent(sound.name)}&volume=${sound.volume}`),
+                reasons: [chrome.offscreen.Reason.AUDIO_PLAYBACK],
+                justification: "다운로드 완료 소리를 재생합니다."
+            });
+            return true;
+        } catch { /* 그 사이 메일 모듈이 문서를 열었으면 아래에서 그 문서로 보내요. */ }
+    }
+    const reply = await chrome.runtime.sendMessage({type: "gmail-play-sound", name: sound.name, volume: sound.volume}).catch(() => null) as {ok?: boolean} | null;
+    return Boolean(reply?.ok);
+};
 
 export default defineBackground(() => {
     startNaverMail();
@@ -406,25 +434,36 @@ export default defineBackground(() => {
             await chrome.windows.create({url: chrome.runtime.getURL("popup.html?window=1"), type: "popup", width: 840, height: 640});
         })().catch(() => {});
     });
-    chrome.downloads.onChanged.addListener((delta) => {
-        if (delta.state?.current !== "complete" || delta.state.previous === "complete") return;
-        // 쇼핑의 '사진 받기'는 여러 장을 한 번에 받아서 장마다 알림을 띄우지 않아요.
-        if (takeQuietShopDownload(delta.id)) return;
-        void (async () => {
+    // 다운로드 완료 알림 + 완료 소리. 크롬이 완료 신호를 빠뜨려도 배경이 깨어날 때 놓친 것을 찾아 알려요.
+    const quietDone = new Set<number>();
+    const completeNotifier = createCompleteNotifier({
+        readSettings: async () => {
             const stored = await chrome.storage.local.get([DOWNLOAD_SETTINGS_KEY, MODULES_KEY]);
             const settings = normalizeDownloadSettings(stored[DOWNLOAD_SETTINGS_KEY]);
             const modules = (stored[MODULES_KEY] && typeof stored[MODULES_KEY] === "object" ? stored[MODULES_KEY] : {}) as Record<string, unknown>;
-            if (modules.download === false || !settings.notifications) return;
-            const item = await chrome.downloads.search({id: delta.id});
-            const name = item[0]?.filename?.replace(/\\/g, "/").split("/").pop() || "파일";
-            await chrome.notifications.create(`bongextend-download-${delta.id}`, {
-                type: "basic",
-                iconUrl: browser.runtime.getURL("/icons/128.png"),
-                title: "다운로드 완료",
-                message: name
-            });
-        })().catch((error) => console.warn("다운로드 알림을 표시하지 못했어요.", error));
+            return {moduleOn: modules.download !== false, notifications: settings.notifications, completeSound: settings.completeSound};
+        },
+        // 쇼핑의 '사진 받기'는 여러 장을 한 번에 받아서 장마다 알리지 않아요.
+        isQuiet: (id: number) => quietDone.has(id) || isQuietShopDownload(id),
+        playSound: playDownloadSound
     });
+    chrome.downloads.onChanged.addListener((delta) => {
+        if (delta.state?.current !== "complete" || delta.state.previous === "complete") {
+            void completeNotifier.sweep("change");
+            return;
+        }
+        if (takeQuietShopDownload(delta.id)) quietDone.add(delta.id);
+        void completeNotifier.onComplete(delta.id).catch((error: unknown) => console.warn("다운로드 알림을 표시하지 못했어요.", error));
+    });
+    chrome.downloads.onCreated.addListener(() => void completeNotifier.sweep("created"));
+    // 다운로드 신호가 통째로 안 올 때도 있어서, 이미 도는 알람(메일 확인 등, 30초~)이 울릴 때도 한 번 봐요.
+    chrome.alarms.onAlarm.addListener(() => void completeNotifier.sweep("alarm"));
+    // 소리 전용으로 연 오프스크린 문서를 메일 감시가 이어 쓰지 않으면 닫아요(메일 엔진이 자기 문서를 열 수 있게).
+    chrome.runtime.onMessage.addListener((message, sender) => {
+        if (message?.type !== "download-sound-done" || sender.id !== chrome.runtime.id || !/\/offscreen\.html\?sound=/.test(sender.url || "")) return;
+        void chrome.offscreen.closeDocument().catch(() => {});
+    });
+    void completeNotifier.sweep("start");
     // 다운로드 완료 알림을 누르면 받은 파일을 열고, 열 수 없으면 폴더에서 보여줘요.
     chrome.notifications.onClicked.addListener((notificationId) => {
         const match = /^bongextend-download-(\d+)$/.exec(notificationId);

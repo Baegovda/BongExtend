@@ -12,6 +12,7 @@ const OVERDUE = 24 * 60 * 60 * 1000;
 // 상품 사진은 한 번에 여러 장이라 다운로드 완료 알림을 장마다 띄우지 않아요.
 const quietDownloads = new Set();
 export const takeQuietShopDownload = (id) => quietDownloads.delete(id);
+export const isQuietShopDownload = (id) => quietDownloads.has(id);
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 

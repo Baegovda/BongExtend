@@ -143,7 +143,8 @@ const pad2 = (value) => String(value).padStart(2, "0");
 
 // 받은 시각. 오늘이면 HH:mm, 그 외에는 M/D HH:mm. 사용자 기기의 시각이다.
 export const formatMailTime = (issued, now = Date.now()) => {
-    const time = Date.parse(issued);
+    // Date.parse 는 배경의 메일 엔진(public/js/common.js)이 바꿔 놔서 new Date(…).getTime() 으로 읽어요(결과는 같아요).
+    const time = new Date(String(issued)).getTime();
     if (!Number.isFinite(time)) return "";
     const date = new Date(time);
     const today = new Date(now);
