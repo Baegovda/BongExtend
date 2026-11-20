@@ -73,6 +73,9 @@ BongExtend는 치지직, Gemini 번역, 디시인사이드(green1052/DCRefresher
 ## 다운로드 완료 알림·소리 (1.2.171)
 - `src/modules/downloads/complete-notice.js`: 완료 신호(`downloads.onChanged`)로 한 번, 그리고 배경이 깨어날 때·다운로드 소식·아무 알람(메일 확인 30초 등)이 울릴 때 "최근 10분 안에 끝났는데 아직 안 알린 것"을 찾아 한 번 더 알려요. 크롬이 완료 신호(그리고 `onCreated`)를 가끔 안 보내요. 알린 번호는 `storage.session` `core.download:noticed`, 진단은 `core.download:lastNotice`(번호·시각·성공 여부만). 확인 스크립트 `scripts/verify-download-notice-browser.cjs`.
 - 완료 소리(`core.downloads.completeSound`, 기본 켬)는 열린 오프스크린 문서로 내요: 메일 엔진 `off_screen.html`이면 `{target:"offscreen", type:"play-sound"}`, 메일 감시 `offscreen.html`이면 `gmail-play-sound`, 없으면 `offscreen.html?sound=…`를 잠깐 열고 메일 감시가 안 맡으면 `download-sound-done`으로 닫아요. 우리 소리를 냈으면 윈도우 알림은 `silent`.
+- 다운로드 칸(`public/recent-downloads.html`) 머리줄의 폴더 버튼 `#openFolder`는 `chrome.downloads.showDefaultFolder()`예요.
+- 메일 새로고침: 왼쪽 아래 `#mailRefreshNow`와 같은 일을 하는 `.be-mail-refresh` 버튼이 맨 위 계정 줄에 하나 붙어요(`naver-mail.ts` `orderAccounts`).
+- 메일 엔진 Gmail 작업(읽음·보관·삭제, "자동 감지" 계정): `cookies`는 선택 권한이라 없으면 `chrome.cookies`가 없어요. 작업 토큰은 쿠키 → Gmail 화면 순서로 찾고, 작업 뒤 목록을 다시 받아 아직 있으면 화면 토큰으로 한 번 더 해요. 결과는 `core.mailActionLog`(계정 순번·작업·응답 상태·토큰 출처만, 20개).
 - **배경 서비스 워커에서는 `Date.parse`가 숫자가 아니라 날짜 객체를 돌려줘요**(메일 엔진 `public/js/common.js`가 바꿔 놓음). 배경에서 도는 코드는 `new Date(String(x)).getTime()`으로 읽어요.
 
 ## 구조

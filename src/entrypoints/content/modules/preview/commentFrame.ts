@@ -249,7 +249,7 @@ export function makeCommentFrame(ctx: CommentFrameContext): void {
                 signal
             );
 
-            if (!response) throw new Error("Can not fetch comment data.");
+            if (!response) throw new Error("댓글을 가져오지 못했어요.");
 
             return response;
         };

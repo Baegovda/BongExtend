@@ -82,6 +82,16 @@ const {chromium}=require('playwright');const fs=require('node:fs'),os=require('n
   const logo=frame.locator('.be-naver-logo');assert.ok(await logo.evaluate(e=>e.complete&&e.naturalWidth>0));
   const lb=await logo.boundingBox(),email=await frame.locator('.be-naver-title strong').boundingBox();assert.ok(lb.x+lb.width<=email.x);
   assert.equal(await frame.locator('.be-naver-title strong').textContent(),'fixture-user@naver.com');
+  // 메일 새로고침 버튼: 맨 위 계정 줄에만 하나 있고, 누르면 왼쪽 아래 새로고침 버튼과 같은 일을 해요. 순서가 바뀌면 따라가요.
+  assert.equal(await frame.locator('.be-mail-refresh').count(),1);
+  assert.equal(await frame.locator('#bongextendNaverAccount .be-mail-refresh').count(),1);
+  await page.evaluate(()=>{window.__refreshClicks=0;document.getElementById('mailRefreshNow').addEventListener('click',()=>window.__refreshClicks++);});
+  await frame.locator('.be-mail-refresh').click();
+  assert.equal(await page.evaluate(()=>window.__refreshClicks),1);
+  await worker.evaluate(()=>chrome.storage.local.set({'core.mailAccountOrder':['gmail:fixture@gmail.com','naver:fixture-user@naver.com']}));
+  await inbox.waitForFunction(()=>document.querySelector('#fixtureGmail .be-mail-refresh')&&document.querySelectorAll('.be-mail-refresh').length===1);
+  await worker.evaluate(()=>chrome.storage.local.set({'core.mailAccountOrder':['naver:fixture-user@naver.com','gmail:fixture@gmail.com']}));
+  await inbox.waitForFunction(()=>document.querySelector('#bongextendNaverAccount .be-mail-refresh'));
   assert.equal(await frame.locator('.be-naver-actions j-button[icon]').count(),2);
   assert.ok((await frame.locator('.be-naver-actions').textContent()).trim()==='','Naver actions stay icon-only');
   const accountGeometry=await inbox.evaluate(()=>{const n=document.querySelector('.be-naver-header'),g=document.querySelector('#fixtureGmail .accountHeader');return {nh:n.getBoundingClientRect().height,gh:g.getBoundingClientRect().height,nw:n.querySelector('.be-account-order button').getBoundingClientRect().width,gw:g.querySelector('.be-account-order button').getBoundingClientRect().width};});

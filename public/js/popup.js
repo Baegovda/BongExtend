@@ -3834,7 +3834,7 @@ function openAICompose(params = {}) {
                 }
             } catch (error) {
                 console.error('Error sending message:', error);
-                showError('Error: ' + (error.error || error.message || error) + " - " + getMessage("tryAgainLater"));
+                showError('오류: ' + (error.error || error.message || error) + " - " + getMessage("tryAgainLater"));
                 $textarea.value = prompt;
             } finally {
                 document.body.classList.remove("prompting");
@@ -6821,7 +6821,7 @@ async function init() {
         
                     let message;
                     if (accounts.length == 1 && accounts.first().error) {
-                        if (accounts.first().getError().niceError && !/error/i.test(accounts.first().getError().niceError)) {
+                        if (accounts.first().getError().niceError && !/error|오류/i.test(accounts.first().getError().niceError)) {
                             message = accounts.first().getError().niceError;
                         } else {
                             message = getMessage("networkProblem");

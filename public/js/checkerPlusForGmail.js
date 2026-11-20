@@ -2289,11 +2289,11 @@ async function initQuickContactContextMenu(params = {}) {
 	if (quickComposeEmailAlias) {
 		quickComposeEmailContextMenuLabel = getMessage("email") + " " + quickComposeEmailAlias;
 		emailPageLinkToContactLabel = getMessage("sendPageLinkTitle") + " " + getMessage("to") + " " + quickComposeEmailAlias;
-		emailPageLinkToContactWithMessageLabel = getMessage("sendPageLinkTitle") + " " + getMessage("to") + " " + quickComposeEmailAlias + " with message...";
+		emailPageLinkToContactWithMessageLabel = getMessage("sendPageLinkTitle") + " " + getMessage("to") + " " + quickComposeEmailAlias + " (메시지 쓰기)…";
 	} else if (quickComposeEmail) {
 		quickComposeEmailContextMenuLabel = getMessage("email") + " " + quickComposeEmail;
 		emailPageLinkToContactLabel = getMessage("sendPageLinkTitle") + " " + getMessage("to") + " " + quickComposeEmail;
-		emailPageLinkToContactWithMessageLabel = getMessage("sendPageLinkTitle") + " " + getMessage("to") + " " + quickComposeEmail + " with message...";
+		emailPageLinkToContactWithMessageLabel = getMessage("sendPageLinkTitle") + " " + getMessage("to") + " " + quickComposeEmail + " (메시지 쓰기)…";
 	} else {
 		quickComposeEmailContextMenuLabel = getMessage("quickComposeEmail");
 	}
@@ -3534,7 +3534,7 @@ async function setupOffscreenDocument(secondAttempt) {
     const offscreenUrl = chrome.runtime.getURL(path);
 
     if (!chrome.runtime.getContexts) {
-        throw Error("You need to update your browser! (error getContexts)");
+        throw Error("브라우저를 최신 버전으로 업데이트해 주세요. (getContexts)");
     }
 
     const existingContexts = await chrome.runtime.getContexts({
@@ -3566,7 +3566,7 @@ async function setupOffscreenDocument(secondAttempt) {
             console.error("error creating offscreen", error);
             if (error.message.includes("single")) { // detect error message: Only a single offscreen document may be created.
                 if (secondAttempt) {
-                    throw Error("Restart the browser");
+                    throw Error("브라우저를 다시 시작해 주세요.");
                 } else {
                     console.warn("Got that single error, will close offscreen and reopen...", error);
                     await chrome.offscreen.closeDocument();

@@ -24,7 +24,7 @@ test('in-app mail settings accept every original Checker Plus sound file',async(
 test("checker plus sounds keep their file names", () => {
     for (const name of CHECKER_PLUS_SOUNDS) {
         assert.equal(SOUND_NAMES.includes(name), true, name);
-        assert.equal(SOUND_LABELS[name], name);
+        assert.match(SOUND_LABELS[name], /[가-힣]/, name);
         assert.equal(soundFile(name), `/sounds/${name}.mp3`);
         assert.equal(existsSync(new URL(`../../../../public/sounds/${name}.mp3`, import.meta.url)), true, name);
     }

@@ -485,3 +485,10 @@ html.bongextend-checkerplus-embedded :is(.be-drop-before,.be-drop-after)::after 
 #accountAvatars .be-naver-avatar {position:relative;cursor:pointer;margin-bottom:1px;}
 #accountAvatars .be-naver-avatar:focus-visible {outline:2px solid var(--be-focus, #8FB2FF);outline-offset:2px;border-radius:50%;}
 #accountAvatars .be-naver-avatar .accountPhoto {background:#fff;object-fit:contain;padding:4px;box-sizing:border-box;}
+/* 메일 새로고침(맨 위 계정 줄) */
+.be-mail-refresh {display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;margin-left:4px;flex-shrink:0;color:var(--be-text-2);background:transparent;border:0;border-radius:10px;cursor:pointer;}
+.be-mail-refresh:hover {background:var(--be-surface-3);color:var(--be-text);}
+.be-mail-refresh:focus-visible {outline:2px solid var(--be-accent);outline-offset:1px;}
+.be-mail-refresh.is-spinning svg {animation:be-mail-refresh-spin .8s ease-out;}
+@keyframes be-mail-refresh-spin {to {transform:rotate(360deg);}}
+@media (prefers-reduced-motion: reduce) {.be-mail-refresh.is-spinning svg {animation:none;}}

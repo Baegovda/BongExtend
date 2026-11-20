@@ -1882,5 +1882,14 @@
    },
    "zoom": {
       "message": "Zoom"
+   },
+   "dnd": {
+      "message": "Do not disturb"
+   },
+   "accessGranted": {
+      "message": "Access granted"
+   },
+   "permissionIsRequired": {
+      "message": "Permission is required"
    }
 }

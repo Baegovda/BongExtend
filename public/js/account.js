@@ -1,6 +1,17 @@
 // Copyright Jason Savard
 "use strict";
 
+// BongExtend: 메일 작업(읽음·보관·삭제) 결과 진단 기록. 마지막 20개만, 메일 내용·주소·토큰은 남기지 않아요.
+let bongMailActionLogQueue = Promise.resolve();
+function bongNoteMailAction(entry) {
+    if (!globalThis.chrome?.storage?.local) return;
+    bongMailActionLogQueue = bongMailActionLogQueue.then(async () => {
+        const stored = await chrome.storage.local.get("core.mailActionLog");
+        const list = Array.isArray(stored["core.mailActionLog"]) ? stored["core.mailActionLog"] : [];
+        await chrome.storage.local.set({"core.mailActionLog": [...list, {at: Date.now(), ...entry}].slice(-20)});
+    }).catch(() => {});
+}
+
 function Account() {
 
     var that = this;
@@ -26,6 +37,7 @@ function Account() {
 
 	var lastGmailATFetch = new Date(1);
 	var gmailAT;
+	var gmailATSource = ""; // BongExtend 진단: cookie | page | cookie-after-page
 	var getGmailAtPromise;
 	var gmailATProcessing = false;
 
@@ -311,7 +323,7 @@ function Account() {
                 if (!email) {
                     email = MAIL_ADDRESS_UNKNOWN;
                 }
-                initFeedError(that, "Error: Google account without Gmail", JError.GOOGLE_ACCOUNT_WITHOUT_GMAIL);
+                initFeedError(that, "Gmail이 없는 Google 계정이에요.", JError.GOOGLE_ACCOUNT_WITHOUT_GMAIL);
             } else if (/ServiceNotAllowed/i.test(responseUrl)) {
                 // ie. https://accounts.google.com/ServiceLogin?continue=https://admin.google.com/blah.com/ServiceNotAllowed?service=mail&service=CPanel&skipvpage=true&authuser=1
                 var matches = responseUrl.match(/continue=(.*)admin.google.com\/(.*)\//);
@@ -321,18 +333,18 @@ function Account() {
                 if (!email) {
                     email = MAIL_ADDRESS_UNKNOWN;
                 }
-                initFeedError(that, "Gmail is not enabled", JError.GMAIL_NOT_ENABLED);
+                initFeedError(that, "이 계정은 Gmail이 꺼져 있어요.", JError.GMAIL_NOT_ENABLED);
             } else if (/DomainRestrictedNetwork/i.test(responseUrl)) {
                 // ie. https://accounts.google.com/b/0/DomainRestrictedNetwork?service=mail&continue=https://mail.google.com/mail/
                 email = MAIL_ADDRESS_UNKNOWN;
-                initFeedError(that, "Gmail is not enabled", JError.GMAIL_NOT_ENABLED);
+                initFeedError(that, "이 계정은 Gmail이 꺼져 있어요.", JError.GMAIL_NOT_ENABLED);
             } else if (/CookieMismatch/i.test(responseUrl)) {
                 email = MAIL_ADDRESS_UNKNOWN;
-                initFeedError(that, "Problem with your cookie settings", JError.COOKIE_PROBLEMS);
+                initFeedError(that, "쿠키 설정에 문제가 있어요.", JError.COOKIE_PROBLEMS);
             } else if (/NewServiceAccount/i.test(responseUrl)) {
                 // ie. https://accounts.google.com/b/0/NewServiceAccount?service=mail&continue=https://mail.google.com/mail/
                 email = MAIL_ADDRESS_UNKNOWN;
-                initFeedError(that, "Service account?", JError.GOOGLE_SERVICE_ACCOUNT);
+                initFeedError(that, "서비스 계정인 것 같아요.", JError.GOOGLE_SERVICE_ACCOUNT);
             } else {
                 if (responseUrl && !responseUrl.includes("mail.google.com/mail/u/")) {
                     logError("unrecognized responseURL: " + responseUrl);
@@ -361,10 +373,10 @@ function Account() {
                         var error;
                         if (/Google Accounts|My Account/.test(titleNodeStr)) {
                             logErrorStr += titleNodeStr + " responseurl: " + responseUrl;
-                            error = "Error: " + "redirection";
+                            error = "오류: 로그인 화면으로 넘어갔어요.";
                         } else {
                             logErrorStr += titleNodeStr + " responseurl2: " + responseUrl;
-                            error = "Error: " + titleNodeStr;
+                            error = "오류: " + titleNodeStr;
                         }
 
                         logError(logErrorStr);
@@ -373,7 +385,7 @@ function Account() {
                     
                     that.link = parsedFeed.link;
                 } else {
-                    email = "Cookie problem, try signing out and in or restart browser!";
+                    email = "쿠키 문제예요. 다시 로그인하거나 브라우저를 다시 시작해 주세요.";
                 }
                 
                 params.rawFeed = rawFeed;
@@ -814,13 +826,13 @@ function Account() {
 
             if (secondCall) {
                 console.log("failed after 2 consecutive authuser calls");
-                throw new Error("Could not find email in response - might be signed out [12]");
+                throw new Error("응답에서 메일 주소를 찾지 못했어요. 로그아웃됐을 수 있어요. [12]");
             } else {
                 console.log("did not find matching email in authuser response, so call it again");
                 return that.syncSignInId(true);
             }
         } else {
-            throw new Error("Could not find email in response - might be signed out");
+            throw new Error("응답에서 메일 주소를 찾지 못했어요. 로그아웃됐을 수 있어요.");
         }
    }
    
@@ -1003,27 +1015,27 @@ function Account() {
 		   niceError = getMessage("networkProblem");
 	   } else if (that.errorCode == ErrorCodes.RATE_LIMIT_EXCEEDED) {
 		   error = JError.RATE_LIMIT_EXCEEDED;
-		   niceError = "Rate limit exceeded!";
+		   niceError = "요청이 너무 많아요. 잠시 뒤 다시 해 주세요.";
 	   } else if (that.errorCode == ErrorCodes.BAD_REQUEST || that.errorCode == ErrorCodes.UNAUTHORIZED) {
            if (accountAddingMethod == "autoDetect") {
                 error = JError.NOT_SIGNED_IN;
                 niceError = getMessage("notSignedIn");
            } else {
                 error = JError.ACCESS_REVOKED;
-                niceError = "Access was revoked!";
+                niceError = "접근 권한이 취소됐어요.";
            }
 	   } else if (that.error == JError.NO_TOKEN_FOR_EMAIL) {
 		   error = JError.NO_TOKEN_FOR_EMAIL;
-		   niceError = "No access token.";
+		   niceError = "접근 토큰이 없어요.";
 	   } else if (that.error == JError.CANNOT_ENSURE_MAIN_AND_INBOX_UNREAD) {
 		   error = JError.CANNOT_ENSURE_MAIN_AND_INBOX_UNREAD;
-		   niceError = "Too many unread emails.";
+		   niceError = "안 읽은 메일이 너무 많아요.";
 	   } else if (that.errorCode == 404) {
 		   error = JError.MIGHT_BE_OFFLINE;
 		   niceError = getMessage("yourOffline");
 	   } else if (that.errorCode == 503) {
 		   error = JError.GMAIL_BACK_END;
-		   niceError = "Gmail service issue: " + that.error;
+		   niceError = "Gmail 서비스에 문제가 있어요: " + that.error;
 	   } else if (that.error == "The user is not signed in.") { // happens with not signed into Chrome
 		   error = JError.NOT_SIGNED_IN;
 		   niceError = getMessage("notSignedIn");
@@ -1066,29 +1078,29 @@ function Account() {
                 } else if (that.errorCode == JError.GOOGLE_ACCOUNT_WITHOUT_GMAIL) {
                    if (useHtml) {
                    } else {
-                       instructions = "Only Gmail or Google Apps can be polled";
+                       instructions = "Gmail이나 Google Workspace 계정만 확인할 수 있어요.";
                    }
                } else if (that.errorCode == JError.GMAIL_NOT_ENABLED) {
                    if (useHtml) {
                        $instructions.append( createButton("https://support.google.com/a/answer/57919", "moreInfo") );
                    } else {
-                       instructions = "You must enable the Gmail service in your Admin console";
+                       instructions = "관리 콘솔에서 Gmail 서비스를 켜 주세요.";
                    }
                } else if (that.errorCode == JError.COOKIE_PROBLEMS) {
                    if (useHtml) {
                        $instructions.append(createButton("https://accounts.google.com/CookieMismatch", "moreInfo"));
                    } else {
-                       instructions = "Make sure your cookies are enabled. Clear cache and cookies. Adjust your privacy settings to allow www.google.com";
+                       instructions = "쿠키가 켜져 있는지 확인하고, 캐시와 쿠키를 지운 뒤 개인정보 설정에서 www.google.com을 허용해 주세요.";
                    }
                } else if (that.errorCode == JError.CANNOT_ENSURE_MAIN_AND_INBOX_UNREAD) {
                    if (useHtml) {
-                       $instructions.append("Use the ", createButton("checkerplus-options.html?ref=cannotEnsureMainAndInbox&highlight=addAccount#accounts", "addAccount"), "option instead!");
+                       $instructions.append(createButton("checkerplus-options.html?ref=cannotEnsureMainAndInbox&highlight=addAccount#accounts", "addAccount"), " 방식을 써 주세요.");
                    } else {
-                       instructions = "Use the Add Accounts option instead!";
+                       instructions = "'계정 추가' 방식을 써 주세요.";
                    }
                } else if (DetectClient.isFirefox() && navigator.doNotTrack) {
                     if (useHtml) {
-                        $instructions.append("Use ", createButton("checkerplus-options.html?ref=doNotTrack&highlight=addAccount#accounts", "addAccount"), " instead or try setting the default Tracking Protection back to 'Only in private windows'");
+                        $instructions.append(createButton("checkerplus-options.html?ref=doNotTrack&highlight=addAccount#accounts", "addAccount"), " 방식을 쓰거나, 추적 방지 설정을 '비공개 창에서만'으로 되돌려 주세요.");
                     } else {
                         instructions = JError.DO_NOT_TRACK_MESSAGE;
                     }
@@ -1096,7 +1108,7 @@ function Account() {
                    if (useHtml) {
                        $instructions.append($refreshHtml);
                    } else {
-                       instructions = "Refresh or try signing out/in or " + getMessage("addAccount");
+                       instructions = "새로고침하거나, 로그아웃 후 다시 로그인하거나, " + getMessage("addAccount") + "를 해 주세요.";
                    }
                }
            } else {
@@ -1373,7 +1385,7 @@ function Account() {
                         console.error(error);
                         
                         if (error == JError.CANNOT_ENSURE_MAIN_AND_INBOX_UNREAD) {
-                            that.error = "Too many unread emails.";
+                            that.error = "안 읽은 메일이 너무 많아요.";
                             that.errorCode = JError.CANNOT_ENSURE_MAIN_AND_INBOX_UNREAD;
                         } else {
                             that.error = error;
@@ -2131,7 +2143,7 @@ function Account() {
 		   var MAX_CONTENT_LENGTH = 1000000;
 		   
 		   if (message.textContent?.length > MAX_CONTENT_LENGTH) {
-			   message.textContent = message.textContent.substring(0, MAX_CONTENT_LENGTH) + " ... (truncated by extension)";
+			   message.textContent = message.textContent.substring(0, MAX_CONTENT_LENGTH) + " … (너무 길어서 잘랐어요)";
 		   }
 		   
 		   if (message.content == null) {
@@ -2171,11 +2183,11 @@ function Account() {
 		   if (!message.content) {
 			   message.content = "";
 		   }
-		   message.content += " [File attached] But this extension could not process it.";
+		   message.content += " [첨부 파일] 이 파일은 열 수 없어요.";
 	   } else {
 		   if (!message.textContent && !message.content) {
 			   logError("must add logic for mimetype: " + part.mimeType, part);
-			   message.content = "Error unknown mimetype: " + part.mimeType + "";
+			   message.content = "알 수 없는 형식이에요: " + part.mimeType + "";
 		   } else {
 			   if (part.mimeType != "text/x-watch-html" && part.mimeType != "text/x-amp-html") { // ignore x-watch (Apple Watch), also ignore text/x-amp-html because: "It’s recommended structuring your MIME part with text/plain first, text/x-amp-html second, and text/html last"
 				   logError("must add logic for mimetype (but found other content): " + part.mimeType, part);
@@ -2370,7 +2382,7 @@ function Account() {
    this.fetchAttachment = async function(params) {
 	   console.log("fetchAttachment");
         if (!params.noSizeLimit && params.size > FETCH_ATTACHMENT_MAX_SIZE) {
-            throw Error("Size too large");
+            throw Error("파일이 너무 커요.");
         }
         
         const fetchAttachmentResponse = await oAuthForEmails.send({
@@ -2478,6 +2490,12 @@ function Account() {
         let text = await fetchResponse.text();
 
         console.log("text response", text);
+        // BongExtend: 예전에는 Gmail 이 거절해도(오류 상태) 성공으로 쳐서, 읽음 처리가 조용히 사라졌어요.
+        params.bongHttpStatus = fetchResponse.status;
+        params.bongTextLength = text.length;
+        if (!fetchResponse.ok) {
+            throw Error(`Gmail 이 이 작업을 받아 주지 않았어요(${fetchResponse.status}). 잠시 후 다시 시도해 주세요.`);
+        }
 
         // patch seems sometimes couldn't mark as read or delete and the response is a redirect to the spreauth url, ref: (원래 앱 링크 삭제)
         // v2 watch out cause in Chrome it was <src and in Firefox it was <scr ???
@@ -2487,7 +2505,7 @@ function Account() {
         if (match && text.length < 200) {
             const spreauthUrl = match[0];
             console.info("spreauthUrl", spreauthUrl);
-            throw Error("Recent Gmail changes require you to re-authenticate with your Gmail", {
+            throw Error("Gmail을 다시 인증해야 해요.", {
                 cause: {
                     spreauthUrl: spreauthUrl,
                 }
@@ -2564,12 +2582,37 @@ function Account() {
 
             await Promise.all([getGmailAT(), getGmailIK()]);
 
+            // BongExtend: 읽음 처리·보관·삭제가 Gmail 에 실제로 반영됐는지 다시 받아 확인하고, 아니면 새 토큰으로 한 번 더 해요.
+            // 결과는 core.mailActionLog 에 남겨요(계정 순번·작업·응답 상태·토큰 출처만, 메일 내용·주소는 안 남겨요).
+            const removesMail = params.action == MailAction.MARK_AS_READ || params.action == MailAction.ARCHIVE || params.action == MailAction.DELETE || params.action == MailAction.MARK_AS_SPAM;
+            const stillListed = () => removesMail && params.mail?.id && that.getMails().some(mail => mail.id == params.mail.id);
+            const note = (entry) => bongNoteMailAction({account: that.id, action: params.action, source: gmailATSource, status: params.bongHttpStatus, length: params.bongTextLength, ...entry});
             try {
-                const response = await executeGmailHttpAction(params);
+                let response;
+                let retried = false;
+                try {
+                    response = await executeGmailHttpAction(params);
+                } catch (error) {
+                    if (error?.cause?.spreauthUrl) throw error;
+                    note({ok: false, step: "first", error: String(error?.message || error).slice(0, 160)});
+                    await Promise.all([getGmailAT("page"), getGmailIK(true)]);
+                    retried = true;
+                    response = await executeGmailHttpAction(params);
+                }
                 await that.getEmails();
+                if (stillListed() && !retried) {
+                    note({ok: false, step: "stuck"});
+                    await Promise.all([getGmailAT("page"), getGmailIK(true)]);
+                    retried = true;
+                    response = await executeGmailHttpAction(params);
+                    await that.getEmails();
+                }
+                const stuck = Boolean(stillListed());
+                note({ok: !stuck, step: retried ? "retry" : "first", stuck});
                 await mailUpdate(params);
                 return response;
             } catch (error) {
+                note({ok: false, step: "failed", error: String(error?.message || error).slice(0, 160)});
                 showCouldNotCompleteActionNotification(error, true);
                 console.error("executeMailAction: ", error);
                 throw error;
@@ -2741,7 +2784,16 @@ function Account() {
     }
 
     async function getGmailATFromCookie(accountId) {
-        return chrome.cookies.get({name: 'GMAIL_AT', url: `https://mail.google.com/mail/u/${accountId}`}).then(response => response?.value);
+        // BongExtend: 'cookies' 는 선택 권한이라 허용하지 않았으면 chrome.cookies 가 없어요.
+        // 예전에는 여기서 오류가 나서 아래 '화면에서 찾기'까지 가지 못했어요. 없으면 비워서 다음 방법으로 넘어가요.
+        if (!globalThis.chrome?.cookies?.get) return undefined;
+        try {
+            const response = await chrome.cookies.get({name: 'GMAIL_AT', url: `https://mail.google.com/mail/u/${accountId}`});
+            return response?.value;
+        } catch (error) {
+            console.warn("getGmailATFromCookie error", error);
+            return undefined;
+        }
     }
 
     // BongExtend: 쿠키가 없을 때 Gmail 화면 HTML 에서 작업 토큰을 찾아요. 지금 Gmail 은 GM_ACTION_TOKEN="null" 이 먼저 나오고
@@ -2768,17 +2820,22 @@ function Account() {
                 // every 5 minutes
                 if (!gmailAT || lastGmailATFetch.diffInMinutes() <= -5 || force) {
                     gmailAT = await getGmailATFromCookie(that.id);
+                    gmailATSource = gmailAT ? "cookie" : "";
+                    // BongExtend: 쿠키 토큰으로 한 작업이 Gmail 에 반영되지 않았으면(force === "page") 화면에서 새로 받아요.
+                    if (force === "page") gmailAT = "";
                     if (!gmailAT) {
                         // BongExtend: 이 계정의 Gmail 을 브라우저에서 최근에 열지 않았으면 GMAIL_AT 쿠키가 없어요.
                         // Gmail 화면을 한 번 받아서 그 안의 작업 토큰을 쓰고(규칙은 src/modules/gmail/actions.js parseGmailTokens 와 같아요),
                         // 그래도 없으면 화면을 받는 동안 생긴 쿠키를 다시 읽어요.
                         try {
                             gmailAT = await getGmailATFromPage();
+                            if (gmailAT) gmailATSource = "page";
                         } catch (error) {
                             console.warn("getGmailATFromPage error", error);
                         }
                         if (!gmailAT) {
                             gmailAT = await getGmailATFromCookie(that.id);
+                            if (gmailAT) gmailATSource = "cookie-after-page";
                         }
                         if (!gmailAT) {
                             throw Error("Gmail 작업 권한을 받지 못했어요. 이 계정의 Gmail 을 한 번 열었다가 다시 시도해 주세요.");
@@ -3739,7 +3796,7 @@ function Account() {
                 throw error;
             }
         } catch (error) {
-            var error = "Error getting labels backup method";
+            var error = "라벨을 불러오지 못했어요.";
             logError(error);
             throw error;
         } finally {

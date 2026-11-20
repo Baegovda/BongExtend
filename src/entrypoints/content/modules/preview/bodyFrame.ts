@@ -70,7 +70,7 @@ export function makeBodyFrame(ctx: BodyFrameContext): void {
 
         const response = await previewRequest.post(preData.link!, preData.gallery, preData.id, signal);
 
-        if (!response) throw new Error("Can not fetch post data.");
+        if (!response) throw new Error("글 내용을 가져오지 못했어요.");
 
         postCaches.set(cacheKey, {
             date: Date.now(),

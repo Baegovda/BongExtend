@@ -13,6 +13,11 @@ const {chromium}=require('playwright'),fs=require('fs'),path=require('path'),os=
   await page.waitForFunction(()=>{const doc=document.querySelector('#chronoPopupFrame').contentDocument;return [...doc.querySelectorAll('.download-icon')].length===3&&[...doc.querySelectorAll('.download-icon')].every(img=>img.src.startsWith('data:image'));});
   assert.equal(await frame.locator('table,aside').count(),0);assert.equal(await page.locator('.download-module-toolbar').isVisible(),false);assert.equal(await frame.locator('#manager').isVisible(),true);
   await frame.locator('#searchToggle').click();await frame.locator('#search').fill('image');assert.equal(await frame.locator('.download-row').count(),1);await frame.locator('#search').fill('');await page.waitForFunction(()=>getComputedStyle(document.querySelector('[data-frame=download]')).opacity==='1');
-  await page.screenshot({path:path.join(folder,'list-real-icons.png')});console.log('PASS actual Chrome downloads, OS file icons, list-only shell and search');
+  // 다운로드 폴더 열기 버튼: 머리줄 안에 보이고, 누르면 크롬의 기본 다운로드 폴더 열기를 불러요(시험에서는 실제 폴더 창 대신 표시만).
+  const folderButton=frame.locator('#openFolder');assert.equal(await folderButton.isVisible(),true);assert.equal(await folderButton.getAttribute('aria-label'),'다운로드 폴더 열기');
+  const fb=await folderButton.boundingBox(),hb=await frame.locator('header').boundingBox();assert.ok(fb.x>=hb.x&&fb.x+fb.width<=hb.x+hb.width+0.5,'folder button stays inside the header');
+  await page.evaluate(()=>{const w=document.querySelector('#chronoPopupFrame').contentWindow;w.__folder=0;w.chrome.downloads.showDefaultFolder=()=>{w.__folder++;};});await folderButton.click();
+  assert.equal(await page.evaluate(()=>document.querySelector('#chronoPopupFrame').contentWindow.__folder),1);
+  await page.screenshot({path:path.join(folder,'list-real-icons.png')});console.log('PASS actual Chrome downloads, OS file icons, list-only shell, search and open-folder button');
  }finally{await context.close();await new Promise(r=>server.close(r));}
 })().catch(error=>{console.error(error);process.exitCode=1});

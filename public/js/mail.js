@@ -99,7 +99,7 @@ class Mail {
                 });
                 return {method: "mailto"};
             } else {
-                throw new Error("No unsubscribe method found for this email");
+                throw new Error("이 메일은 수신 거부 방법을 찾지 못했어요.");
             }
         };
         this.markAsRead = function (params = {}) {

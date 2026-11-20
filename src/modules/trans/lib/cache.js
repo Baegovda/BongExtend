@@ -50,7 +50,7 @@ function openDb() {
       };
       request.onerror = () => {
         dbPromise = null;
-        reject(request.error || new Error('Failed to open the translation cache.'));
+        reject(request.error || new Error('번역 캐시(저장해 둔 번역)를 열지 못했어요.'));
       };
     });
   }
@@ -60,7 +60,7 @@ function openDb() {
 function requestToPromise(request) {
   return new Promise((resolve, reject) => {
     request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error || new Error('Cache request failed.'));
+    request.onerror = () => reject(request.error || new Error('번역 캐시 요청이 실패했어요.'));
   });
 }
 
@@ -87,10 +87,10 @@ async function listEntries(now) {
       if (record) entries.push({ key: cursor.key, usedAt: record.usedAt, bytes: record.bytes });
       cursor.continue();
     };
-    request.onerror = () => reject(request.error || new Error('Cache read failed.'));
+    request.onerror = () => reject(request.error || new Error('번역 캐시를 읽지 못했어요.'));
     tx.oncomplete = () => resolve(entries);
-    tx.onerror = () => reject(tx.error || new Error('Cache read failed.'));
-    tx.onabort = () => reject(tx.error || new Error('Cache read aborted.'));
+    tx.onerror = () => reject(tx.error || new Error('번역 캐시를 읽지 못했어요.'));
+    tx.onabort = () => reject(tx.error || new Error('번역 캐시 읽기가 중단됐어요.'));
   });
 }
 
@@ -102,8 +102,8 @@ async function deleteKeys(keys) {
     const store = tx.objectStore(STORE);
     for (const key of keys) store.delete(key);
     tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error || new Error('Cache delete failed.'));
-    tx.onabort = () => reject(tx.error || new Error('Cache delete aborted.'));
+    tx.onerror = () => reject(tx.error || new Error('번역 캐시를 지우지 못했어요.'));
+    tx.onabort = () => reject(tx.error || new Error('번역 캐시 지우기가 중단됐어요.'));
   });
 }
 
@@ -156,8 +156,8 @@ export function createIdbCache(options = {}) {
           store.put({ value, usedAt: now, bytes: entryBytes(key, value) }, key);
         }
         tx.oncomplete = () => resolve();
-        tx.onerror = () => reject(tx.error || new Error('Cache write failed.'));
-        tx.onabort = () => reject(tx.error || new Error('Cache write aborted.'));
+        tx.onerror = () => reject(tx.error || new Error('번역 캐시에 저장하지 못했어요.'));
+        tx.onabort = () => reject(tx.error || new Error('번역 캐시 저장이 중단됐어요.'));
       });
       pruneQueue = pruneQueue.then(() => prune(false), () => prune(false));
     },
@@ -176,8 +176,8 @@ export function createIdbCache(options = {}) {
           };
         }
         tx.oncomplete = () => resolve();
-        tx.onerror = () => reject(tx.error || new Error('Cache touch failed.'));
-        tx.onabort = () => reject(tx.error || new Error('Cache touch aborted.'));
+        tx.onerror = () => reject(tx.error || new Error('번역 캐시를 갱신하지 못했어요.'));
+        tx.onabort = () => reject(tx.error || new Error('번역 캐시 갱신이 중단됐어요.'));
       });
     },
     async clear() {
@@ -186,8 +186,8 @@ export function createIdbCache(options = {}) {
         const tx = db.transaction(STORE, 'readwrite');
         tx.objectStore(STORE).clear();
         tx.oncomplete = () => resolve();
-        tx.onerror = () => reject(tx.error || new Error('Cache clear failed.'));
-        tx.onabort = () => reject(tx.error || new Error('Cache clear aborted.'));
+        tx.onerror = () => reject(tx.error || new Error('번역 캐시를 비우지 못했어요.'));
+        tx.onabort = () => reject(tx.error || new Error('번역 캐시 비우기가 중단됐어요.'));
       });
     },
     noteSaved(delta) {

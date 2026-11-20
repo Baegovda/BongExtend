@@ -39,6 +39,16 @@ export function setupNaverMail(){
    }
    const buttons=controls.querySelectorAll('button');buttons[0].disabled=index===0;buttons[1].disabled=index===sorted.length-1;
   });
+  // 메일 새로고침: 왼쪽 아래 버튼과 같은 일을 맨 위 계정 줄에서도 바로 할 수 있게 해요.
+  const first=sorted[0]?.querySelector<HTMLElement>('.accountHeader,.be-naver-header');
+  let again=inbox.querySelector<HTMLButtonElement>('.be-mail-refresh');
+  if(!again&&first){
+   again=button(doc,'',()=>{$('mailRefreshNow').click();again?.classList.add('is-spinning');setTimeout(()=>again?.classList.remove('is-spinning'),1200);});
+   again.className='be-mail-refresh';again.title='메일 새로고침';again.setAttribute('aria-label','메일 새로고침');
+   again.innerHTML='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M6.1 7a7 7 0 0 1 11.6-1L20 9M4 15l2.3 3A7 7 0 0 0 18 17"/></svg>';
+   again.addEventListener('click',event=>event.stopPropagation());again.addEventListener('keydown',event=>event.stopPropagation());
+  }
+  if(again&&first&&again.parentElement!==first)first.insertBefore(again,first.querySelector('.be-account-order'));
  };
  void chrome.storage.local.get(ORDER_KEY).then(local=>{accountOrder=Array.isArray(local[ORDER_KEY])?local[ORDER_KEY].filter((key:unknown)=>typeof key==='string'):[];if(frame.contentDocument)orderAccounts(frame.contentDocument);});
  const refresh=()=>{

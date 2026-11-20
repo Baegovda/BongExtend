@@ -7,7 +7,7 @@ function closeWindow() {
         chrome.windows.remove(windowResponse.id);
 
         setTimeout(() => {
-            document.body.append(createBR(), createBR(), `You can close this window!`);
+            document.body.append(createBR(), createBR(), `이 창은 닫아도 돼요.`);
     
             try {
                 window.close();

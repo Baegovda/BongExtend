@@ -169,7 +169,7 @@ export function useSettings() {
 
     const typeWrap = (value: unknown) => {
         if (typeof value === "boolean") {
-            return value ? "On" : "Off";
+            return value ? "켬" : "끔";
         }
 
         if (typeof value === "string" && value === "") {

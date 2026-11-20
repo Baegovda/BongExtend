@@ -79,7 +79,7 @@ function setSafeHTML(element, htmlString, options) {
     //const containsImagePlaceholders = new RegExp(`<meta[^>]*\\b${IMAGE_PLACEHOLDER_ATTR}\\b`, "i").test(safeString);
 
     if (!globalThis.Sanitizer) {
-        throw Error("Sanitizer API not supported in this browser. Update your browser to the latest version.", {cause: ErrorCause.MUST_UPDATE_BROWSER});
+        throw Error("이 브라우저는 너무 오래됐어요. 최신 버전으로 업데이트해 주세요.", {cause: ErrorCause.MUST_UPDATE_BROWSER});
     }
 
     const jdomTemplateSanitizer = new Sanitizer({
@@ -2845,7 +2845,7 @@ async function fetchWrapper(url, options) {
             const GOOGLE_MAIL_DOMAIN = "mail.google.com";
             if (!await hasGmailHostPermission() && ((typeof url === "string" && url.includes(GOOGLE_MAIL_DOMAIN)) || (url instanceof URL && url.hostname === GOOGLE_MAIL_DOMAIN))) {
                 // note: could also be mistakenly caught when internet is not working net::ERR_NAME_NOT_RESOLVED
-                customError = Error("Must grant host permission", {cause: ErrorCause.HOST_PERMISSION}); // don't insert the word "error" because i filter for it when displaying error in popup
+                customError = Error("mail.google.com 접근 권한이 필요해요.", {cause: ErrorCause.HOST_PERMISSION}); // don't insert the word "error" because i filter for it when displaying error in popup
                 customError.jError = JError.HOST_PERMISSION;
             } else {
                 customError = Error(getMessage("networkProblem"), {cause: ErrorCause.NETWORK_PROBLEM});
@@ -3781,7 +3781,7 @@ function OAuthForDevices(defaultParams) {
             await setTokenResponses(tokenResponses);
             return tokenResponse;
         } else {
-            throw new Error("Could not fetch email");
+            throw new Error("메일 주소를 가져오지 못했어요.");
         }
 	}
 }
@@ -4084,7 +4084,7 @@ var syncOptions = (function() {
                     }
                 }
             } else {
-                throw Error("Sync is not supported!");
+                throw Error("이 브라우저는 동기화를 지원하지 않아요.");
             }
 		},
 		fetch: async function() {
@@ -4097,13 +4097,13 @@ var syncOptions = (function() {
                 } else {
                     const details = items["details"];
                     if (details.extensionVersion != chrome.runtime.getManifest().version) {
-                        throw ({items:items, error:"Versions are different: " + details.extensionVersion + " and " + chrome.runtime.getManifest().version});
+                        throw ({items:items, error:"버전이 달라요: " + details.extensionVersion + " / " + chrome.runtime.getManifest().version});
                     } else {
                         return items;
                     }
                 }
             } else {
-                throw Error("Sync is not supported!");
+                throw Error("이 브라우저는 동기화를 지원하지 않아요.");
             }
 		},
 		load: async function(items) {
@@ -4137,7 +4137,7 @@ var syncOptions = (function() {
                     throw Error("No items found");
                 }
             } else {
-                throw Error("Sync is not supported!");
+                throw Error("이 브라우저는 동기화를 지원하지 않아요.");
             }
 		},
 		exportIndexedDB: async function(params = {}) {
@@ -5162,12 +5162,12 @@ wrappedDB.syncExternally = async function(key) {
 
 function throwDBError(error) {
     console.error("DB error: ", error);
-    throw Error("Corrupt browser profile.", {cause: ErrorCause.DB_ERROR});
+    throw Error("브라우저 프로필이 손상됐어요.", {cause: ErrorCause.DB_ERROR});
 }
 
 function getObjectStore(storeId, mode, key) {
     if (wrappedDB.opened === false) {
-        throw Error("DB not opened - try reinstalling");
+        throw Error("저장소를 열지 못했어요. 확장을 다시 설치해 주세요.");
     } else {
         let trans;
         try {
@@ -5175,14 +5175,14 @@ function getObjectStore(storeId, mode, key) {
             trans = wrappedDB.db.transaction([storeId], mode, {durability: "relaxed"});
 			trans.onabort = function(e) {
                 if (e.target.error == "QuotaExceededError") {
-                    throw Error("Quota exceeded: Try clearing space on your drive.");
+                    throw Error("저장 공간이 부족해요. 디스크 공간을 비워 주세요.");
                 } else if (e.target.error == "NotFoundError") { /* https://developer.chrome.com/blog/chrome-130-beta?hl=en#improved_error_reporting_in_indexeddb_for_large_value_read_failures */
-                    throw Error(`Object store not found: ${key} - try reinstalling`);
+                    throw Error(`저장소를 열지 못했어요(${key}). 확장을 다시 설치해 주세요.`);
                 } else if (e.target.error == "UnknownError") {
                     /*  Not sure but this could fall into the UnknownError: Failed to read large IndexedDB value, but should be caught by NotFoundError above
                         Another reason: The operation failed for reasons unrelated to the database itself and not covered by any other error code
                     */
-                    throw Error(`Unknown indexedDB error: ${key} - try reinstalling`);
+                    throw Error(`저장소 오류예요(${key}). 확장을 다시 설치해 주세요.`);
                 } else {
                     throw Error(`Trans abort: ${key} ${e.target.error}`);
                 }

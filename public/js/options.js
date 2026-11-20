@@ -2172,7 +2172,7 @@ async function generateMonitorLabelOptions(account, title, labelValue, icon) {
         $inboxLabelToolTip.id = "inboxLabelToolTip";
         //$inboxLabelToolTip.setAttribute("position", "start");
         $inboxLabelToolTip.setAttribute("manual-mode", "true");
-        $inboxLabelToolTip.textContent = `1) ${getMessage("uncheckInboxLabel")}. This is used for the classic Gmail inbox`;
+        $inboxLabelToolTip.textContent = `1) ${getMessage("uncheckInboxLabel")}. 예전 Gmail 받은편지함용이에요.`;
 
         $monitoredLabelCheckboxWrapper.after($inboxLabelToolTip);
 	}
@@ -2185,7 +2185,7 @@ async function generateMonitorLabelOptions(account, title, labelValue, icon) {
         const $primaryLabelToolTip = document.createElement("j-tooltip");
         $primaryLabelToolTip.id = "primaryLabelToolTip";
         $primaryLabelToolTip.setAttribute("manual-mode", "true");
-        $primaryLabelToolTip.textContent = `2) ${getMessage("checkPrimaryOrMore")}. This adds them to the count and the popup window`;
+        $primaryLabelToolTip.textContent = `2) ${getMessage("checkPrimaryOrMore")}. 개수와 메일 창에 함께 넣어요.`;
 
 		$monitoredLabelCheckboxWrapper.append($primaryLabelToolTip);
 	}
@@ -3066,7 +3066,7 @@ async function maybePromptForHostPermissions() {
         if (response == "ok") {
             const granted = await requestGmailHostPermissions();
             if (granted) {
-                niceAlert(`${getMessage("emailAccounts")}: ${accounts.length}. You can customize their settings in the Accounts tab.`);
+                niceAlert(`${getMessage("emailAccounts")}: ${accounts.length}개. 계정 탭에서 계정마다 설정할 수 있어요.`);
             }
             return granted;
         }
