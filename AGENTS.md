@@ -70,6 +70,12 @@ BongExtend는 치지직, Gemini 번역, 디시인사이드(green1052/DCRefresher
 - 이미지(`image`): src/modules/image/paste.js, 콘텐츠 스크립트 src/entrypoints/image-paste.content.ts(matches: talk.naver.com, partner.talk.naver.com, lens.google.com, www.google.com, images.google.com — 새 권한 없음). 설정은 `image.settings`{talk,lens}. 구글 렌즈는 페이지가 직접 붙여넣기를 처리하므로 2.2초 안에 업로드가 시작되지 않을 때만 이어받아요(이중 업로드 방지). 새 이미지 기능은 이 모듈에 추가해요.
 - 쇼핑(`shop`): src/modules/shop/{shop.js(순수 로직),read-page.js(상품 페이지 읽기, executeScript와 공유),background.js}, 콘텐츠 스크립트 src/entrypoints/shop.content.ts(runtime 등록, 빌드용 matches는 mail.google.com), 팝업 src/entrypoints/popup/shop.ts. 알리익스프레스 `/item/*.html`과 item.taobao.com만 지원해요(티몰은 사용자가 쓰지 않아 뺐어요). 팝업의 '연결 허용'으로 기존 optional `https://*/*` 중 `*.aliexpress.com`·`*.taobao.com`만 요청해요. 가격 기록 `shop.products`는 로컬에만 두고 설정 내보내기에 넣지 않아요. 관심 상품은 6시간마다(쓰는 중이면 하루 넘은 것만) 뒤쪽 탭에서 열어 읽고 닫아요(페이지 HTML만 받으면 가격이 비어 있어요). 오른쪽 클릭 "이미지로 검색"은 이미지 모듈 소속이고 toolbar-background.js의 openSiteImageSearch를 함께 써요.
 
+## 번역 속도·효과·단축키 (1.2.177)
+- 번역 묶음(최대 24줄·4000자)을 `content.js` `flush`가 한 번에 `MAX_INFLIGHT`(3)개까지 동시에 보내요(`runBatch(batch, before)`: 보내기는 동시에, 결과 붙이기는 보낸 순서대로). 예전에는 하나씩 차례로 기다려서 큰 페이지가 아주 느렸어요(가짜 0.6초 응답 300줄: 7.8 → 3.0초). 배경 `translator.js`는 같은 문장을 한 번만 보내요(inflight). 한 묶음이 실패하면 새 묶음은 멈추고 이미 보낸 묶음은 붙여요(오류 표시는 유지).
+- 레이저 선(`.pt-sweep-edge`)은 5px·넓은 빛 번짐이에요. 예전 `prism`/`aurora-wipe`/`wiper-beam` 클래스는 지우기용 이름만 남아 있어요.
+- 번역 탭은 `chrome.commands.getAll()`의 실제 단축키(사용자는 Alt+Q)를 `[data-shortcut-key]`에 바로 보여줘요.
+- Rust: 이 파일들은 `docs/rust-port-verdicts.md` 판정대로 자바스크립트예요(느린 원인이 응답 기다림, Rust 실험은 7.8배 느림).
+
 ## 다크 모드 배경 사진 (1.2.176)
 - 다크 모드는 그림 분석(Dark Reader `ignoreImageAnalysis: ['*']`)을 모든 사이트에서 꺼서 사진·그림 원본 색을 지켜요. 그래서 화면 전체를 덮는 밝은 배경 사진(제보: 타오바오 채팅 `section.next-shell-main`의 밝은 회의실 PNG)이 하얗게 남았어요.
 - `src/modules/dark/backdrop-dim.js` `createBackdropDimmer`: CSS 배경 그림(img·video·canvas 아님)이면서 html/body 또는 화면 절반 이상을 덮고 안에 내용이 있는 상자, url() 한 겹, 불투명하고 밝은(평균 밝기 0.4 이상) 그림만 골라요. 그 위에 페이지 다크 바탕색의 반투명 막(0.7~0.92)을 같은 background-image 의 앞 겹으로 얹어요(`data-bong-backdrop="1"`, 인라인 !important, 끄면 원래 값으로 되돌려요). 숨기거나 반전하지 않아요.

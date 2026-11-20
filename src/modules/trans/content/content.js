@@ -15,6 +15,8 @@
   const BEAM_CLASS = 'pt-page-translator-wiper-beam';
   const MAX_LIVE_PENDING = 8;
   const MAX_ACTIVE_SWEEPS = 16;
+  // 동시에 보내는 번역 묶음 수. 배경은 같은 문장을 한 번만 보내고 나머지는 기다리게 해요(translator.js inflight).
+  const MAX_INFLIGHT = 3;
   const FADE_MS = 880;
   const APPEAR_MS = 100;
   const TRAVEL_MS = 800;
@@ -48,8 +50,8 @@
     `.${SWEEP_CLASS}.pt-sweep-rtl .pt-next, .${SWEEP_CLASS}.pt-sweep-rtl .pt-afterglow { clip-path: inset(0 0 0 calc(100% - var(--pt-progress))) !important; }`,
     `.${SWEEP_CLASS}.pt-sweep-rtl .pt-afterglow { mask-image: linear-gradient(270deg, transparent var(--pt-glow-tail), #000 var(--pt-glow-head)) !important; }`,
     `.${SWEEP_CLASS}.pt-sweep-rtl .pt-next { mask-image: linear-gradient(270deg, #000 var(--pt-glow-tail), transparent var(--pt-glow-head)) !important; }`,
-    `.${SWEEP_CLASS} .${EDGE_CLASS} { position: absolute !important; z-index: 3 !important; top: -3px !important; bottom: -3px !important; left: var(--pt-progress) !important; width: 4px !important; margin-left: -2px !important; border-radius: 2px !important; pointer-events: none !important; background: linear-gradient(180deg, #ff235b, #ff9a28 18%, #ffe54b 33%, #28f5ad 50%, #26cfff 66%, #7850ff 83%, #ef36e3) !important; box-shadow: 0 0 3px #fff, 0 0 8px #67cfff, 0 0 16px #935bff99 !important; opacity: var(--pt-beam-opacity, 0) !important; }`,
-    `.${SWEEP_CLASS}.pt-sweep-rtl .${EDGE_CLASS} { left: auto !important; right: var(--pt-progress) !important; margin-left: 0 !important; margin-right: -2px !important; }`,
+    `.${SWEEP_CLASS} .${EDGE_CLASS} { position: absolute !important; z-index: 3 !important; top: -5px !important; bottom: -5px !important; left: var(--pt-progress) !important; width: 5px !important; margin-left: -2.5px !important; border-radius: 3px !important; pointer-events: none !important; background: linear-gradient(180deg, #ff235b, #ff9a28 18%, #ffe54b 33%, #28f5ad 50%, #26cfff 66%, #7850ff 83%, #ef36e3) !important; box-shadow: 0 0 4px #fff, 0 0 10px #8fe6ff, 0 0 22px #a874ffcc, 0 0 40px #ff5fd380 !important; opacity: var(--pt-beam-opacity, 0) !important; }`,
+    `.${SWEEP_CLASS}.pt-sweep-rtl .${EDGE_CLASS} { left: auto !important; right: var(--pt-progress) !important; margin-left: 0 !important; margin-right: -2.5px !important; }`,
     '@media (prefers-reduced-motion: reduce) {',
     `.${PENDING_CLASS} { animation: none !important; opacity: 0.74 !important; }`,
     `.${FADE_CLASS} { animation: none !important; opacity: 1 !important; filter: none !important; }`,
@@ -370,6 +372,7 @@
     const enableBanner = options.enableBanner !== false && typeof document !== 'undefined';
     let prioritizeCursor = Boolean(options.prioritizeCursor);
     let revealAnimation = options.revealAnimation !== false;
+    const maxInflight = Math.max(1, Math.min(6, Number(options.maxInflight) || MAX_INFLIGHT));
     let targetLanguage = typeof options.targetLanguage === 'string' && options.targetLanguage ? options.targetLanguage : 'ko';
 
     const queue = [];
@@ -1899,6 +1902,75 @@
       idle = idle.then(() => flush()).catch(() => {});
     }
 
+    // 한 묶음(최대 24줄)을 보내고 결과를 붙여요. 실패하면 묶음을 대기열 앞으로 돌려놓고 false.
+    // 보내기는 동시에, 결과 붙이기는 보낸 순서대로(before: 앞 묶음이 다 붙을 때까지 기다려요). 위에서부터 차례로 바뀌어요.
+    async function runBatch(batch, before) {
+      let response, sendError = null;
+      try {
+        response = await sendBatch(batch.map((item) => item.core));
+      } catch (error) {
+        sendError = error;
+      }
+      await before;
+      if (sendError) {
+        clearBatchMarks(batch);
+        queue.unshift(...batch);
+        fail(sendError?.message || '확장 프로그램과 연결이 끊겼어요. 페이지를 새로고침한 뒤 다시 시도해 주세요.');
+        return false;
+      }
+      if (!response?.ok || !Array.isArray(response.translations) || response.translations.length !== batch.length) {
+        clearBatchMarks(batch);
+        queue.unshift(...batch);
+        fail(response?.message || '번역 결과를 해석하지 못했어요.');
+        return false;
+      }
+      if (response.model) model = response.model;
+      batch.forEach((item, index) => {
+        queued.delete(item.node);
+        const parent = item.node && item.node.parentElement;
+        if (!connected(item.node)) {
+          clearPending(parent, false);
+          return;
+        }
+        const current = item.node.nodeValue;
+        const pageChanged = current !== item.original && expectedWrite.get(item.node) !== current;
+        if (pageChanged) {
+          clearPending(parent, false);
+          forgetNode(item.node);
+          considerText(item.node);
+          return;
+        }
+        const parts = splitWhitespace(item.original);
+        const line = findLineBox(parent);
+        const translated = `${parts.lead}${fitTranslation(parts.core, response.translations[index], line ? line.mode : 'flow')}${parts.trail}`;
+        records.set(item.node, {
+          original: item.original,
+          translated,
+          core: item.core,
+        });
+        done.add(item.node);
+        const showTranslation = enabled && !showOriginal;
+        if (!showTranslation) {
+          clearPending(parent, false);
+        } else if (motionReduced()) {
+          writeNode(item.node, translated);
+          clearPending(parent, 'fade');
+        } else if (!queueReveal({
+          node: item.node,
+          element: parent,
+          original: item.original,
+          translated,
+        })) {
+          writeNode(item.node, translated);
+          clearPending(parent, canAnimate() ? false : 'fade');
+        }
+      });
+      // 동시에 보낸 다른 묶음이 실패했으면 그 오류를 지우지 않아요.
+      if (!pausedForError) error = null;
+      notify();
+      return true;
+    }
+
     async function flush() {
       scheduled = false;
       if (pumping || pausedForError || !started || !enabled) return;
@@ -1906,74 +1978,27 @@
       notify();
       let sliceStart = nowMs();
       try {
-        while (queue.length && started && enabled && !pausedForError) {
-          if (nowMs() - sliceStart > 8) {
-            await new Promise(resolve => setTimer(resolve, 0));
-            sliceStart = nowMs();
-            if (!started || !enabled || pausedForError) break;
-          }
-          const batch = takeBatch();
-          if (!batch.length) break;
-          for (const item of batch) markPending(item.node && item.node.parentElement, item.node);
-          let response;
-          try {
-            response = await sendBatch(batch.map((item) => item.core));
-          } catch (sendError) {
-            clearBatchMarks(batch);
-            queue.unshift(...batch);
-            fail(sendError?.message || '확장 프로그램과 연결이 끊겼어요. 페이지를 새로고침한 뒤 다시 시도해 주세요.');
-            break;
-          }
-          if (!response?.ok || !Array.isArray(response.translations) || response.translations.length !== batch.length) {
-            clearBatchMarks(batch);
-            queue.unshift(...batch);
-            fail(response?.message || '번역 결과를 해석하지 못했어요.');
-            break;
-          }
-          if (response.model) model = response.model;
-          batch.forEach((item, index) => {
-            queued.delete(item.node);
-            const parent = item.node && item.node.parentElement;
-            if (!connected(item.node)) {
-              clearPending(parent, false);
-              return;
+        // 번역 묶음을 한 번에 MAX_INFLIGHT 개까지 동시에 보내요. 예전에는 하나씩 차례로 기다려서 큰 페이지가 아주 느렸어요.
+        const running = new Set();
+        let order = Promise.resolve();
+        while (started && enabled && !pausedForError && (queue.length || running.size)) {
+          while (queue.length && running.size < maxInflight && started && enabled && !pausedForError) {
+            if (nowMs() - sliceStart > 8) {
+              await new Promise(resolve => setTimer(resolve, 0));
+              sliceStart = nowMs();
+              if (!started || !enabled || pausedForError) break;
             }
-            const current = item.node.nodeValue;
-            const pageChanged = current !== item.original && expectedWrite.get(item.node) !== current;
-            if (pageChanged) {
-              clearPending(parent, false);
-              forgetNode(item.node);
-              considerText(item.node);
-              return;
-            }
-            const parts = splitWhitespace(item.original);
-            const line = findLineBox(parent);
-            const translated = `${parts.lead}${fitTranslation(parts.core, response.translations[index], line ? line.mode : 'flow')}${parts.trail}`;
-            records.set(item.node, {
-              original: item.original,
-              translated,
-              core: item.core,
-            });
-            done.add(item.node);
-            const showTranslation = enabled && !showOriginal;
-            if (!showTranslation) {
-              clearPending(parent, false);
-            } else if (motionReduced()) {
-              writeNode(item.node, translated);
-              clearPending(parent, 'fade');
-            } else if (!queueReveal({
-              node: item.node,
-              element: parent,
-              original: item.original,
-              translated,
-            })) {
-              writeNode(item.node, translated);
-              clearPending(parent, canAnimate() ? false : 'fade');
-            }
-          });
-          error = null;
-          notify();
+            const batch = takeBatch();
+            if (!batch.length) break;
+            for (const item of batch) markPending(item.node && item.node.parentElement, item.node);
+            const task = runBatch(batch, order).catch(() => false).finally(() => running.delete(task));
+            order = task;
+            running.add(task);
+          }
+          if (!running.size) break;
+          await Promise.race(running);
         }
+        if (running.size) await Promise.allSettled([...running]);
       } finally {
         pumping = false;
         if ((rerun || queue.length) && started && enabled && !pausedForError) {

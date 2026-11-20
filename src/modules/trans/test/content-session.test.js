@@ -1796,3 +1796,53 @@ test('switching chats retranslates a reused text node and a replaced pane', asyn
   assert.equal(saw, true);
   assert.equal(hidden.childNodes[0].nodeValue, '새 대화');
 });
+
+test('several translation batches are in flight at once (big pages are no longer one batch at a time)', async () => {
+  const api = loadContent();
+  const root = element('div', {}, []);
+  // 100 distinct visible lines -> at least 5 batches of 24.
+  for (let i = 0; i < 100; i += 1) root.append(element('p', {}, [`官方旗舰店 新款商品 ${i}`]));
+  let active = 0, peak = 0, calls = 0;
+  const session = api.createSession({
+    root, walkRoot: root, enableBanner: false, prefersReducedMotion: true,
+    IntersectionObserver: class { constructor(cb) { this.cb = cb; } observe() {} unobserve() {} disconnect() {} },
+    MutationObserver: class { observe() {} disconnect() {} },
+    sendBatch: async (texts) => {
+      calls += 1; active += 1; peak = Math.max(peak, active);
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      active -= 1;
+      return { ok: true, translations: texts.map((text) => `번역 ${text.split(' ').pop()}`) };
+    },
+  });
+  session.start();
+  await session.whenIdle();
+  assert.ok(calls >= 5, `batches: ${calls}`);
+  assert.equal(peak, 3, `three batches run together (peak ${peak})`);
+  assert.equal(root.childNodes[0].childNodes[0].nodeValue, '번역 0');
+  assert.equal(root.childNodes[99].childNodes[0].nodeValue, '번역 99');
+});
+
+test('a failed batch stops new batches but keeps the ones already sent', async () => {
+  const api = loadContent();
+  const root = element('div', {}, []);
+  for (let i = 0; i < 100; i += 1) root.append(element('p', {}, [`官方旗舰店 新款商品 ${i}`]));
+  let calls = 0;
+  const session = api.createSession({
+    root, walkRoot: root, enableBanner: false, prefersReducedMotion: true,
+    IntersectionObserver: class { observe() {} unobserve() {} disconnect() {} },
+    MutationObserver: class { observe() {} disconnect() {} },
+    sendBatch: async (texts) => {
+      calls += 1;
+      const mine = calls;
+      await new Promise((resolve) => setTimeout(resolve, mine === 1 ? 5 : 30));
+      if (mine === 1) return { ok: false, message: 'Gemini API 속도 제한(429)이에요.' };
+      return { ok: true, translations: texts.map(() => '번역됨') };
+    },
+  });
+  session.start();
+  await session.whenIdle();
+  assert.equal(calls, 3, 'no new batch after the failure');
+  assert.equal(session.getStatus().error, 'Gemini API 속도 제한(429)이에요.');
+  const translated = root.childNodes.filter((p) => p.childNodes[0].nodeValue === '번역됨').length;
+  assert.equal(translated, 48, 'the two batches already sent are applied');
+});

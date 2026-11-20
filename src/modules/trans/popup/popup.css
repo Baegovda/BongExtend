@@ -26,3 +26,6 @@ body.be-shell { margin: 0; min-width: 0; padding: 14px 16px; background: var(--b
 .be-advanced summary:focus-visible { outline: 2px solid var(--be-accent); outline-offset: 3px; border-radius: 5px; }
 @media (max-width: 720px) { .be-grid { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 360px) { body.be-shell { padding: 12px; } .be-row { flex-wrap: wrap; } .be-row > button, .be-row > input { margin-left: auto; max-width: 100%; } }
+/* 지금 정해진 번역 단축키 */
+.shortcut-key { display: inline-block; margin-left: 4px; padding: 0 6px; border: 1px solid var(--be-border); border-bottom-width: 2px; border-radius: 6px; background: var(--be-surface-2); color: var(--be-text); font: 600 11px/18px var(--be-font, system-ui); letter-spacing: .02em; white-space: nowrap; }
+.shortcut-key.is-empty { color: var(--be-text-2); font-weight: 500; }

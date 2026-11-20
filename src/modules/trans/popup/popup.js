@@ -98,6 +98,23 @@ async function refresh() {
   setStatus(response?.ok === false ? response.message : describe(status), Boolean(status?.error || response?.ok === false));
 }
 
+// 지금 크롬에 정해진 번역 단축키를 바로 보여줘요(사용자가 Alt+Q 처럼 바꿔 둔 값). 정해진 키가 없으면 그렇다고 알려요.
+async function showShortcut() {
+  let key = '';
+  try {
+    const commands = await chrome.commands.getAll();
+    key = commands.find((command) => command.name === 'toggle-translation')?.shortcut || '';
+  } catch { /* 모르면 아래 기본 안내만 둬요. */ }
+  for (const kbd of document.querySelectorAll('[data-shortcut-key]')) {
+    kbd.textContent = key || '없음';
+    kbd.classList.toggle('is-empty', !key);
+  }
+  const note = document.querySelector('#shortcutNote');
+  if (note && !key) note.textContent = '단축키가 비어 있어요. 오른쪽 버튼을 눌러 정해 주세요 (기본값 Ctrl+Shift+Y)';
+}
+
+window.addEventListener('focus', () => { void showShortcut(); });
+
 async function init() {
   const stored = await chrome.storage.local.get(STORAGE_KEY);
   const settings = normalizeSettings(stored[STORAGE_KEY]);
@@ -116,6 +133,7 @@ async function init() {
   optionsButton.classList.toggle('primary', !hasKey);
   if (!hasKey) setStatus(MESSAGES.NO_API_KEY, true);
   optionsButton.addEventListener('click', () => chrome.tabs.create({ url: chrome.runtime.getURL('trans/options/options.html') }));
+  void showShortcut();
   shortcutsButton.addEventListener('click', () => chrome.runtime.sendMessage({ type: 'OPEN_SHORTCUTS' }));
   alwaysSiteBox.addEventListener('change', async () => {
     const want = alwaysSiteBox.checked;
