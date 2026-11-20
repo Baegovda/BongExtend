@@ -75,7 +75,7 @@ BongExtend는 치지직, Gemini 번역, 디시인사이드(green1052/DCRefresher
 - 완료 소리(`core.downloads.completeSound`, 기본 켬)는 열린 오프스크린 문서로 내요: 메일 엔진 `off_screen.html`이면 `{target:"offscreen", type:"play-sound"}`, 메일 감시 `offscreen.html`이면 `gmail-play-sound`, 없으면 `offscreen.html?sound=…`를 잠깐 열고 메일 감시가 안 맡으면 `download-sound-done`으로 닫아요. 우리 소리를 냈으면 윈도우 알림은 `silent`.
 - 다운로드 칸(`public/recent-downloads.html`) 머리줄의 폴더 버튼 `#openFolder`는 `chrome.downloads.showDefaultFolder()`예요. 줄마다 있는 `.row-folder`는 `chrome.downloads.show(id)`(탐색기에서 그 파일 선택)예요.
 - 메일 새로고침: 왼쪽 아래 `#mailRefreshNow`와 같은 일을 하는 `.be-mail-refresh` 버튼이 맨 위 계정 줄에 하나 붙어요(`naver-mail.ts` `orderAccounts`).
-- 메일 엔진 Gmail 작업(읽음·보관·삭제, "자동 감지" 계정): `cookies`는 선택 권한이라 없으면 `chrome.cookies`가 없어요. 작업 토큰은 쿠키 → (없으면) 그 계정 Gmail 화면을 `credentials:"include"`로 받은 뒤 새로 생긴 쿠키 → 화면 글자 값 순서로 찾고, 작업 뒤 목록을 다시 받아 아직 있으면 화면 토큰으로 한 번 더 해요. 결과는 `core.mailActionLog`(계정 순번·작업·응답 상태·토큰 출처만, 20개).
+- 메일 엔진 Gmail 작업(읽음·보관·삭제, "자동 감지" 계정): `cookies`는 선택 권한이라 없으면 `chrome.cookies`가 없어요. 작업 토큰은 쿠키 → (없으면) 그 계정 Gmail 화면을 `credentials:"include"`로 받은 뒤 새로 생긴 쿠키 → 그 계정 Gmail 을 최소화 창으로 몇 초 열어 Gmail 이 만든 쿠키(`bongOpenGmailForActionToken`, 계정마다 10분에 한 번) → 화면 글자 값 순서로 찾고(진짜 GMAIL_AT `AF6bup…`는 Gmail 화면 HTML 에 없고 화면이 돌아갈 때만 쿠키로 생겨요. sdpc 는 다른 값이에요. `src/modules/gmail/actions.js parseGmailTokens` 도 같은 한계가 있어요), 작업 뒤 목록을 다시 받아 아직 있으면 화면 토큰으로 한 번 더 해요. 결과는 `core.mailActionLog`(계정 순번·작업·응답 상태·토큰 출처만, 20개).
 - **배경 서비스 워커에서는 `Date.parse`가 숫자가 아니라 날짜 객체를 돌려줘요**(메일 엔진 `public/js/common.js`가 바꿔 놓음). 배경에서 도는 코드는 `new Date(String(x)).getTime()`으로 읽어요.
 
 ## 구조

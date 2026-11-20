@@ -12,6 +12,36 @@ function bongNoteMailAction(entry) {
     }).catch(() => {});
 }
 
+// BongExtend: 이 계정의 Gmail 을 최소화된 창으로 몇 초만 열어서, Gmail 이 작업 권한 쿠키(GMAIL_AT)를 만들게 한 뒤 닫아요.
+// Gmail 을 브라우저에서 직접 열지 않은 계정은 이 쿠키가 없어서 읽음 처리·보관·삭제가 Gmail 에 반영되지 않았어요.
+// 계정마다 10분에 한 번만 해요(자동 읽음이 여러 번 다시 시도해도 창이 계속 뜨지 않게). 쿠키 권한이 없으면 하지 않아요.
+const bongGmailWindowTried = new Map();
+async function bongOpenGmailForActionToken(accountId) {
+    if (!globalThis.chrome?.cookies?.get || !chrome.windows?.create || accountId == null) return false;
+    const now = Date.now();
+    if (now - (bongGmailWindowTried.get(accountId) || 0) < 10 * 60 * 1000) return false;
+    bongGmailWindowTried.set(accountId, now);
+    const url = `https://mail.google.com/mail/u/${accountId}/`;
+    const hasCookie = async () => {
+        try { return Boolean((await chrome.cookies.get({name: "GMAIL_AT", url}))?.value); } catch { return false; }
+    };
+    let windowId;
+    try {
+        const created = await chrome.windows.create({url, state: "minimized", focused: false, type: "normal"});
+        windowId = created?.id;
+        for (let waited = 0; waited < 20000; waited += 500) {
+            if (await hasCookie()) return true;
+            await new Promise(resolve => setTimeout(resolve, 500));
+        }
+        return await hasCookie();
+    } catch (error) {
+        console.warn("bongOpenGmailForActionToken", error);
+        return false;
+    } finally {
+        if (windowId != null) chrome.windows.remove(windowId).catch(() => {});
+    }
+}
+
 function Account() {
 
     var that = this;
@@ -2840,6 +2870,13 @@ function Account() {
                         gmailAT = await getGmailATFromCookie(that.id);
                         if (gmailAT) {
                             gmailATSource = "cookie-after-page";
+                        } else if (await bongOpenGmailForActionToken(that.id)) {
+                            // 진짜 작업 권한(GMAIL_AT, "AF6bup…")은 Gmail 화면이 실제로 돌아갈 때만 쿠키로 생겨요(화면 HTML 안에는 없어요).
+                            gmailAT = await getGmailATFromCookie(that.id);
+                            if (gmailAT) gmailATSource = "cookie-after-window";
+                        }
+                        if (gmailAT) {
+                            // 위에서 찾았어요.
                         } else if (pageToken) {
                             gmailAT = pageToken;
                             gmailATSource = "page";
