@@ -10,12 +10,35 @@ import {createPseudoContrastController} from "@/modules/dark/pseudo-contrast.js"
 import {createHairlineController} from "@/modules/dark/hairline-contrast.js";
 import {createIconContrastController} from "@/modules/dark/icon-contrast.js";
 import {createPaintGuard, createImageBlendGuard} from "@/modules/dark/paint-guard.js";
+import {createBackdropDimmer} from "@/modules/dark/backdrop-dim.js";
 // @ts-ignore plain JS: instant dark backdrop before the settings are read
 import {createEarlyDarkGuard} from "@/modules/dark/early-guard.js";
 import {announceTakeover, createFallbackSweeper, listenForTakeover} from "@/modules/dark/stale-guard.js";
 import {NATIVE_DARK_KEY, classifyNativeDark, nativeDarkSites, sampleNativeColors, settleNativeCheck, startsNativeDark, withNativeDark} from "@/modules/dark/native-dark.js";
 
 const MODULES_KEY = "core.modules";
+
+// 배경 사진 밝기 재기(그림 서버가 CORS 허락을 안 보낼 때만). 배경 작업이 같은 권한 검사를 하고,
+// 그림 자체가 아니라 평균 밝기·불투명도 숫자만 돌려줘요.
+function measureDarkBackdrop(url: string): Promise<{lum: number; alpha: number} | null> {
+    return new Promise(resolve => {
+        let port: chrome.runtime.Port;
+        try { port = chrome.runtime.connect({name: "bongextend-dark-measure"}); } catch { resolve(null); return; }
+        let settled = false;
+        const finish = (value: {lum: number; alpha: number} | null) => {
+            if (settled) return; settled = true; clearTimeout(timer);
+            try { port.disconnect(); } catch { /* 이미 닫혔어요. */ }
+            resolve(value);
+        };
+        const timer = setTimeout(() => finish(null), 10000);
+        port.onDisconnect.addListener(() => finish(null));
+        port.onMessage.addListener(result => {
+            const ok = result?.ok === true && Number.isFinite(result.lum) && Number.isFinite(result.alpha);
+            finish(ok ? {lum: Number(result.lum), alpha: Number(result.alpha)} : null);
+        });
+        port.postMessage({url});
+    });
+}
 
 // Public small image only. The worker independently checks both origin grants
 // and active dark settings; page credentials are never relayed.
@@ -74,6 +97,8 @@ export default defineContentScript({
         const pseudo = createPseudoContrastController(document);
         const hairline = createHairlineController(document);
         const photos = createImageBlendGuard(document);
+        // 화면 대부분을 덮는 밝은 배경 사진은 어두운 반투명 막으로 낮춰요(사진은 그대로 보여요).
+        const backdrop = createBackdropDimmer(document, {measure: measureDarkBackdrop});
         const contrast = createContrastController(document, {inspectImage: icons.inspect, inspectPseudo: pseudo.inspect, inspectHairline: hairline.inspect, inspectPhoto: photos.inspect});
         const paint = createPaintGuard(document);
         let contrastEnabled = false;
@@ -83,13 +108,13 @@ export default defineContentScript({
             onSweep: () => early.release(true)
         });
         const syncContrast = () => {
-            if (contrastEnabled && document.documentElement?.getAttribute("data-darkreader-scheme") === "dark") {paint.start(); icons.start(); pseudo.start(); hairline.start(); contrast.start();}
-            else {paint.stop(); photos.stop(); icons.stop(); pseudo.stop(); hairline.stop(); contrast.stop();}
+            if (contrastEnabled && document.documentElement?.getAttribute("data-darkreader-scheme") === "dark") {paint.start(); icons.start(); pseudo.start(); hairline.start(); contrast.start(); backdrop.start();}
+            else {paint.stop(); photos.stop(); backdrop.stop(); icons.stop(); pseudo.stop(); hairline.stop(); contrast.stop();}
         };
         let observedRoot: HTMLElement | null = null;
         const onCleanup = () => {
             paint.stop();
-            photos.stop();
+            photos.stop(); backdrop.stop();
             icons.stop(); pseudo.stop(); hairline.stop();
             contrast.stop();
             document.documentElement?.removeAttribute("data-bong-dark-proxy");
@@ -152,7 +177,7 @@ export default defineContentScript({
         const topFrame = window === window.top;
         const turnOff = () => {
             contrastEnabled = false;
-            paint.stop(); photos.stop();
+            paint.stop(); photos.stop(); backdrop.stop();
             icons.stop(); pseudo.stop(); hairline.stop();
             contrast.stop();
             auto(false);
@@ -202,7 +227,7 @@ export default defineContentScript({
                 const modules = (stored[MODULES_KEY] && typeof stored[MODULES_KEY] === "object" ? stored[MODULES_KEY] : {}) as Record<string, unknown>;
                 contrastEnabled = false;
                 paint.stop();
-                photos.stop();
+                photos.stop(); backdrop.stop();
                 icons.stop(); pseudo.stop(); hairline.stop();
                 contrast.stop();
                 if (modules.dark === false || !darkSiteEnabled(settings, hostname)) {
@@ -253,7 +278,7 @@ export default defineContentScript({
                 sweeper.stop();
                 contrastEnabled = false;
                 paint.stop();
-                photos.stop();
+                photos.stop(); backdrop.stop();
                 icons.stop(); pseudo.stop(); hairline.stop();
                 contrast.stop();
                 console.error("BongExtend 다크 모드를 적용하지 못했어요.", error);
@@ -270,7 +295,7 @@ export default defineContentScript({
             document.removeEventListener("__darkreader__cleanUp", onCleanup);
             document.removeEventListener("DOMContentLoaded", onReady);
             early.release(true);
-            paint.stop(); photos.stop();
+            paint.stop(); photos.stop(); backdrop.stop();
             icons.stop(); pseudo.stop(); hairline.stop();
             contrast.stop();
             try { auto(false); disable(); } catch { /* 이미 꺼져 있어요. */ }

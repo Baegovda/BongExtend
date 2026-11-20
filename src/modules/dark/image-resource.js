@@ -20,3 +20,15 @@ export async function fetchDarkImage(url,{fetchImpl=fetch,signal}={}){
  let binary='';for(let i=0;i<bytes.length;i+=8192)binary+=String.fromCharCode(...bytes.subarray(i,i+8192));
  return {type,data:btoa(binary)};
 }
+
+// Backdrop photo brightness for dark mode (service worker side). Downloads without page cookies,
+// decodes at 32x32 and returns only the mean luminance and alpha, never the image itself.
+export async function measureDarkBackdropImage(url,{fetchImpl=fetch,signal,measurePixels,limit=12*1024*1024}={}){
+ const response=await fetchImpl(url,{credentials:'omit',redirect:'error',cache:'force-cache',signal});
+ const type=(response.headers.get('content-type')||'').split(';')[0].trim().toLowerCase();
+ if(!response.ok||!/^image\/(png|jpeg|jpg|webp|avif|gif)$/.test(type)||Number(response.headers.get('content-length'))>limit)throw Error('unsupported image');
+ const blob=await response.blob();if(blob.size>limit)throw Error('image too large');
+ const bitmap=await createImageBitmap(blob,{resizeWidth:32,resizeHeight:32,resizeQuality:'low'});
+ try{const canvas=new OffscreenCanvas(32,32),ctx=canvas.getContext('2d');ctx.drawImage(bitmap,0,0,32,32);return measurePixels(ctx.getImageData(0,0,32,32).data);}
+ finally{bitmap.close?.();}
+}

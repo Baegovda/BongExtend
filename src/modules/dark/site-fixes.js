@@ -184,5 +184,5 @@ export const withTranslationColors = (fixes) => ({
   // Retain isolation only for owned SVG glyph paint: upstream's SVG attribute
   // path otherwise interferes with the explicit fill/stroke repair. HTML card
   // and icon containers still receive normal upstream boundary theming.
-  ignoreInlineStyle: [...(fixes?.ignoreInlineStyle || []), '.pt-page-translator-sweep', '.pt-page-translator-sweep *', 'svg[data-bong-contrast-owned="1"]', 'svg [data-bong-contrast-owned="1"]'],
+  ignoreInlineStyle: [...(fixes?.ignoreInlineStyle || []), '.pt-page-translator-sweep', '.pt-page-translator-sweep *', 'svg[data-bong-contrast-owned="1"]', 'svg [data-bong-contrast-owned="1"]', '[data-bong-backdrop="1"]'],
 });

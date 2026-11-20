@@ -70,6 +70,11 @@ BongExtend는 치지직, Gemini 번역, 디시인사이드(green1052/DCRefresher
 - 이미지(`image`): src/modules/image/paste.js, 콘텐츠 스크립트 src/entrypoints/image-paste.content.ts(matches: talk.naver.com, partner.talk.naver.com, lens.google.com, www.google.com, images.google.com — 새 권한 없음). 설정은 `image.settings`{talk,lens}. 구글 렌즈는 페이지가 직접 붙여넣기를 처리하므로 2.2초 안에 업로드가 시작되지 않을 때만 이어받아요(이중 업로드 방지). 새 이미지 기능은 이 모듈에 추가해요.
 - 쇼핑(`shop`): src/modules/shop/{shop.js(순수 로직),read-page.js(상품 페이지 읽기, executeScript와 공유),background.js}, 콘텐츠 스크립트 src/entrypoints/shop.content.ts(runtime 등록, 빌드용 matches는 mail.google.com), 팝업 src/entrypoints/popup/shop.ts. 알리익스프레스 `/item/*.html`과 item.taobao.com만 지원해요(티몰은 사용자가 쓰지 않아 뺐어요). 팝업의 '연결 허용'으로 기존 optional `https://*/*` 중 `*.aliexpress.com`·`*.taobao.com`만 요청해요. 가격 기록 `shop.products`는 로컬에만 두고 설정 내보내기에 넣지 않아요. 관심 상품은 6시간마다(쓰는 중이면 하루 넘은 것만) 뒤쪽 탭에서 열어 읽고 닫아요(페이지 HTML만 받으면 가격이 비어 있어요). 오른쪽 클릭 "이미지로 검색"은 이미지 모듈 소속이고 toolbar-background.js의 openSiteImageSearch를 함께 써요.
 
+## 다크 모드 배경 사진 (1.2.176)
+- 다크 모드는 그림 분석(Dark Reader `ignoreImageAnalysis: ['*']`)을 모든 사이트에서 꺼서 사진·그림 원본 색을 지켜요. 그래서 화면 전체를 덮는 밝은 배경 사진(제보: 타오바오 채팅 `section.next-shell-main`의 밝은 회의실 PNG)이 하얗게 남았어요.
+- `src/modules/dark/backdrop-dim.js` `createBackdropDimmer`: CSS 배경 그림(img·video·canvas 아님)이면서 html/body 또는 화면 절반 이상을 덮고 안에 내용이 있는 상자, url() 한 겹, 불투명하고 밝은(평균 밝기 0.4 이상) 그림만 골라요. 그 위에 페이지 다크 바탕색의 반투명 막(0.7~0.92)을 같은 background-image 의 앞 겹으로 얹어요(`data-bong-backdrop="1"`, 인라인 !important, 끄면 원래 값으로 되돌려요). 숨기거나 반전하지 않아요.
+- 밝기는 페이지 안에서 CORS 로 32×32 로 재고, CORS 가 없으면 배경 연결 `bongextend-dark-measure`(이미지 연결과 같은 권한 검사, 숫자만 돌려줘요)로 재요. 모르면 손대지 않아요. 확인 `scripts/verify-dark-backdrop-browser.cjs`.
+
 ## 다운로드 완료 알림·소리 (1.2.171)
 - `src/modules/downloads/complete-notice.js`: 완료 신호(`downloads.onChanged`)로 한 번, 그리고 배경이 깨어날 때·다운로드 소식·아무 알람(메일 확인 30초 등)이 울릴 때 "최근 10분 안에 끝났는데 아직 안 알린 것"을 찾아 한 번 더 알려요. 크롬이 완료 신호(그리고 `onCreated`)를 가끔 안 보내요. 알린 번호는 `storage.session` `core.download:noticed`, 진단은 `core.download:lastNotice`(번호·시각·성공 여부만). 확인 스크립트 `scripts/verify-download-notice-browser.cjs`.
 - 완료 소리(`core.downloads.completeSound`, 기본 켬)는 열린 오프스크린 문서로 내요: 메일 엔진 `off_screen.html`이면 `{target:"offscreen", type:"play-sound"}`, 메일 감시 `offscreen.html`이면 `gmail-play-sound`, 없으면 `offscreen.html?sound=…`를 잠깐 열고 메일 감시가 안 맡으면 `download-sound-done`으로 닫아요. 우리 소리를 냈으면 윈도우 알림은 `silent`.

@@ -2,7 +2,9 @@
 import {startNaverMail} from '@/modules/naver-mail/background.js';
 import {darkStylesheetOrigins, fetchDarkStylesheet} from '@/modules/dark/css-resource.js';
 // @ts-ignore bounded static image relay
-import {darkImageOrigins,fetchDarkImage} from '@/modules/dark/image-resource.js';
+import {darkImageOrigins,fetchDarkImage,measureDarkBackdropImage} from '@/modules/dark/image-resource.js';
+// @ts-ignore plain JS shared with the dark content script
+import {measurePixels} from '@/modules/dark/backdrop-dim.js';
 // @ts-ignore pure JS
 import {startVideoHost} from "@/modules/downloads/video.js";
 // @ts-ignore plain JS diagnostic helper (serialized into the page)
@@ -280,6 +282,33 @@ export default defineBackground(() => {
                     if(!controller.signal.aborted)respond({ok:true,...result});
                 }catch{respond({ok:false});}
                 finally{if(timer)clearTimeout(timer);if(acquired)activeDarkImages--;}
+            })();
+        });
+    });
+    // 다크 모드 배경 사진 밝기 재기: 그림 서버가 CORS 허락을 안 보낼 때만 와요. 이미지 연결과 같은 권한 검사를 하고 숫자만 돌려줘요.
+    let activeDarkMeasures=0;
+    chrome.runtime.onConnect.addListener(port=>{
+        if(port.name!=="bongextend-dark-measure")return;
+        let received=false;const controller=new AbortController();
+        port.onDisconnect.addListener(()=>controller.abort());
+        port.onMessage.addListener(message=>{
+            if(received)return;received=true;
+            const respond=(result:unknown)=>{try{port.postMessage(result);}catch{/* Closed document. */}};
+            void(async()=>{
+                let acquired=false,timer:ReturnType<typeof setTimeout>|undefined;
+                try{
+                    const sender=port.sender,senderUrl=sender?.url||"";
+                    const page=new URL(/^(about|blob|data):/.test(senderUrl)?sender?.origin||"":senderUrl);
+                    const url=new URL(message.url),origins=darkImageOrigins(page.href,url.href);
+                    if(sender?.id!==chrome.runtime.id||!sender.tab?.id||!origins||activeDarkMeasures>=2)throw Error("unsupported image");
+                    const stored=await chrome.storage.local.get([DARK_SETTINGS_KEY,MODULES_KEY]);
+                    const modules=stored[MODULES_KEY] as {dark?:boolean}|undefined;
+                    if(modules?.dark===false||!darkSiteEnabled(normalizeDarkSettings(stored[DARK_SETTINGS_KEY]),page.hostname)||!await chrome.permissions.contains({origins}))throw Error("not enabled");
+                    activeDarkMeasures++;acquired=true;timer=setTimeout(()=>controller.abort(),8000);
+                    const result=await measureDarkBackdropImage(url.href,{signal:controller.signal,measurePixels}) as {lum:number;alpha:number}|null;
+                    if(!controller.signal.aborted)respond(result?{ok:true,lum:result.lum,alpha:result.alpha}:{ok:false});
+                }catch{respond({ok:false});}
+                finally{if(timer)clearTimeout(timer);if(acquired)activeDarkMeasures--;}
             })();
         });
     });
