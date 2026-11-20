@@ -473,13 +473,14 @@ test('cancelling midway removes both clipped layers and restores the original im
   assert.equal(h.text.childNodes[0].nodeValue, 'Free shipping');
 });
 
-test('dense cached results bound prism layers without dropping translations', async () => {
+test('dense cached results use a bounded burst of prism layers without dropping translations', async () => {
   const h = prismHarness();
   for (let i = 0; i < 100; i++) h.root.append(element('span', {}, [`New arrival ${i}`]));
-  h.session.start(); await h.session.whenIdle(); h.advance(0);
+  h.session.start(); await h.session.whenIdle(); h.advance(0); h.advance(0); h.advance(0); // 24 + 24 + 16 layers start over three frames
   const boxes = h.created.filter(node => node.className === 'pt-page-translator-sweep');
-  assert.equal(boxes.length, 16);
-  assert.equal(h.root.childNodes.filter(node => node.childNodes[0].nodeValue === '무료 배송').length, 16, 'overflow stays original until its own prism starts');
+  // 101 waiting lines: one burst of at most 64 layers (was 16 at a time, 331 Taobao lines took 15 s).
+  assert.equal(boxes.length, 64);
+  assert.equal(h.root.childNodes.filter(node => node.childNodes[0].nodeValue === '무료 배송').length, 64, 'overflow stays original until its own prism starts');
   for(let pass=1;pass<=8;pass++){h.advance(pass*h.api.WIPER_MS);h.advance(pass*h.api.WIPER_MS);}
   assert.equal(h.root.childNodes.every(node => node.childNodes[0].nodeValue === '무료 배송'), true);
   assert.equal(boxes.every(box => !box.parentNode), true);
@@ -1845,4 +1846,19 @@ test('a failed batch stops new batches but keeps the ones already sent', async (
   assert.equal(session.getStatus().error, 'Gemini API 속도 제한(429)이에요.');
   const translated = root.childNodes.filter((p) => p.childNodes[0].nodeValue === '번역됨').length;
   assert.equal(translated, 48, 'the two batches already sent are applied');
+});
+
+test('a sentence that comes back (rotating banner) is swapped without a second prism', async () => {
+  const h = prismHarness();
+  h.session.start(); await h.session.whenIdle(); h.advance(0);
+  const first = h.created.filter(node => node.className === 'pt-page-translator-sweep').length;
+  assert.equal(first, 1);
+  for (let pass = 1; pass <= 3; pass++) { h.advance(pass * h.api.WIPER_MS); h.advance(pass * h.api.WIPER_MS); }
+  // The banner shows the same original sentence again.
+  const again = element('span', {rect: {left: 20, top: 80, right: 120, bottom: 100, width: 100, height: 20}}, ['Free shipping']);
+  h.root.append(again);
+  h.session.emitMutations([{type: 'childList', target: h.root, addedNodes: [again], removedNodes: []}]);
+  await h.session.whenIdle(); h.advance(5000);
+  assert.equal(again.childNodes[0].nodeValue, '무료 배송');
+  assert.equal(h.created.filter(node => node.className === 'pt-page-translator-sweep').length, first, 'no new prism layer for a sentence already revealed');
 });

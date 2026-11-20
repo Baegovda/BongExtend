@@ -72,6 +72,7 @@ BongExtend는 치지직, Gemini 번역, 디시인사이드(green1052/DCRefresher
 
 ## 번역 속도·효과·단축키 (1.2.177)
 - 번역 묶음(최대 24줄·4000자)을 `content.js` `flush`가 한 번에 `MAX_INFLIGHT`(3)개까지 동시에 보내요(`runBatch(batch, before)`: 보내기는 동시에, 결과 붙이기는 보낸 순서대로). 예전에는 하나씩 차례로 기다려서 큰 페이지가 아주 느렸어요(가짜 0.6초 응답 300줄: 7.8 → 3.0초). 배경 `translator.js`는 같은 문장을 한 번만 보내요(inflight). 한 묶음이 실패하면 새 묶음은 멈추고 이미 보낸 묶음은 붙여요(오류 표시는 유지).
+- 효과 수(1.2.178): 평소 `MAX_ACTIVE_SWEEPS` 16, 번역이 와서 효과를 기다리는 글이 많으면 `MAX_BURST_SWEEPS` 64까지, 한 프레임에 새로 시작하는 건 `MAX_SWEEPS_PER_FRAME` 24(한꺼번에 재면 멈칫). 사용자 크롬 타오바오 첫 화면 기록: 보이는 중국어 331개에 15초, 효과 16개에 묶여 190여 개가 대기했어요. 한 번 효과로 바꾼 같은 원문(`revealedOriginals`, 돌아가는 배너)은 다시 나타나면 효과 없이 바로 바꿔요(번역을 다시 켜면 초기화).
 - 레이저 선(`.pt-sweep-edge`)은 5px·넓은 빛 번짐이에요. 예전 `prism`/`aurora-wipe`/`wiper-beam` 클래스는 지우기용 이름만 남아 있어요.
 - 번역 탭은 `chrome.commands.getAll()`의 실제 단축키(사용자는 Alt+Q)를 `[data-shortcut-key]`에 바로 보여줘요.
 - Rust: 이 파일들은 `docs/rust-port-verdicts.md` 판정대로 자바스크립트예요(느린 원인이 응답 기다림, Rust 실험은 7.8배 느림).

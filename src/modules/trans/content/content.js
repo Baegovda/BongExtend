@@ -15,6 +15,12 @@
   const BEAM_CLASS = 'pt-page-translator-wiper-beam';
   const MAX_LIVE_PENDING = 8;
   const MAX_ACTIVE_SWEEPS = 16;
+  // 번역은 왔는데 효과 차례를 기다리는 글이 많으면 한 번에 더 많이 돌려요(타오바오 첫 화면: 16개씩이라 331개에 15초).
+  const MAX_BURST_SWEEPS = 64;
+  // 한 장면(프레임)에 새로 시작하는 효과 수. 한꺼번에 많이 재면 화면이 멈칫해요(37개에 52ms).
+  const MAX_SWEEPS_PER_FRAME = 24;
+  // 같은 문장은 한 번만 효과를 보여줘요(돌아가는 배너가 바뀔 때마다 다시 반짝이며 튀지 않게).
+  const MAX_REVEALED_MEMORY = 4000;
   // 동시에 보내는 번역 묶음 수. 배경은 같은 문장을 한 번만 보내고 나머지는 기다리게 해요(translator.js inflight).
   const MAX_INFLIGHT = 3;
   const FADE_MS = 880;
@@ -417,6 +423,7 @@
     const revealWait = [];
     let wiper = null;
     let sweepEpoch = 0;
+    const revealedOriginals = new Set();
     let revealFrame = 0;
     let repositionFrame = 0;
     let scrollBound = false;
@@ -1278,8 +1285,12 @@
       beginWiper(ready);
     }
 
+    function sweepLimit() {
+      return revealWait.length > MAX_ACTIVE_SWEEPS ? Math.min(MAX_BURST_SWEEPS, activeJobs.size + revealWait.length) : MAX_ACTIVE_SWEEPS;
+    }
+
     function drainReveal() {
-      const capacity = Math.max(0, MAX_ACTIVE_SWEEPS - activeJobs.size);
+      const capacity = Math.max(0, Math.min(MAX_SWEEPS_PER_FRAME, sweepLimit() - activeJobs.size));
       if (!capacity) return;
       const batch = revealWait.splice(0, capacity);
       if (!batch.length) return;
@@ -1297,7 +1308,7 @@
       lockMutations(() => paintMeasured(measured));
       // Offscreen/unsupported runs can consume a queue slice without creating a
       // pass. Continue draining those slices instead of waiting for a nonexistent timer.
-      if (revealWait.length && activeJobs.size < MAX_ACTIVE_SWEEPS) scheduleReveal();
+      if (revealWait.length && activeJobs.size < sweepLimit()) scheduleReveal();
       notify();
     }
 
@@ -1321,6 +1332,8 @@
       // Keep overflow in its original language until a prism slot is free.
       // A concurrency limit must never turn the rest of a visible page into an instant swap.
       if (job.original === job.translated) return false;
+      // 이 문장은 이미 한 번 효과로 바꿨어요(배너가 돌아와 다시 나타남): 효과 없이 바로 바꿔요.
+      if (revealedOriginals.has(job.original)) return false;
       if (!canHold(job.element) || [...job.element.childNodes].filter(node => node.nodeType === 3 && String(node.nodeValue || '').trim()).length !== 1) {
         const parent = job.node.parentNode;
         if (!parent || typeof parent.insertBefore !== 'function') return false;
@@ -1334,6 +1347,8 @@
       if ([...job.element.childNodes].filter(node => node.nodeType === 3 && String(node.nodeValue || '').trim()).length !== 1) return false;
       if (job.target == null) job.target = showOriginal ? job.original : job.translated;
       job.epoch = sweepEpoch;
+      if (revealedOriginals.size >= MAX_REVEALED_MEMORY) revealedOriginals.clear();
+      revealedOriginals.add(job.original);
       revealWait.push(job);
       scheduleReveal();
       return true;
@@ -2012,6 +2027,8 @@
 
     function start() {
       const first = !started;
+      // 번역을 다시 켜면 효과도 처음처럼 다시 보여줘요.
+      revealedOriginals.clear();
       started = true;
       enabled = true;
       pausedForError = false;

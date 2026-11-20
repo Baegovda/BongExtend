@@ -69,7 +69,8 @@ const assert = require('node:assert/strict');
     console.log(JSON.stringify({...result, errors, screenshot},null,2));
     if (!process.env.BASELINE) {
       assert.equal(errors.length,0);
-      assert.ok(result.peakOverlays > 0 && result.peakOverlays <= 16, 'animation concurrency stays bounded');
+      assert.ok(result.peakOverlays > 0 && result.peakOverlays <= 64, 'animation concurrency stays bounded (burst of at most 64 when many lines wait)');
+      assert.ok(result.maxLongTaskMs <= 50, 'starting a burst never blocks a frame for long: ' + result.maxLongTaskMs);
       assert.equal(result.overlaysLeft,0);
       assert.equal(result.heldLeft,0);
       assert.equal(result.reusedTranslated,true);
