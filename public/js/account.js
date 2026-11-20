@@ -16,15 +16,35 @@ function bongNoteMailAction(entry) {
 // Gmail 을 브라우저에서 직접 열지 않은 계정은 이 쿠키가 없어서 읽음 처리·보관·삭제가 Gmail 에 반영되지 않았어요.
 // 계정마다 10분에 한 번만 해요(자동 읽음이 여러 번 다시 시도해도 창이 계속 뜨지 않게). 쿠키 권한이 없으면 하지 않아요.
 const bongGmailWindowTried = new Map();
+// 이 계정(u/N)의 GMAIL_AT 쿠키 값. 쿠키 경로가 "/mail/u/N/"(끝에 /)인 계정이 있어서, 주소 끝에 / 가 없으면 못 찾았어요.
+// 모든 GMAIL_AT 쿠키 중 경로가 정확히 이 계정인 것을 골라요. 쿠키 권한이 없으면 빈 값이에요.
+async function bongReadGmailAtCookie(accountId) {
+    if (!globalThis.chrome?.cookies || accountId == null) return undefined;
+    const ownPath = new RegExp(`^/mail/u/${Number(accountId)}(/|$)`);
+    try {
+        if (chrome.cookies.getAll) {
+            const all = await chrome.cookies.getAll({name: "GMAIL_AT"});
+            const own = (all || []).filter(cookie => /(^|\.)mail\.google\.com$/.test(cookie.domain) && ownPath.test(cookie.path || "") && cookie.value);
+            if (own.length) return own.sort((a, b) => (b.path || "").length - (a.path || "").length)[0].value;
+        }
+        if (chrome.cookies.get) {
+            for (const url of [`https://mail.google.com/mail/u/${accountId}/`, `https://mail.google.com/mail/u/${accountId}`]) {
+                const cookie = await chrome.cookies.get({name: "GMAIL_AT", url});
+                if (cookie?.value) return cookie.value;
+            }
+        }
+    } catch (error) {
+        console.warn("bongReadGmailAtCookie", error);
+    }
+    return undefined;
+}
 async function bongOpenGmailForActionToken(accountId) {
     if (!globalThis.chrome?.cookies?.get || !chrome.windows?.create || accountId == null) return false;
     const now = Date.now();
     if (now - (bongGmailWindowTried.get(accountId) || 0) < 10 * 60 * 1000) return false;
     bongGmailWindowTried.set(accountId, now);
     const url = `https://mail.google.com/mail/u/${accountId}/`;
-    const hasCookie = async () => {
-        try { return Boolean((await chrome.cookies.get({name: "GMAIL_AT", url}))?.value); } catch { return false; }
-    };
+    const hasCookie = async () => Boolean(await bongReadGmailAtCookie(accountId));
     let windowId;
     try {
         const created = await chrome.windows.create({url, state: "minimized", focused: false, type: "normal"});
@@ -2816,14 +2836,8 @@ function Account() {
     async function getGmailATFromCookie(accountId) {
         // BongExtend: 'cookies' 는 선택 권한이라 허용하지 않았으면 chrome.cookies 가 없어요.
         // 예전에는 여기서 오류가 나서 아래 '화면에서 찾기'까지 가지 못했어요. 없으면 비워서 다음 방법으로 넘어가요.
-        if (!globalThis.chrome?.cookies?.get) return undefined;
-        try {
-            const response = await chrome.cookies.get({name: 'GMAIL_AT', url: `https://mail.google.com/mail/u/${accountId}`});
-            return response?.value;
-        } catch (error) {
-            console.warn("getGmailATFromCookie error", error);
-            return undefined;
-        }
+        // 쿠키 경로가 "/mail/u/N/"(끝에 /)인 계정도 찾게 bongReadGmailAtCookie 를 써요.
+        return bongReadGmailAtCookie(accountId);
     }
 
     // BongExtend: 쿠키가 없을 때 Gmail 화면 HTML 에서 작업 토큰을 찾아요. 지금 Gmail 은 GM_ACTION_TOKEN="null" 이 먼저 나오고

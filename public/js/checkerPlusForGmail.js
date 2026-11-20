@@ -3145,7 +3145,7 @@ async function debugSignInInfo() {
     debugInfo.gmailAtByAccount = {};
     for (const account of accounts) {
         try {
-            const cookie = await chrome.cookies.get({name: "GMAIL_AT", url: `https://mail.google.com/mail/u/${account.id}`});
+            const cookie = typeof bongReadGmailAtCookie === "function" ? await bongReadGmailAtCookie(account.id) : await chrome.cookies.get({name: "GMAIL_AT", url: `https://mail.google.com/mail/u/${account.id}/`});
             debugInfo.gmailAtByAccount[account.getEmail()] = !!cookie;
         } catch (error) {
             debugInfo.gmailAtByAccount[account.getEmail()] = "error: " + error.message;
