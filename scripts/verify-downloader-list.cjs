@@ -18,6 +18,13 @@ const {chromium}=require('playwright'),fs=require('fs'),path=require('path'),os=
   const fb=await folderButton.boundingBox(),hb=await frame.locator('header').boundingBox();assert.ok(fb.x>=hb.x&&fb.x+fb.width<=hb.x+hb.width+0.5,'folder button stays inside the header');
   await page.evaluate(()=>{const w=document.querySelector('#chronoPopupFrame').contentWindow;w.__folder=0;w.chrome.downloads.showDefaultFolder=()=>{w.__folder++;};});await folderButton.click();
   assert.equal(await page.evaluate(()=>document.querySelector('#chronoPopupFrame').contentWindow.__folder),1);
+  // 줄마다 '폴더에서 보기' 버튼: 그 파일을 탐색기에서 선택한 채로 열어요(chrome.downloads.show(그 줄의 번호)). 줄 안에 들어가요.
+  assert.equal(await frame.locator('.download-row .row-folder').count(),3);
+  await page.evaluate(()=>{const w=document.querySelector('#chronoPopupFrame').contentWindow;w.__shown=[];w.chrome.downloads.show=id=>{w.__shown.push(id);};});
+  const secondRow=frame.locator('.download-row').nth(1);await secondRow.locator('.row-folder').click();
+  assert.deepEqual(await page.evaluate(()=>document.querySelector('#chronoPopupFrame').contentWindow.__shown),[Number(await secondRow.getAttribute('data-id'))].map(Number));
+  assert.match(await secondRow.locator('.row-folder').getAttribute('aria-label'),/^폴더에서 보기: .+/);
+  for(let i=0;i<3;i++){const r=await frame.locator('.download-row').nth(i).boundingBox(),b=await frame.locator('.download-row').nth(i).locator('.row-folder').boundingBox();assert.ok(b.x+b.width<=r.x+r.width,'folder button stays inside its row');}
   await page.screenshot({path:path.join(folder,'list-real-icons.png')});console.log('PASS actual Chrome downloads, OS file icons, list-only shell, search and open-folder button');
  }finally{await context.close();await new Promise(r=>server.close(r));}
 })().catch(error=>{console.error(error);process.exitCode=1});

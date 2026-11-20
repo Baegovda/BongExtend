@@ -43,3 +43,8 @@ footer button{font-size:11px!important;font-weight:550!important;padding:4px 9px
 /* 크롬이 붙잡아 둔 다운로드(확인 필요 · 검사 중 · 차단됨) */
 .download-row.held{border-color:color-mix(in srgb,var(--be-warn) 55%,transparent)}
 .download-row.held .row-actions button:first-child{color:var(--be-warn)}
+/* 줄마다 '폴더에서 보기' 버튼 */
+.be-page .row-folder{flex:0 0 26px;width:26px;height:26px;padding:0;display:inline-flex;align-items:center;justify-content:center;border:0;border-radius:8px;background:transparent;color:var(--be-text-2);cursor:pointer}
+.be-page .row-folder:hover{background:var(--be-surface-3);color:var(--be-text)}
+.be-page .row-folder:focus-visible{outline:2px solid var(--be-accent);outline-offset:1px}
+.be-page .row-folder svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linejoin:round}
