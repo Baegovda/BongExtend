@@ -28,3 +28,35 @@ test('a running download shows received / total size, speed and time left instea
   assert.ok(!window.document.body.textContent.includes('받는 중'));
  }finally{await window.happyDOM.close();}
 });
+
+test('trash clears finished and interrupted rows, cancels resumable ones first, and points to chrome://downloads for any row that stays',async()=>{
+ const window=new Window({url:'https://extension.invalid/recent-downloads.html'});
+ try{
+  window.document.write(readFileSync(new URL('../../../../public/recent-downloads.html',import.meta.url),'utf8').replace(/<script[^>]*>.*?<\/script>/gs,''));
+  const t=new Date().toISOString();
+  let rows=[
+   {id:1,filename:'C:/D/a.zip',url:'https://a.test/a.zip',state:'complete',exists:true,startTime:t},
+   {id:2,filename:'C:/D/b.zip',url:'https://b.test/b.zip',state:'interrupted',canResume:false,startTime:t},
+   {id:3,filename:'C:/D/viewimage.htm',url:'https://dcimg6.dcinside.co.kr/viewimage.php?x=1',state:'interrupted',canResume:true,error:'NETWORK_FAILED',startTime:t},
+   {id:4,filename:'C:/D/stuck.htm',url:'https://stuck.test/s',state:'interrupted',canResume:false,error:'FILE_BLOCKED',startTime:t},
+   {id:5,filename:'C:/D/run.zip',url:'https://r.test/r.zip',state:'in_progress',totalBytes:10,bytesReceived:1,startTime:t}];
+  const cancelled=[],opened=[],stored={};
+  const match=(q,r)=>Object.entries(q).every(([k,v])=>r[k]===v);
+  window.confirm=()=>true;
+  window.chrome={runtime:{getURL:p=>'https://extension.invalid/'+p},permissions:{},tabs:{create:async o=>{opened.push(o.url);}},
+   storage:{local:{get:async()=>({}),set:async o=>{Object.assign(stored,o);}},onChanged:{addListener(){}}},
+   downloads:{search:async(q={})=>rows.filter(r=>match(Object.fromEntries(Object.entries(q).filter(([k])=>k!=='limit'&&k!=='orderBy')),r)),getFileIcon:async()=>null,
+    cancel:async id=>{cancelled.push(id);rows=rows.map(r=>r.id===id?{...r,canResume:false,error:'USER_CANCELED'}:r);},
+    // Chrome refuses to erase id 4 (stands in for whatever kept the real row); a resumable row is only erased after cancel.
+    erase:async q=>{rows=rows.filter(r=>!(match(q,r)&&r.id!==4&&!r.canResume));},
+    onChanged:{addListener(){}},onCreated:{addListener(){}},onErased:{addListener(){}}}};
+  window.eval(readFileSync(new URL('../../../../public/recent-downloads.js',import.meta.url),'utf8'));await new Promise(r=>setImmediate(r));
+  window.document.getElementById('clear').onclick();for(let i=0;i<10;i++)await new Promise(r=>setImmediate(r));
+  assert.deepEqual(rows.map(r=>r.id),[4,5],'finished, interrupted and resumable rows are gone; the running one stays');
+  assert.deepEqual(cancelled,[3],'only the resumable interrupted row is cancelled first');
+  const notice=window.document.getElementById('notice');
+  assert.match(notice.textContent,/1개는 지우지 못했어요/);assert.match(notice.querySelector('span').title,/stuck\.test: interrupted · FILE_BLOCKED/);
+  notice.querySelector('button').click();assert.deepEqual(opened,['chrome://downloads']);
+  assert.deepEqual(stored['core.downloads:clearLeft'].items.map(f=>[f.id,f.host,f.error]),[[4,'stuck.test','FILE_BLOCKED']],'the leftover is recorded with only the site name');
+ }finally{await window.happyDOM.close();}
+});

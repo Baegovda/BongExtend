@@ -29,7 +29,7 @@ footer{padding-right:36px}
 #downloadCount{margin-right:auto;font-size:11px;color:var(--be-muted);font-variant-numeric:tabular-nums}
 footer button{font-size:11px!important;font-weight:550!important;padding:4px 9px!important}
 #empty{position:absolute;top:38%;left:16px;right:16px;margin:0;padding:24px;text-align:center;color:var(--be-muted);border:1px dashed var(--be-glass-border);border-radius:12px;font-size:12px}
-#notice{font-size:11px;margin:0;padding:5px 12px;color:var(--be-muted)}#notice:empty{display:none}
+#notice{font-size:11px;margin:0;padding:5px 12px;color:var(--be-muted)}#notice:empty{display:none}#notice button{font-size:11px;padding:2px 8px;margin-left:4px}
 @media(max-width:600px){.download-info{gap:7px;grid-template-columns:minmax(85px,1.4fr) minmax(62px,1fr) 76px 50px auto}.meta time{font-size:9px}}
 @media(max-width:440px){header{padding-inline:10px}.source{display:none}.download-info{grid-template-columns:minmax(72px,1fr) 76px 46px auto;gap:6px}.download-icon{width:22px;height:22px;flex-basis:22px}.download-row{gap:7px;padding:7px}.row-actions button{font-size:9px;padding-inline:5px}.download-info:has(.row-actions button+button){grid-template-columns:minmax(62px,1fr) 62px 42px auto}}
 @media(prefers-reduced-transparency:reduce){header,footer,.download-row{background:var(--be-surface)}}

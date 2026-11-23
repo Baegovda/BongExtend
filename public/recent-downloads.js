@@ -47,7 +47,18 @@
  async function showManager(hash){await chrome.tabs.create({url:chrome.runtime.getURL('downloads.html')+(hash||'')});}
  $('manager').onclick=()=>void showManager('');$('settings').onclick=()=>void showManager('#settings');$('video').onclick=()=>void chrome.tabs.create({url:chrome.runtime.getURL('video-downloader.html')});
  $('openFolder').onclick=()=>{try{chrome.downloads.showDefaultFolder();}catch{report('다운로드 폴더를 열지 못했어요.');}};$('searchToggle').onclick=()=>{const wrap=$('searchWrap');wrap.hidden=!wrap.hidden;if(!wrap.hidden)$('search').focus();};$('search').oninput=()=>{limit=100;render();};$('more').onclick=()=>{limit+=100;render();};
- $('clear').onclick=async()=>{if(!confirm('끝났거나 중단된 다운로드 기록을 정리할까요? 저장된 파일은 삭제하지 않아요.'))return;try{await chrome.downloads.erase({state:'complete'});/* 이어받기가 가능한 중단 기록은 크롬이 지우지 않아서, 먼저 취소해 끝난 기록으로 만든 뒤 지워요. */for(const item of await chrome.downloads.search({state:'interrupted'})){if(item.canResume)await chrome.downloads.cancel(item.id).catch(()=>{});await chrome.downloads.erase({id:item.id});}await chrome.storage.local.set({'core.video:history':[]});await refresh();}catch{report('기록을 정리하지 못했어요.');}};
+ $('clear').onclick=async()=>{if(!confirm('끝났거나 중단된 다운로드 기록을 정리할까요? 저장된 파일은 삭제하지 않아요.'))return;const failed=new Map();try{await chrome.downloads.erase({state:'complete'});}catch(e){failed.set('complete',String(e?.message||e));}
+  /* 이어받기가 가능한 중단 기록은 크롬이 지우지 않아서, 먼저 취소해 끝난 기록으로 만든 뒤 지워요. 한 줄이 실패해도 나머지는 계속 지워요. */
+  for(const item of await chrome.downloads.search({state:'interrupted'}).catch(()=>[])){try{if(item.canResume)await chrome.downloads.cancel(item.id).catch(()=>{});await chrome.downloads.erase({id:item.id});}catch(e){failed.set(item.id,String(e?.message||e));}}
+  await chrome.storage.local.set({'core.video:history':[]}).catch(()=>{});
+  const left=(await chrome.downloads.search({}).catch(()=>[])).filter(item=>item.state!=='in_progress');await refresh();if(left.length)await leftNotice(left,failed);};
+ // 정리한 뒤에도 남은 기록: 크롬 다운로드 화면으로 안내하고, 다음에 원인을 찾을 수 있게 상태를 이 PC에만 남겨요(주소는 사이트 이름만).
+ async function leftNotice(left,failed){
+  const facts=left.slice(0,20).map(item=>({id:item.id,state:item.state,error:item.error||'',danger:item.danger||'',canResume:!!item.canResume,exists:item.exists,paused:!!item.paused,incognito:!!item.incognito,byExtension:item.byExtensionId?'yes':'',mime:item.mime||'',host:host(item.finalUrl||item.url),fail:failed.get(item.id)||failed.get('complete')||''}));
+  await chrome.storage.local.set({'core.downloads:clearLeft':{at:Date.now(),items:facts}}).catch(()=>{});console.warn('[BongExtend] 정리 후 남은 다운로드 기록',facts);
+  const notice=$('notice'),text=document.createElement('span'),open=document.createElement('button');
+  text.textContent=`${left.length}개는 지우지 못했어요. 크롬 다운로드 화면에서 X를 눌러 지울 수 있어요. `;text.title=facts.map(f=>`${f.host}: ${f.state}${f.error?' · '+f.error:''}${f.danger&&f.danger!=='safe'?' · '+f.danger:''}${f.canResume?' · 이어받기 가능':''}${f.fail?' · '+f.fail:''}`).join('\n');
+  open.type='button';open.textContent='크롬 다운로드 열기';open.onclick=()=>void chrome.tabs.create({url:'chrome://downloads'});notice.replaceChildren(text,open);}
  chrome.downloads.onChanged.addListener(()=>{clearTimeout(timer);timer=setTimeout(()=>void refresh(),200);});chrome.downloads.onCreated.addListener(()=>void refresh());chrome.downloads.onErased.addListener(()=>void refresh());
  chrome.storage.onChanged.addListener((changes,area)=>{if(area==='local'&&(changes['core.video:history']||changes['core.video:status']))void refresh();});
  setInterval(()=>{if(!document.hidden&&items.some(item=>item.state==='in_progress'&&!item.paused))void refresh();},1000);void refresh();
