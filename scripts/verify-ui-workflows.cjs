@@ -26,7 +26,7 @@ const fs=require('node:fs'),os=require('node:os'),path=require('node:path'),asse
    await page.setViewportSize({width,height:590});
    await worker.evaluate(width=>chrome.storage.local.set({'core.popupSize':{width,height:590}}),width);
    await page.goto(`chrome-extension://${id}/popup.html`);await page.emulateMedia({colorScheme:'dark',reducedMotion:'reduce'});
-   // Since 1.2.153 the popup opens on mail (or downloads) and the mail screen shows icon-only tabs, so tabs are found by data-tab.
+   // Since 1.2.153 the popup opens on mail (or downloads) so tabs are found by data-tab.
    await page.locator('[data-tab="fx"]').waitFor();assert.equal(await page.locator('[data-tab="fx"] .nav-label').textContent(),'환율');
    let geometry;
    for(const tab of tabs){
@@ -35,9 +35,9 @@ const fs=require('node:fs'),os=require('node:os'),path=require('node:path'),asse
      const rect=e=>{const r=e.getBoundingClientRect();return [r.x,r.y,r.width,r.height].map(n=>Math.round(n*100)/100)};
      return {bar:rect(document.querySelector('.tabs')),group:rect(document.querySelector('#tabGroup')),tools:rect(document.querySelector('.window-tools')),buttons:[...document.querySelectorAll('#tabGroup button')].map(e=>[e.dataset.tab,e.offsetWidth,e.offsetHeight,getComputedStyle(e).fontSize])};/* the selected tab is bolder by design, so weight is not part of the layout check */
     });
-    // BongHub layout: a full-height left category list. The mail screen keeps only the icons by design, so it is checked on its own.
+    // BongHub layout: a full-height left category list. Since 1.2.180 it never shrinks to icons; the mail screen only adds its own tool buttons, so it is checked on its own.
     assert.equal(current.bar[3],590,'left category list fills the window height');
-    if(tab==='gmail'){assert.equal(current.bar[2],60,'mail screen keeps an icon-only category list');continue;}
+    if(tab==='gmail'){assert.equal(current.bar[2],176,'mail screen keeps the full category list');assert.equal(await page.locator('[data-tab="fx"] .nav-label').isVisible(),true,'mail screen keeps tab names');continue;}
     if(!geometry)geometry=current;else assert.deepEqual(current,geometry,`stable ${width}px category list when selecting ${tab}`);
    }
    await page.locator('[data-tab="fx"]').click();await page.locator('#fxResult').filter({hasText:'='}).waitFor();
