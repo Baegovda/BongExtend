@@ -47,7 +47,7 @@
  async function showManager(hash){await chrome.tabs.create({url:chrome.runtime.getURL('downloads.html')+(hash||'')});}
  $('manager').onclick=()=>void showManager('');$('settings').onclick=()=>void showManager('#settings');$('video').onclick=()=>void chrome.tabs.create({url:chrome.runtime.getURL('video-downloader.html')});
  $('openFolder').onclick=()=>{try{chrome.downloads.showDefaultFolder();}catch{report('다운로드 폴더를 열지 못했어요.');}};$('searchToggle').onclick=()=>{const wrap=$('searchWrap');wrap.hidden=!wrap.hidden;if(!wrap.hidden)$('search').focus();};$('search').oninput=()=>{limit=100;render();};$('more').onclick=()=>{limit+=100;render();};
- $('clear').onclick=async()=>{if(!confirm('완료된 다운로드 기록을 정리할까요? 저장된 파일은 삭제하지 않아요.'))return;try{await chrome.downloads.erase({state:'complete'});await chrome.storage.local.set({'core.video:history':[]});await refresh();}catch{report('기록을 정리하지 못했어요.');}};
+ $('clear').onclick=async()=>{if(!confirm('끝났거나 중단된 다운로드 기록을 정리할까요? 저장된 파일은 삭제하지 않아요.'))return;try{await chrome.downloads.erase({state:'complete'});await chrome.downloads.erase({state:'interrupted'});await chrome.storage.local.set({'core.video:history':[]});await refresh();}catch{report('기록을 정리하지 못했어요.');}};
  chrome.downloads.onChanged.addListener(()=>{clearTimeout(timer);timer=setTimeout(()=>void refresh(),200);});chrome.downloads.onCreated.addListener(()=>void refresh());chrome.downloads.onErased.addListener(()=>void refresh());
  chrome.storage.onChanged.addListener((changes,area)=>{if(area==='local'&&(changes['core.video:history']||changes['core.video:status']))void refresh();});
  setInterval(()=>{if(!document.hidden&&items.some(item=>item.state==='in_progress'&&!item.paused))void refresh();},1000);void refresh();
