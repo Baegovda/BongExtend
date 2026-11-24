@@ -57,7 +57,23 @@
  const status=saved['core.video:status'];if(['started','progress'].includes(status?.type))next.push({id:'native:active',native:true,filename:'동영상 처리 중',url:'',state:'in_progress',totalBytes:100,bytesReceived:status.percent||0,startTime:new Date().toISOString()});
  next.sort((a,b)=>Date.parse(b.startTime)-Date.parse(a.startTime));if(own!==sequence)return;const now=Date.now();for(const item of next){if(item.state!=='in_progress')continue;const old=samples.get(item.id);samples.set(item.id,{bytes:item.bytesReceived,time:now,speed:old&&now>old.time?Math.max(0,(item.bytesReceived-old.bytes)*1000/(now-old.time)):0});}items=next;render();}catch{report('다운로드 기록을 가져오지 못했어요.');}}
  async function showManager(hash){await chrome.tabs.create({url:chrome.runtime.getURL('downloads.html')+(hash||'')});}
- $('manager').onclick=()=>void showManager('');$('settings').onclick=()=>void showManager('#settings');$('video').onclick=()=>void chrome.tabs.create({url:chrome.runtime.getURL('video-downloader.html')});
+ // '영상 받기': 보고 있는 웹페이지 주소와 탭 번호를 넣어 동영상 받기 창을 열어요(yt-dlp가 모르는 사이트는 그 탭에서 실제 영상 주소를 찾아요).
+ async function openVideo(){
+  const base=chrome.runtime.getURL('video-downloader.html');let target=base;
+  try{
+   const tabs=await chrome.tabs.query({url:['https://*/*','http://*/*']});
+   const [focused]=await chrome.tabs.query({active:true,lastFocusedWindow:true});
+   tabs.sort((a,b)=>(b.lastAccessed||0)-(a.lastAccessed||0));
+   const tab=tabs.find(t=>t.id===focused?.id)||tabs.find(t=>t.active)||tabs[0];
+   if(tab?.url)target=base+'?url='+encodeURIComponent(tab.url)+'&tab='+tab.id;
+  }catch{}
+  const existing=(await chrome.tabs.query({url:base+'*'}).catch(()=>[])).find(t=>t.url===base||t.url?.startsWith(base+'?'));
+  const status=(await chrome.storage.local.get('core.video:status').catch(()=>({})))['core.video:status'];
+  const busy=['started','progress'].includes(status?.type);
+  if(existing?.id){await chrome.tabs.update(existing.id,{active:true,...(busy?{}:{url:target})});if(typeof existing.windowId==='number')await chrome.windows.update(existing.windowId,{focused:true}).catch(()=>{});}
+  else await chrome.tabs.create({url:target});
+ }
+ $('manager').onclick=()=>void showManager('');$('settings').onclick=()=>void showManager('#settings');$('video').onclick=()=>void openVideo();
  $('openFolder').onclick=()=>{try{chrome.downloads.showDefaultFolder();}catch{report('다운로드 폴더를 열지 못했어요.');}};$('searchToggle').onclick=()=>{const wrap=$('searchWrap');wrap.hidden=!wrap.hidden;if(!wrap.hidden)$('search').focus();};$('search').oninput=()=>{limit=100;render();};$('more').onclick=()=>{limit+=100;render();};
  $('clear').onclick=async()=>{if(!confirm('끝났거나 중단된 다운로드 기록을 정리할까요? 저장된 파일은 삭제하지 않아요.'))return;const failed=new Map();try{await chrome.downloads.erase({state:'complete'});}catch(e){failed.set('complete',String(e?.message||e));}
   /* 이어받기가 가능한 중단 기록은 크롬이 지우지 않아서, 먼저 취소해 끝난 기록으로 만든 뒤 지워요. 한 줄이 실패해도 나머지는 계속 지워요. */

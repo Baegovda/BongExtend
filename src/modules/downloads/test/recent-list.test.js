@@ -90,3 +90,25 @@ test('each finished row has an X that removes it from the list or deletes the fi
   row('native:v1').querySelector('.row-remove-menu button').click();await tick();assert.deepEqual(history,[]);
  }finally{await window.happyDOM.close();}
 });
+
+test('the video button opens the downloader with the page being viewed and its tab', async () => {
+ const {Window} = await import('happy-dom');
+ const fs = await import('node:fs');
+ const window = new Window({url: 'chrome-extension://x/recent-downloads.html'});
+ window.document.write(fs.readFileSync('public/recent-downloads.html', 'utf8').replace(/<script[^>]*><\/script>/g, ''));
+ const created = [], updated = [];
+ const tabs = [{id: 3, url: 'https://old.example/', active: false, lastAccessed: 1}, {id: 7, url: 'https://video.example/watch?id=9', active: true, lastAccessed: 5}];
+ window.chrome = {
+  runtime: {getURL: (p) => 'chrome-extension://x/' + p},
+  tabs: {query: async (q) => (q.active ? [tabs[1]] : Array.isArray(q.url) ? tabs : []), create: async (o) => created.push(o), update: async (id, o) => updated.push([id, o])},
+  windows: {update: async () => {}},
+  downloads: {search: async () => [], onChanged: {addListener() {}}, onCreated: {addListener() {}}, onErased: {addListener() {}}, getFileIcon: async () => ''},
+  storage: {local: {get: async () => ({})}, onChanged: {addListener() {}}}
+ };
+ window.eval(fs.readFileSync('public/download-danger.js', 'utf8'));
+ window.eval(fs.readFileSync('public/recent-downloads.js', 'utf8'));
+ window.document.getElementById('video').click();
+ for (let i = 0; i < 20 && !created.length; i++) await new Promise((r) => setTimeout(r, 5));
+ assert.equal(created[0].url, 'chrome-extension://x/video-downloader.html?url=' + encodeURIComponent('https://video.example/watch?id=9') + '&tab=7');
+ await window.happyDOM.close();
+});

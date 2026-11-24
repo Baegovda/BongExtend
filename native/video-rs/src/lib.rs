@@ -157,7 +157,7 @@ pub fn worth_fallback(error: &str) -> bool {
 /// 사이트를 몰라서 못 받았을 때 보여 줄 쉬운 안내.
 pub fn unsupported_hint(error: &str) -> String {
     if worth_fallback(error) {
-        "이 사이트는 주소만으로는 받을 수 없어요. 영상 페이지에서 영상을 잠깐 재생한 뒤, BongExtend → 다운로드 → '현재 페이지 영상 받기'를 눌러 주세요.".to_string()
+        "이 사이트는 주소만으로는 받을 수 없어요. 영상 페이지에서 영상을 잠깐 재생한 뒤, 그 탭에서 BongExtend → 다운로더 → '영상 받기'를 눌러 주세요.".to_string()
     } else {
         error.to_string()
     }
