@@ -50,7 +50,7 @@ test("rememberNoticed keeps the start time and the last 100 ids", () => {
     assert.equal(record.ids[0], 21);
 });
 
-test("a complete event announces once, with a silent toast when our sound played", async () => {
+test("a complete event announces once with the Windows toast sound, not ours", async () => {
     const items = [{id: 7, state: "complete", endTime: iso(T0 + 5000), filename: "C:\\Users\\me\\Downloads\\font.zip"}];
     const fake = fakeApi(items);
     let sounds = 0;
@@ -59,9 +59,9 @@ test("a complete event announces once, with a silent toast when our sound played
     assert.equal(await notifier.onComplete(7), false, "same download twice");
     assert.equal(await notifier.sweep(), 0, "sweep does not repeat it");
     assert.equal(fake.created.length, 1);
-    assert.deepEqual({id: fake.created[0].id, title: fake.created[0].title, message: fake.created[0].message, silent: fake.created[0].silent}, {id: "bongextend-download-7", title: "다운로드 완료", message: "font.zip", silent: true});
-    assert.equal(sounds, 1);
-    assert.deepEqual(fake.local[LAST_NOTICE_KEY], {at: T0, id: 7, via: "event", ok: true, sound: true}, "diagnostic has no file name");
+    assert.deepEqual({id: fake.created[0].id, title: fake.created[0].title, message: fake.created[0].message, silent: fake.created[0].silent}, {id: "bongextend-download-7", title: "다운로드 완료", message: "font.zip", silent: false});
+    assert.equal(sounds, 0, "our sound only when no toast is shown");
+    assert.deepEqual(fake.local[LAST_NOTICE_KEY], {at: T0, id: 7, via: "event", ok: true, sound: false}, "diagnostic has no file name");
 });
 
 test("a missed complete event is found by the sweep when the worker wakes", async () => {
@@ -77,7 +77,7 @@ test("a missed complete event is found by the sweep when the worker wakes", asyn
     const again = createCompleteNotifier({api: fake.api, readSettings: settingsOn, playSound: async () => false, now: () => clock});
     assert.equal(await again.sweep("start"), 1);
     assert.equal(fake.created[0].message, "b.zip");
-    assert.equal(fake.created[0].silent, false, "Windows plays its own sound when ours did not");
+    assert.equal(fake.created[0].silent, false, "Windows plays its own sound");
     assert.equal(fake.local[LAST_NOTICE_KEY].via, "start");
     assert.equal(fake.session[NOTICE_SESSION_KEY].since, T0);
     assert.equal(await notifier.onComplete(9), false, "the late event does not repeat it");
@@ -99,5 +99,14 @@ test("quiet shop photos, a module switched off and blocked notifications", async
     const blocked = fakeApi(items, {failNotify: true});
     const failing = createCompleteNotifier({api: blocked.api, readSettings: settingsOn, playSound: async () => false, now: () => T0});
     assert.equal(await failing.onComplete(2), false);
+    const blockedLoud = fakeApi(items, {failNotify: true});
+    let fallback = 0;
+    const loud = createCompleteNotifier({api: blockedLoud.api, readSettings: settingsOn, playSound: async () => { fallback++; return true; }, now: () => T0});
+    assert.equal(await loud.onComplete(2), true, "our sound stands in when the toast is blocked");
+    assert.equal(fallback, 1);
+    const mute = fakeApi(items);
+    const muted = createCompleteNotifier({api: mute.api, readSettings: async () => ({moduleOn: true, notifications: true, completeSound: false}), playSound: async () => { throw new Error("must not play"); }, now: () => T0});
+    assert.equal(await muted.onComplete(2), true);
+    assert.equal(mute.created[0].silent, true, "complete sound off mutes the Windows sound too");
     assert.deepEqual(blocked.local[LAST_NOTICE_KEY], {at: T0, id: 2, via: "event", ok: false, sound: false, error: "blocked"});
 });
