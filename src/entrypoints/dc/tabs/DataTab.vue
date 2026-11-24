@@ -7,7 +7,12 @@
         <div class="be-actions">
           <button :disabled="loading" @click="backupCloud">클라우드 백업</button>
           <button :disabled="loading" @click="recoverCloud">클라우드 복원</button>
+          <button :disabled="loading || !cloudUsage?.dc" class="danger" @click="clearCloud">클라우드 백업 지우기</button>
         </div>
+        <p v-if="cloudUsage" class="be-hint" data-cloud-usage>
+          동기화 공간: 디시 백업 {{ kb(cloudUsage.dc) }} · 전체 {{ kb(cloudUsage.total) }} / {{ kb(cloudUsage.quota) }}
+          <template v-if="cloudUsage.total > cloudUsage.quota * 0.8"> — 거의 찼어요. 백업을 지우면 다른 설정이 다시 저장돼요.</template>
+        </p>
         <p class="be-hint">
           마지막 백업: {{ lastUpdate > 0 ? new Date(lastUpdate).toLocaleString("ko-KR") : "없음" }}
         </p>
@@ -33,8 +38,16 @@ const {
   refreshLastUpdate,
   backupCloud,
   recoverCloud,
+  cloudUsage,
+  refreshCloudUsage,
+  clearCloud,
   clearData
 } = inject("data")!;
 
-onMounted(refreshLastUpdate);
+const kb = (bytes: number) => `${(bytes / 1024).toFixed(1)}KB`;
+
+onMounted(() => {
+  void refreshLastUpdate();
+  void refreshCloudUsage();
+});
 </script>

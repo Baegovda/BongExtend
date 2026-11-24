@@ -60,6 +60,41 @@ export function useData() {
             alert("데이터를 클라우드에 백업하는 데 실패했어요.");
         } finally {
             loading.value = false;
+            await refreshCloudUsage();
+        }
+    };
+
+    // 동기화 공간(크롬 계정, 전체 약 100KB) 중 디시 백업이 차지하는 양. 공간이 차면 치지직 관심 스트리머 같은 다른 설정이 저장되지 않아요.
+    const cloudUsage = ref<{dc: number; total: number; quota: number} | null>(null);
+    const refreshCloudUsage = async (): Promise<void> => {
+        try {
+            const sync = browser.storage.sync as typeof browser.storage.sync & {getBytesInUse(keys?: string[] | null): Promise<number>; QUOTA_BYTES?: number};
+            const dcKeys = Object.keys(await sync.get(null)).filter((key) => !isOtherModuleKey(key));
+            cloudUsage.value = {
+                dc: dcKeys.length ? await sync.getBytesInUse(dcKeys) : 0,
+                total: await sync.getBytesInUse(null),
+                quota: sync.QUOTA_BYTES || 102400,
+            };
+        } catch {
+            cloudUsage.value = null;
+        }
+    };
+
+    const clearCloud = async (): Promise<void> => {
+        if (!confirm("클라우드에 올린 디시 백업을 지울까요? 지금 쓰는 디시 설정·차단·메모는 그대로예요. 지운 백업은 되돌릴 수 없어요.")) return;
+
+        loading.value = true;
+        try {
+            const syncKeys = Object.keys(await browser.storage.sync.get(null)).filter((key) => !isOtherModuleKey(key));
+            if (syncKeys.length) await browser.storage.sync.remove(syncKeys);
+            lastUpdate.value = 0;
+            await databaseStorage.lastUpdate.setValue(0);
+            alert("클라우드 백업을 지웠어요.");
+        } catch {
+            alert("클라우드 백업을 지우지 못했어요.");
+        } finally {
+            loading.value = false;
+            await refreshCloudUsage();
         }
     };
 
@@ -140,6 +175,9 @@ export function useData() {
         refreshLastUpdate,
         backupCloud,
         recoverCloud,
+        cloudUsage,
+        refreshCloudUsage,
+        clearCloud,
         exportData,
         importData,
         clearData
