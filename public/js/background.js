@@ -3709,11 +3709,13 @@ async function BongExtendMailOptions(params = {}) {
         if (["comfortable", "cozy", "compact"].includes(v.displayDensity)) await storage.set("displayDensity", v.displayDensity);
         for (const key of ["previewing_marks_as_read", "showStar", "showArchive", "showDelete"]) if (typeof v[key] === "boolean") await storage.set(key, v[key]);
         if (typeof v.otp === "boolean") await chrome.storage.local.set({"core.mailOtpEnabled": v.otp});
+        if (typeof v.otpAutofill === "boolean") await chrome.storage.local.set({"core.mailOtpAutofill": v.otpAutofill});
     }
     const values = {};
     for (const key of keys) values[key] = await storage.get(key);
     values.desktopNotification = Boolean(values.desktopNotification);
     values.otp = (await chrome.storage.local.get("core.mailOtpEnabled"))["core.mailOtpEnabled"] !== false;
+    values.otpAutofill = (await chrome.storage.local.get("core.mailOtpAutofill"))["core.mailOtpAutofill"] !== false;
     return {values, accounts: accounts.filter(a => !a.error).map(a => ({email: a.getEmail(), index: a.id}))};
 }
 async function BongExtendGetSessionWatchConfig() {

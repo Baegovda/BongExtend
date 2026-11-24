@@ -75,6 +75,8 @@ import {createOtpToast} from "@/modules/gmail/otp-toast.js";
 import {createOtpPasteTracker} from "@/modules/gmail/otp-paste.js";
 // @ts-ignore isolated trusted-paste bridge
 import {startOtpPasteBridge} from "@/modules/gmail/otp-paste-bridge.js";
+// @ts-ignore JS module
+import {createOtpAutofill} from "@/modules/gmail/otp-autofill.js";
 // @ts-ignore pure JS, memory-only auto read for AliExpress mail
 import {createMailAutoRead} from "@/modules/gmail/auto-read.js";
 
@@ -117,6 +119,7 @@ export default defineBackground(() => {
     const showOtpToast=createOtpToast();
     const otpPasteTracker=createOtpPasteTracker();
     const otpPasteBridge=startOtpPasteBridge(otpPasteTracker);
+    const otpAutofill=createOtpAutofill();
     const otpHandler = createMailOtpHandler({
         load: async () => {
             const stored = await chrome.storage.local.get(["core.mailOtpSeen", "core.mailOtpEnabled", MODULES_KEY]);
@@ -129,6 +132,10 @@ export default defineBackground(() => {
             const result = await send("bongextend-copy-otp", {code});
             if (!result?.ok) throw new Error("clipboard copy failed");
             try {await otpPasteBridge.arm(mail,code);await otpPasteBridge.refresh();} catch { /* Clipboard copy succeeded; leave mail unread when monitoring is unavailable. */ }
+            // 커서가 인증번호 칸에 있으면 바로 넣고 확인을 눌러요. 넣었으면 메일도 읽음으로 해요.
+            const filled=await otpAutofill(code);
+            if(filled?.filled)await otpPasteBridge.consumeCurrent().catch(()=>false);
+            await chrome.storage.local.set({'core.mailOtpAutofillStatus':{at:Date.now(),filled:!!filled?.filled,submitted:!!filled?.submitted}});
             const shown=await showOtpToast(code);
             await chrome.storage.local.set({'core.mailOtpOverlayStatus':shown?'shown':'page-unavailable'});
         },

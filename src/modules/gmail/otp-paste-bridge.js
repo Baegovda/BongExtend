@@ -57,5 +57,7 @@ export function startOtpPasteBridge(tracker, chromeApi=chrome) {
    }finally{inflight.delete(message.token);}
   })().catch(()=>reply({ok:false}));return true;
  });
- return {arm,refresh};
+ // 자동 입력으로 번호를 쓴 경우: 붙여넣기와 같이 메일을 읽음으로 하고 기다림을 끝내요.
+ const consumeCurrent=async()=>{const current=tracker.current();if(!current)return false;const ok=await tracker.consume(current.token);if(ok){recipients.clear();await chromeApi.storage.session.remove(sessionKey);}return ok;};
+ return {arm,refresh,consumeCurrent};
 }
