@@ -474,3 +474,7 @@ html:not(.mail-active) .tabs .window-tools .mail-shell-action { display: none; }
 .shop-item-price .down { color: var(--be-ok); font-size: 11.5px; font-weight: 600; margin-left: 6px; }
 .shop-item-price .up { color: var(--be-error); font-size: 11.5px; font-weight: 600; margin-left: 6px; }
 .be-page .shop-item button { padding: 4px 9px; font-size: 12px; }
+/* 사이드바 아래 버튼(새로고침·메일 설정·크기 조절·마우스·설정)이 줄바꿈 없이 한 줄에 고르게 들어가요. */
+.window-tools { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 4px; }
+.be-page .tabs .window-tools button { width: 100%; min-width: 0; max-width: 40px; justify-self: center; }
+.be-page .tabs .window-tools .gear-fab { margin-left: 0; }
