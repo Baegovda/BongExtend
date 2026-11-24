@@ -1727,12 +1727,12 @@ chrome.storage.onChanged.addListener((changes, area) => {
     if (typeof next === "string" && next !== current && TAB_IDS.includes(next as TabId)) void showTab(next as TabId, false);
 });
 
-async function openVideoDownloader(url?: string) {
+async function openVideoDownloader(url?: string, tabId?: number) {
  const base=chrome.runtime.getURL('/video-downloader.html');
  const tabs=await chrome.tabs.query({});
  const existing=tabs.find(tab=>tab.url===base || tab.url?.startsWith(base+'?'));
  const stored=await chrome.storage.local.get(VIDEO_STATUS_KEY);
- const target=base+(url?'?url='+encodeURIComponent(url):'');
+ const target=base+(url?'?url='+encodeURIComponent(url)+(tabId?'&tab='+tabId:''):'');
  if(existing?.id){
   await chrome.tabs.update(existing.id,{active:true,...(url && !videoInProgress(stored[VIDEO_STATUS_KEY])?{url:target}:{})});
   if(typeof existing.windowId==='number')await chrome.windows.update(existing.windowId,{focused:true});
@@ -1778,10 +1778,6 @@ $("currentVideoDownloader").addEventListener("click",async()=>{
  tabs.sort((a,b)=>(b.lastAccessed || 0)-(a.lastAccessed || 0));
  const tab=tabs.find(t=>t.id===focused?.id) || tabs[0];
  if(!tab?.url){await openVideoDownloader();return;}
- let url=tab.url;
- try {const [result]=await chrome.scripting.executeScript({target:{tabId:tab.id!},func:()=>{
-  const video=document.querySelector('video');const src=video?.currentSrc || video?.src;
-  return src?.startsWith('https://') || src?.startsWith('http://')?src:null;
- }});if(typeof result?.result==='string')url=result.result;}catch{/* Supported page extractors can use the page URL directly. */}
- await openVideoDownloader(url);
+ // 페이지 주소로 먼저 받고, yt-dlp가 모르는 사이트면 이 탭에서 찾은 실제 영상 주소(출처 포함)로 다시 받아요.
+ await openVideoDownloader(tab.url,tab.id);
 });

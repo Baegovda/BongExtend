@@ -1,6 +1,8 @@
 import {isModuleEnabled} from '../core-modules.js';
 import {addVideoHistory, VIDEO_STATUS_KEY, VIDEO_HISTORY_KEY} from './video-history.js';
+import {createMediaSniffer} from './video-sniff.js';
 let port, active=false, jobId;
+const sniff=createMediaSniffer();
 const key=VIDEO_STATUS_KEY;
 const save=value=>chrome.storage.local.set({[key]:value});
 async function saveCompleted(value, id){
@@ -17,6 +19,9 @@ export function startVideoHost(){
   void (async()=>{
   if(message.action==='download' && !(await isModuleEnabled('download'))){reply({ok:false,message:'설정에서 다운로더 모듈을 켜 주세요.'});return;}
   if(message.action==='download' && active){reply({ok:false,message:'진행 중인 영상이 있어요.'});return;}
+  // 페이지 주소로 못 받는 사이트를 위해, 열린 영상 페이지에서 실제 영상 주소를 미리 찾아 둬요(보조 프로그램이 필요할 때만 써요).
+  let fallback=null;
+  if(message.action==='download'){active=true;jobId=crypto.randomUUID();void save({type:'started'});fallback=await sniff(message.url,message.tabId);}
   if(message.action==='cancel' && !port){reply({ok:true});return;}
   try{
    if(!port){
@@ -35,9 +40,8 @@ export function startVideoHost(){
      void save({type:'missing',message:error?.message || '보조 프로그램 연결이 끊겼어요. 다시 연결해 주세요.'});
     });
    }
-   if(message.action==='download'){active=true;jobId=crypto.randomUUID();}
    if(message.action!=='cancel')void save({type:active?'started':'connecting'});
-   port.postMessage({type:message.action,url:message.url,quality:message.quality});reply({ok:true});
+   port.postMessage({type:message.action,url:message.url,quality:message.quality,...(fallback?{fallback}:{})});reply({ok:true});
   }catch{active=false;port?.disconnect();port=null;void save({type:'missing'});reply({ok:false});}
   })().catch(()=>reply({ok:false,message:'다운로더 설정을 확인하지 못했어요.'}));
   return true;

@@ -824,7 +824,7 @@ export default defineBackground(() => {
                     const target=videoSaveTarget(info,tab);
                     if(!target)return;
                     if(target.mode==='direct')await startDownloadWithName(target.url,cleanSuggestedFilename(new URL(target.url).pathname.split('/').pop()||'video.mp4'));
-                    else await chrome.tabs.create({url:chrome.runtime.getURL('video-downloader.html')+'?autostart=1&url='+encodeURIComponent(target.url)});
+                    else await chrome.tabs.create({url:chrome.runtime.getURL('video-downloader.html')+'?autostart=1&url='+encodeURIComponent(target.url)+(typeof tab?.id==='number'?'&tab='+tab.id:'')});
                 }).catch(()=>{void chrome.notifications.create('bongextend-video-save-error',{type:'basic',iconUrl:chrome.runtime.getURL('icons/128.png'),title:'동영상 저장',message:'다운로드를 시작하지 못했어요. 주소와 파일 상태를 확인해 주세요.'}).catch(()=>{});});
                 break;
             }

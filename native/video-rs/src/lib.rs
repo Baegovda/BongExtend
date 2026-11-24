@@ -135,6 +135,49 @@ pub fn read_json(path: &Path) -> Option<Value> {
     serde_json::from_str(text.trim_start_matches('\u{feff}')).ok()
 }
 
+/// 영상을 찾은 페이지 주소(출처). yt-dlp --referer 로 넘겨요. http(s)만, 제어 문자 없이, 2000자까지.
+pub fn referer(value: Option<&Value>) -> Option<String> {
+    let text = value?.as_str()?;
+    if text.len() > 2000 || text.chars().any(char::is_control) {
+        return None;
+    }
+    let parsed = url::Url::parse(text).ok()?;
+    if !matches!(parsed.scheme(), "http" | "https") || !parsed.username().is_empty() || parsed.password().is_some() {
+        return None;
+    }
+    Some(parsed.to_string())
+}
+
+/// yt-dlp가 그 사이트를 몰라서 못 받은 오류인지(이때만 페이지에서 찾은 영상 주소로 다시 해 봐요).
+pub fn worth_fallback(error: &str) -> bool {
+    let e = error.to_ascii_lowercase();
+    ["unsupported url", "no video formats", "unable to extract", "no media found"].iter().any(|k| e.contains(k))
+}
+
+/// 사이트를 몰라서 못 받았을 때 보여 줄 쉬운 안내.
+pub fn unsupported_hint(error: &str) -> String {
+    if worth_fallback(error) {
+        "이 사이트는 주소만으로는 받을 수 없어요. 영상 페이지에서 영상을 잠깐 재생한 뒤, BongExtend → 다운로드 → '현재 페이지 영상 받기'를 눌러 주세요.".to_string()
+    } else {
+        error.to_string()
+    }
+}
+
+/// 확장 프로그램이 페이지에서 찾아 둔 예비 영상 주소 요청. 화질은 원래 요청을 따라요.
+pub fn fallback_message(message: &Value) -> Option<Value> {
+    let fallback = message.get("fallback")?;
+    let url = fallback.get("url")?.as_str()?;
+    let mut next = Map::new();
+    next.insert("url".into(), json!(url));
+    if let Some(r) = fallback.get("referer") {
+        next.insert("referer".into(), r.clone());
+    }
+    if let Some(q) = message.get("quality") {
+        next.insert("quality".into(), q.clone());
+    }
+    Some(Value::Object(next))
+}
+
 /// yt-dlp 실행 인자(host.py command). base = 보조 프로그램 폴더, out = 저장 폴더.
 pub fn command(message: &Value, base: &Path, out: &Path, resolve: &dyn Fn(&str, u16) -> Vec<IpAddr>) -> Result<Vec<String>, String> {
     let url = video_url(message.get("url").unwrap_or(&Value::Null), resolve)?;
@@ -163,6 +206,9 @@ pub fn command(message: &Value, base: &Path, out: &Path, resolve: &dyn Fn(&str, 
         args.extend([s("-x"), s("--audio-format"), s("mp3")]);
     } else {
         args.extend([s("-f"), format!("bv*[height<=?{quality}]+ba/b[height<=?{quality}]"), s("--merge-output-format"), s("mkv")]);
+    }
+    if let Some(page) = referer(message.get("referer")) {
+        args.extend([s("--referer"), page]);
     }
     args.extend([s("--"), url]);
     Ok(args)
@@ -447,6 +493,19 @@ mod tests {
         assert!(command(&json!({"url": args.last().unwrap(), "quality": "--exec=bad"}), &dir, &out, &no_dns).is_err());
         let default = command(&json!({"url": args.last().unwrap()}), &dir, &out, &no_dns).unwrap();
         assert!(default.contains(&"bv*[height<=?1080]+ba/b[height<=?1080]".to_string()));
+        // 페이지에서 찾은 영상 주소는 출처 페이지를 --referer 로 함께 넘겨요.
+        let message = json!({"url": "https://site.example/page", "quality": "720", "fallback": {"url": "https://cdn.example/v/master.m3u8", "referer": "https://site.example/page?id=1"}});
+        let fallback = fallback_message(&message).unwrap();
+        assert_eq!(fallback["quality"], "720");
+        let hls = command(&fallback, &dir, &out, &public).unwrap();
+        assert_eq!(hls.last().unwrap(), "https://cdn.example/v/master.m3u8");
+        assert!(hls.windows(2).any(|w| w[0] == "--referer" && w[1] == "https://site.example/page?id=1"));
+        assert!(fallback_message(&json!({"url": "https://a.example/"})).is_none());
+        assert!(referer(Some(&json!("javascript:alert(1)"))).is_none());
+        assert!(referer(Some(&Value::String(format!("https://a.example/{}X: 1", '\n')))).is_none());
+        assert!(worth_fallback("ERROR: Unsupported URL: https://a.example/"));
+        assert!(!worth_fallback("ERROR: HTTP Error 403: Forbidden"));
+        assert!(unsupported_hint("ERROR: Unsupported URL: x").contains("주소만으로는"));
         let _ = fs::remove_dir_all(&dir);
     }
 

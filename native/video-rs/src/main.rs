@@ -60,6 +60,28 @@ fn download(message: Value, base: PathBuf, out: PathBuf, state: Arc<State>) {
             return Err("다운로드를 중단했어요.".to_string());
         }
         std::fs::create_dir_all(&out).map_err(|e| e.to_string())?;
+        match run(&args, &state) {
+            // yt-dlp가 모르는 사이트면, 확장 프로그램이 페이지에서 찾아 둔 영상 주소로 한 번 더 받아요.
+            Err(first) if worth_fallback(&first) && !state.cancelled.load(Ordering::SeqCst) => match fallback_message(&message) {
+                Some(fallback) => {
+                    let args = command(&fallback, &base, &out, &system_resolve).map_err(|_| unsupported_hint(&first))?;
+                    run(&args, &state).map_err(|e| unsupported_hint(&e))
+                }
+                None => Err(unsupported_hint(&first)),
+            },
+            other => other,
+        }
+    })();
+    *state.pid.lock().unwrap_or_else(|e| e.into_inner()) = None;
+    match result {
+        Ok(filename) => emit(&json!({"type": "done", "filename": filename})),
+        Err(message) => emit(&error(&message)),
+    }
+}
+
+/// yt-dlp 한 번 실행: 진행률을 알리고, 다 받은 파일 경로를 돌려줘요.
+fn run(args: &[String], state: &State) -> Result<String, String> {
+    {
         let mut cmd = Command::new(&args[0]);
         cmd.args(&args[1..]).stdin(Stdio::null()).stdout(Stdio::piped()).stderr(Stdio::piped());
         #[cfg(windows)]
@@ -109,11 +131,6 @@ fn download(message: Value, base: PathBuf, out: PathBuf, state: Arc<State>) {
             return Err("완료된 파일을 확인하지 못했어요.".to_string());
         }
         Ok(filename)
-    })();
-    *state.pid.lock().unwrap_or_else(|e| e.into_inner()) = None;
-    match result {
-        Ok(filename) => emit(&json!({"type": "done", "filename": filename})),
-        Err(message) => emit(&error(&message)),
     }
 }
 
