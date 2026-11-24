@@ -8,8 +8,9 @@ export function findPageMedia() {
    if(typeof value!=='string'||!value)return;
    const url=new URL(value,location.href);
    if(!/^https?:$/.test(url.protocol)||seen.has(url.href))return;
-   const path=url.pathname.toLowerCase();
-   const kind=/\.m3u8$/.test(path)?'hls':/\.mpd$/.test(path)?'dash':/\.(mp4|webm|m4v|mov|mkv|flv|ogv)$/.test(path)?'file':from!=='network'?'file':'';
+   const path=url.pathname.toLowerCase(),whole=url.href.toLowerCase();
+   // 주소 끝이 아니라 중간(쿼리 등)에 m3u8·mpd가 들어 있는 재생 목록도 잡아요.
+   const kind=/\.m3u8($|[?&#/])/.test(whole)||/[?&=]m3u8/.test(whole)?'hls':/\.mpd($|[?&#/])/.test(whole)?'dash':/\.(mp4|webm|m4v|mov|mkv|flv|ogv)$/.test(path)?'file':from==='video'?'file':'';
    if(!kind)return;
    seen.add(url.href);items.push({url:url.href,kind,from});
   }catch{}
@@ -19,9 +20,20 @@ export function findPageMedia() {
  // 자주 쓰는 영상 재생기가 들고 있는 주소.
  try{const jw=globalThis.jwplayer?.();const item=jw?.getPlaylistItem?.();add(item?.file,'player');for(const s of item?.sources||[])add(s?.file,'player');}catch{}
  try{for(const player of Object.values(globalThis.videojs?.players||{}))add(player?.currentSrc?.(),'player');}catch{}
- try{for(const entry of performance.getEntriesByType('resource'))add(entry.name,'network');}catch{}
+ // 재생기 객체(hls.js·ArtPlayer·DPlayer·Plyr 등)가 window에 들고 있는 재생 목록 주소를 얕게 훑어요.
+ const media=/\.m3u8|\.mpd|\.mp4|\.webm/i;
+ const fromPlayer=v=>{if(typeof v==='string'&&media.test(v))add(v,'player');};
+ try{
+  for(const key of Object.getOwnPropertyNames(globalThis).slice(0,3000)){
+   let v;try{v=globalThis[key];}catch{continue;}
+   if(!v||typeof v!=='object'||v===globalThis||v===document)continue;
+   try{for(const c of [v.url,v.src,v.file,v.source,v.option?.url,v.options?.video?.url,v.options?.url,v.video?.url,v.config?.src,v.hls?.url,v.player?.hls?.url,v.media?.currentSrc])fromPlayer(c);}catch{}
+  }
+ }catch{}
+ let total=0;const sample=[];
+ try{const entries=performance.getEntriesByType('resource');total=entries.length;for(const entry of entries){add(entry.name,'network');if(!['img','css','link','script','iframe'].includes(entry.initiatorType))sample.push(entry.initiatorType+' '+entry.name.slice(0,160));}}catch{}
  const frames=[...document.querySelectorAll('iframe')].map(f=>f.src).filter(src=>/^https?:/.test(src)).slice(0,20);
- return {page:location.href,playing:videos.some(video=>!video.paused||video.currentTime>0),items:items.slice(0,60),frames};
+ return {page:location.href,playing:videos.some(video=>!video.paused||video.currentTime>0),items:items.slice(0,60),frames,total,sample:sample.slice(-40),videos:videos.map(v=>String(v.currentSrc||v.src||'').slice(0,80)).slice(0,5)};
 }
 
 const AD=/(^|[/._-])(ads?|adv|vast|vmap|preroll|midroll|doubleclick|imasdk|banner|promo)([/._-]|$)/i;
@@ -73,7 +85,7 @@ export function createMediaSniffer(chromeApi) {
     }catch(e){result.reason='no-access';error=String(e?.message||e).slice(0,200);}
    }
   }catch(e){error=String(e?.message||e).slice(0,200);}
-  try{await api.storage?.local?.set?.({[SNIFF_KEY]:{at:Date.now(),reason:result.reason,origin:result.origin,error,frames:frames.map(f=>({page:String(f.page).slice(0,200),playing:!!f.playing,items:(f.items||[]).slice(0,8).map(i=>i.kind+' '+i.from+' '+String(i.url).slice(0,200))}))}});}catch{}
+  try{await api.storage?.local?.set?.({[SNIFF_KEY]:{at:Date.now(),reason:result.reason,origin:result.origin,error,frames:frames.map(f=>({page:String(f.page).slice(0,200),playing:!!f.playing,items:(f.items||[]).slice(0,8).map(i=>i.kind+' '+i.from+' '+String(i.url).slice(0,200)),total:f.total,videos:f.videos,sample:f.sample}))}});}catch{}
   return result;
  };
 }

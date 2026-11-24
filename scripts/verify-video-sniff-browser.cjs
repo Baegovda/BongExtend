@@ -20,6 +20,16 @@ const find=src.match(/export function findPageMedia\(\) \{[\s\S]*?\n\}\n/)[0].re
   const picked=pickMedia(results);
   assert.ok(/master\.m3u8/.test(picked.url),'a master playlist wins');
   assert.ok(!/preroll/.test(picked.url),'the ad is not chosen');
+  // 재생 목록 주소가 쿼리에 숨어 있거나, 재생기 객체만 주소를 들고 있는 사이트.
+  await page.route('https://hidden.test/**',route=>{const u=route.request().url();
+   if(u.endsWith('/v'))return route.fulfill({contentType:'text/html',body:`<!doctype html><body><video src="blob:https://hidden.test/x"></video><script>window.art={option:{url:'https://cdn.hidden.test/play/abc.m3u8?token=1'}};fetch('https://api.hidden.test/stream.php?id=9&type=m3u8')</script>`});
+   return route.fulfill({status:200,body:'#EXTM3U'});});
+  await page.goto('https://hidden.test/v');await page.waitForTimeout(500);
+  const hidden=await page.mainFrame().evaluate(`(${find})()`);
+  assert.ok(hidden.items.some(i=>i.from==='player'&&i.url.includes('abc.m3u8')),'player object address found');
+  assert.ok(hidden.items.some(i=>i.kind==='hls'&&i.url.includes('type=m3u8')),'m3u8 named in the query is found');
+  assert.ok(hidden.total>=1&&hidden.sample.some(x=>x.includes('stream.php')),'diagnostic sample lists fetched addresses');
+  assert.deepEqual(hidden.videos,['blob:https://hidden.test/x']);
   console.log('PASS video sniff:',JSON.stringify(picked));
  }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1});
