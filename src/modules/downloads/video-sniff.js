@@ -20,7 +20,8 @@ export function findPageMedia() {
  try{const jw=globalThis.jwplayer?.();const item=jw?.getPlaylistItem?.();add(item?.file,'player');for(const s of item?.sources||[])add(s?.file,'player');}catch{}
  try{for(const player of Object.values(globalThis.videojs?.players||{}))add(player?.currentSrc?.(),'player');}catch{}
  try{for(const entry of performance.getEntriesByType('resource'))add(entry.name,'network');}catch{}
- return {page:location.href,playing:videos.some(video=>!video.paused||video.currentTime>0),items:items.slice(0,60)};
+ const frames=[...document.querySelectorAll('iframe')].map(f=>f.src).filter(src=>/^https?:/.test(src)).slice(0,20);
+ return {page:location.href,playing:videos.some(video=>!video.paused||video.currentTime>0),items:items.slice(0,60),frames};
 }
 
 const AD=/(^|[/._-])(ads?|adv|vast|vmap|preroll|midroll|doubleclick|imasdk|banner|promo)([/._-]|$)/i;
@@ -43,17 +44,36 @@ export function pickMedia(results) {
 
 const sameUrl=(a,b)=>{try{const x=new URL(a),y=new URL(b);x.hash='';y.hash='';return x.href===y.href;}catch{return false;}};
 
-// 영상 페이지 탭(알려 준 탭, 없으면 같은 주소로 열린 탭)에서 예비 영상 주소를 찾아요. 못 찾으면 null.
+export const SNIFF_KEY='core.video:lastSniff';
+
+// 영상 페이지 탭(알려 준 탭, 없으면 같은 주소로 열린 탭)에서 예비 영상 주소를 찾아요.
+// 돌려주는 값: {media, reason, origin}. reason = found | no-tab | no-access | not-found.
+// 왜 못 찾았는지 보려고 마지막 결과를 core.video:lastSniff 에 남겨요(이 PC 안에만 있어요).
 export function createMediaSniffer(chromeApi) {
  return async (pageUrl,tabId)=>{
+  const api=chromeApi||globalThis.chrome;
+  let result={media:null,reason:'no-tab',origin:''},frames=[],error='';
   try{
-   const api=chromeApi||globalThis.chrome;
    let tab=Number.isInteger(tabId)?await api.tabs.get(tabId).catch(()=>null):null;
    if(!tab)tab=(await api.tabs.query({})).find(t=>sameUrl(t.url||'',pageUrl))||null;
-   if(!tab?.id||!/^https?:/.test(tab.url||''))return null;
-   const results=await api.scripting.executeScript({target:{tabId:tab.id,allFrames:true},world:'MAIN',func:findPageMedia});
-   const picked=pickMedia((results||[]).map(r=>r?.result));
-   return picked&&!sameUrl(picked.url,pageUrl)?picked:null;
-  }catch{return null;}
+   if(tab?.id&&/^https?:/.test(tab.url||'')){
+    result.origin=new URL(tab.url).origin;
+    try{
+     const results=await api.scripting.executeScript({target:{tabId:tab.id,allFrames:true},world:'MAIN',func:findPageMedia});
+     frames=(results||[]).map(r=>r?.result).filter(Boolean);
+     const picked=pickMedia(frames);
+     result.media=picked&&!sameUrl(picked.url,pageUrl)?picked:null;
+     result.reason=result.media?'found':'not-found';
+     // 영상이 다른 사이트의 재생기(iframe) 안에 있는데 그 사이트에 들어갈 권한이 없으면, 그 사이트 허용을 안내해요.
+     if(!result.media){
+      const reached=new Set(frames.map(f=>{try{return new URL(f.page).origin;}catch{return '';}}));
+      const missing=[...new Set(frames.flatMap(f=>f.frames||[]).map(src=>{try{return new URL(src).origin;}catch{return '';}}))].filter(o=>o&&!reached.has(o)).slice(0,5);
+      if(missing.length){result.reason='no-access';result.origin=missing.join(' ');}
+     }
+    }catch(e){result.reason='no-access';error=String(e?.message||e).slice(0,200);}
+   }
+  }catch(e){error=String(e?.message||e).slice(0,200);}
+  try{await api.storage?.local?.set?.({[SNIFF_KEY]:{at:Date.now(),reason:result.reason,origin:result.origin,error,frames:frames.map(f=>({page:String(f.page).slice(0,200),playing:!!f.playing,items:(f.items||[]).slice(0,8).map(i=>i.kind+' '+i.from+' '+String(i.url).slice(0,200))}))}});}catch{}
+  return result;
  };
 }

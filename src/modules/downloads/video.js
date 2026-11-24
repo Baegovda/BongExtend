@@ -3,6 +3,15 @@ import {addVideoHistory, VIDEO_STATUS_KEY, VIDEO_HISTORY_KEY} from './video-hist
 import {createMediaSniffer} from './video-sniff.js';
 let port, active=false, jobId;
 const sniff=createMediaSniffer();
+let lastSniff=null;
+// 사이트를 몰라서 못 받았을 때, 영상 주소를 왜 못 찾았는지에 맞춰 안내를 바꿔요.
+const sniffHint=(value)=>{
+ if(value?.type!=='error'||!String(value.message||'').includes('주소만으로는')||!lastSniff)return value;
+ if(lastSniff.reason==='no-access')return {...value,message:'이 사이트에 들어갈 권한이 없어서 영상 주소를 찾지 못했어요. 아래 ‘이 사이트 허용’을 누른 뒤 다시 받아 주세요.',needAccess:lastSniff.origin};
+ if(lastSniff.reason==='not-found')return {...value,message:'영상 페이지에서 영상 주소를 찾지 못했어요. 영상을 재생한 상태에서 다시 받아 주세요. 그래도 안 되면 이 사이트는 받을 수 없어요.'};
+ if(lastSniff.reason==='no-tab')return {...value,message:'이 사이트는 주소만으로는 받을 수 없어요. 영상 페이지를 연 탭에서 BongExtend → 다운로더 → ‘영상 받기’를 눌러 주세요.'};
+ return value;
+};
 const key=VIDEO_STATUS_KEY;
 const save=value=>chrome.storage.local.set({[key]:value});
 async function saveCompleted(value, id){
@@ -21,7 +30,7 @@ export function startVideoHost(){
   if(message.action==='download' && active){reply({ok:false,message:'진행 중인 영상이 있어요.'});return;}
   // 페이지 주소로 못 받는 사이트를 위해, 열린 영상 페이지에서 실제 영상 주소를 미리 찾아 둬요(보조 프로그램이 필요할 때만 써요).
   let fallback=null;
-  if(message.action==='download'){active=true;jobId=crypto.randomUUID();void save({type:'started'});fallback=await sniff(message.url,message.tabId);}
+  if(message.action==='download'){active=true;jobId=crypto.randomUUID();void save({type:'started'});const found=await sniff(message.url,message.tabId);fallback=found.media;lastSniff=found;}
   if(message.action==='cancel' && !port){reply({ok:true});return;}
   try{
    if(!port){
@@ -29,7 +38,7 @@ export function startVideoHost(){
     const current=port;
     current.onMessage.addListener(value=>{
      if(value.type==='ready' && active)return;
-     void save(value);
+     void save(sniffHint(value));
      if(value.type==='done' && jobId)void saveCompleted(value,jobId);
      if(['done','error'].includes(value.type) || value.type==='ready' && !active){active=false;port=null;current.disconnect();}
     });
