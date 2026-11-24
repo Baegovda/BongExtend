@@ -1,11 +1,34 @@
-param([string]$ExtensionId)
+﻿param([string]$ExtensionId)
 $ErrorActionPreference='Stop'
-if (!$ExtensionId) {
+$ids=@()
+if ($ExtensionId) { $ids+=$ExtensionId } else {
  $folders=@($PSScriptRoot,(Split-Path $PSScriptRoot -Parent),([IO.Path]::Combine($env:USERPROFILE,'Downloads'))) | Select-Object -Unique
  $file=$folders | Where-Object {Test-Path -LiteralPath $_} | ForEach-Object {Get-ChildItem -LiteralPath $_ -Filter 'bongextend-video-connection*.json' -File} | Sort-Object LastWriteTime -Descending | Select-Object -First 1
- if ($file) { $ExtensionId=(Get-Content -LiteralPath $file.FullName -Raw | ConvertFrom-Json).extensionId }
+ if ($file) { $ids+=(Get-Content -LiteralPath $file.FullName -Raw | ConvertFrom-Json).extensionId }
+ # 연결 파일이 없어도 돼요. 크롬 프로필에 깔린 BongExtend를 찾아서 그 ID를 써요(읽기만 해요).
+ $chrome=Join-Path $env:LOCALAPPDATA 'Google\Chrome\User Data'
+ if (Test-Path -LiteralPath $chrome) {
+  Get-ChildItem -LiteralPath $chrome -Directory | Where-Object { $_.Name -eq 'Default' -or $_.Name -like 'Profile *' } | ForEach-Object {
+   foreach ($prefName in 'Secure Preferences','Preferences') {
+    $pref=Join-Path $_.FullName $prefName
+    if (!(Test-Path -LiteralPath $pref)) { continue }
+    try {
+     $settings=(Get-Content -LiteralPath $pref -Raw -Encoding UTF8 | ConvertFrom-Json).extensions.settings
+     if ($settings) { foreach ($ext in $settings.PSObject.Properties) {
+      $extPath=$ext.Value.path
+      if ($ext.Name -match '^[a-p]{32}$' -and $extPath -and [IO.Path]::IsPathRooted($extPath)) {
+       $m=Join-Path $extPath 'manifest.json'
+       if ((Test-Path -LiteralPath $m) -and (Get-Content -LiteralPath $m -Raw -Encoding UTF8 | ConvertFrom-Json).name -eq 'BongExtend') { $ids+=$ext.Name }
+      }
+     } }
+    } catch {}
+   }
+  }
+ }
 }
-if ($ExtensionId -notmatch '^[a-p]{32}$') { throw 'Open the video downloader tab and download the connection file first.' }
+$ids=@($ids | Where-Object { $_ -match '^[a-p]{32}$' } | Sort-Object -Unique)
+if (!$ids.Count) { throw 'BongExtend를 크롬에서 찾지 못했어요. 다운로더 > 동영상 받기 > 연결 파일 받기를 누른 뒤 다시 실행해 주세요.' }
+Write-Host ('BongExtend 찾음: '+($ids -join ', '))
 $dest=Join-Path $env:LOCALAPPDATA 'BongExtend\video-helper'
 New-Item -ItemType Directory -Force -Path $dest | Out-Null
 # Rust 보조 프로그램(bongextend-video-host.exe)이 기본이에요. 파이썬은 있으면 예비로만 써요(없어도 돼요).
@@ -62,10 +85,10 @@ foreach ($leftover in @('ffmpeg-master-latest-win64-gpl.zip','ffmpeg-package','d
 }
 @{runtime=$runtime} | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $dest 'config.json') -Encoding UTF8
 $manifest=Join-Path $dest 'com.bongextend.video.json'
-$origins=@("chrome-extension://$ExtensionId/")
+$origins=@($ids | ForEach-Object { "chrome-extension://$_/" })
 if (Test-Path -LiteralPath $manifest) { $origins+=@((Get-Content -LiteralPath $manifest -Raw | ConvertFrom-Json).allowed_origins) }
 $nativeManifest=@{name='com.bongextend.video';description='BongExtend local video downloader';path=(Join-Path $dest 'BongExtendVideo.exe');type='stdio';allowed_origins=@($origins | Sort-Object -Unique)} | ConvertTo-Json
 [IO.File]::WriteAllText($manifest,$nativeManifest,(New-Object Text.UTF8Encoding($false)))
 $reg='HKCU:\Software\Google\Chrome\NativeMessagingHosts\com.bongextend.video'
 New-Item -Path $reg -Force | Out-Null;Set-Item -LiteralPath $reg -Value $manifest
-Write-Host 'Installed. Return to BongExtend and press Connect.'
+Write-Host '설치를 마쳤어요. BongExtend로 돌아가 연결 확인을 눌러 주세요.'
