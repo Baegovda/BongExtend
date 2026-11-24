@@ -60,3 +60,33 @@ test('trash clears finished and interrupted rows, cancels resumable ones first, 
   assert.deepEqual(stored['core.downloads:clearLeft'].items.map(f=>[f.id,f.host,f.error]),[[4,'stuck.test','FILE_BLOCKED']],'the leftover is recorded with only the site name');
  }finally{await window.happyDOM.close();}
 });
+test('each finished row has an X that removes it from the list or deletes the file after asking; running rows have none',async()=>{
+ const window=new Window({url:'https://extension.invalid/recent-downloads.html'});
+ try{
+  window.document.write(readFileSync(new URL('../../../../public/recent-downloads.html',import.meta.url),'utf8').replace(/<script[^>]*>.*?<\/script>/gs,''));
+  const t=new Date().toISOString();
+  let rows=[
+   {id:1,filename:'C:/D/a.zip',url:'https://a.test/a.zip',state:'complete',exists:true,startTime:t},
+   {id:2,filename:'C:/D/doran.stl',url:'file:///C:/doran.stl',state:'complete',exists:false,startTime:t},
+   {id:3,filename:'C:/D/run.zip',url:'https://r.test/r.zip',state:'in_progress',totalBytes:10,bytesReceived:1,startTime:t}];
+  let history=[{id:'v1',filename:'C:/D/video.mkv',completedAt:Date.now()}];const removed=[],asked=[];let answer=false;
+  window.confirm=m=>{asked.push(m);return answer;};
+  window.chrome={runtime:{getURL:p=>'https://extension.invalid/'+p},permissions:{},tabs:{create:async()=>{}},
+   storage:{local:{get:async()=>({'core.video:history':history}),set:async o=>{if(o['core.video:history'])history=o['core.video:history'];}},onChanged:{addListener(){}}},
+   downloads:{search:async()=>rows,getFileIcon:async()=>null,removeFile:async id=>{removed.push(id);},erase:async q=>{rows=rows.filter(r=>r.id!==q.id);},
+    onChanged:{addListener(){}},onCreated:{addListener(){}},onErased:{addListener(){}}}};
+  window.eval(readFileSync(new URL('../../../../public/recent-downloads.js',import.meta.url),'utf8'));
+  const tick=async()=>{for(let i=0;i<10;i++)await new Promise(r=>setImmediate(r));};await tick();
+  const doc=window.document,row=id=>doc.querySelector(`.download-row[data-id="${id}"]`),menu=id=>[...row(id).querySelectorAll('.row-remove-menu button')].map(b=>b.textContent);
+  assert.equal(row(3).querySelector('.row-remove'),null,'a running download has no X');
+  row(2).querySelector('.row-remove').click();assert.deepEqual(menu(2),['목록에서 지우기'],'a missing file can only leave the list');
+  row(2).querySelector('.row-remove-menu button').click();await tick();assert.equal(row(2),null);assert.deepEqual(removed,[]);
+  row(1).querySelector('.row-remove').click();assert.deepEqual(menu(1),['목록에서 지우기','파일 삭제']);
+  row(1).querySelectorAll('.row-remove-menu button')[1].click();await tick();
+  assert.match(asked[0],/a\.zip.*되돌릴 수 없어요/);assert.deepEqual(removed,[],'saying no keeps the file');assert.ok(row(1),'and the row');
+  answer=true;row(1).querySelectorAll('.row-remove-menu button')[1].click();await tick();
+  assert.deepEqual(removed,[1]);assert.equal(row(1),null);
+  row('native:v1').querySelector('.row-remove').click();assert.deepEqual(menu('native:v1'),['목록에서 지우기'],'PC video rows only leave the list');
+  row('native:v1').querySelector('.row-remove-menu button').click();await tick();assert.deepEqual(history,[]);
+ }finally{await window.happyDOM.close();}
+});

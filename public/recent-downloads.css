@@ -49,3 +49,11 @@ footer button{font-size:11px!important;font-weight:550!important;padding:4px 9px
 .be-page .row-folder:hover{background:var(--be-surface-3);color:var(--be-text)}
 .be-page .row-folder:focus-visible{outline:2px solid var(--be-accent);outline-offset:1px}
 .be-page .row-folder svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linejoin:round}
+/* 줄마다 X: 목록에서 지우기·파일 삭제 (1.2.183) */
+.be-page .row-remove{flex:0 0 26px;width:26px;height:26px;padding:0;display:inline-flex;align-items:center;justify-content:center;border:0;border-radius:8px;background:transparent;color:var(--be-text-2);cursor:pointer}
+.be-page .row-remove:hover,.be-page .row-remove[aria-expanded="true"]{background:var(--be-surface-3);color:var(--be-text)}
+.be-page .row-remove:focus-visible{outline:2px solid var(--be-accent);outline-offset:1px}
+.be-page .row-remove svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+.row-remove-menu{position:absolute;right:40px;top:50%;transform:translateY(-50%);z-index:2;display:flex;gap:4px;padding:3px;border:1px solid var(--be-border-strong);border-radius:9px;background:var(--be-surface-2,var(--be-surface));box-shadow:0 4px 14px rgba(0,0,0,.35)}
+.row-remove-menu button{font-size:11px;padding:3px 8px;white-space:nowrap}
+.row-remove-menu button.danger{color:var(--be-danger,#f87171)}

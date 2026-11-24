@@ -1,5 +1,5 @@
 (() => {
- const $=id=>document.getElementById(id),icons=new Map(),samples=new Map();let items=[],limit=100,timer,sequence=0;
+ const $=id=>document.getElementById(id),icons=new Map(),samples=new Map();let items=[],limit=100,timer,sequence=0,menuId=null;
  const size=n=>!Number.isFinite(n)||n<0?'크기 확인 중':n<1024?`${n} B`:n<1048576?`${(n/1024).toFixed(2)} KB`:n<1073741824?`${(n/1048576).toFixed(2)} MB`:`${(n/1073741824).toFixed(2)} GB`;
  const report=message=>$('notice').textContent=message;
  function host(url){try{return new URL(url).hostname || '로컬 파일';}catch{return '주소 정보 없음';}}
@@ -37,9 +37,21 @@
   const folder=document.createElement('button');folder.type='button';folder.className='row-folder';const showsFile=!item.native&&item.exists!==false;folder.title=showsFile?'폴더에서 보기':'다운로드 폴더 열기';folder.setAttribute('aria-label',(showsFile?'폴더에서 보기: ':'다운로드 폴더 열기: ')+(item.filename.split(/[\\/]/).pop()||'파일'));
   folder.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>';
   folder.onclick=()=>{try{if(showsFile)chrome.downloads.show(item.id);else chrome.downloads.showDefaultFolder();}catch{report('폴더를 열지 못했어요.');}};
-  row.append(image,info,folder);fragment.append(row);
+  // 줄마다 X 버튼: 누르면 '목록에서 지우기'와 '파일 삭제'를 골라요. 받는 중·확인 대기 줄에는 없어요.
+  const removable=item.state!=='in_progress'&&!hold;if(removable){const x=document.createElement('button');x.type='button';x.className='row-remove';x.title='지우기';x.setAttribute('aria-label','지우기: '+(item.filename.split(/[\/]/).pop()||'파일'));x.setAttribute('aria-expanded',String(menuId===String(item.id)));
+   x.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';x.onclick=event=>{event.stopPropagation();menuId=menuId===String(item.id)?null:String(item.id);render();};
+   row.append(image,info,folder,x);if(menuId===String(item.id))row.append(removeMenu(item));}else row.append(image,info,folder);fragment.append(row);
  }$('list').replaceChildren(fragment);$('empty').hidden=matched.length>0;$('empty').textContent=term?'검색 결과가 없어요. 파일 이름이나 주소를 바꿔 보세요.':'받은 파일이 없어요. 웹에서 파일을 받거나 위의 ‘영상 받기’를 눌러 시작해 보세요.';$('more').hidden=matched.length<=limit;$('more').textContent=`${Math.min(100,Math.max(0,matched.length-limit))}개 더 보기`;$('downloadCount').textContent=matched.length>limit?`${limit} / ${matched.length}개`:`${matched.length}개${term?' 검색 결과':''}`;
  if(focusId&&focusIndex>=0){const row=[...$('list').children].find(row=>row.dataset.id===focusId);(row?.querySelectorAll('button')[focusIndex]||row?.querySelector('button'))?.focus({preventScroll:true});}}
+ // X 메뉴: 목록에서만 지우거나, 파일까지 PC에서 삭제해요(삭제는 한 번 더 물어봐요).
+ function removeMenu(item){const menu=document.createElement('div');menu.className='row-remove-menu';menu.setAttribute('role','menu');menu.onclick=event=>event.stopPropagation();
+  const add=(label,fn,danger)=>{const b=document.createElement('button');b.type='button';b.setAttribute('role','menuitem');b.textContent=label;if(danger)b.className='danger';b.onclick=async()=>{b.disabled=true;try{if(await fn()===false){b.disabled=false;return;}menuId=null;await refresh();}catch{menuId=null;report('지우지 못했어요. 크롬 다운로드 화면에서 지워 보세요.');render();}};menu.append(b);};
+  add('목록에서 지우기',()=>forget(item));
+  const canDelete=!item.native&&item.exists!==false&&item.state==='complete';if(canDelete)add('파일 삭제',async()=>{const name=item.filename.split(/[\/]/).pop()||'이 파일';if(!confirm(`'${name}' 파일을 PC에서 삭제할까요? 휴지통으로 가지 않아서 되돌릴 수 없어요.`))return false;
+   await chrome.downloads.removeFile(item.id);await forget(item);report(`'${name}' 파일을 삭제했어요.`);},true);
+  return menu;}
+ async function forget(item){if(item.native){const key='core.video:history',id=String(item.id).replace(/^native:/,'');const saved=(await chrome.storage.local.get(key))[key]||[];await chrome.storage.local.set({[key]:saved.filter(record=>String(record.id)!==id)});return;}await chrome.downloads.erase({id:item.id});}
+ document.addEventListener('click',()=>{if(menuId!==null){menuId=null;render();}});document.addEventListener('keydown',event=>{if(event.key==='Escape'&&menuId!==null){menuId=null;render();}});
  async function refresh(){const own=++sequence;try{const [next,saved]=await Promise.all([chrome.downloads.search({limit:0,orderBy:['-startTime']}),chrome.storage.local.get(['core.video:history','core.video:status'])]);
  for(const record of saved['core.video:history']||[]){if(typeof record.filename==='string'&&Number.isFinite(record.completedAt)&&!next.some(item=>item.filename===record.filename))next.push({id:'native:'+record.id,native:true,filename:record.filename,url:'',state:'complete',startTime:new Date(record.completedAt).toISOString()});}
  const status=saved['core.video:status'];if(['started','progress'].includes(status?.type))next.push({id:'native:active',native:true,filename:'동영상 처리 중',url:'',state:'in_progress',totalBytes:100,bytesReceived:status.percent||0,startTime:new Date().toISOString()});
