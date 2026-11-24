@@ -156,3 +156,10 @@ html .secondary-nav li { flex: 0 0 auto !important; width: auto !important; }
 html .site-header j-input, html .site-header input[type=search] { background: var(--be-control-bg) !important; border-radius: var(--be-radius-sm) !important; color: var(--be-text) !important; }
 html .site-header input::placeholder { color: var(--be-muted); }
 html .label-text, html label { color: var(--be-text-2); }
+
+/* 가로 스크롤 없애기: 좁은 창에서는 칸이 줄어들고 줄바꿈돼요 (1.2.182) */
+html[data-bonghub=options], html[data-bonghub=options] body { overflow-x: hidden !important; max-width: 100%; }
+html[data-bonghub=options] .site-main, html[data-bonghub=options] .page, html[data-bonghub=options] .page *, html[data-bonghub=options] fieldset { min-width: 0 !important; max-width: 100%; box-sizing: border-box; }
+html[data-bonghub=options] .layout.horizontal { flex-wrap: wrap; row-gap: 8px; }
+html[data-bonghub=options] select, html[data-bonghub=options] .defaultSoundOptionWrapper { max-width: 100%; }
+html[data-bonghub=options] .page :is(span, label, div, p) { overflow-wrap: anywhere; }
