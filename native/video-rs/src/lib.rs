@@ -152,7 +152,7 @@ pub fn command(message: &Value, base: &Path, out: &Path, resolve: &dyn Fn(&str, 
     let s = |v: &str| v.to_string();
     let mut args = vec![
         base.join("yt-dlp.exe").display().to_string(),
-        s("--ignore-config"), s("--no-playlist"), s("--no-overwrites"), s("--windows-filenames"),
+        s("--ignore-config"), s("--encoding"), s("utf-8"), s("--no-playlist"), s("--no-overwrites"), s("--windows-filenames"),
         s("--socket-timeout"), s("20"), s("--retries"), s("2"), s("--fragment-retries"), s("2"),
         s("--ffmpeg-location"), base.display().to_string(), s("--js-runtimes"), runtime, s("--newline"), s("--progress"),
         s("--progress-template"), s("download:BE_PROGRESS:%(progress._percent_str)s"),
@@ -439,6 +439,8 @@ mod tests {
         assert!(args.contains(&"bv*[height<=?2160]+ba/b[height<=?2160]".to_string()));
         assert_eq!(args[args.len() - 2], "--");
         assert!(args.contains(&"--no-simulate".to_string()));
+        // 한글 제목 파일 이름이 깨지지 않게 yt-dlp 출력을 UTF-8로 받아요.
+        assert!(args.windows(2).any(|w| w[0] == "--encoding" && w[1] == "utf-8"));
         assert!(args.contains(&"node:node.exe".to_string()));
         let audio = command(&json!({"url": args.last().unwrap(), "quality": "audio"}), &dir, &out, &no_dns).unwrap();
         assert!(audio.contains(&"mp3".to_string()));

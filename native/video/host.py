@@ -43,7 +43,7 @@ def command(message):
     quality = str(message.get('quality', '1080'))
     if quality not in ('720','1080','1440','2160','audio'): raise ValueError('지원하지 않는 화질이에요.')
     cfg = json.loads((BASE / 'config.json').read_text(encoding='utf-8-sig'))
-    args = [str(BASE/'yt-dlp.exe'), '--ignore-config', '--no-playlist', '--no-overwrites', '--windows-filenames',
+    args = [str(BASE/'yt-dlp.exe'), '--ignore-config', '--encoding', 'utf-8', '--no-playlist', '--no-overwrites', '--windows-filenames',
             '--socket-timeout','20','--retries','2','--fragment-retries','2','--ffmpeg-location', str(BASE), '--js-runtimes', cfg['runtime'], '--newline', '--progress',
             '--progress-template', 'download:BE_PROGRESS:%(progress._percent_str)s',
             '--no-simulate', '--print', 'after_move:BE_FILE:%(filepath)s', '-P', str(OUT), '-o', '%(title).160B [%(id)s].%(ext)s']
