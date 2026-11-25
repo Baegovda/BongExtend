@@ -9,8 +9,8 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
  const browser=await chromium.launch({channel:'chrome',headless:!process.env.HEADFUL,ignoreDefaultArgs:['--disable-extensions'],args:['--enable-unsafe-extension-debugging','--window-position=0,0','--window-size=900,600']});
  try{
   const cdp=await browser.newBrowserCDPSession();
-  // 시험 파일은 사용자 다운로드 폴더가 아니라 E:\BuildTemp 에 받아요.
-  await cdp.send('Browser.setDownloadBehavior',{behavior:'allow',downloadPath:path.resolve('E:/BuildTemp/BongExtend/bubble-dl')});
+  // 시험 파일은 사용자 다운로드 폴더가 아니라 D:\BuildTemp(SSD) 에 받아요.
+  await cdp.send('Browser.setDownloadBehavior',{behavior:'allow',downloadPath:path.resolve('D:/BuildTemp/BongExtend/bubble-dl')});
   const {id}=await cdp.send('Extensions.loadUnpacked',{path:ext});
   // 배경(서비스 워커)에 붙어서 코드를 돌려요.
   let seq=0;const pending=new Map();
