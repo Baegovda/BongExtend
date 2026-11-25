@@ -50,8 +50,9 @@ import {openSiteImageSearch, startImageToolbarBackground} from "@/modules/image/
 import "../../public/download-danger.js";
 // @ts-ignore plain JS image search engines
 import {DEFAULT_ENGINES, buildEngineUrl} from "@/modules/image/toolbar.js";
-// @ts-ignore plain JS shopping price tracker worker
+// @ts-ignore plain JS (browser code): download start bubble under the toolbar icon
 import {createStartBubble} from "@/modules/downloads/start-bubble.js";
+// @ts-ignore plain JS shopping price tracker worker
 import {isQuietShopDownload, startShopBackground, takeQuietShopDownload} from "@/modules/shop/background.js";
 // @ts-ignore plain JS
 import {startYoutubeHold} from "@/modules/youtube/background.js";
