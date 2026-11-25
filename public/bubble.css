@@ -1,0 +1,14 @@
+/* 아이콘 아래 말풍선. 크롬이 확장 창을 아이콘 바로 아래에 붙여 열어 줘요. */
+:root { color-scheme: dark light; }
+html, body { margin: 0; padding: 0; background: #1f2128; }
+body { width: max-content; min-width: 180px; max-width: 340px; font: 13px/1.45 "Pretendard", "Malgun Gothic", system-ui, sans-serif; }
+#bubble { all: unset; box-sizing: border-box; display: flex; align-items: center; gap: 9px; width: 100%; padding: 11px 14px; color: #f1f3f8; cursor: pointer; }
+#bubble:hover { background: #2a2d36; }
+#bubble:focus-visible { outline: 2px solid #6aa7ff; outline-offset: -2px; }
+#bubble img { flex: none; }
+#text { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; word-break: break-all; font-weight: 600; }
+@media (prefers-color-scheme: light) {
+  html, body { background: #ffffff; }
+  #bubble { color: #1d2129; }
+  #bubble:hover { background: #f1f4f9; }
+}

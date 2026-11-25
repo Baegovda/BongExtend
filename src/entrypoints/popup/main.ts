@@ -1781,3 +1781,15 @@ $("currentVideoDownloader").addEventListener("click",async()=>{
  // 페이지 주소로 먼저 받고, yt-dlp가 모르는 사이트면 이 탭에서 찾은 실제 영상 주소(출처 포함)로 다시 받아요.
  await openVideoDownloader(tab.url,tab.id);
 });
+
+// BongExtend 창을 열어 둔 채 다운로드가 시작되면, 아이콘 대신 이 창 위쪽에 같은 말풍선을 잠깐 띄워요.
+chrome.runtime.onMessage.addListener((message, sender) => {
+    if (message?.type !== "download-start-bubble" || sender.id !== chrome.runtime.id || typeof message.text !== "string") return;
+    document.querySelector(".start-bubble")?.remove();
+    const bubble = document.createElement("div");
+    bubble.className = "start-bubble";
+    bubble.setAttribute("role", "status");
+    bubble.textContent = message.text;
+    document.body.append(bubble);
+    setTimeout(() => bubble.remove(), 4000);
+});

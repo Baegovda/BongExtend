@@ -27,6 +27,8 @@ export const normalizeDownloadSettings = (value) => {
     notifications: source.notifications !== false,
     // 다 받으면 BongExtend가 직접 짧은 소리를 내요(윈도우 알림이 방해 금지 등으로 안 보여도 들려요).
     completeSound: source.completeSound !== false,
+    // 다운로드가 시작되면 도구막대 아이콘 아래에 "파일명(용량) 다운로드가 시작!" 말풍선을 띄워요.
+    startBubble: source.startBubble !== false,
     listView: source.listView !== false,
     filenameMask: String(source.filenameMask || "").replace(/[\r\n]/g, "").slice(0, 120),
     folder,

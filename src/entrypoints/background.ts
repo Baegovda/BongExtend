@@ -51,6 +51,7 @@ import "../../public/download-danger.js";
 // @ts-ignore plain JS image search engines
 import {DEFAULT_ENGINES, buildEngineUrl} from "@/modules/image/toolbar.js";
 // @ts-ignore plain JS shopping price tracker worker
+import {createStartBubble} from "@/modules/downloads/start-bubble.js";
 import {isQuietShopDownload, startShopBackground, takeQuietShopDownload} from "@/modules/shop/background.js";
 // @ts-ignore plain JS
 import {startYoutubeHold} from "@/modules/youtube/background.js";
@@ -491,7 +492,21 @@ export default defineBackground(() => {
         if (takeQuietShopDownload(delta.id)) quietDone.add(delta.id);
         void completeNotifier.onComplete(delta.id).catch((error: unknown) => console.warn("다운로드 알림을 표시하지 못했어요.", error));
     });
-    chrome.downloads.onCreated.addListener(() => void completeNotifier.sweep("created"));
+    // 다운로드 시작 말풍선: 아이콘 아래에 "파일명(용량) 다운로드가 시작!"을 잠깐 보여줘요.
+    const startBubble = createStartBubble({
+        readSettings: async () => {
+            const stored = await chrome.storage.local.get([DOWNLOAD_SETTINGS_KEY, MODULES_KEY]);
+            const modules = (stored[MODULES_KEY] && typeof stored[MODULES_KEY] === "object" ? stored[MODULES_KEY] : {}) as Record<string, unknown>;
+            return {moduleOn: modules.download !== false, startBubble: normalizeDownloadSettings(stored[DOWNLOAD_SETTINGS_KEY]).startBubble};
+        },
+        isQuiet: (id: number) => isQuietShopDownload(id),
+        defaultPopup: rootManifest.action?.default_popup || "popup.html"
+    });
+    chrome.downloads.onChanged.addListener((delta) => void startBubble.onChanged(delta).catch(() => {}));
+    chrome.downloads.onCreated.addListener((item) => {
+        void startBubble.onCreated(item).catch(() => {});
+        void completeNotifier.sweep("created");
+    });
     // 다운로드 신호가 통째로 안 올 때도 있어서, 이미 도는 알람(메일 확인 등, 30초~)이 울릴 때도 한 번 봐요.
     chrome.alarms.onAlarm.addListener(() => void completeNotifier.sweep("alarm"));
     // 소리 전용으로 연 오프스크린 문서를 메일 감시가 이어 쓰지 않으면 닫아요(메일 엔진이 자기 문서를 열 수 있게).
