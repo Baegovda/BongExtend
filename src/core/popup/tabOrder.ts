@@ -20,11 +20,14 @@ export const moveItem = <T>(order: readonly T[], from: number, to: number): T[] 
 // 받는 중인 파일이 있으면 다운로더, 아니면 메일. 다른 기능이 특정 탭을 보여주려고 연 별도 창(window=1)은 저장된 탭을 따라요.
 export const pickStartTab = <T extends string>(o: {
     mailSettings: boolean; windowed: boolean; saved: unknown; downloadsActive: boolean;
-    modules: Record<string, boolean | undefined>; tabs: readonly T[]; fallback: T;
+    modules: Record<string, boolean | undefined>; tabs: readonly T[]; fallback: T; requested?: unknown;
 }): T => {
-    const usable = (id: string) => o.tabs.includes(id as T) && o.modules[id] !== false;
+    const usable = (id: unknown): id is T => typeof id === "string" && o.tabs.includes(id as T) && o.modules[id] !== false;
+    // 말풍선 등에서 "이 탭으로 열어 줘" 하고 부른 경우가 먼저예요.
+    if (usable(o.requested)) return o.requested;
     if (o.mailSettings) return "gmail" as T;
-    if (o.windowed && typeof o.saved === "string" && o.tabs.includes(o.saved as T)) return o.saved as T;
+    // 사용자 2026-11-25: 마지막에 보던 탭으로 열어요.
+    if (usable(o.saved)) return o.saved;
     if (o.downloadsActive && usable("download")) return "download" as T;
     if (usable("gmail")) return "gmail" as T;
     return typeof o.saved === "string" && o.tabs.includes(o.saved as T) ? o.saved as T : o.fallback;

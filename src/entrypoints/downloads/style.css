@@ -63,3 +63,6 @@ body.downloads-page { max-width: 1180px; margin: 0 auto; padding: 26px clamp(16p
   .setting-row { align-items: flex-start; flex-direction: column; }
   .setting-row input[type="text"], .setting-row textarea { box-sizing: border-box; width: 100%; }
 }
+
+.setting-row .sound-pick { flex-direction: row; align-items: center; gap: 6px; }
+.setting-row .sound-pick select { min-width: 150px; }

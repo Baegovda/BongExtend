@@ -660,7 +660,7 @@ if (embedded) {
         const [items, stored] = await Promise.all([chrome.downloads.search({state: "in_progress"}), chrome.storage.local.get(VIDEO_STATUS_KEY)]);
         downloadsActive = summarizeDownloads(items, stored[VIDEO_STATUS_KEY]).active;
     } catch { /* 확인하지 못하면 메일부터 보여줘요. */ }
-    void showTab(pickStartTab({mailSettings: params.has("mailSettings") || params.has("mail"), windowed: params.has("window"), saved: v[TAB_KEY], downloadsActive,
+    void showTab(pickStartTab({requested: params.get("tab"), mailSettings: params.has("mailSettings") || params.has("mail"), windowed: params.has("window"), saved: v[TAB_KEY], downloadsActive,
         modules: await getModules() as Record<string, boolean>, tabs: TAB_IDS, fallback: "chzzk" as TabId}));
 });
 
@@ -1782,14 +1782,19 @@ $("currentVideoDownloader").addEventListener("click",async()=>{
  await openVideoDownloader(tab.url,tab.id);
 });
 
-// BongExtend 창을 열어 둔 채 다운로드가 시작되면, 아이콘 대신 이 창 위쪽에 같은 말풍선을 잠깐 띄워요.
+// BongExtend 창을 열어 둔 채 다운로드가 시작되거나 새 메일이 오면, 아이콘 대신 이 창 위쪽에 같은 말풍선을 잠깐 띄워요.
+// 누르면 다운로드 말풍선은 다운로더 탭, 메일 말풍선은 메일 탭으로 가요.
 chrome.runtime.onMessage.addListener((message, sender) => {
     if (message?.type !== "download-start-bubble" || sender.id !== chrome.runtime.id || typeof message.text !== "string") return;
     document.querySelector(".start-bubble")?.remove();
-    const bubble = document.createElement("div");
+    const target = (message.kind === "mail" ? "gmail" : "download") as TabId;
+    const bubble = document.createElement("button");
+    bubble.type = "button";
     bubble.className = "start-bubble";
     bubble.setAttribute("role", "status");
+    bubble.title = message.kind === "mail" ? "눌러서 메일 열기" : "눌러서 다운로더 열기";
     bubble.textContent = message.text;
+    bubble.addEventListener("click", () => { bubble.remove(); void showTab(target); });
     document.body.append(bubble);
     setTimeout(() => bubble.remove(), 4000);
 });

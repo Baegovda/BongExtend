@@ -1,3 +1,5 @@
+// @ts-ignore shared sound catalog (plain JS)
+import {SOUND_LABELS, SOUND_NAMES, soundFile} from "@/modules/gmail/sound.js";
 // @ts-ignore Shared plain-JS helpers
 import {DOWNLOAD_SETTINGS_KEY, cleanSuggestedFilename, downloadCategory, expandBatchUrls, normalizeDownloadSettings} from "@/modules/downloads/settings.js";
 
@@ -289,6 +291,8 @@ const loadSettings = async () => {
     $<HTMLInputElement>("notifications").checked = settings.notifications;
     $<HTMLInputElement>("completeSound").checked = settings.completeSound;
     $<HTMLInputElement>("startBubble").checked = settings.startBubble;
+    $<HTMLSelectElement>("completeSoundName").value = settings.completeSoundName;
+    $<HTMLSelectElement>("startSound").value = settings.startSound;
     $<HTMLInputElement>("filenameMask").value = settings.filenameMask;
     $<HTMLInputElement>("folder").value = settings.folder;
     $<HTMLInputElement>("routeByType").checked = settings.routeByType;
@@ -330,6 +334,26 @@ $<HTMLButtonElement>("viewToggle").addEventListener("click", () => {
 $<HTMLInputElement>("replaceChromeUi").addEventListener("change", (event) => void saveSettings({replaceChromeUi: (event.currentTarget as HTMLInputElement).checked}));
 $<HTMLInputElement>("notifications").addEventListener("change", (event) => void saveSettings({notifications: (event.currentTarget as HTMLInputElement).checked}));
 $<HTMLInputElement>("completeSound").addEventListener("change", (event) => void saveSettings({completeSound: (event.currentTarget as HTMLInputElement).checked}));
+// 소리 고르기: 들어 있는 소리를 모두 보여 주고, 바로 들어 볼 수 있어요.
+const soundOptions = (select: HTMLSelectElement, first: {value: string; label: string}) => {
+    select.replaceChildren(...[first, ...(SOUND_NAMES as string[]).map((name) => ({value: name, label: (SOUND_LABELS as Record<string, string>)[name] || name}))].map(({value, label}) => {
+        const option = document.createElement("option"); option.value = value; option.textContent = label; return option;
+    }));
+};
+soundOptions($<HTMLSelectElement>("completeSoundName"), {value: "windows", label: "윈도우 알림 소리"});
+soundOptions($<HTMLSelectElement>("startSound"), {value: "", label: "소리 없음"});
+let soundPreview: HTMLAudioElement | undefined;
+const previewSound = (name: string) => {
+    soundPreview?.pause();
+    if (!name || name === "windows") return;
+    soundPreview = new Audio(chrome.runtime.getURL(soundFile(name)));
+    soundPreview.volume = 0.6;
+    void soundPreview.play().catch(() => {});
+};
+$<HTMLSelectElement>("completeSoundName").addEventListener("change", (event) => { const value = (event.currentTarget as HTMLSelectElement).value; previewSound(value); void saveSettings({completeSoundName: value}); });
+$<HTMLSelectElement>("startSound").addEventListener("change", (event) => { const value = (event.currentTarget as HTMLSelectElement).value; previewSound(value); void saveSettings({startSound: value}); });
+$<HTMLButtonElement>("completeSoundPreview").addEventListener("click", () => previewSound($<HTMLSelectElement>("completeSoundName").value));
+$<HTMLButtonElement>("startSoundPreview").addEventListener("click", () => previewSound($<HTMLSelectElement>("startSound").value));
 $<HTMLInputElement>("startBubble").addEventListener("change", (event) => void saveSettings({startBubble: (event.currentTarget as HTMLInputElement).checked}));
 $<HTMLInputElement>("filenameMask").addEventListener("change", (event) => void saveSettings({filenameMask: (event.currentTarget as HTMLInputElement).value}));
 $<HTMLInputElement>("folder").addEventListener("change", (event) => void saveSettings({folder: (event.currentTarget as HTMLInputElement).value}));

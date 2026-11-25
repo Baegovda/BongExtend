@@ -22,33 +22,30 @@ export function bubbleText(entries) {
     return list.length > 1 ? `${head} 외 ${list.length - 1}개 다운로드가 시작!` : `${head} 다운로드가 시작!`;
 }
 
+// 말풍선이 누르면 열 BongExtend 탭: 다운로드 → 다운로더, 메일 → 메일.
+export const BUBBLE_TABS = {download: "download", mail: "gmail"};
+
 /**
+ * 아이콘 아래 말풍선 띄우기(다운로드·메일이 같이 써요).
  * @param {object} deps
  * @param {typeof chrome} [deps.api]
- * @param {() => Promise<{moduleOn: boolean, startBubble: boolean}>} deps.readSettings
- * @param {(id: number) => boolean} [deps.isQuiet] 알리지 않을 다운로드(쇼핑 사진 묶음 받기)
+ * @param {string} [deps.defaultPopup]
  * @param {() => number} [deps.now]
  */
-export function createStartBubble({api = chrome, readSettings, isQuiet = () => false, now = Date.now, defaultPopup = "popup.html", retryMs = [1500, 5000]} = {}) {
-    const waiting = new Map(); // 이름이 아직 안 정해진 다운로드 id → 시작 시각
-    const shown = new Set();
-    let entries = [];
-    let lastAt = 0;
+export function createBubbleOpener({api = chrome, defaultPopup = "popup.html", now = Date.now} = {}) {
     let opening = Promise.resolve();
-
     const popupOpen = async () => {
         try {
             const contexts = await api.runtime.getContexts?.({contextTypes: ["POPUP"]});
             return (contexts || []).map((context) => String(context.documentUrl || ""));
         } catch { return []; }
     };
-
-    const open = async (text) => {
+    const open = async (bubble) => {
         const urls = await popupOpen();
         // 말풍선이 이미 떠 있으면 저장된 글이 바뀌는 것을 보고 스스로 고쳐 써요.
         if (urls.some((url) => url.includes(BUBBLE_PAGE))) return "updated";
         // BongExtend 창을 열어 둔 상태면 그 창 안에 말풍선을 띄워요.
-        if (urls.length) { await api.runtime.sendMessage({type: "download-start-bubble", text}).catch(() => {}); return "in-popup"; }
+        if (urls.length) { await api.runtime.sendMessage({type: "download-start-bubble", text: bubble.text, kind: bubble.kind}).catch(() => {}); return "in-popup"; }
         const win = await api.windows.getLastFocused({windowTypes: ["normal"]}).catch(() => null);
         if (!win?.id || !win.focused || win.state === "minimized") return "no-window";
         try {
@@ -58,6 +55,32 @@ export function createStartBubble({api = chrome, readSettings, isQuiet = () => f
         } catch { return "failed"; }
         finally { await api.action.setPopup({popup: defaultPopup}).catch(() => {}); }
     };
+    return async ({kind = "download", text} = {}) => {
+        if (!text) return "skip";
+        const bubble = {kind: BUBBLE_TABS[kind] ? kind : "download", text: String(text).slice(0, 300), at: now()};
+        await api.storage.session.set({[BUBBLE_KEY]: bubble}).catch(() => {});
+        // 열기는 한 번에 하나씩 해요(창 화면 바꾸기가 겹치지 않게).
+        const result = opening.then(() => open(bubble));
+        opening = result.catch(() => {});
+        return result;
+    };
+}
+
+/**
+ * @param {object} deps
+ * @param {typeof chrome} [deps.api]
+ * @param {() => Promise<{moduleOn: boolean, startBubble: boolean, startSound?: string}>} deps.readSettings
+ * @param {(id: number) => boolean} [deps.isQuiet] 알리지 않을 다운로드(쇼핑 사진 묶음 받기)
+ * @param {(bubble: {kind: string, text: string}) => Promise<string>} [deps.showBubble]
+ * @param {(sound: {name: string, volume: number}) => Promise<unknown>} [deps.playSound] 시작 소리
+ * @param {() => number} [deps.now]
+ */
+export function createStartBubble({api = chrome, readSettings, isQuiet = () => false, now = Date.now, defaultPopup = "popup.html", retryMs = [1500, 5000], showBubble, playSound = async () => false} = {}) {
+    const waiting = new Map(); // 이름이 아직 안 정해진 다운로드 id → 시작 시각
+    const shown = new Set();
+    let entries = [];
+    let lastAt = 0;
+    const bubbleOut = showBubble || createBubbleOpener({api, defaultPopup, now});
 
     const show = async (item) => {
         if (!item || shown.has(item.id) || isQuiet(item.id)) return "skip";
@@ -72,12 +95,8 @@ export function createStartBubble({api = chrome, readSettings, isQuiet = () => f
         if (at - lastAt > BUBBLE_GROUP_MS) entries = [];
         lastAt = at;
         entries = [...entries, {name, size: bubbleSize(item.totalBytes)}].slice(-20);
-        const text = bubbleText(entries);
-        await api.storage.session.set({[BUBBLE_KEY]: {text, at}}).catch(() => {});
-        // 열기는 한 번에 하나씩 해요(창 화면 바꾸기가 겹치지 않게).
-        const result = opening.then(() => open(text));
-        opening = result.catch(() => {});
-        return result;
+        if (settings.startSound) void Promise.resolve(playSound({name: settings.startSound, volume: 0.6})).catch(() => {});
+        return bubbleOut({kind: "download", text: bubbleText(entries)});
     };
 
     const recent = (item) => {
@@ -109,5 +128,35 @@ export function createStartBubble({api = chrome, readSettings, isQuiet = () => f
             if (!item || item.state === "interrupted" || !recent(item)) { waiting.delete(delta.id); return "skip"; }
             return show({...item, filename: delta.filename.current});
         }
+    };
+}
+
+// 새 메일 말풍선 글: "새 메일: 보낸 사람 - 제목" (여러 통이면 "새 메일 3통: …")
+export function mailBubbleText(mails) {
+    const list = Array.isArray(mails) ? mails.filter(Boolean) : [];
+    if (!list.length) return "";
+    const first = list[0];
+    const from = String(first.from || "").trim(), subject = String(first.subject || "").trim() || "(제목 없음)";
+    const head = list.length > 1 ? `새 메일 ${list.length}통` : "새 메일";
+    return `${head}: ${from ? `${from} - ` : ""}${subject}`;
+}
+
+export const MAIL_BUBBLE_KEY = "core.mailBubble";
+
+/**
+ * 새 메일이 오면 아이콘 아래 말풍선을 띄워요. 누르면 메일 탭이 열려요.
+ * @param {object} deps
+ * @param {() => Promise<boolean>} deps.enabled
+ * @param {(bubble: {kind: string, text: string}) => Promise<string>} deps.showBubble
+ */
+export function createMailBubble({enabled, showBubble}) {
+    const seen = new Set();
+    return async (mails) => {
+        const fresh = (Array.isArray(mails) ? mails : []).filter((mail) => mail && !seen.has(mail.id || `${mail.from}|${mail.subject}`));
+        for (const mail of fresh) seen.add(mail.id || `${mail.from}|${mail.subject}`);
+        while (seen.size > 300) seen.delete(seen.values().next().value);
+        if (!fresh.length) return "skip";
+        if (!(await enabled().catch(() => false))) return "off";
+        return showBubble({kind: "mail", text: mailBubbleText(fresh)});
     };
 }

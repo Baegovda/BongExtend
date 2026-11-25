@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {BUBBLE_KEY, BUBBLE_PAGE, bubbleSize, bubbleText, createStartBubble} from "../start-bubble.js";
+import {BUBBLE_KEY, BUBBLE_PAGE, bubbleSize, bubbleText, createMailBubble, createStartBubble, mailBubbleText} from "../start-bubble.js";
 import {normalizeDownloadSettings} from "../settings.js";
 
 const fake = ({contexts = [], focused = true, items = []} = {}) => {
@@ -81,4 +81,39 @@ test("이름 신호가 먼저 오거나 빠져도 알려요", async () => {
     // 오래전에 시작한 다운로드의 이름이 바뀐 것은 알리지 않아요.
     const old = fake({items: [{...item, startTime: new Date(0).toISOString()}]});
     assert.equal(await createStartBubble({api: old.api, readSettings: on, now: () => 60000, retryMs: []}).onChanged({id: 8, filename: {current: item.filename}}), "skip");
+});
+
+test("새 메일 말풍선 글과 중복 막기", async () => {
+    assert.equal(mailBubbleText([{from: "홍길동", subject: "회의 자료"}]), "새 메일: 홍길동 - 회의 자료");
+    assert.equal(mailBubbleText([{from: "", subject: ""}, {from: "b", subject: "c"}]), "새 메일 2통: (제목 없음)");
+    const shown = [];
+    const bubble = createMailBubble({enabled: async () => true, showBubble: async (value) => { shown.push(value); return "opened"; }});
+    assert.equal(await bubble([{id: "m1", from: "a", subject: "s"}]), "opened");
+    assert.deepEqual(shown[0], {kind: "mail", text: "새 메일: a - s"});
+    assert.equal(await bubble([{id: "m1", from: "a", subject: "s"}]), "skip");
+    const off = createMailBubble({enabled: async () => false, showBubble: async () => "opened"});
+    assert.equal(await off([{id: "m2", subject: "x"}]), "off");
+});
+
+test("메일 말풍선은 메일 종류로 저장돼요", async () => {
+    const {api, session} = fake();
+    const bubble = createStartBubble({api, readSettings: on, now: () => 1000});
+    await bubble.onCreated({id: 9, filename: "C:/down/a.zip", state: "in_progress"});
+    assert.equal(session[BUBBLE_KEY].kind, "download");
+});
+
+test("시작 소리를 고르면 말풍선과 함께 소리를 내요", async () => {
+    const {api} = fake();
+    const played = [];
+    const bubble = createStartBubble({api, readSettings: async () => ({moduleOn: true, startBubble: true, startSound: "ding"}), playSound: async (sound) => { played.push(sound.name); }});
+    await bubble.onCreated({id: 10, filename: "C:/down/a.zip", state: "in_progress"});
+    assert.deepEqual(played, ["ding"]);
+});
+
+test("소리 설정 기본값과 잘못된 값", () => {
+    assert.equal(normalizeDownloadSettings({}).completeSoundName, "windows");
+    assert.equal(normalizeDownloadSettings({completeSoundName: "ding"}).completeSoundName, "ding");
+    assert.equal(normalizeDownloadSettings({completeSoundName: "../x"}).completeSoundName, "windows");
+    assert.equal(normalizeDownloadSettings({}).startSound, "");
+    assert.equal(normalizeDownloadSettings({startSound: "bell"}).startSound, "bell");
 });

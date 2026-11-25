@@ -110,3 +110,13 @@ test("quiet shop photos, a module switched off and blocked notifications", async
     assert.equal(mute.created[0].silent, true, "complete sound off mutes the Windows sound too");
     assert.deepEqual(blocked.local[LAST_NOTICE_KEY], {at: T0, id: 2, via: "event", ok: false, sound: false, error: "blocked"});
 });
+
+test("a chosen complete sound replaces the Windows toast sound", async () => {
+    const items = [{id: 31, state: "complete", endTime: iso(T0 + 5000), filename: "C:/Users/me/Downloads/a.zip"}];
+    const fake = fakeApi(items);
+    const played = [];
+    const notifier = createCompleteNotifier({api: fake.api, readSettings: async () => ({moduleOn: true, notifications: true, completeSound: true, completeSoundName: "ding"}), playSound: async (sound) => { played.push(sound.name); return true; }, now: () => T0});
+    assert.equal(await notifier.onComplete(31), true);
+    assert.equal(fake.created[0].silent, true, "toast is silent so the chosen sound is heard alone");
+    assert.deepEqual(played, ["ding"]);
+});

@@ -3134,6 +3134,10 @@ async function mailUpdate(params = {}) {
 
                     const notificationSoundSource = await getNotificationSoundSource(recentEmailSoundSource, accountWithNewestMail);
 
+					// BongExtend: 새 메일을 도구막대 아이콘 아래 말풍선으로도 알려요.
+					try {
+						if (params.source !== Source.STARTUP) globalThis.BongExtendNewMails?.((newEmails || []).map(email => ({id: email.id, subject: email.title || "", from: email.getName?.() || email.authorMail || ""})));
+					} catch (error) { console.warn("메일 말풍선을 띄우지 못했어요.", error); }
 					// show notification, then play sound, then play voice
 					if (params.showNotification) {
 						// save them here for the next time i call showNotification when returning from idle

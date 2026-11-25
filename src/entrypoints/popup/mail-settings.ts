@@ -1,5 +1,5 @@
 // @ts-ignore shared sound catalog
-import {CHECKER_PLUS_SOUNDS} from "@/modules/gmail/sound.js";
+import {SOUND_LABELS, SOUND_NAMES, soundFile} from "@/modules/gmail/sound.js";
 const MAIL_ORIGIN = new URL(chrome.runtime.getURL("/")).origin;
 export function setupMailSettings() {
     const dialog = document.getElementById("mailSettingsDialog") as HTMLDialogElement;
@@ -16,7 +16,7 @@ export function setupMailSettings() {
         } finally { if (timer) clearTimeout(timer); }
     };
     const soundSelect=form.elements.namedItem('notificationSound') as HTMLSelectElement;
-    soundSelect.replaceChildren(...[{value:'',label:'소리 없음'},{value:'system-default',label:'시스템 기본 소리'},...CHECKER_PLUS_SOUNDS.map((name:string)=>({value:name+'.mp3',label:name}))].map(({value,label})=>{const option=document.createElement('option');option.value=value;option.textContent=label;return option;}));
+    soundSelect.replaceChildren(...[{value:'',label:'소리 없음'},{value:'system-default',label:'시스템 기본 소리'},...(SOUND_NAMES as string[]).map((name:string)=>({value:soundFile(name).replace(/^\/sounds\//,''),label:(SOUND_LABELS as Record<string,string>)[name]||name}))].map(({value,label})=>{const option=document.createElement('option');option.value=value;option.textContent=label;return option;}));
     let preview:HTMLAudioElement|undefined;
     document.getElementById('mailSoundPreview')!.addEventListener('click',()=>{
         preview?.pause();if(!soundSelect.value || soundSelect.value==='system-default'){status.textContent='파일 알림음을 선택하면 미리 들을 수 있어요.';return;}
@@ -25,6 +25,10 @@ export function setupMailSettings() {
     });
     dialog.addEventListener('close',()=>preview?.pause());
     soundSelect.addEventListener('change',()=>preview?.pause());
+    // 새 메일 말풍선(도구막대 아이콘 아래) 켜기/끄기. 메일 엔진 설정과 따로 바로 저장해요.
+    const mailBubble=document.getElementById('mailBubbleToggle') as HTMLInputElement;
+    void chrome.storage.local.get('core.mailBubble').then(v=>{mailBubble.checked=v['core.mailBubble']!==false;});
+    mailBubble.addEventListener('change',()=>{void chrome.storage.local.set({'core.mailBubble':mailBubble.checked});status.textContent=mailBubble.checked?'새 메일이 오면 아이콘 아래에 말풍선이 떠요.':'새 메일 말풍선을 껐어요.';});
     const otpState=document.getElementById('otpOverlayState')!;
     const otpButton=document.getElementById('otpOverlayPermission') as HTMLButtonElement;
     // 인증번호가 화면 가운데에 뜨려면 보고 있는 웹페이지에 표시할 권한이 필요해요. 지금 상태와 마지막 결과를 알려줘요.

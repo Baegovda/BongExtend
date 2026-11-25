@@ -1,3 +1,5 @@
+import {SOUND_NAMES} from "../gmail/sound.js";
+
 export const DOWNLOAD_SETTINGS_KEY = "core.downloads";
 
 export const completedDownloadsBadge = (value) => {
@@ -29,6 +31,10 @@ export const normalizeDownloadSettings = (value) => {
     completeSound: source.completeSound !== false,
     // 다운로드가 시작되면 도구막대 아이콘 아래에 "파일명(용량) 다운로드가 시작!" 말풍선을 띄워요.
     startBubble: source.startBubble !== false,
+    // 완료 소리: windows = 윈도우 알림 소리(또로로롱), 그 밖에는 BongExtend 소리 이름.
+    completeSoundName: source.completeSoundName === "windows" || !SOUND_NAMES.includes(source.completeSoundName) ? "windows" : source.completeSoundName,
+    // 시작 소리: 빈 값이면 소리 없음.
+    startSound: SOUND_NAMES.includes(source.startSound) ? source.startSound : "",
     listView: source.listView !== false,
     filenameMask: String(source.filenameMask || "").replace(/[\r\n]/g, "").slice(0, 120),
     folder,

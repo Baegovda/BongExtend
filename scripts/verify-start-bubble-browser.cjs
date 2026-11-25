@@ -30,6 +30,27 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
    if(process.env.SHOT){const t=await targetOf(t=>t.url.includes('bubble.html'));const s2=(await cdp.send('Target.attachToTarget',{targetId:t.targetId,flatten:false})).sessionId;const mid=++seq;const done=new Promise(r=>pending.set(mid,r));await cdp.send('Target.sendMessageToTarget',{sessionId:s2,message:JSON.stringify({id:mid,method:'Page.captureScreenshot',params:{}})});const m=await done;require('node:fs').writeFileSync(process.env.SHOT,Buffer.from(m.result.data,'base64'));}await wait(4500);
    const after=await run(`chrome.runtime.getContexts({contextTypes:['POPUP']}).then(c=>c.length)`);console.log('after 4.5s popups',after);assert.equal(after,0,'bubble closes by itself');}
   else console.log('no popup opened (window not focused in this run)');
+  // 새 메일 말풍선: 누르면 메일 탭이 열려요.
+  await run(`globalThis.BongExtendNewMails([{id:'t1',from:'홍길동',subject:'시험 메일'}]);1`);
+  await wait(1500);
+  const mail=await run(`(async()=>({popups:(await chrome.runtime.getContexts({contextTypes:['POPUP']})).map(c=>c.documentUrl),stored:(await chrome.storage.session.get('core.download:startBubble'))['core.download:startBubble']}))()`);
+  console.log(JSON.stringify(mail));
+  assert.equal(mail.stored?.kind,'mail');assert.equal(mail.stored?.text,'새 메일: 홍길동 - 시험 메일');
+  if(mail.popups.length){
+   const t=await targetOf(t=>t.url.includes('bubble.html'));const s2=(await cdp.send('Target.attachToTarget',{targetId:t.targetId,flatten:false})).sessionId;
+   const mid=++seq;const done=new Promise(r=>pending.set(mid,r));await cdp.send('Target.sendMessageToTarget',{sessionId:s2,message:JSON.stringify({id:mid,method:'Runtime.evaluate',params:{expression:"document.getElementById('bubble').click();1"}})});await done;
+   await wait(2500);
+   const after=await run(`(async()=>({popups:(await chrome.runtime.getContexts({contextTypes:['POPUP']})).map(c=>c.documentUrl),tab:(await chrome.storage.local.get('core.popupTab'))['core.popupTab']}))()`);
+   console.log('after click',JSON.stringify(after));
+   assert.ok(after.popups.some(u=>u.includes('popup.html?tab=gmail')),'mail bubble opens the mail tab');
+   assert.equal(after.tab,'gmail');
+  }
+  // 다운로더 설정의 소리 고르기 칸이 채워지는지 봐요.
+  await run(`chrome.tabs.create({url:chrome.runtime.getURL('downloads.html')}).then(()=>1)`);await wait(2000);
+  const page=await targetOf(t=>t.url.includes('/downloads.html'));const s3=(await cdp.send('Target.attachToTarget',{targetId:page.targetId,flatten:false})).sessionId;
+  const mid=++seq;const done=new Promise(r=>pending.set(mid,r));await cdp.send('Target.sendMessageToTarget',{sessionId:s3,message:JSON.stringify({id:mid,method:'Runtime.evaluate',params:{expression:"JSON.stringify({complete:[...document.querySelectorAll('#completeSoundName option')].map(o=>o.textContent).slice(0,4),count:document.querySelectorAll('#completeSoundName option').length,start:document.getElementById('startSound').value,startFirst:document.querySelector('#startSound option')?.textContent})",returnByValue:true}})});
+  const sounds=JSON.parse((await done).result.result.value);console.log('sounds',JSON.stringify(sounds));
+  assert.ok(sounds.count>=20,'many sounds to pick');assert.equal(sounds.complete[0],'윈도우 알림 소리');assert.equal(sounds.startFirst,'소리 없음');
   console.log('ok');
  }finally{await browser.close().catch(()=>{});server.close();}
 })().catch(e=>{console.error(e);process.exit(1);});

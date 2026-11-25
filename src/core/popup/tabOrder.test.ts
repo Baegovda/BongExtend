@@ -20,11 +20,13 @@ describe("moveItem", () => {
 describe("pickStartTab", () => {
     const tabs = ["chzzk", "gmail", "download", "image", "update"] as const;
     const base = {mailSettings: false, windowed: false, saved: "image", downloadsActive: false, modules: {}, tabs, fallback: "chzzk" as const};
-    test("downloading → downloader first", () => expect(pickStartTab({...base, downloadsActive: true})).toBe("download"));
-    test("nothing downloading → mail", () => expect(pickStartTab(base)).toBe("gmail"));
+    test("last opened tab first", () => expect(pickStartTab(base)).toBe("image"));
+    test("last tab wins over an active download", () => expect(pickStartTab({...base, downloadsActive: true})).toBe("image"));
+    test("requested tab (bubble click) wins", () => expect(pickStartTab({...base, requested: "download"})).toBe("download"));
+    test("requested tab that is off is ignored", () => expect(pickStartTab({...base, requested: "download", modules: {download: false}})).toBe("image"));
     test("mail settings link → mail", () => expect(pickStartTab({...base, mailSettings: true, downloadsActive: true})).toBe("gmail"));
-    test("a window opened for a tab keeps that tab", () => expect(pickStartTab({...base, windowed: true, downloadsActive: true})).toBe("image"));
-    test("downloader off → mail", () => expect(pickStartTab({...base, downloadsActive: true, modules: {download: false}})).toBe("gmail"));
-    test("mail off → last tab", () => expect(pickStartTab({...base, modules: {gmail: false}})).toBe("image"));
+    test("saved tab turned off → downloader while downloading", () => expect(pickStartTab({...base, downloadsActive: true, modules: {image: false}})).toBe("download"));
+    test("no saved tab → mail", () => expect(pickStartTab({...base, saved: undefined})).toBe("gmail"));
     test("mail off, no saved tab → fallback", () => expect(pickStartTab({...base, saved: "gone", modules: {gmail: false}})).toBe("chzzk"));
 });
+

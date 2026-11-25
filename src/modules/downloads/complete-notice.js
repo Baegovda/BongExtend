@@ -70,9 +70,11 @@ export function createCompleteNotifier({api = chrome, readSettings, isQuiet = ()
         let item = null;
         try { [item] = await api.downloads.search({id}); } catch { /* 이름 없이 알려요. */ }
         // 알림을 띄울 때는 윈도우 알림 소리(또로로롱)를 그대로 써요. 우리 소리는 알림을 끈 때나 알림이 막혔을 때만 내요.
+        // 옵션에서 고른 소리가 있으면 윈도우 소리 대신 그 소리를 내요.
+        const chosen = settings.completeSoundName && settings.completeSoundName !== "windows" ? settings.completeSoundName : "";
         const ourSound = async () => {
             if (!settings.completeSound) return false;
-            try { return Boolean(await playSound(COMPLETE_SOUND)); } catch { return false; }
+            try { return Boolean(await playSound(chosen ? {...COMPLETE_SOUND, name: chosen} : COMPLETE_SOUND)); } catch { return false; }
         };
         if (!settings.notifications) {
             const sounded = await ourSound();
@@ -86,9 +88,10 @@ export function createCompleteNotifier({api = chrome, readSettings, isQuiet = ()
                 title: "다운로드 완료",
                 message: fileName(item),
                 // '완료 소리'를 끄면 윈도우 알림 소리도 내지 않아요.
-                silent: !settings.completeSound
+                silent: !settings.completeSound || Boolean(chosen)
             });
-            void note({id, via, ok: true, sound: false});
+            const sounded = chosen ? await ourSound() : false;
+            void note({id, via, ok: true, sound: sounded});
             return true;
         } catch (error) {
             const sounded = await ourSound();

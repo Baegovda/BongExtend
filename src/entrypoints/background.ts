@@ -51,7 +51,7 @@ import "../../public/download-danger.js";
 // @ts-ignore plain JS image search engines
 import {DEFAULT_ENGINES, buildEngineUrl} from "@/modules/image/toolbar.js";
 // @ts-ignore plain JS (browser code): download start bubble under the toolbar icon
-import {createStartBubble} from "@/modules/downloads/start-bubble.js";
+import {MAIL_BUBBLE_KEY, createBubbleOpener, createMailBubble, createStartBubble} from "@/modules/downloads/start-bubble.js";
 // @ts-ignore plain JS shopping price tracker worker
 import {isQuietShopDownload, startShopBackground, takeQuietShopDownload} from "@/modules/shop/background.js";
 // @ts-ignore plain JS
@@ -479,7 +479,7 @@ export default defineBackground(() => {
             const stored = await chrome.storage.local.get([DOWNLOAD_SETTINGS_KEY, MODULES_KEY]);
             const settings = normalizeDownloadSettings(stored[DOWNLOAD_SETTINGS_KEY]);
             const modules = (stored[MODULES_KEY] && typeof stored[MODULES_KEY] === "object" ? stored[MODULES_KEY] : {}) as Record<string, unknown>;
-            return {moduleOn: modules.download !== false, notifications: settings.notifications, completeSound: settings.completeSound};
+            return {moduleOn: modules.download !== false, notifications: settings.notifications, completeSound: settings.completeSound, completeSoundName: settings.completeSoundName};
         },
         // 쇼핑의 '사진 받기'는 여러 장을 한 번에 받아서 장마다 알리지 않아요.
         isQuiet: (id: number) => quietDone.has(id) || isQuietShopDownload(id),
@@ -494,15 +494,28 @@ export default defineBackground(() => {
         void completeNotifier.onComplete(delta.id).catch((error: unknown) => console.warn("다운로드 알림을 표시하지 못했어요.", error));
     });
     // 다운로드 시작 말풍선: 아이콘 아래에 "파일명(용량) 다운로드가 시작!"을 잠깐 보여줘요.
+    // 아이콘 아래 말풍선은 다운로드·메일이 함께 써요(한 번에 하나씩 열려요).
+    const showBubble = createBubbleOpener({defaultPopup: rootManifest.action?.default_popup || "popup.html"});
     const startBubble = createStartBubble({
         readSettings: async () => {
             const stored = await chrome.storage.local.get([DOWNLOAD_SETTINGS_KEY, MODULES_KEY]);
             const modules = (stored[MODULES_KEY] && typeof stored[MODULES_KEY] === "object" ? stored[MODULES_KEY] : {}) as Record<string, unknown>;
-            return {moduleOn: modules.download !== false, startBubble: normalizeDownloadSettings(stored[DOWNLOAD_SETTINGS_KEY]).startBubble};
+            const settings = normalizeDownloadSettings(stored[DOWNLOAD_SETTINGS_KEY]);
+            return {moduleOn: modules.download !== false, startBubble: settings.startBubble, startSound: settings.startSound};
         },
         isQuiet: (id: number) => isQuietShopDownload(id),
-        defaultPopup: rootManifest.action?.default_popup || "popup.html"
+        showBubble,
+        playSound: playDownloadSound
     });
+    // 새 메일 말풍선: 메일 엔진이 새 메일을 찾으면 불러요. 누르면 메일 탭이 열려요.
+    const mailBubble = createMailBubble({
+        enabled: async () => {
+            const stored = await chrome.storage.local.get([MAIL_BUBBLE_KEY, MODULES_KEY]);
+            return stored[MAIL_BUBBLE_KEY] !== false && (stored[MODULES_KEY] as Record<string, unknown> | undefined)?.gmail !== false;
+        },
+        showBubble
+    });
+    (globalThis as any).BongExtendNewMails = (mails: unknown[]) => void mailBubble(mails).catch(() => {});
     chrome.downloads.onChanged.addListener((delta) => void startBubble.onChanged(delta).catch(() => {}));
     chrome.downloads.onCreated.addListener((item) => {
         void startBubble.onCreated(item).catch(() => {});
