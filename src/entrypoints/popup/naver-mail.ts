@@ -49,6 +49,71 @@ export function setupNaverMail(){
    again.addEventListener('click',event=>event.stopPropagation());again.addEventListener('keydown',event=>event.stopPropagation());
   }
   if(again&&first&&again.parentElement!==first)first.insertBefore(again,first.querySelector('.be-account-order'));
+  orderRail(doc);
+ };
+ // 왼쪽 계정 아이콘 줄도 메일 목록의 계정 순서와 똑같이 늘어놓아요.
+ const avatarKey=(el:Element)=>el.id==='bongextendNaverAvatar'?section?.dataset.accountKey||'':(()=>{const account=(el as Element&{_account?:{email?:string;getEmail?:()=>string}})._account;return `gmail:${String(account?.email||account?.getEmail?.()||'').trim().toLowerCase()}`;})();
+ const railAvatars=(rail:Element)=>Array.from(rail.children).filter(el=>el.matches('.accountAvatar,.be-naver-avatar'));
+ const orderRail=(doc:Document)=>{
+  const rail=doc.getElementById('accountAvatars'),inbox=doc.getElementById('inbox');if(!rail||!inbox)return;
+  const keys=Array.from(inbox.children).filter(el=>el.matches('.account')||el.id==='bongextendNaverAccount').map(row=>row.id==='bongextendNaverAccount'?(row as HTMLElement).dataset.accountKey||'':`gmail:${String(row.getAttribute('email')||(row as HTMLElement&{_account?:{email?:string}})._account?.email||'').trim().toLowerCase()}`);
+  const avatars=railAvatars(rail);
+  const rank=(el:Element)=>{const i=keys.indexOf(avatarKey(el));return i<0?keys.length+avatars.indexOf(el):i;};
+  const sorted=[...avatars].sort((a,b)=>rank(a)-rank(b));
+  // 이미 제자리면 건드리지 않아요(아이콘 줄 감시가 다시 불려도 끝없이 돌지 않게).
+  if(avatars.some((el,i)=>el!==sorted[i]))for(const el of sorted)rail.append(el);
+ };
+ // 아이콘을 끌어서 위아래로 놓으면 계정 순서가 바뀌어요(계정 줄의 ⠿ 손잡이와 같은 저장 방식).
+ let railCleanup:(()=>void)|undefined;
+ const installRailDrag=(doc:Document)=>{
+  railCleanup?.();railCleanup=undefined;
+  const rail=doc.getElementById('accountAvatars');if(!rail)return;
+  type RailDrag={avatar:HTMLElement;id:number;startY:number;startX:number;active:boolean;target?:Element;placement?:'before'|'after'};
+  let drag:RailDrag|undefined,swallowClick=false;
+  const clear=()=>{for(const el of rail.querySelectorAll('.be-avatar-drop-before,.be-avatar-drop-after'))el.classList.remove('be-avatar-drop-before','be-avatar-drop-after');};
+  const finish=(commit:boolean)=>{
+   if(!drag)return;const state=drag;drag=undefined;clear();
+   state.avatar.classList.remove('be-avatar-dragging');rail.classList.remove('be-avatar-drag-active');
+   if(rail.hasPointerCapture?.(state.id))rail.releasePointerCapture(state.id);
+   if(!state.active)return;
+   swallowClick=true;setTimeout(()=>{swallowClick=false;},0);
+   if(!commit||!state.target||!state.placement)return;
+   const sourceKey=avatarKey(state.avatar),targetKey=avatarKey(state.target);
+   if(!sourceKey||sourceKey==='gmail:'||!targetKey||targetKey==='gmail:'||sourceKey===targetKey)return;
+   doc.dispatchEvent(new CustomEvent('bongextend-mail-account-move',{cancelable:true,detail:{sourceKey,targetKey,placement:state.placement}}));
+  };
+  const down=(event:PointerEvent)=>{
+   const avatar=(event.target as Element|null)?.closest?.('.accountAvatar,.be-naver-avatar') as HTMLElement|null;
+   if(!avatar||avatar.parentElement!==rail||event.button!==0||!event.isPrimary||drag)return;
+   drag={avatar,id:event.pointerId,startX:event.clientX,startY:event.clientY,active:false};
+  };
+  const move=(event:PointerEvent)=>{
+   if(!drag||drag.id!==event.pointerId)return;
+   if(!drag.active){
+    if(Math.hypot(event.clientX-drag.startX,event.clientY-drag.startY)<5)return;
+    drag.active=true;drag.avatar.classList.add('be-avatar-dragging');rail.classList.add('be-avatar-drag-active');
+    try{rail.setPointerCapture(event.pointerId);}catch{}
+   }
+   event.preventDefault();clear();
+   const others=railAvatars(rail).filter(el=>el!==drag!.avatar);
+   let target:Element|undefined,placement:'before'|'after'='after';
+   for(const el of others){const box=el.getBoundingClientRect();if(event.clientY<box.top+box.height/2){target=el;placement='before';break;}}
+   if(!target){target=others.at(-1);placement='after';}
+   drag.target=target;drag.placement=target?placement:undefined;
+   target?.classList.add(placement==='before'?'be-avatar-drop-before':'be-avatar-drop-after');
+  };
+  const up=(event:PointerEvent)=>{if(drag?.id===event.pointerId)finish(true);};
+  const cancel=(event:PointerEvent)=>{if(drag?.id===event.pointerId)finish(false);};
+  const key=(event:KeyboardEvent)=>{if(drag?.active&&event.key==='Escape'){event.preventDefault();event.stopImmediatePropagation();finish(false);}};
+  // 끌어서 놓은 직후의 누름은 "그 계정으로 이동"으로 치지 않아요.
+  const click=(event:MouseEvent)=>{if(swallowClick){event.preventDefault();event.stopImmediatePropagation();swallowClick=false;}};
+  const noNativeDrag=(event:DragEvent)=>event.preventDefault();
+  rail.addEventListener('pointerdown',down);rail.addEventListener('pointermove',move);rail.addEventListener('pointerup',up);
+  rail.addEventListener('pointercancel',cancel);rail.addEventListener('lostpointercapture',cancel);
+  rail.addEventListener('click',click,true);rail.addEventListener('dragstart',noNativeDrag);doc.addEventListener('keydown',key,true);
+  railCleanup=()=>{finish(false);rail.removeEventListener('pointerdown',down);rail.removeEventListener('pointermove',move);rail.removeEventListener('pointerup',up);
+   rail.removeEventListener('pointercancel',cancel);rail.removeEventListener('lostpointercapture',cancel);
+   rail.removeEventListener('click',click,true);rail.removeEventListener('dragstart',noNativeDrag);doc.removeEventListener('keydown',key,true);};
  };
  void chrome.storage.local.get(ORDER_KEY).then(local=>{accountOrder=Array.isArray(local[ORDER_KEY])?local[ORDER_KEY].filter((key:unknown)=>typeof key==='string'):[];if(frame.contentDocument)orderAccounts(frame.contentDocument);});
  const refresh=()=>{
@@ -81,17 +146,10 @@ export function setupNaverMail(){
   avatar.title=`${avatarInfo.id}@naver.com`;avatar.setAttribute('aria-label',`${avatarInfo.id}@naver.com · 미읽음 ${avatarInfo.unread}통`);
   const count=avatar.querySelector<HTMLElement>('.accountAvatarUnreadCount')!;
   count.textContent=String(avatarInfo.unread);count.hidden=avatarInfo.unread<1;count.style.display=avatarInfo.unread<1?'none':'';
-  // 메일 목록의 계정 순서와 같은 자리에 둬요.
-  const inbox=doc.getElementById('inbox');
-  const rows=inbox?Array.from(inbox.children).filter(el=>el.matches('.account')||el.id==='bongextendNaverAccount'):[];
-  const at=rows.findIndex(el=>el.id==='bongextendNaverAccount');
-  const gmailAvatars=Array.from(rail.children).filter(el=>el.classList.contains('accountAvatar'));
-  const before=at>=0&&at<gmailAvatars.length?gmailAvatars[at]:null,last=gmailAvatars.at(-1);
-  // 이미 제자리면 건드리지 않아요(아이콘 줄 감시가 다시 불려도 끝없이 돌지 않게).
-  if(before){if(avatar.nextElementSibling!==before)rail.insertBefore(avatar,before);}
-  else if(last){if(last.nextElementSibling!==avatar)last.after(avatar);}
-  else if(avatar.parentElement!==rail)rail.append(avatar);
+  if(avatar.parentElement!==rail)rail.append(avatar);
  };
+ // 메일 엔진이 아이콘 줄을 다시 그려도 네이버 아이콘을 넣고, 메일 목록의 계정 순서와 같게 맞춰요.
+ const syncRail=(doc:Document)=>{syncAvatar(doc);orderRail(doc);};
  const mount=()=>{
   const doc=frame.contentDocument,inbox=doc?.getElementById('inbox');
   if(!doc||!inbox)return;
@@ -104,8 +162,8 @@ export function setupNaverMail(){
   }
   for(const extra of existing)if(extra!==section)extra.remove();
   if(section!.parentElement!==inbox)inbox.append(section!);
-  orderAccounts(doc);
   syncAvatar(doc);
+  orderAccounts(doc);
  };
  const render=async()=>{
   const current=++revision;
@@ -167,7 +225,8 @@ export function setupNaverMail(){
   };doc!.addEventListener('bongextend-mail-account-move',moveListener);
   observer=new MutationObserver(()=>mount());observer.observe(inbox,{childList:true});
   // 메일 엔진이 아이콘 줄을 다시 그리면(계정 새로 고침 등) 네이버 아이콘을 다시 넣어요.
-  const rail=doc!.getElementById('accountAvatars');if(rail){railObserver=new MutationObserver(()=>syncAvatar(doc!));railObserver.observe(rail,{childList:true});}
+  const rail=doc!.getElementById('accountAvatars');if(rail){railObserver=new MutationObserver(()=>syncRail(doc!));railObserver.observe(rail,{childList:true});}
+  installRailDrag(doc!);
   void render();
  };
  frame.addEventListener('load',loaded);

@@ -6,6 +6,7 @@ import {setupNaverMail} from './naver-mail';
 import {watchGmailTheme} from './mail-appearance';
 import {setupMailSettings} from "./mail-settings";
 import {setupWindowControls} from "./window-controls";
+import {setupSideResize} from "./side-resize";
 // BongExtend 팝업: 탭 하나에 모듈 화면 하나. 각 모듈 화면은 옛 확장 팝업을 그대로 iframe으로 띄운다.
 import "@/modules/theme/theme.css";
 import "@/modules/theme/ui.js";
@@ -70,6 +71,7 @@ const initialMail = new URLSearchParams(location.search).get('mail');
 if (initialMail && /^[a-zA-Z0-9_-]{1,128}$/.test(initialMail)) {
     checkerPlusMailFrame.dataset.src = `/checkerplus-popup.html?source=bongextend&previewMailId=${encodeURIComponent(initialMail)}`;
 }
+setupSideResize();
 setupWindowControls(() => {
     const child = checkerPlusMailFrame.contentWindow as (Window & {BongExtendMailView?: {selection: () => string}}) | null;
     return child?.BongExtendMailView?.selection() || '';

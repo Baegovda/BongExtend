@@ -492,3 +492,11 @@ html.bongextend-checkerplus-embedded :is(.be-drop-before,.be-drop-after)::after 
 .be-mail-refresh.is-spinning svg {animation:be-mail-refresh-spin .8s ease-out;}
 @keyframes be-mail-refresh-spin {to {transform:rotate(360deg);}}
 @media (prefers-reduced-motion: reduce) {.be-mail-refresh.is-spinning svg {animation:none;}}
+/* 왼쪽 계정 아이콘을 끌어서 계정 순서를 바꿔요. */
+#accountAvatars :is(.accountAvatar,.be-naver-avatar) {touch-action:none;user-select:none;}
+#accountAvatars :is(.accountAvatar,.be-naver-avatar) img {-webkit-user-drag:none;}
+#accountAvatars.be-avatar-drag-active, #accountAvatars.be-avatar-drag-active * {cursor:grabbing !important;}
+#accountAvatars .be-avatar-dragging {opacity:.4;transform:scale(.92);transition:opacity .12s,transform .12s;}
+#accountAvatars :is(.be-avatar-drop-before,.be-avatar-drop-after)::after {content:"";position:absolute;left:-3px;right:-3px;height:3px;border-radius:2px;background:var(--be-accent, #8FB2FF);pointer-events:none;}
+#accountAvatars .be-avatar-drop-before::after {top:-6px;}
+#accountAvatars .be-avatar-drop-after::after {bottom:-6px;}
